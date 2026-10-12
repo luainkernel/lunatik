@@ -22,7 +22,9 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.0</span><a href="../master/modules/darken.html" title="This page in master, the development tree">master</a>
+        <span aria-current="page">5.1</span>
+        <a href="../5.0/modules/darken.html" title="This page in release 5.0">5.0</a>
+        <a href="../master/modules/darken.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
@@ -150,13 +152,14 @@
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.fsnotify.html">linux.fsnotify</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
-  <li><a href="../modules/linux.pkttype.html">linux.pkttype</a></li>
+  <li><a href="../modules/linux.packet.html">linux.packet</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -179,29 +182,74 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-crypto">Cryptography</a></div>
 <h1>darken<span class="kind">Module</span></h1>
 <p class="lead">Encrypted Lua script execution using AES-256-GCM.</p>
- This module provides functionality to decrypt and execute Lua scripts
+ This module provides functionality to decrypt and load or execute Lua scripts
  encrypted with AES-256 in GCM mode. Scripts are decrypted in-kernel
- and executed immediately, with the decrypted plaintext never written
+ and loaded immediately, with the decrypted plaintext never written
  to persistent storage.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
+	<td class="name"><a href="#load">load (ciphertext, iv, key)</a></td>
+	<td class="summary">Decrypts an encrypted Lua script and loads it without running it.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#run">run (ciphertext, iv, key)</a></td>
-	<td class="summary">Decrypts and executes an encrypted Lua script.</td>
+	<td class="summary">Decrypts and executes an encrypted Lua script: <a href="../modules/darken.html#load">darken.load</a> followed by a call of what it loads.</td>
 	</tr>
 </table></div>
 
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
+    <dt id="load"><a name="load"></a><strong>load (ciphertext, iv, key)</strong></dt>
+    <dd>
+    Decrypts an encrypted Lua script and loads it without running it.
+ The ciphertext carries its 16-byte tag at the end and no associated data, and nothing is loaded
+ unless the tag matches. The decrypted script is Lua source or a chunk <code>lunatic</code> compiled, and the
+ function it loads into has the runtime&rsquo;s global environment. A script that calls the function as
+ it returns it, <code>return darken.load(...)(...)</code>, runs it as a tail call, at the depth of the
+ script itself, where one that <a href="../modules/darken.html#run">darken.run</a> runs nests below a C call. It allocates a crypto
+ transform, which may sleep: call it from a process runtime or from a script body, never from a
+ softirq or hardirq callback.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">ciphertext</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         encrypted Lua script followed by its 16-byte tag (binary).
+        </li>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         12-byte initialization vector (binary).
+        </li>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         32-byte AES-256 key (binary).
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        the loaded script.
+    </ol>
+
+    <h3>Raises</h3>
+     &ldquo;IV must be 12 bytes&rdquo;, &ldquo;key must be 32 bytes&rdquo;, &ldquo;not allowed once the runtime is armed&rdquo; from
+   an interrupt-context runtime past its body, &ldquo;EBADMSG&rdquo; when the tag does not match (a wrong key
+   or IV, or a ciphertext altered or shorter than the tag), the errno name of a failed transform
+   allocation, key setting or decryption, &ldquo;not enough memory&rdquo;, or the load error of the decrypted
+   script.
+
+
+
+</dd>
     <dt id="run"><a name="run"></a><strong>run (ciphertext, iv, key)</strong></dt>
     <dd>
-    Decrypts and executes an encrypted Lua script.
- The ciphertext carries its 16-byte tag at the end and no associated data, and nothing is loaded
- unless the tag matches. The decrypted script must be Lua source, and it runs with the runtime&rsquo;s
- global environment. It allocates a crypto transform, which may sleep: call it from a process
- runtime or from a script body, never from a softirq or hardirq callback.
+    Decrypts and executes an encrypted Lua script: <a href="../modules/darken.html#load">darken.load</a> followed by a call of what it loads.
 
 
     <h3>Parameters</h3>
@@ -227,12 +275,7 @@
     </ol>
 
     <h3>Raises</h3>
-     &ldquo;IV must be 12 bytes&rdquo;, &ldquo;key must be 32 bytes&rdquo;, &ldquo;not allowed once the runtime is armed&rdquo; from
-   an interrupt-context runtime past its body, &ldquo;EBADMSG&rdquo; when the tag does not match (a wrong key
-   or IV, or a ciphertext altered or shorter than the tag), the errno name of a failed transform
-   allocation, key setting or decryption, &ldquo;not enough memory&rdquo;, the load error of the decrypted text
-   (&ldquo;attempt to load a binary chunk (mode is &rsquo;t')&rdquo; for a precompiled script), or the error the
-   script raises.
+    what <a href="../modules/darken.html#load">darken.load</a> raises, or the error the script raises.
 
 
 
@@ -250,8 +293,11 @@
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.0 · <a href="../master/modules/darken.html">master docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 15:02:32</span>
+<span>Lunatik 5.1 ·
+<a href="../5.0/modules/darken.html">5.0 docs</a> ·
+<a href="../master/modules/darken.html">master docs</a> ·
+MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
 </div>
 </footer>
 </body>

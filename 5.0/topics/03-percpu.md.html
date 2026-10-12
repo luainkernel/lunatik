@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>linux.pkttype · Lunatik</title>
+    <title>Per-CPU scripts · Lunatik</title>
     <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
@@ -22,7 +22,9 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.0</span><a href="../master/modules/linux.pkttype.html" title="This page in master, the development tree">master</a>
+        <a href="../../topics/03-percpu.md.html" title="This page in release 5.1">5.1</a>
+        <span aria-current="page">5.0</span>
+        <a href="../../master/topics/03-percpu.md.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
@@ -50,7 +52,7 @@
 <ul>
   <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
   <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
-  <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+  <li><a href="../topics/03-percpu.md.html" aria-current="page">Per-CPU scripts</a></li>
   <li><a href="../topics/04-lua.md.html">Lua in the kernel</a></li>
   <li><a href="../topics/05-examples.md.html">Examples</a></li>
   <li><a href="../topics/06-development.md.html">Development</a></li>
@@ -156,7 +158,7 @@
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
-  <li><a href="../modules/linux.pkttype.html" aria-current="page">linux.pkttype</a></li>
+  <li><a href="../modules/linux.pkttype.html">linux.pkttype</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -176,19 +178,52 @@
 
 <main class="content" id="content">
 
-<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-constants">Constants</a></div>
-<h1>linux.pkttype<span class="kind">Module</span></h1>
-<p class="lead">Linux kernel constants exposed under <a href="../modules/linux.pkttype.html#">linux.pkttype</a>.</p>
- Values are populated at build time from the kernel headers.
- Packet types (PACKET_HOST, &hellip;).
- Mirrors <code>PACKET_*</code> defines in <code>&lt;uapi/linux/if_packet.h&gt;</code>.
- Keys are the kernel names with the prefix stripped: <code>PACKET_&lt;NAME&gt;</code> is <code>linux.pkttype.&lt;NAME&gt;</code>.
-    <h2 id="usage">Usage</h2>
-        <pre class="example">local pkttype = require(&quot;linux.pkttype&quot;)
+    <h1 id="per-cpu-scripts">Per-CPU scripts</h1>
+
+<p><code>lunatik run [--context=softirq | hardirq] --percpu &lt;script&gt;</code> creates one runtime per CPU id and
+dispatches a callback to the runtime of the CPU it fires on. The runtimes share the
+registrations a script makes once for all of them, a netfilter hook and a kprobe, and each reads
+its own id with <code>lunatik.cpu()</code>.</p>
+
+<p>A runtime is a CPU, not a connection. A netfilter hook runs in the packet&rsquo;s own processing path
+(<code>NF_HOOK</code> from <code>ip_rcv</code>, <code>ip_output</code> and their peers), so the runtime is whichever CPU that path
+is on, and the packets of one connection reach several. Over loopback and veth the transmit side
+queues the packet to its own CPU&rsquo;s backlog (<code>__netif_rx</code> from <code>loopback_xmit</code> and
+<code>veth_forward_skb</code>), which the receive softirq drains on that CPU. On a NIC it is the CPU the
+queue&rsquo;s interrupt is bound to; with RPS, the one the queue&rsquo;s map picks from the flow hash, stable
+while the map is; with RFS, the one where the flow&rsquo;s last <code>recvmsg</code> ran, which follows a reader
+that migrates. An outbound hook reached from a <code>sendmsg</code> runs on the sending process&rsquo;s CPU, but
+the same hook number also fires from the receive softirq, forwarding a packet or sending a RST for
+one, and from the timer softirq on a retransmission, where it is that softirq&rsquo;s CPU. A kprobe
+reaches the runtime of the CPU the probed call ran on.</p>
+
+<p>State that must see a whole flow therefore belongs in something the runtimes share, a table
+published in <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a> or the conntrack mark; the runtime holds what is per-CPU, a counter or
+a cache. An <code>rcu.table()</code> the script body creates is not shared: the body runs once per runtime, so
+each gets its own.</p>
+
+<p><code>lunatik run</code> creates one runtime per possible CPU and runs their bodies one after another, so a
+body publishes the shared table when it finds none, and the bodies after it take that one:</p>
+
+<pre>
+<span class="keyword">local</span> lunatik = <span class="global">require</span>(<span class="string">"lunatik"</span>)
+<span class="keyword">local</span> rcu     = <span class="global">require</span>(<span class="string">"rcu"</span>)
+
+<span class="keyword">local</span> env = lunatik._ENV
+env.flows = env.flows <span class="keyword">or</span> rcu.<span class="global">table</span>()
+<span class="keyword">local</span> flows = env.flows
 </pre>
 
 
+<p>The table stays in <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a> after the runtimes stop, until a script sets <code>env.flows</code> to nil.</p>
 
+<p>A binding whose global registration the runtimes cannot share refuses a percpu runtime with
+<code>not allowed in a percpu runtime</code>, which its <code>@raise</code> says.</p>
+<nav class="pager" aria-label="Guide pages">
+    <a class="prev" href="../topics/02-running-scripts.md.html"><span>Previous</span>Running scripts</a>
+    <a class="next" href="../topics/04-lua.md.html"><span>Next</span>Lua in the kernel</a>
+</nav>
+<a class="edit" href="https://github.com/luainkernel/lunatik/edit/master/doc/guide/03-percpu.md">Edit this page on GitHub</a>
 
 </main>
 
@@ -200,8 +235,11 @@
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.0 · <a href="../master/modules/linux.pkttype.html">master docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 15:02:32</span>
+<span>Lunatik 5.0 ·
+<a href="../../topics/03-percpu.md.html">5.1 docs</a> ·
+<a href="../../master/topics/03-percpu.md.html">master docs</a> ·
+MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:26</span>
 </div>
 </footer>
 </body>

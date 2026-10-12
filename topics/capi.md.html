@@ -22,7 +22,9 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.0</span><a href="../master/topics/capi.md.html" title="This page in master, the development tree">master</a>
+        <span aria-current="page">5.1</span>
+        <a href="../5.0/topics/capi.md.html" title="This page in release 5.0">5.0</a>
+        <a href="../master/topics/capi.md.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
@@ -150,13 +152,14 @@
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.fsnotify.html">linux.fsnotify</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
-  <li><a href="../modules/linux.pkttype.html">linux.pkttype</a></li>
+  <li><a href="../modules/linux.packet.html">linux.packet</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -269,7 +272,11 @@ named <span class="backtick"><code>close</code></span> <span class="keyword">or<
 the lock with
 <span class="backtick"><code>lunatik_lockkillable</code></span>: the stop of a kernel thread, <span class="keyword">or</span> a fatal signal to any other task, ends
 the wait <span class="keyword">and</span> the call raises <span class="backtick"><code>EINTR</code></span>. While the method runs, the calling runtime allocates with
-the <span class="function-name">object</span>'s <span class="backtick"><code>gfp</code></span>.
+the <span class="function-name">object</span><span class="string">'s <code>gfp</code> and its collector is stopped, so no finalizer runs under the lock; the
+wrapper restarts the collector afterwards only if it was running. A call or return hook the
+calling thread set with <a href="https://www.lua.org/manual/5.5/manual.html#pdf-debug.sethook">debug.sethook</a> is cleared for the method and restored after it, so no
+hook runs under the lock either: the hook sees the wrapper'</span>s call <span class="keyword">and</span> <span class="keyword">return</span>, <span class="keyword">not</span> the <span class="function-name">method</span>'s.
+A line <span class="keyword">or</span> count hook, which a method written <span class="keyword">in</span> C never fires, stays set.
 </pre>
 
 
@@ -909,6 +916,18 @@ runtime&rsquo;s callback reached with them already off. A lock the kernel only t
 a task&rsquo;s siglock among them, may then be held by the CPU itself, so an entry point whose kernel call
 takes one refuses there, as <a href="../modules/signal.html#kill">signal.kill</a> does. It reads <code>irqs_disabled()</code> rather than the runtime&rsquo;s
 context, which says how its lock is taken and not the state of the CPU it runs on.</p>
+
+<h3 id="lunatik_checkhardirq">lunatik_checkhardirq</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_checkhardirq</span>(lua_State *L);
+</pre>
+
+
+<p>Raises a Lua error, <code>&quot;not allowed in a hardirq runtime&quot;</code>, when <code>L</code>&rsquo;s runtime is a hardirq one. A
+constructor whose object no callback of such a runtime can use calls it, as <a href="../modules/netlink.channel.html#new">netlink.channel.new</a>
+does, whose send re-enables bottom halves where an nlmon tap is up. It reads the runtime&rsquo;s context
+rather than the CPU&rsquo;s state, so the refusal comes from the script body, which runs with interrupts on.</p>
 
 <h3 id="lunatik_percpudata">lunatik_percpudata</h3>
 
@@ -1580,6 +1599,7 @@ handler, a <code>BUG()</code>. After a protected call or a resume fails, the err
 #define LUNATIK_ERR_OWNER   "not allowed from the runtime itself"
 #define LUNATIK_ERR_CLOSING "not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS    "not allowed with IRQs disabled"
+#define LUNATIK_ERR_HARDIRQ "not allowed in a hardirq runtime"
 #define LUNATIK_ERR_PERCPU  "not allowed in a percpu runtime"
 </pre>
 
@@ -1997,6 +2017,7 @@ entry points.</p>
 <span class="function-name">module_exit</span>(luafoo_exit);
 <span class="function-name">MODULE_LICENSE</span>(<span class="string">"Dual MIT/GPL"</span>);
 <span class="function-name">MODULE_VERSION</span>(LUNATIK_RELEASE);
+<span class="function-name">MODULE_DESCRIPTION</span>(<span class="string">"Lunatik foo binding"</span>);
 </pre>
 
 
@@ -2133,8 +2154,11 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.0 · <a href="../master/topics/capi.md.html">master docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 15:02:32</span>
+<span>Lunatik 5.1 ·
+<a href="../5.0/topics/capi.md.html">5.0 docs</a> ·
+<a href="../master/topics/capi.md.html">master docs</a> ·
+MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
 </div>
 </footer>
 </body>

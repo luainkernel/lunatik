@@ -22,7 +22,9 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.0</span><a href="../master/modules/linux.scx.html" title="This page in master, the development tree">master</a>
+        <span aria-current="page">5.1</span>
+        <a href="../5.0/modules/linux.scx.html" title="This page in release 5.0">5.0</a>
+        <a href="../master/modules/linux.scx.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
@@ -150,13 +152,14 @@
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.fsnotify.html">linux.fsnotify</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
-  <li><a href="../modules/linux.pkttype.html">linux.pkttype</a></li>
+  <li><a href="../modules/linux.packet.html">linux.packet</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html" aria-current="page">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -180,15 +183,54 @@
 <h1>linux.scx<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.scx.html#">linux.scx</a>.</p>
  Values are populated at build time from the kernel headers.
- Extensible Scheduler (sched_ext) flags, from 6.12 on.
- Mirrors <code>SCX_*</code> defines in <code>&lt;linux/sched/ext.h&gt;</code>.
- Keys are the kernel names with the prefix stripped: <code>SCX_&lt;NAME&gt;</code> is <code>linux.scx.&lt;NAME&gt;</code>.
- Empty on a kernel without <code>&lt;linux/sched/ext.h&gt;</code>.
     <h2 id="usage">Usage</h2>
         <pre class="example">local scx = require(&quot;linux.scx&quot;)
 </pre>
 
+<h2 id="Tables">Tables</h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#dsq">dsq</a></td>
+	<td class="summary">sched_ext dispatch queues an <a href="../modules/scx.html#">scx</a> callback returns (<code>LOCAL_ON</code> ORed with a CPU), from 6.12 on.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#slice">slice</a></td>
+	<td class="summary">sched_ext time slices in nanoseconds an <a href="../modules/scx.html#">scx</a> callback returns, from 6.12 on.</td>
+	</tr>
+</table></div>
 
+    <h2 class="section-header" id="Tables-details"><a name="Tables"></a>Tables in detail</h2>
+
+    <dl class="function">
+    <dt id="dsq"><a name="dsq"></a><strong>dsq</strong></dt>
+    <dd>
+    sched_ext dispatch queues an <a href="../modules/scx.html#">scx</a> callback returns (<code>LOCAL_ON</code> ORed with a CPU), from 6.12 on.
+ Mirrors <code>SCX_DSQ_*</code> defines in <code>&lt;linux/sched/ext.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>SCX_DSQ_&lt;NAME&gt;</code> is <code>linux.scx.dsq.&lt;NAME&gt;</code>.
+ Empty on a kernel without <code>&lt;linux/sched/ext.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt id="slice"><a name="slice"></a><strong>slice</strong></dt>
+    <dd>
+    sched_ext time slices in nanoseconds an <a href="../modules/scx.html#">scx</a> callback returns, from 6.12 on.
+ Mirrors <code>SCX_SLICE_*</code> defines in <code>&lt;linux/sched/ext.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>SCX_SLICE_&lt;NAME&gt;</code> is <code>linux.scx.slice.&lt;NAME&gt;</code>.
+ Empty on a kernel without <code>&lt;linux/sched/ext.h&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+</dl>
 
 
 </main>
@@ -201,8 +243,11 @@
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.0 · <a href="../master/modules/linux.scx.html">master docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 15:02:32</span>
+<span>Lunatik 5.1 ·
+<a href="../5.0/modules/linux.scx.html">5.0 docs</a> ·
+<a href="../master/modules/linux.scx.html">master docs</a> ·
+MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
 </div>
 </footer>
 </body>

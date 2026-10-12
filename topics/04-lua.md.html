@@ -22,7 +22,9 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.0</span><a href="../master/topics/04-lua.md.html" title="This page in master, the development tree">master</a>
+        <span aria-current="page">5.1</span>
+        <a href="../5.0/topics/04-lua.md.html" title="This page in release 5.0">5.0</a>
+        <a href="../master/topics/04-lua.md.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
@@ -150,13 +152,14 @@
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.fsnotify.html">linux.fsnotify</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
-  <li><a href="../modules/linux.pkttype.html">linux.pkttype</a></li>
+  <li><a href="../modules/linux.packet.html">linux.packet</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -178,7 +181,7 @@
 
     <h1 id="lua-in-the-kernel">Lua in the kernel</h1>
 
-<p>Lunatik 5.0 is based on
+<p>Lunatik 5.1 is based on
 <a href="https://github.com/luainkernel/lua">Lua 5.5 adapted</a>
 to run in the kernel.</p>
 
@@ -239,7 +242,11 @@ entered, so a script that creates itself runs out too. Under <a href="https://ww
 the bound raises in turn, and the call ends with <code>error in error handling</code>. On the task stack the
 call also raises once a quarter of the stack is all that is left, so a hook entered deep, as a
 kprobe in the network stack is, or a runtime another script closes, gets what remains; a hook on an
-interrupt stack is bounded from its entry alone.</p>
+interrupt stack is bounded from its entry alone. Loading a binary chunk and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.dump">string.dump</a> recurse once
+per function the chunk nests, and nothing counts that against the bound, so a chunk whose functions
+nest more than ten deep is out of contract: loaded or dumped where the stack is already deep, it can
+run the kernel stack into its guard page instead of raising. <code>lunatic</code> compiles such a chunk all the
+same.</p>
 
 <p>A string pattern nests at most 32 levels deep: the match takes one, each capture two, and each
 position capture <code>()</code> and each item with <code>?</code>, <code>*</code>, <code>+</code> or <code>-</code> that matches one more. Past it,
@@ -286,8 +293,11 @@ raise <code>not allowed once the runtime is armed</code>, and <a href="https://w
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.0 · <a href="../master/topics/04-lua.md.html">master docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 15:02:32</span>
+<span>Lunatik 5.1 ·
+<a href="../5.0/topics/04-lua.md.html">5.0 docs</a> ·
+<a href="../master/topics/04-lua.md.html">master docs</a> ·
+MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
 </div>
 </footer>
 </body>

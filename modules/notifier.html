@@ -22,7 +22,9 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.0</span><a href="../master/modules/notifier.html" title="This page in master, the development tree">master</a>
+        <span aria-current="page">5.1</span>
+        <a href="../5.0/modules/notifier.html" title="This page in release 5.0">5.0</a>
+        <a href="../master/modules/notifier.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
@@ -150,13 +152,14 @@
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.fsnotify.html">linux.fsnotify</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
-  <li><a href="../modules/linux.pkttype.html">linux.pkttype</a></li>
+  <li><a href="../modules/linux.packet.html">linux.packet</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -297,7 +300,7 @@
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
          invoked as <code>callback(event, name, netns)</code> — <code>event</code>
-   is a <a href="../modules/linux.netdev.html#">linux.netdev</a> code, <code>name</code> is the device name (e.g. <code>&quot;eth0&quot;</code>) and
+   is a <a href="../modules/linux.netdev.html#cmd">linux.netdev.cmd</a> code, <code>name</code> is the device name (e.g. <code>&quot;eth0&quot;</code>) and
    <code>netns</code> the inode number of its network namespace, as <a href="../modules/linux.html#netns">linux.netns</a> gives it.
    The registration itself delivers, inside this call, a <code>REGISTER</code> for each
    device every namespace already has, and an <code>UP</code> for each of those that is
@@ -341,7 +344,7 @@
         <li><span class="parameter">callback</span>
             <span class="types"><span class="type">function</span></span>
          invoked as <code>callback(event, c, vc_num)</code> —
-   <code>event</code> is a <a href="../modules/linux.vt.html#">linux.vt</a> code, <code>c</code> is the character value a <code>WRITE</code> or
+   <code>event</code> is a <a href="../modules/linux.vt.html#event">linux.vt.event</a> code, <code>c</code> is the character value a <code>WRITE</code> or
    <code>PREWRITE</code> carries and nil for any other event, and <code>vc_num</code> is the
    virtual console number. Returns a <a href="../modules/linux.notify.html#">linux.notify</a> status code.
         </li>
@@ -377,8 +380,11 @@
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.0 · <a href="../master/modules/notifier.html">master docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 15:02:32</span>
+<span>Lunatik 5.1 ·
+<a href="../5.0/modules/notifier.html">5.0 docs</a> ·
+<a href="../master/modules/notifier.html">master docs</a> ·
+MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
 </div>
 </footer>
 </body>

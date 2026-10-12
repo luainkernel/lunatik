@@ -22,7 +22,9 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.0</span><a href="../master/modules/socket.html" title="This page in master, the development tree">master</a>
+        <span aria-current="page">5.1</span>
+        <a href="../5.0/modules/socket.html" title="This page in release 5.0">5.0</a>
+        <a href="../master/modules/socket.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
@@ -150,13 +152,14 @@
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
   <li><a href="../modules/linux.fsnotify.html">linux.fsnotify</a></li>
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
-  <li><a href="../modules/linux.pkttype.html">linux.pkttype</a></li>
+  <li><a href="../modules/linux.packet.html">linux.packet</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -188,7 +191,7 @@
 <p> It allows operations such as creating sockets, binding, listening, connecting,
  sending, and receiving data. The constants for address families, socket types,
  protocols, message flags and option levels and names are in <a href="../modules/linux.socket.html#">linux.socket</a>
- (<code>af</code>, <code>sock</code>, <code>ipproto</code>, <code>msg</code>, <code>sol</code>, <code>so</code>).</p>
+ (<code>af</code>, <code>sock</code>, <code>ipproto</code>, <code>msg</code>, <code>sol</code>, <code>so</code>, <code>ip</code>).</p>
 
 <p> An integer argument is bounded to the kernel type that takes it, an <code>int</code> unless a method
  says otherwise: one past it raises &ldquo;out of bounds&rdquo; instead of reaching the kernel truncated.</p>
@@ -281,7 +284,7 @@ within 32 bits.</li>
 
 
 <p> A method that returns an address returns it the same way. An <code>AF_PACKET</code> one carries three more
- values after the interface index: the packet type (a <a href="../modules/linux.pkttype.html#">linux.pkttype</a> value), the hardware type (a
+ values after the interface index: the packet type (a <a href="../modules/linux.packet.html#type">linux.packet.type</a> value), the hardware type (a
  <a href="../modules/linux.arphrd.html#">linux.arphrd</a> value) and the hardware address, a string of the length the kernel reports: the
  interface&rsquo;s own for <a href="../modules/socket.html#socket:getsockname">getsockname</a>, the sender&rsquo;s for <a href="../modules/socket.html#socket:receivefrom">receivefrom</a>.
           </div>
@@ -833,7 +836,7 @@ sock:<span class="function-name">setsockopt</span>(sk.sol.SOCKET, sk.so.RCVTIMEO
             <span class="types"><span class="type">integer</span></span>
          protocol (e.g., <code>linux.socket.ipproto.TCP</code>).
    For <code>AF_PACKET</code> sockets, <code>protocol</code> is an ethertype in host byte order, as <a href="../modules/socket.html#socket:bind">bind</a> takes it
-   (e.g., <code>linux.eth.ALL</code> for every frame).
+   (e.g., <code>linux.eth.proto.ALL</code> for every frame).
         </li>
         <li><span class="parameter">pid</span>
             <span class="types"><span class="type">integer</span></span>
@@ -894,8 +897,11 @@ sock:<span class="function-name">setsockopt</span>(sk.sol.SOCKET, sk.so.RCVTIMEO
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.0 · <a href="../master/modules/socket.html">master docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-07 15:02:32</span>
+<span>Lunatik 5.1 ·
+<a href="../5.0/modules/socket.html">5.0 docs</a> ·
+<a href="../master/modules/socket.html">master docs</a> ·
+MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
 </div>
 </footer>
 </body>

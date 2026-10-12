@@ -60,7 +60,11 @@ Describes a Lunatik object class.
     the lock with
     `lunatik_lockkillable`: the stop of a kernel thread, or a fatal signal to any other task, ends
     the wait and the call raises `EINTR`. While the method runs, the calling runtime allocates with
-    the object's `gfp`.
+    the object's `gfp` and its collector is stopped, so no finalizer runs under the lock; the
+    wrapper restarts the collector afterwards only if it was running. A call or return hook the
+    calling thread set with `debug.sethook` is cleared for the method and restored after it, so no
+    hook runs under the lock either: the hook sees the wrapper's call and return, not the method's.
+    A line or count hook, which a method written in C never fires, stays set.
   - `LUNATIK_OPT_SINGLE` *(constraint)*: all instances are private and non-shareable by default.
     Like `SOFTIRQ`, this is always inherited and cannot be overridden per instance.
   - `LUNATIK_OPT_EXTERNAL` *(constraint)*: `object->private` holds an external pointer — Lunatik
@@ -559,6 +563,15 @@ runtime's callback reached with them already off. A lock the kernel only takes w
 a task's siglock among them, may then be held by the CPU itself, so an entry point whose kernel call
 takes one refuses there, as `signal.kill` does. It reads `irqs_disabled()` rather than the runtime's
 context, which says how its lock is taken and not the state of the CPU it runs on.
+
+### lunatik\_checkhardirq
+```C
+void lunatik_checkhardirq(lua_State *L);
+```
+Raises a Lua error, `"not allowed in a hardirq runtime"`, when `L`'s runtime is a hardirq one. A
+constructor whose object no callback of such a runtime can use calls it, as `netlink.channel.new`
+does, whose send re-enables bottom halves where an nlmon tap is up. It reads the runtime's context
+rather than the CPU's state, so the refusal comes from the script body, which runs with interrupts on.
 
 ### lunatik\_percpudata
 ```C
@@ -1080,6 +1093,7 @@ handler, a `BUG()`. After a protected call or a resume fails, the error is read 
 #define LUNATIK_ERR_OWNER	"not allowed from the runtime itself"
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
+#define LUNATIK_ERR_HARDIRQ	"not allowed in a hardirq runtime"
 #define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
 ```
 The messages of the refusals this page documents. A binding that refuses one of their conditions on
@@ -1425,6 +1439,7 @@ module_init(luafoo_init);
 module_exit(luafoo_exit);
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_VERSION(LUNATIK_RELEASE);
+MODULE_DESCRIPTION("Lunatik foo binding");
 ```
 A script then runs `local foo = require("foo")` and `foo.new():inc()`.
 

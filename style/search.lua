@@ -54,7 +54,7 @@ for _, page in ipairs(pages("topics")) do
 		local html = read(dir .. "/topics/" .. page)
 		local title = text(html:match("<h1[^>]*>(.-)</h1>") or page)
 		add(title, "topics/" .. page, "Guide")
-		for level, id, heading in html:gmatch('<h([23]) id="([^"]+)">(.-)</h%1>') do
+		for _, id, heading in html:gmatch('<h([23]) id="([^"]+)">(.-)</h%1>') do
 			add(text(heading), "topics/" .. page .. "#" .. id, "Guide · " .. title)
 		end
 	end

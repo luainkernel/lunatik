@@ -247,9 +247,8 @@ spellings, which the tests and the documentation use. What each line changes:
   `runner.spawn` refuses from the kernel today; a context outside the set is a usage error, exit
   2, with the three values in the message. The bare words after the script stay accepted for one
   release with the same meaning and a line on stderr naming the option: the README taught them
-  and an out-of-tree script may carry them, though the consumer's do not (its unit runs
-  `lunatik spawn dome/daemon` and `lunatik unload`, its script `stop`, `spawn` and `unload`). The
-  tree's 30 call sites in 20 files move in the same pull request.
+  and an out-of-tree script may carry them. The tree's 30 call sites in 20 files move in the same
+  pull request.
 - **Exit status 0, 1 when the operation failed, 2 on a usage error.** 1 is `EXIT_FAILURE`, the
   value every reference shares and the one a script tests; 2 for usage is the shell's own
   [builtins' value](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html) and
