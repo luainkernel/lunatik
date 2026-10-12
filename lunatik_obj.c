@@ -180,6 +180,19 @@ int lunatik_deleteobject(lua_State *L)
 }
 EXPORT_SYMBOL(lunatik_deleteobject);
 
+static inline int lunatik_stopgc(lua_State *L)
+{
+	int running = lua_gc(L, LUA_GCISRUNNING);
+	lua_gc(L, LUA_GCSTOP);
+	return running;
+}
+
+static inline void lunatik_restartgc(lua_State *L, int running)
+{
+	if (running)
+		lua_gc(L, LUA_GCRESTART);
+}
+
 static int lunatik_pcallobject(lua_State *L, lunatik_object_t *object, int n)
 {
 	lunatik_object_t *runtime = lunatik_toruntime(L);
@@ -187,11 +200,9 @@ static int lunatik_pcallobject(lua_State *L, lunatik_object_t *object, int n)
 	lunatik_try(L, lunatik_lockkillable, object);
 	gfp_t gfp = lunatik_gfp(runtime);
 	runtime->gfp = lunatik_gfp(object); /* the method allocates under the object's lock */
-	int running = lua_gc(L, LUA_GCISRUNNING);
-	lua_gc(L, LUA_GCSTOP);
+	int running = lunatik_stopgc(L);
 	int ret = lua_pcall(L, n, LUA_MULTRET, 0);
-	if (running)
-		lua_gc(L, LUA_GCRESTART);
+	lunatik_restartgc(L, running);
 	runtime->gfp = gfp;
 	lunatik_unlock(object);
 	return ret;
