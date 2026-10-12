@@ -270,8 +270,11 @@ named <span class="backtick"><code>close</code></span> <span class="keyword">or<
 the lock with
 <span class="backtick"><code>lunatik_lockkillable</code></span>: the stop of a kernel thread, <span class="keyword">or</span> a fatal signal to any other task, ends
 the wait <span class="keyword">and</span> the call raises <span class="backtick"><code>EINTR</code></span>. While the method runs, the calling runtime allocates with
-the <span class="function-name">object</span>'s <span class="backtick"><code>gfp</code></span> <span class="keyword">and</span> its collector is stopped, so no finalizer runs under the lock; the
-wrapper restarts the collector afterwards only <span class="keyword">if</span> it was running.
+the <span class="function-name">object</span><span class="string">'s <code>gfp</code> and its collector is stopped, so no finalizer runs under the lock; the
+wrapper restarts the collector afterwards only if it was running. A call or return hook the
+calling thread set with <a href="https://www.lua.org/manual/5.5/manual.html#pdf-debug.sethook">debug.sethook</a> is cleared for the method and restored after it, so no
+hook runs under the lock either: the hook sees the wrapper'</span>s call <span class="keyword">and</span> <span class="keyword">return</span>, <span class="keyword">not</span> the <span class="function-name">method</span>'s.
+A line <span class="keyword">or</span> count hook, which a method written <span class="keyword">in</span> C never fires, stays set.
 </pre>
 
 
@@ -2150,7 +2153,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <footer class="site-footer">
 <div>
 <span>Lunatik master · <a href="../../topics/capi.md.html">release docs</a> · MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 11:35:06</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 12:52:35</span>
 </div>
 </footer>
 </body>
