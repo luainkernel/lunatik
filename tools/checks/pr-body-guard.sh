@@ -81,7 +81,7 @@ check() {
 		private=$LUNATIK_CONSUMERS
 		gh_ours "$post" || private=
 		if [ ! -f "$file" ]; then
-			echo "pr-body-guard: a body is read from a file, and $file is not one. A path written as a shell variable arrives here unexpanded: spell it out." >&2
+			echo "pr-body-guard: a body is read from a file, and $file is not one. The guard reads the command before it runs, so a body the same command writes, by cp, a redirect or a heredoc, is not there yet: write it in a command of its own first. A path written as a shell variable arrives here unexpanded: spell it out." >&2
 			exit 2
 		fi
 
