@@ -70,10 +70,14 @@ the list of pull requests GitHub generates.
 The tag does not exist until the release is published, when GitHub creates it on `target_commitish`:
 before the POST, `gh api repos/<owner>/<repo>/releases/tags/<tag>` answers 404, so no release carries
 it, and after it `git ls-remote <url> refs/tags/<tag>` prints nothing, so the draft made no tag.
+A draft rewritten after the cut or the notes moved is patched with the whole object the POST sent,
+`tag_name` included: v5.1's draft, patched with its new `target_commitish` and body alone, came back
+named `untagged-…`.
+
 The notes go to the maintainer whole, in the message that hands the draft over. Publishing is his
 imperative, and then:
 
-    gh api -X PATCH repos/<owner>/<repo>/releases/<id> -F draft=false -f make_latest=true
+    gh api -X PATCH repos/<owner>/<repo>/releases/<id> -f tag_name=<tag> -F draft=false -f make_latest=true
 
 # 6. The site
 
