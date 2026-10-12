@@ -105,13 +105,14 @@
 # local istopic = module and ldoc.body ~= nil
 # local current = module and areaof(module.name)
 # local title = module and (istopic and display_name(module) or module.name) or nil
-# -- the release lunatik.h declares, and whether this commit carries its tag
-# local header = ldoc.include_file('lunatik.h')
-# local RELEASE = header:match('LUNATIK_VERSION_MAJOR_N%s+(%d+)') .. '.' .. header:match('LUNATIK_VERSION_MINOR_N%s+(%d+)')
-# local released = ('\n' .. ldoc.include_file('doc/.tags')):find('\nv' .. RELEASE:gsub('%.', '%%.') .. '[.\n]') ~= nil
-# local VERSION = released and RELEASE or 'master'
+# -- this page's release, from its tag, or master; the site's releases, the first at its root
+# local VERSION = ldoc.include_file('doc/.tags'):match('v(%d+%.%d+)') or 'master'
+# local VERSIONS = {}
+# for version in ldoc.include_file('doc/.releases'):gmatch('v(%d+%.%d+)') do VERSIONS[#VERSIONS + 1] = version end
+# VERSIONS[#VERSIONS + 1] = 'master'
 # local page = module and module.kind .. '/' .. module.name .. '.html' or 'index.html'
-# local OTHER = up .. (released and 'master/' or '../') .. page
+# local site = up .. (VERSION == VERSIONS[1] and '' or '../')
+# local function href(version) return site .. (version == VERSIONS[1] and '' or version .. '/') .. page end
 # -- the home page: the README's first paragraph leads the hero, and an example shows what a script looks like
 # local SHOWCASE = 'examples/systrack/probe.lua'
 # local home, intro, floor, showcase, nmodules = nil, nil, nil, nil, 0
@@ -156,10 +157,12 @@
         <span>$(ldoc.project)</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-# if released then
-        <span aria-current="page">$(RELEASE)</span><a href="$(OTHER)" title="This page in master, the development tree">master</a>
-# else
-        <a href="$(OTHER)" title="This page in the latest release">release</a><span aria-current="page">master</span>
+# for _, version in ldoc.ipairs(VERSIONS) do
+#  if version == VERSION then
+        <span aria-current="page">$(version)</span>
+#  else
+        <a href="$(href(version))" title="This page in $(version == 'master' and 'master, the development tree' or 'release ' .. version)">$(version)</a>
+#  end
 # end
     </nav>
     <div class="search" role="search">
@@ -477,7 +480,13 @@ $(anchor(home or ''))
 
 <footer class="site-footer">
 <div>
-<span>$(ldoc.project) $(VERSION) · <a href="$(OTHER)">$(released and 'master' or 'release') docs</a> · MIT or GPL-2.0-only · <a href="$(GITHUB)">$((GITHUB:gsub('^https://', '')))</a></span>
+<span>$(ldoc.project) $(VERSION) ·
+# for _, version in ldoc.ipairs(VERSIONS) do
+#  if version ~= VERSION then
+<a href="$(href(version))">$(version) docs</a> ·
+#  end
+# end
+MIT or GPL-2.0-only · <a href="$(GITHUB)">$((GITHUB:gsub('^https://', '')))</a></span>
 <span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc $(ldoc.version)</a> · $(ldoc.updatetime)</span>
 </div>
 </footer>
