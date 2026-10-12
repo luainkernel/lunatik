@@ -14,22 +14,18 @@ on:
     types:
     - published
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Published release to serve at the site's root
-        required: true
 concurrency:
   group: ${{ github.event_name == 'pull_request' && github.ref || 'gh-pages' }}
 jobs:
   build:
     name: Build docs
     runs-on: ubuntu-latest
-    env:
-      TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
     - name: Checkout
       uses: actions/checkout@v3
       with:
+        # a release builds the site from master too, which serves master/ and every page's header
+        ref: ${{ github.event_name == 'release' && 'master' || '' }}
         fetch-depth: 0
     - name: Setup Lua
       uses: leafo/gh-actions-lua@v8
@@ -43,9 +39,18 @@ jobs:
         sudo apt-get install -y libmarkdown2-dev
         luarocks install ldoc
         luarocks install discount DISCOUNT_INCDIR=/usr/include/$(gcc -print-multiarch) DISCOUNT_LIBDIR=/usr/lib/$(gcc -print-multiarch)
+    - name: List the releases the site serves
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # the newest release of each line, latest first, from 5.0, the first one the site documents
+        releases=$(gh api --paginate repos/${{ github.repository }}/releases \
+          --jq '.[] | select(.draft or .prerelease | not) | .tag_name' |
+          sort -rV | awk -F. 'substr($1, 2) + 0 >= 5 && !seen[$1 "." $2]++' | xargs)
+        test -n "$releases" || { echo "no published release listed"; exit 1; }
+        echo "RELEASES=$releases" >> "$GITHUB_ENV"
     - name: Build docs
-      if: ${{ env.TAG == '' }}
-      run: make doc-site LUA=lua DOC_TAGS=
+      run: make doc-site LUA=lua DOC_TAGS= DOC_RELEASES="$RELEASES"
     - name: Deploy master
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       uses: peaceiris/actions-gh-pages@v3
@@ -53,30 +58,25 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: doc
         destination_dir: master
-    - name: Check the latest release
-      id: latest
-      if: ${{ env.TAG != '' }}
-      env:
-        GH_TOKEN: ${{ github.token }}
+    - name: Build the site
       run: |
-        latest=$(gh api repos/${{ github.repository }}/releases/latest --jq .tag_name)
-        if [ "$latest" = "$TAG" ]; then echo "deploy=true" >> "$GITHUB_OUTPUT"
-        else echo "::notice::$TAG is not the latest release, $latest is, and keeps the site's root"
-        fi
-    - name: Build the release and master
-      if: ${{ steps.latest.outputs.deploy == 'true' }}
-      run: |
-        git worktree add "$RUNNER_TEMP/release" "$TAG"
-        # the release's content, under the header and style of the commit running this workflow
-        git -C "$RUNNER_TEMP/release" checkout "$GITHUB_SHA" -- doc/style
-        git worktree add "$RUNNER_TEMP/master" origin/master
-        make -C "$RUNNER_TEMP/release" doc-site LUA=lua
-        make -C "$RUNNER_TEMP/master" doc-site LUA=lua DOC_TAGS=
-        mv "$RUNNER_TEMP/master/doc" "$RUNNER_TEMP/release/doc/master"
-    - name: Deploy the release
-      if: ${{ steps.latest.outputs.deploy == 'true' }}
+        head=$(git rev-parse HEAD)
+        for tag in $RELEASES; do
+          git worktree add "$RUNNER_TEMP/$tag" "$tag"
+          # the release's content, under the header, style and recipe of the tree checked out
+          git -C "$RUNNER_TEMP/$tag" checkout "$head" -- doc/style
+          make -C "$RUNNER_TEMP/$tag" -f "$GITHUB_WORKSPACE/Makefile" doc-site LUA=lua DOC_TAGS="$tag" DOC_RELEASES="$RELEASES"
+        done
+        # the latest release at the root, each other one under its own version, master under master/
+        set -- $RELEASES
+        mv "$RUNNER_TEMP/$1/doc" "$RUNNER_TEMP/site"
+        shift
+        for tag; do mv "$RUNNER_TEMP/$tag/doc" "$RUNNER_TEMP/site/$(echo "${tag#v}" | cut -d. -f1-2)"; done
+        mv doc "$RUNNER_TEMP/site/master"
+    - name: Deploy the site
+      if: ${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ${{ runner.temp }}/release/doc
+        publish_dir: ${{ runner.temp }}/site
 

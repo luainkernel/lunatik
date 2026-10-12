@@ -69,19 +69,20 @@ imperative, and then:
 
 # 6. The site
 
-The site serves the latest release at its root and master under `master/`. Publishing the release
-runs `doc.yml` on the `release` event, which builds the tag at the root with master beside it and
-replaces the site; it takes the root only for the release GitHub marks as latest, which the publish
-above sets. The run is read by the cut's SHA, and one that failed or was cancelled, behind a push to
-master in the `gh-pages` concurrency group, is replaced by a dispatch naming the tag:
+The site serves the newest release of each line from 5.0, the highest at its root and each other
+one under its version, `5.0/`, and master under `master/`. Publishing the release runs the `doc.yml`
+the cut carries, on the `release` event, which builds each of them from its tag, and master, and
+replaces the site. The run is read by the cut's SHA, and one that failed or was cancelled, behind a
+push to master in the `gh-pages` concurrency group, is replaced by a dispatch, which builds the same
+site:
 
     gh api "repos/<owner>/<repo>/actions/workflows/doc.yml/runs?event=release&head_sha=<cut>" \
         --jq '.workflow_runs[] | select(.head_sha == "<cut>") | [.id, .status, .conclusion] | @tsv'
-    gh api -X POST repos/<owner>/<repo>/actions/workflows/doc.yml/dispatches -f ref=master -f 'inputs[tag]=<tag>'
+    gh api -X POST repos/<owner>/<repo>/actions/workflows/doc.yml/dispatches -f ref=master
 
-Once pages deploys, the root's footer names the release and links master's pages:
+Once pages deploys, the root's footer names the release and links every other version's pages:
 
-    curl -s https://luainkernel.github.io/lunatik/ | grep -oE 'Lunatik [0-9.]+ · <a href="master/index.html">'
+    curl -s https://luainkernel.github.io/lunatik/ | grep -oE 'Lunatik [0-9.]+ ·|<a href="[^"]*">[^<]* docs</a>'
 
 # 7. The milestone closes
 
