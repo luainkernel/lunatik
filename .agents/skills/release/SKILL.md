@@ -18,6 +18,14 @@ The release's milestone has no open issue, and the second command prints nothing
 `medium`: every open issue of those severities is in the release or in a later milestone, by the
 maintainer's word.
 
+The cut declares the release it is tagged as, which every module carries as its `MODULE_VERSION`
+and `lunatik -V` prints:
+
+    git show <sha>:lunatik.h | grep -E 'LUNATIK_VERSION_(MAJOR|MINOR)_N'
+
+A cut that declares another release waits on the commit that bumps it, as v5.1's did (#1882), and
+the suite of the next step runs on the cut that carries it.
+
 # 2. The suite on the cut
 
 The whole suite runs on the cut through the lunatik-cycle skill. A pull request merged after the run
