@@ -69,7 +69,7 @@ done <<< "$posts"
 
 for f in $files; do
 	[ -f "$f" ] && continue
-	echo "review-post-guard: the text of a post is read from a file, and $f is not one. A path written as a shell variable arrives here unexpanded: spell it out." >&2
+	echo "review-post-guard: the text of a post is read from a file, and $f is not one. The guard reads the command before it runs, so a text the same command writes, by cp, a redirect or a heredoc, is not there yet: write it in a command of its own first. A path written as a shell variable arrives here unexpanded: spell it out." >&2
 	exit 2
 done
 
