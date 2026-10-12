@@ -353,7 +353,10 @@ named, not one discovered at that consumer's build.
   `tools/checks/handoff.sh` names a reply that hands him one.
 * A question from the maintainer is answered, and the turn changes nothing: what the answer
   recommends is proposed with its decision, not done. "What is left?" asks for the list, not for the
-  work on it; `.claude/hooks/on-prompt.sh` reminds a turn that reads a question.
+  work on it; `.claude/hooks/on-prompt.sh` reminds a turn that reads a question. A message that ends
+  in a question mark is a question whatever the text before it directs: "...; entendido?" asks
+  whether the order was understood, and the turn says what it would do and waits for the go. #1865
+  read one as an order, and the change it filed closed unmerged.
 * A fact the maintainer states is taken as given and acted on, not verified back: "#736 is merged"
   ends a question rather than opening one, and re-arguing the point it settles spends the exchange
   on what is already decided. A state you assert yourself is the other way round, and rule 1 governs
