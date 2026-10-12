@@ -234,7 +234,9 @@ inherited is not the push's to fix. `LUALS_OK=1` pushes a name that is the code'
 interrogative, and `.claude/hooks/on-prompt.sh`, run as the message arrives (`UserPromptSubmit`), tells
 the turn that it answers and changes nothing, and reads no background task's notification, which reaches
 the turn as a prompt the maintainer did not write: "what is left?" drew seven implement-issue workflows that
-had to be stopped, when it asked for the list.
+had to be stopped, when it asked for the list. An order closed by a confirmation tag, "...; entendido?", is a
+question too, and the check reads it as one: #1865 asked it to read such a message as an order, and the
+maintainer closed it, since the tag asks whether the order was understood.
 
 `table.sh` reads the same message for a request for a table, "tabela" or "table", and `on-prompt.sh`
 tells the turn how much a cell holds: Claude Code wraps each cell to the width its column gets and, when
