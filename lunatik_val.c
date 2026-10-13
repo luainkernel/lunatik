@@ -7,7 +7,8 @@
 
 void lunatik_freestring(struct kref *kref)
 {
-	lunatik_free(container_of(kref, lunatik_string_t, kref));
+	lunatik_string_t *str = container_of(kref, lunatik_string_t, kref);
+	kvfree_rcu(str, rcu); /* a reader that found the string under rcu_read_lock may still read its count */
 }
 EXPORT_SYMBOL(lunatik_freestring);
 
