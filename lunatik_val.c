@@ -7,9 +7,7 @@
 
 void lunatik_freestring(struct kref *kref)
 {
-	lunatik_string_t *str = container_of(kref, lunatik_string_t, kref);
-	lunatik_free(str->data);
-	lunatik_free(str);
+	lunatik_free(container_of(kref, lunatik_string_t, kref));
 }
 EXPORT_SYMBOL(lunatik_freestring);
 
@@ -17,12 +15,7 @@ static inline lunatik_string_t *lunatik_newstring(lua_State *L, int ix)
 {
 	size_t len;
 	const char *s = luaL_checklstring(L, ix, &len);
-	lunatik_string_t *str = lunatik_checkalloc(L, sizeof(*str));
-	str->data = lunatik_malloc(L, len + 1);
-	if (unlikely(!str->data)) {
-		lunatik_free(str);
-		lunatik_enomem(L);
-	}
+	lunatik_string_t *str = lunatik_checkalloc(L, struct_size(str, data, len + 1));
 	kref_init(&str->kref);
 	str->len = len;
 	memcpy(str->data, s, len + 1);
