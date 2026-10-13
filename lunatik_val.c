@@ -41,6 +41,7 @@ void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value)
 		break;
 	case LUA_TUSERDATA:
 		value->object = lunatik_checkshareable(L, ix);
+		lunatik_getobject(value->object); /* a value holds what it names, as a string does */
 		break;
 	default:
 		luaL_argerror(L, ix, "unsupported type");

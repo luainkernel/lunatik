@@ -318,7 +318,7 @@ static int luarcu_newindex(lua_State *L)
 	lunatik_value_t value;
 	lunatik_checkvalue(L, 3, &value);
 	int ret = luarcu_setvalue(table, key, keylen, &value);
-	lunatik_putvalue(&value);
+	lunatik_dropvalue(&value);
 	if (ret == -ENOMEM)
 		lunatik_enomem(L);
 	else if (ret < 0)

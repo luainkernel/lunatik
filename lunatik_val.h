@@ -47,13 +47,6 @@ static inline void lunatik_dropvalue(lunatik_value_t *value)
 		lunatik_putstring(value->string);
 }
 
-/* release value's reference after lunatik_pushvalue (strings only; objects transfer their ref) */
-static inline void lunatik_putvalue(lunatik_value_t *value)
-{
-	if (lunatik_isstring(value))
-		lunatik_putstring(value->string);
-}
-
 void lunatik_checkvalue(lua_State *L, int ix, lunatik_value_t *value);
 void lunatik_pushvalue(lua_State *L, lunatik_value_t *value);
 
