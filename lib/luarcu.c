@@ -305,7 +305,6 @@ static int luarcu_index(lua_State *L)
 
 	luarcu_getvalue(table, key, keylen, &value);
 	lunatik_pushvalue(L, &value);
-	lunatik_putvalue(&value);
 	return 1; /* value */
 }
 
@@ -371,7 +370,6 @@ static int luarcu_foreach_handle(lua_State *L)
 		return 0;
 
 	lunatik_pushvalue(L, &value); /* first, so that a raise below leaves the reference with the clone */
-	lunatik_putvalue(&value); /* a string is copied, so its reference is ours to drop */
 	lua_pushlstring(L, entry->key, entry->keylen);
 	lua_insert(L, -2); /* key, value */
 	lua_call(L, 2, 0);

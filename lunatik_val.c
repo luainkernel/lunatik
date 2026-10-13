@@ -4,6 +4,7 @@
 */
 
 #include "lunatik.h"
+#include "lunatik_core.h"
 
 void lunatik_freestring(struct kref *kref)
 {
@@ -67,17 +68,9 @@ void lunatik_pushvalue(lua_State *L, lunatik_value_t *value)
 	case LUA_TNUMBER:
 		lua_pushinteger(L, value->integer);
 		break;
-	case LUA_TSTRING: {
-		lunatik_string_t *s = value->string;
-		char *buf = lunatik_malloc(L, s->len + 1);
-		if (unlikely(!buf)) {
-			lunatik_putstring(s);
-			lunatik_enomem(L);
-		}
-		memcpy(buf, s->data, s->len);
-		lunatik_pushexternalstring(L, buf, s->len);
+	case LUA_TSTRING: /* Lua puts the value's reference when it frees the string, a failed push's included */
+		lua_pushexternalstring(L, value->string->data, value->string->len, lunatik_unholdstring, value->string);
 		break;
-	}
 	case LUA_TUSERDATA:
 		lua_pushcfunction(L, lunatik_doclone);
 		lua_pushlightuserdata(L, value->object);
