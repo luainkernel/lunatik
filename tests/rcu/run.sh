@@ -37,13 +37,21 @@
 # tables and refuses one more, a table that holds none is not counted, and one held
 # under several keys is counted once.
 #
+# strings: rcu.table stores a string and reads it back whole, empty, with an embedded
+# NUL or past a page; a string read indexes a Lua table as its literal; the entry keeps
+# its string once the writer's is collected, and a string read keeps its bytes once the
+# entry goes; an entry turns from a string into an integer, a boolean and an object and
+# back; and an armed softirq and an armed hardirq runtime each read whole a string past
+# KMALLOC_MAX_SIZE a process runtime stored, then replace it, putting its last reference
+# with bottom halves or interrupts off.
+#
 # Usage: sudo bash tests/rcu/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="foreach_values foreach_foreign bounds index_whole foreach_next cycle"
+TESTS="foreach_values foreach_foreign bounds index_whole foreach_next cycle strings"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {
@@ -80,6 +88,8 @@ echo ""
 bash "$DIR/entry_release.sh" || RESULT=1
 echo ""
 bash "$DIR/object_grace.sh" || RESULT=1
+echo ""
+bash "$DIR/string_grace.sh" || RESULT=1
 echo ""
 bash "$DIR/foreach_grace.sh" || RESULT=1
 echo ""
