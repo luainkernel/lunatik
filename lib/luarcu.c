@@ -15,7 +15,7 @@
 * entry compare unequal; from a softirq or
 * hardirq runtime, one whose class needs process context raises
 * `'<class>': process-context class in interrupt-context runtime`. A read that
-* meets a writer releasing the entry's object sees the entry gone. An entry holds its
+* meets a writer releasing the entry's string or object sees the entry gone. An entry holds its
 * object until the entry is overwritten or deleted or the table goes, and a reference
 * count does not see a cycle, so storing an `rcu.table` raises `ELOOP` when it is the
 * table it is stored in or reaches that table, directly or through the tables it holds;
@@ -53,7 +53,7 @@ typedef struct luarcu_entry_s {
 * RCU hash table object, indexed as a Lua table.
 *
 * `t[key]` reads the value (RCU-protected, lockless): `nil` for a key without an
-* entry, and for one whose object a writer is releasing.
+* entry, and for one whose string or object a writer is releasing.
 *
 * `t[key] = value` sets the value, and `nil` removes the entry (serialized). A key
 * takes up to 255 bytes, and a longer one raises `out of bounds`; a failed
@@ -67,6 +67,7 @@ typedef struct luarcu_entry_s {
 *  local t = rcu.table()
 *  t["key"] = true        -- boolean
 *  t["n"]   = 42          -- integer
+*  t["s"]   = "text"      -- string
 *  t["obj"] = data.new(8) -- object
 *  print(t["key"])        -- true
 *  t["key"] = nil         -- delete
@@ -396,8 +397,8 @@ static inline int luarcu_foreach_call(lua_State *L, int cb, luarcu_entry_t *entr
 * added is visited only if its bucket is still ahead, and the order is not guaranteed.
 * @function foreach
 * @tparam rcu_table t the table to walk
-* @tparam function callback `function(key, value)`; an entry whose object a writer is
-*   releasing is skipped.
+* @tparam function callback `function(key, value)`; an entry whose string or object a
+*   writer is releasing is skipped.
 * @raise Error if callback raises.
 * @usage rcu.foreach(t, function (key, value) print(key, value) end)
 * @within rcu
