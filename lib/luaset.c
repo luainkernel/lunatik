@@ -17,7 +17,8 @@
 * `set.labeled` builds a labeled set: each member carries a 32-bit label bitmask, and
 * `set:match` walks a key by `.` returning the bitwise OR of the labels of every member
 * that is a suffix of it (0 when nothing matches); one binary search per `.`-separated
-* level, `O(d log n)` for a `d`-level key.
+* level, `O(d log n)` for a `d`-level key. `set:longest` takes the same walk and returns
+* the label of the longest such member alone, so a label may be a value, not a bitmask.
 *
 * @module set
 * @see rcu
@@ -210,21 +211,34 @@ static int luaset_new(lua_State *L)
 	return 1; /* object */
 }
 
-static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len)
+static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len, bool longest)
 {
 	uint32_t labels = 0;
 	size_t i = 0;
 
 	while (i <= len) {
 		ssize_t idx = luaset_find(set, s + i, (uint32_t)(len - i));
-		if (idx >= 0)
+		if (idx >= 0) {
+			if (longest)
+				return set->labels[idx];
 			labels |= set->labels[idx];
+		}
 		const char *next = memchr(s + i, LUASET_SEP, len - i);
 		if (next == NULL)
 			break;
 		i = (size_t)(next - s) + 1;
 	}
 	return labels;
+}
+
+static int luaset_lookup(lua_State *L, bool longest)
+{
+	luaset_t *set = luaset_check(L, 1);
+	size_t len;
+	const char *s = luaL_checklstring(L, 2, &len);
+
+	lua_pushinteger(L, luaset_walk(set, s, len, longest));
+	return 1;
 }
 
 /***
@@ -243,12 +257,22 @@ static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len)
 */
 static int luaset_match(lua_State *L)
 {
-	luaset_t *set = luaset_check(L, 1);
-	size_t len;
-	const char *s = luaL_checklstring(L, 2, &len);
+	return luaset_lookup(L, false);
+}
 
-	lua_pushinteger(L, luaset_walk(set, s, len));
-	return 1;
+/***
+* Returns the label of the longest member that is `s` or a suffix of it, or 0.
+*
+* Takes the walk of `match` and stops at the first level that is a member, so the
+* most specific member decides alone: under `{["go.com"] = 7, ["abcnews.go.com"] = 9}`,
+* `"www.abcnews.go.com"` is 9, where `match` returns `7 | 9`.
+* @function longest
+* @tparam string s the string to look up.
+* @treturn integer the label of the longest matching level, or 0.
+*/
+static int luaset_longest(lua_State *L)
+{
+	return luaset_lookup(L, true);
 }
 
 typedef struct luaset_member_s {
@@ -326,6 +350,7 @@ static void luaset_store(uint32_t *off, char *blob, uint32_t *labels, const luas
 * exceed 4 GiB, or on allocation failure.
 * @usage local s = set.labeled({ ["a.b.c"] = 1, ["b.c"] = 2, ["c"] = 4 })
 * local labels = s:match("a.b.c")  --> 7, the union 1 | 2 | 4
+* local label = s:longest("x.b.c") --> 2, the label of "b.c"
 * @within set
 */
 static int luaset_labeled(lua_State *L)
@@ -379,6 +404,7 @@ static const luaL_Reg luaset_labeled_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"__len", luaset_length},
 	{"match", luaset_match},
+	{"longest", luaset_longest},
 	{NULL, NULL}
 };
 
