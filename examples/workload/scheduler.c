@@ -32,6 +32,7 @@ struct {
 } task_classes SEC(".maps");
 
 extern int bpf_luascx_run(char *key, size_t key__sz, struct task_struct *task, struct luascx_task_class *cls) __ksym;
+extern s32 scx_bpf_select_cpu_dfl(struct task_struct *p, s32 prev_cpu, u64 wake_flags, bool *is_idle) __ksym;
 
 s32 BPF_STRUCT_OPS_SLEEPABLE(workload_init)
 {
@@ -39,6 +40,14 @@ s32 BPF_STRUCT_OPS_SLEEPABLE(workload_init)
 	scx_bpf_create_dsq(DSQ_BATCH, -1);
 	scx_bpf_create_dsq(DSQ_DEFAULT, -1);
 	return 0;
+}
+
+/* leaves the insert to workload_enqueue, so a task that wakes on an idle CPU meets the policy too */
+s32 BPF_STRUCT_OPS(workload_select_cpu, struct task_struct *p, s32 prev_cpu, u64 wake_flags)
+{
+	bool is_idle = false;
+
+	return scx_bpf_select_cpu_dfl(p, prev_cpu, wake_flags, &is_idle);
 }
 
 void BPF_STRUCT_OPS(workload_dispatch, s32 cpu, struct task_struct *prev)
@@ -76,6 +85,7 @@ void BPF_STRUCT_OPS(workload_exit_task, struct task_struct *p, struct scx_exit_t
 SEC(".struct_ops")
 struct sched_ext_ops workload_ops = {
 	.init       = (void *)workload_init,
+	.select_cpu = (void *)workload_select_cpu,
 	.dispatch   = (void *)workload_dispatch,
 	.enqueue    = (void *)workload_enqueue,
 	.exit_task  = (void *)workload_exit_task,

@@ -5,9 +5,6 @@
 includes an eBPF program which uses an eBPF map to assign queues and slices to
 tasks and a Lua kernel script to set dispatch queue and slice to the tasks seen
 for the first time according to a Lua [policy table](workload.lua#L13).
-The policy decides only for a task that queues: sched_ext's default `select_cpu`, which this program
-keeps, sends a task that wakes up to an idle CPU straight there with the default slice, without calling
-`enqueue`.
 
 Needs a kernel 6.12 or later with `CONFIG_SCHED_CLASS_EXT`, clang, the libbpf headers 1.2 or later and
 `bpftool`.
