@@ -417,6 +417,9 @@ named, not one discovered at that consumer's build.
   keeps it out of `--ready`.
 * A pull request is one mechanism, read in one screen of diff and one paragraph of body. A body that
   needs a section per mechanism describes several pull requests: stack them, each on the one below.
+  A defect master carries that the change fixes on the way, because it reaches the code the defect
+  sits in, is one of those, opened on master rather than stacked: the change's branch carries its
+  commit first, so either merge lands the fix and neither waits on the other's review.
   The harness is the exception: the checks, rules and skill steps one incident produces travel in one
   pull request, because they carry one reason and the CI line that runs them is one push. They travel with
   each other, never inside an implementation: a rule that rides in a feature's commit lands unread,
