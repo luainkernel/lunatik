@@ -40,7 +40,10 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
 * coverage means the matrix of operation by type by outcome, including the successes, not a list of
   features and not only the error paths;
 * prove the test discriminates: disable the mechanism it covers, watch it fail, restore. Commit
-  first, since restoring is a `git checkout --` that takes any uncommitted work with it. The defective
+  first, since restoring is a `git checkout --` that takes any uncommitted work with it. Each step is
+  a call of its own, the plant, the run, the restore and the run after it: `crash-guard.sh` reads the
+  worktrees before a call runs, and refuses one that writes a C file and installs or runs in the
+  same line. The defective
   side has to compile: a header reverted while its callers still pass the argument it drops stops at
   `too many arguments`, the suite then runs against the modules already installed, and that green run
   reads as a test that does not discriminate. The proof is run, not argued: a message the header
