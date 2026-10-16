@@ -24,3 +24,4 @@ pass	wc -l < lib/luaset.c && sudo lunatik test set
 pass	sed -n '1,20p' lib/luaset.c && sudo lunatik test set
 pass	echo 'git show x:lib/a.c > lib/a.c && make install'
 pass	echo 'a > lib/b.c' && sudo lunatik test set
+block	git show aba11f232:lib/luaset.c > lib/luaset.c && sudo make install	installs the master file, no CRASH_AB_OK=1 set

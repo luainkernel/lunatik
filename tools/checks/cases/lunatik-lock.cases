@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run while the test script lunatik-lock.fixture.sh starts holds the device busy
+block	sudo lunatik test set
+block	sudo lunatik list
+block	sudo lunatik run examples/echod/daemon
+block	sudo make install
+block	bash tests/set/run.sh
+block	sudo bash tools/watchdog.sh examples/systrack/device
+block	echo 'print(1)' | sudo lunatik
+block	bash tools/lunatik-host sudo lunatik reload
+block	sudo lunatik test set	re-runs with LUNATIK_LOCK_OK=1, the list known to be stale
+pass	LUNATIK_LOCK_OK=1 sudo lunatik test set
+pass	git add tests/set/run.sh
+pass	cat tests/set/run.sh
+pass	grep -n lunatik tools/checks/lunatik-lock.sh
+
