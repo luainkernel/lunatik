@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run in the repository discard-guard.fixture.sh builds
+block	git checkout -q origin/master -- tools/checks/crash-guard.sh
+block	git checkout HEAD -- tools/checks/crash-guard.sh
+block	git checkout -- tools/checks/crash-guard.sh
+block	git checkout tools/checks/crash-guard.sh
+block	git checkout origin/master tools/checks
+block	git checkout .
+block	git checkout HEAD -- lib/luaset.c
+block	git checkout -f other
+block	cd tools && git checkout -- checks
+block	git -C tools checkout -- checks/crash-guard.sh
+block	git restore tools/checks/crash-guard.sh
+block	git restore --source=origin/master -- tools
+block	git restore -s HEAD --staged --worktree lib/luaset.c
+block	git reset --hard
+block	git reset -q --hard origin/master
+block	git switch --discard-changes other
+block	git checkout HEAD -- tools/checks/crash-guard.sh	puts the head back, DISCARD_OK=1 since the edit is in the patch
+pass	DISCARD_OK=1 git checkout HEAD -- tools/checks/crash-guard.sh
+pass	git checkout -- tools/clean.sh lib/luaset.h
+pass	git checkout origin/master -- tools/clean.sh
+pass	git checkout other
+pass	git checkout -b topic origin/master
+pass	git checkout -b tools
+pass	git restore --staged lib/luaset.c
+pass	git reset --soft HEAD~1
+pass	git reset lib/luaset.c
+pass	git switch other
+pass	git log --oneline -- tools/checks/crash-guard.sh
+pass	echo git checkout -- tools/checks/crash-guard.sh
+pass	git apply -R defect1.patch
+
