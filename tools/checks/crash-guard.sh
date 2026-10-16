@@ -11,6 +11,12 @@
 # hand once the maintainer authorized the experiment and named the machine it may
 # take down. Silent (exit 0) on everything else. The marker forces the ask; it cannot
 # check that the answer was yes, only that it was set on purpose.
+# The worktrees are read before the command runs, so a command line that also writes a C
+# source or header, the target of a redirection, a file a sed -i names or a path a git
+# checkout or a git restore names, a directory among them, is blocked with the same marker:
+# the edit goes in a call of its own, and the install after it is read against the tree the
+# edit left. A write a script file makes is not on the line, which is all this reads, and one
+# spelled another way, a cp or a tee, is not read.
 # What the command runs is read by commands.sh, from the raw hook input.
 
 input=$(cat)
@@ -24,6 +30,18 @@ runs_lunatik "$cmds" '(reload|run|spawn|test)( |$)' || runs_install "$cmds" || r
 case "$input" in
 	*CRASH_AB_OK=1*) exit 0 ;;
 esac
+
+# the C sources and headers the command line writes: the targets of its redirections, the words of a
+# sed -i, and the paths past a git checkout or a git restore, a directory among them by its slash or as .
+written=$({
+	redirections "$input"
+	printf '%s\n' "$cmds" | grep -E '^([^ ]*/)?sed( .*)? (-[A-Za-z]*i[^ ]*|--in-place[^ ]*)( |$)' | tr ' ' '\n'
+} | grep -E '\.[ch]$'
+printf '%s\n' "$cmds" | sed -En "s@$GIT_COMMAND (checkout|restore) @@p" | tr ' ' '\n' | grep -E '\.[ch]$|/$|^\.$')
+if [ -n "$written" ]; then
+	echo "crash-guard: the command writes $(paste -sd' ' <<< "$written") and installs or runs in one call; the worktrees are read before the call runs, so a guard the write drops is installed unseen. Make the edit in a call of its own, then install or run." >&2
+	exit 2
+fi
 
 . "$(dirname "$0")/guards.sh"
 

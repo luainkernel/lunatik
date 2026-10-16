@@ -26,14 +26,16 @@ command_text() {
 # and past the words that only lead into a command: an assignment, a keyword, sudo, env, timeout,
 # setsid, ip netns exec, tools/lunatik-host, a shell or a lua given a script. A shell's -c string,
 # an eval, a substitution and a heredoc a shell reads are commands too; other quoted text is one
-# word, another heredoc data
-commands() {
-	command_text "$1" | awk '
+# word, another heredoc data. With -v redirections=1, the files the redirections write instead
+COMMAND_PARSER='
 	function word() {
 		if (w == "" && !quoted)
 			return
-		if (redirect)
-			redirect = 0
+		if (redirect) {
+			if (write && redirections)
+				print w
+			redirect = write = 0
+		}
 		else if (delim == "?")
 			delim = w
 		else
@@ -109,7 +111,7 @@ commands() {
 		}
 		line = join(i)
 		gsub(/\n/, " ", line) # a quoted newline is not a new command
-		if (line != "")
+		if (line != "" && !redirections)
 			print line
 		n = 0
 		return 0
@@ -199,6 +201,7 @@ commands() {
 					while (index("<>&|", substr(s, i + 1, 1)))
 						i++
 					redirect = 1
+					write = c != "<"
 				}
 			}
 			else if (index(";&|()\n", c)) {
@@ -218,6 +221,14 @@ commands() {
 		for (q = 1; q <= nq; q++)
 			parse(Q[q])
 	}'
+
+commands() {
+	command_text "$1" | awk "$COMMAND_PARSER"
+}
+
+# the files the command field's redirections write, one a line, with the quotes taken off
+redirections() {
+	command_text "$1" | awk -v redirections=1 "$COMMAND_PARSER"
 }
 
 # git past its global options, -C with its word and -c with its key=value, a value commands prints

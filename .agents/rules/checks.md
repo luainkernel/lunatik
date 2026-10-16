@@ -68,7 +68,12 @@ can sit in another file behind a pointer the array is handed to.
 crash the guard prevents, and on the shared host that is a forced reboot. `crash-guard.sh`, wired
 before a shell call like the review guard below, blocks an install, reload or run while any
 worktree drops such a line, unless the command carries `CRASH_AB_OK=1`, set once the maintainer
-authorized the experiment and named the machine it may take down. It reads every worktree of the
+authorized the experiment and named the machine it may take down. A command line that writes a C
+source or header, by a redirection onto it or a `sed -i`, `git checkout` or `git restore` naming
+it or its directory, and installs or runs in the same call is blocked under the same marker, since
+the worktrees are read before the call runs: the edit goes in a call of its own, and the install
+after it is read against the tree the edit left. A write a script file makes is not on the line, and
+the line is all the guard reads. It reads every worktree of the
 checkout, so one another session left dirty blocks this session's install too; its owner cleans it,
 and a review says its run was blocked rather than overriding a guard that was not about its tree.
 A guard that only moved, into a helper the methods now share, onto another index or into a
