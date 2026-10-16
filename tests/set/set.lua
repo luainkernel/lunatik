@@ -88,10 +88,36 @@ test("a label is crossed as a bitmask on the Lua side", function()
 	assert(s:match("c.b") & GREEN ~= 0, "any *.b carries green")
 end)
 
+test("a member carries only the members it ends in at a separator", function()
+	local s = set.labeled({["b.c"] = 2, ["ab.c"] = 1})
+	assert(s:match("ab.c") == 1, "ab.c does not end in the level b.c, got " .. tostring(s:match("ab.c")))
+	assert(s:match("x.b.c") == 2, "x.b.c ends in b.c")
+end)
+
+test("set.labeled with \"value\" returns the longest member's label alone", function()
+	local s = set.labeled({["c"] = 1, ["b.c"] = 2, ["a.b.c"] = 4}, "value")
+	assert(s:match("a.b.c") == 4, "a.b.c itself, got " .. tostring(s:match("a.b.c")))
+	assert(s:match("x.a.b.c") == 4, "deeper still takes a.b.c")
+	assert(s:match("b.c") == 2, "b.c, not b.c|c")
+	assert(s:match("z.b.c") == 2, "z.b.c takes b.c")
+	assert(s:match("z.c") == 1, "z.c takes c")
+	assert(s:match("nope") == 0, "no match is 0")
+end)
+
+test("a label is a value under \"value\" and a bitmask by default", function()
+	local apps = {["go.com"] = 7, ["abcnews.go.com"] = 9}
+	local v, m = set.labeled(apps, "value"), set.labeled(apps)
+	assert(v:match("www.abcnews.go.com") == 9, "abcnews.go.com decides alone")
+	assert(v:match("espn.go.com") == 7, "espn.go.com takes go.com")
+	assert(m:match("www.abcnews.go.com") == 7 | 9, "the default unions both levels")
+	assert(set.labeled(apps, "mask"):match("www.abcnews.go.com") == 7 | 9, "\"mask\" is the default")
+end)
+
 test("empty labeled set", function()
 	local s = set.labeled({})
 	assert(#s == 0, "empty size")
 	assert(s:match("a.b") == 0, "empty match")
+	assert(set.labeled({}, "value"):match("a.b") == 0, "empty match under \"value\"")
 end)
 
 test("a labeled member may be the empty string, matched via a trailing separator", function()
@@ -99,6 +125,13 @@ test("a labeled member may be the empty string, matched via a trailing separator
 	assert(s:match("a.") == 5, "trailing '.' reaches the empty-string member")
 	assert(s:match("a") == 0, "no trailing '.', the empty string is not reached")
 	assert(#s == 1, "expected 1, got " .. #s)
+end)
+
+test("a member ending in a separator carries the empty-string member", function()
+	local labels = {[""] = 1, ["a."] = 2}
+	assert(set.labeled(labels):match("x.a.") == 3, "a. carries the empty string's label")
+	assert(set.labeled(labels, "value"):match("x.a.") == 2, "under \"value\", a. alone")
+	assert(set.labeled(labels, "value"):match("b.") == 1, "b. reaches the empty string")
 end)
 
 test("labels across the 32-bit range round-trip", function()
@@ -117,5 +150,10 @@ test("set.labeled rejects a label outside [1, 2^32)", function()
 	assert(not pcall(function() set.labeled({["k"] = 0}) end), "label 0 should raise")
 	assert(not pcall(function() set.labeled({["k"] = -1}) end), "negative label should raise")
 	assert(not pcall(function() set.labeled({["k"] = 4294967296}) end), "label >= 2^32 should raise")
+end)
+
+test("set.labeled rejects an invalid mode", function()
+	local ok, err = pcall(set.labeled, {["k"] = 1}, "bitmask")
+	assert(not ok and err:find("invalid option", 1, true), "expected the refusal, got " .. tostring(err))
 end)
 

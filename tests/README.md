@@ -1682,9 +1682,11 @@ pid, what a valid call does, and where it refuses to run.
   `set.labeled` takes. For the labeled flavor:
   `set.labeled` mapping members to labels and `match` returning the bitwise OR
   over the matching suffix hierarchy (0 on a miss); members that suffix one
-  another; a label crossed as a bitmask on the Lua side; labels across the 32-bit
-  range; the empty and empty-string-member edges; and the raises (non-string
-  member, label outside [1, 2^32)).
+  another; a label crossed as a bitmask on the Lua side; a member carrying only
+  the members it ends in at a separator; under `"value"`, the longest member's
+  label alone, against the union `"mask"` and the default give; labels across the
+  32-bit range; the empty and empty-string-member edges in both modes; and the
+  raises (non-string member, label outside [1, 2^32), an invalid mode).
 
 ### skb
 

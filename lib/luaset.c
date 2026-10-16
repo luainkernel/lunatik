@@ -14,10 +14,11 @@
 *
 * `set.new` builds a plain set, tested for exact membership with `set:has`: a single
 * binary search, `O(log n)`.
-* `set.labeled` builds a labeled set: each member carries a 32-bit label bitmask, and
-* `set:match` walks a key by `.` returning the bitwise OR of the labels of every member
-* that is a suffix of it (0 when nothing matches); one binary search per `.`-separated
-* level, `O(d log n)` for a `d`-level key.
+* `set.labeled` builds a labeled set: each member carries a 32-bit label, and
+* `set:match` walks a key by `.` returning the label of the longest member that is a
+* suffix of it (0 when nothing matches); one binary search per `.`-separated level,
+* `O(d log n)` for a `d`-level key. A label is a bitmask, a member carrying those of
+* the members it ends in, unless the set is built with `"value"`.
 *
 * @module set
 * @see rcu
@@ -210,21 +211,25 @@ static int luaset_new(lua_State *L)
 	return 1; /* object */
 }
 
+static inline bool luaset_next(const char **s, size_t *len)
+{
+	const char *sep = memchr(*s, LUASET_SEP, *len);
+
+	if (sep == NULL)
+		return false;
+	*len -= (size_t)(sep - *s) + 1;
+	*s = sep + 1;
+	return true;
+}
+
 static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len)
 {
-	uint32_t labels = 0;
-	size_t i = 0;
-
-	while (i <= len) {
-		ssize_t idx = luaset_find(set, s + i, (uint32_t)(len - i));
+	do {
+		ssize_t idx = luaset_find(set, s, (uint32_t)len);
 		if (idx >= 0)
-			labels |= set->labels[idx];
-		const char *next = memchr(s + i, LUASET_SEP, len - i);
-		if (next == NULL)
-			break;
-		i = (size_t)(next - s) + 1;
-	}
-	return labels;
+			return set->labels[idx];
+	} while (luaset_next(&s, &len));
+	return 0;
 }
 
 /***
@@ -233,13 +238,13 @@ static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len)
 */
 
 /***
-* Returns the union of the labels of `s` and its suffixes, or 0.
+* Returns the label of the longest member that is `s` or a suffix of it, or 0.
 *
-* Walks `s` by `.` (`"a.b.c"` tries `"a.b.c"`, `"b.c"`, `"c"`), ORing the labels of
-* every level that is a member. This roots the hierarchy on the right.
+* Walks `s` by `.` (`"a.b.c"` tries `"a.b.c"`, `"b.c"`, `"c"`) and stops at the first
+* level that is a member. This roots the hierarchy on the right.
 * @function match
 * @tparam string s the string to look up.
-* @treturn integer the union of the matching levels' labels, or 0.
+* @treturn integer the label of the longest matching level, or 0.
 */
 static int luaset_match(lua_State *L)
 {
@@ -314,18 +319,51 @@ static void luaset_store(uint32_t *off, char *blob, uint32_t *labels, const luas
 	}
 }
 
+static void luaset_fill(lua_State *L, int ix, uint32_t *off, char *blob, uint32_t *labels, size_t n)
+{
+	luaset_member_t *members = luaset_load(L, ix, n);
+
+	sort(members, n, sizeof(luaset_member_t), luaset_membercmp, NULL);
+	luaset_store(off, blob, labels, members, n);
+	lunatik_free(members);
+}
+
+static void luaset_inherit(const luaset_t *set, uint32_t *labels)
+{
+	size_t i;
+
+	for (i = 0; i < set->n; i++) {
+		const char *s = set->blob + set->off[i];
+		size_t len = set->off[i + 1] - set->off[i];
+
+		while (luaset_next(&s, &len)) {
+			ssize_t idx = luaset_find(set, s, (uint32_t)len);
+			if (idx >= 0)
+				labels[i] |= labels[idx];
+		}
+	}
+}
+
+static const char *const luaset_modes[] = {"mask", "value", NULL};
+
 /***
-* Builds a labeled set from a table of members, each with a label bitmask.
+* Builds a labeled set from a table of members, each with a label.
 *
-* It allocates, so call it where it can sleep (a process-context runtime, or any
-* runtime's load).
+* A label is a bitmask by default, `"mask"`: each member carries, besides its own, the
+* labels of the members it ends in, so `match` returns the union over every matching
+* level. With `"value"`, a member keeps its own label alone, so the longest matching
+* member decides. It allocates, so call it where it can sleep (a process-context
+* runtime, or any runtime's load).
 * @function labeled
-* @tparam {[string]=integer} t the member/labels pairs; labels are in `[1, 2^32)`.
+* @tparam {[string]=integer} t the member/label pairs; labels are in `[1, 2^32)`.
+* @tparam[opt] string mode `"mask"` (default) or `"value"`.
 * @treturn set.labeled the built labeled set.
-* @raise Error on a non-string member, a label outside `[1, 2^32)`, if the members
-* exceed 4 GiB, or on allocation failure.
+* @raise Error on a non-string member, a label outside `[1, 2^32)`, an invalid mode, if
+* the members exceed 4 GiB, or on allocation failure.
 * @usage local s = set.labeled({ ["a.b.c"] = 1, ["b.c"] = 2, ["c"] = 4 })
 * local labels = s:match("a.b.c")  --> 7, the union 1 | 2 | 4
+* local v = set.labeled({ ["b.c"] = 2, ["a.b.c"] = 5 }, "value")
+* local label = v:match("x.a.b.c")  --> 5, the label of "a.b.c" alone
 * @within set
 */
 static int luaset_labeled(lua_State *L)
@@ -333,6 +371,7 @@ static int luaset_labeled(lua_State *L)
 	size_t total = 0;
 
 	luaL_checktype(L, 1, LUA_TTABLE);
+	bool mask = luaL_checkoption(L, 2, "mask", luaset_modes) == 0;
 	size_t n = luaset_count(L, 1, &total);
 
 	lunatik_object_t *object = lunatik_newobject(L, &luaset_labeled_class, sizeof(luaset_t), LUNATIK_OPT_NONE);
@@ -354,10 +393,9 @@ static int luaset_labeled(lua_State *L)
 	uint32_t *labels = lunatik_checkalloc(L, sizeof(uint32_t) * n);
 	set->labels = labels;
 
-	luaset_member_t *members = luaset_load(L, 1, n);
-	sort(members, n, sizeof(luaset_member_t), luaset_membercmp, NULL);
-	luaset_store(off, blob, labels, members, n);
-	lunatik_free(members);
+	luaset_fill(L, 1, off, blob, labels, n);
+	if (mask)
+		luaset_inherit(set, labels);
 out:
 	return 1; /* object */
 }
