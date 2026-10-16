@@ -18,6 +18,9 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   it gets root, stays in the latter, and `machine-leak.sh` keeps it out of the tree.
 - `notes` carries what only the session knows: what the maintainer asked for, what was already traced,
   what the issue leaves out. A rule pasted there is a copy of AGENTS.md its next change does not reach.
+  A shape the session settled after filing goes into the issue, under an `Update:` line, before the
+  launch, and the notes never restate it: the implementer reads both, and where they differ the review
+  hands the difference back as a decision.
 - `effort` has no default: an agent that names none runs at the session's default (AGENTS.md, "Skills").
 - `repo` has no default either: the review is read from it when the implementer is done, and a relative
   path then resolves against the session's directory, which may be a worktree removed since or one on
