@@ -136,7 +136,9 @@ relaunching it with notes.
 
 An issue goes to agents through the implement-issue skill's workflow: an implementer commits the
 change, review-pr's workflow runs over the branch nested, so a review runs one way whoever launches it,
-and its build is the one run on the host, in an agent of its own, before the pull request opens. An
+and its build is the one run on the host, in an agent of its own, before the pull request opens; so
+does a shape a review proposes, and `implement-guard.sh` refuses a commit of code in the session's
+own thread that is not a fixup. An
 agent's context is paid for on every turn it takes, so the work that only waits on the host, or only
 writes to GitHub, runs in the agents `.agents/agents/` defines, which load no CLAUDE.md and run on a
 smaller model. The implementer's prompt names the rule a step needs and restates

@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+block	git commit -m "set: valued"
+block	git add lib/luaset.c && git commit -m "set: valued"
+block	bash -c 'git add lunatik_core.c && git commit -m "core: x"'
+block	git -C . commit -m "set: valued"
+pass	git commit --fixup=HEAD
+pass	git commit --amend --no-edit
+pass	git commit -m "fixup! set: valued"
+pass	IMPLEMENT_OK=1 git commit -m "lunatik: bump version to 5.2"
+pass	git log --oneline -1 && git status
+pass	grep -n "git commit" AGENTS.md
+block	git commit -m "set: valued"	commits the binding, IMPLEMENT_OK=1 not set
+# agent: a375362f897dbd964
+pass	git commit -m "set: valued"
+pass	git add lib/luaset.c && git commit -m "set: valued"
+# agent:
+block	git add lib/luaset.c && git commit -m "set: valued"

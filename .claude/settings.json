@@ -50,6 +50,10 @@
           },
           {
             "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/implement-guard.sh\""
+          },
+          {
+            "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/luals-guard.sh\""
           },
           {

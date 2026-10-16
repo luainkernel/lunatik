@@ -7,12 +7,13 @@
 # or to commands.sh beneath them, is read against them again: tools/checks/cases/<guard>.cases holds
 # one case a line, `block` or `pass`, a tab and the tool input the guard reads, a command unless a
 # `# tool: Agent` or `# tool: Workflow` line names the subagent type or the script instead, and a
-# second tab the description the call carries beside it, which a guard reads for no verdict. Only the
-# guards whose verdict the command decides, alone or with the repository it runs in or the processes
-# beside it, have cases, none that asks GitHub; <guard>.fixture.sh, beside the cases of one that reads
-# the repository, builds it in a scratch directory the cases run in, and beside one that reads the
-# process table, starts there a process that ends with the directory. Prints each wrong verdict and a
-# count, and exits 1 when one is wrong.
+# second tab the description the call carries beside it, which a guard reads for no verdict; a
+# `# agent: <id>` line gives the cases after it the agent_id of a subagent's call, and `# agent:` takes
+# it away. Only the guards whose verdict the command decides, alone or with the repository it runs
+# in or the processes beside it, have cases, none that asks GitHub; <guard>.fixture.sh, beside the
+# cases of one that reads the repository, builds it in a scratch directory the cases run in, and
+# beside one that reads the process table, starts there a process that ends with the directory.
+# Prints each wrong verdict and a count, and exits 1 when one is wrong.
 #
 # Usage: bash tools/checks/cases.sh [<cases file>...]   (default every file under tools/checks/cases)
 
@@ -32,9 +33,11 @@ for cases in "$@"; do
 		bash "$fixture" "$cwd" > /dev/null 2>&1 || { rm -rf "$cwd"; echo "$(basename "$fixture"): fails"; exit 1; }
 	fi
 	tool=Bash
+	agent=
 	while IFS=$'\t' read -r want value description; do
 		case "$want" in
 			"# tool: "*) tool=${want#\# tool: }; continue ;;
+			"# agent:"*) agent=${want#\# agent:}; agent=${agent# }; continue ;;
 			""|"#"*) continue ;;
 		esac
 		case "$tool" in
@@ -42,9 +45,9 @@ for cases in "$@"; do
 			Workflow) field=script ;;
 			*) field=command ;;
 		esac
-		jq -nc --arg tool "$tool" --arg field "$field" --arg value "$value" --arg description "$description" --arg cwd "$cwd" \
+		jq -nc --arg tool "$tool" --arg field "$field" --arg value "$value" --arg description "$description" --arg agent "$agent" --arg cwd "$cwd" \
 			'{tool_name: $tool, tool_input: ({($field): $value} + if $description == "" then {} else {description: $description} end)}
-			+ if $cwd == "" then {} else {cwd: $cwd} end' |
+			+ if $agent == "" then {} else {agent_id: $agent} end + if $cwd == "" then {} else {cwd: $cwd} end' |
 			bash "$guard" > /dev/null 2>&1
 		rc=$?
 		got=pass

@@ -231,6 +231,14 @@ than landing its fixups on master.
 several changes in it otherwise fuses them under a message that explains one. `STAGE_OK=1` stages a tree
 that holds one change only.
 
+`implement-guard.sh`, wired before a shell call, refuses a commit in the session's own thread that
+carries code, a path under `lib/`, `tests/`, `examples/`, `autogen/` or `bin/` or a `lunatik*` file at
+the root, staged before the call or by a `git add` in it: an implementation is written by
+implement-issue's agents, whose calls carry the `agent_id` a main thread's never does, so its
+implementer and its review are not the session's. A fixup, a squash and an amend pass, since they
+correct a commit a review reads, and `IMPLEMENT_OK=1` commits one the maintainer asked the session to
+write itself.
+
 `luals-guard.sh`, wired before a shell call, refuses a push whose tree adds, on a line its branch
 introduced against the merge base with `origin/master`, what `luals.sh` reads as a slip; what the branch
 inherited is not the push's to fix. `LUALS_OK=1` pushes a name that is the code's on purpose.
