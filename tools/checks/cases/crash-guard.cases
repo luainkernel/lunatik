@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+block	git show aba11f232:lib/luaset.c > lib/luaset.c && make && sudo make install && sudo lunatik test set
+block	bash tools/lunatik-host bash -c 'cd scratch/wt/x && git show aba11f232:lib/luaset.c > lib/luaset.c && make && sudo -n env PWD=$PWD make install && sudo lunatik reload && sudo lunatik test set'
+block	sed -i '/luaset_checklabeled/d' lib/luaset.c && make && sudo make install
+block	sed -Ei.bak 's/x/y/' lunatik.h && sudo lunatik reload
+block	git checkout -- lib/luaset.c && sudo lunatik test set
+block	git checkout aba11f232 -- lib/luaset.c && make && bash tests/set/run.sh
+block	git -C scratch/wt/x restore --source=aba11f232 lib/luaset.c && sudo lunatik run tests/set/labeled
+block	cat > lib/luaset.c < /tmp/luaset.master && sudo bash tools/watchdog.sh examples/filter/sni
+block	git checkout aba11f232 -- lib/ && make && sudo make install
+block	git checkout -- . && sudo lunatik test set
+pass	git show aba11f232:lib/luaset.c > lib/luaset.c
+pass	sed -i '/luaset_checklabeled/d' lib/luaset.c && make
+pass	git checkout -- lib/luaset.c
+pass	make && sudo make install && sudo lunatik test set
+pass	CRASH_AB_OK=1 bash -c 'git show aba11f232:lib/luaset.c > lib/luaset.c && make && sudo make install && sudo lunatik test set'
+pass	git show aba11f232:lib/luaset.c > /tmp/luaset.master && sudo lunatik test set
+pass	git diff master -- lib/luaset.c && sudo lunatik test set
+pass	git checkout claude_x && make && sudo make install
+pass	git -C scratch/wt/x/ checkout claude_x && sudo make install
+pass	sudo lunatik test set > /tmp/set.log 2>&1
+pass	wc -l < lib/luaset.c && sudo lunatik test set
+pass	sed -n '1,20p' lib/luaset.c && sudo lunatik test set
+pass	echo 'git show x:lib/a.c > lib/a.c && make install'
+pass	echo 'a > lib/b.c' && sudo lunatik test set

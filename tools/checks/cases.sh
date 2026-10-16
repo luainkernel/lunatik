@@ -8,7 +8,7 @@
 # one case a line, `block` or `pass`, a tab and the tool input the guard reads, a command unless a
 # `# tool: Agent` or `# tool: Workflow` line names the subagent type or the script instead. Only the
 # guards whose verdict the command decides, alone or with the repository it runs in, have cases, none
-# that asks GitHub, the device or the worktrees; <guard>.fixture.sh, beside the cases of one that reads
+# that asks GitHub or the device; <guard>.fixture.sh, beside the cases of one that reads
 # the repository, builds it in a scratch directory the cases run in. Prints each wrong verdict and a
 # count, and exits 1 when one is wrong.
 #
