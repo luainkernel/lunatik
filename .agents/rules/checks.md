@@ -387,6 +387,12 @@ does not open with a TL;DR of five lines at most, since the maintainer asked for
 20 and a report of 21. `settled.sh` names a decision line that asks whether to file a finding, which
 the conventions settle: the finding is filed and the reply says its number.
 
+`.claude/hooks/on-compact.sh`, run as a session starts again after a compaction (`SessionStart`, matcher
+`compact`), prints into its context the rules a compacted session broke, each read from AGENTS.md or
+`.agents/rules/` by the words it opens with, so the hook keeps no copy: what the session corrected
+before the compaction survives only in the summary. A rule reworded past its opening is named
+instead of printed, and the hook's list follows it.
+
 `push-guard.sh`, wired before a shell call, refuses a `git push` in a command that also runs a
 rebase, a merge, a cherry-pick, an am or a revert, and one from a tree with any of those in progress:
 the one that stops on a conflict leaves HEAD on the base with the branch's commits still to apply,
