@@ -235,19 +235,19 @@ redirections() {
 # with the quotes taken off and so with any space it held
 GIT_COMMAND='^([^ ]*/)?git( -C [^ ]+| -c [^ =]+=([^ -][^ ]*( [^ -][^ ]*)*)?| -[^ ]+)*'
 
-# each git push among <cmds>, run from the directory <cwd>: the directory it runs in, resolved against
-# every cd before it and its own -C, a tab, and its words past `push`
-git_pushes() {
-	printf '%s\n' "$1" | awk -v dir="${2:-.}" -v push="$GIT_COMMAND push( |\$)" '
+# each git <verb> among <cmds>, run from the directory <cwd>: the directory it runs in, resolved against
+# every cd before it and its own -C, a tab, and its words past <verb>
+git_runs() {
+	printf '%s\n' "$1" | awk -v dir="${2:-.}" -v verb="$3" -v run="$GIT_COMMAND $3( |\$)" '
 	function under(base, path) {
 		return path ~ /^\// ? path : base "/" path
 	}
 	$1 == "cd" && NF > 1 {
 		dir = under(dir, $2)
 	}
-	$0 ~ push {
+	$0 ~ run {
 		d = dir
-		for (i = 2; $i != "push"; i++)
+		for (i = 2; $i != verb; i++)
 			if ($i == "-C")
 				d = under(d, $++i)
 		rest = ""
@@ -255,6 +255,10 @@ git_pushes() {
 			rest = rest (rest == "" ? "" : " ") $i
 		print d "\t" rest
 	}'
+}
+
+git_pushes() {
+	git_runs "$1" "$2" push
 }
 
 # the CLI as the command, with a verb and what follows it matching the extended regex <rest>
