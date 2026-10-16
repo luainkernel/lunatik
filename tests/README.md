@@ -1448,8 +1448,8 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   which `lunatik_cloneobject` creates there from the class's methods
   without opening the library or adding a `package.loaded` entry: `data`
   into a softirq runtime, where the clone must not sleep, and
-  `set.labeled`, the crypto classes and the `bpf` maps into a process
-  one. The `crypto.comp` case skips where the kernel has no crypto_comp
+  `set.labeled`, `set.valued`, the crypto classes and the `bpf` maps into a
+  process one. The `crypto.comp` case skips where the kernel has no crypto_comp
   API (6.15 and later), the `bpf` one where bpftool cannot pin a map.
 
 - **require_reopen**: a library opened in a state that already has its
@@ -1685,7 +1685,12 @@ pid, what a valid call does, and where it refuses to run.
   another; a label crossed as a bitmask on the Lua side; labels across the 32-bit
   range; the empty and empty-string-member edges; and the raises (non-string
   member, label outside [1, 2^32), a plain set given to `match`, which has no
-  labels to read).
+  labels to read). For the valued flavor: `set.valued` mapping members to labels
+  and `match` returning the longest matching member's label alone (0 on a miss),
+  against the union `set.labeled` gives the same table; a member matched at a
+  level and not inside one; the empty, empty-string-member and 32-bit-range
+  edges; the raises the build shares with `set.labeled`; and `match` given a
+  plain or a labeled set.
 
 ### skb
 

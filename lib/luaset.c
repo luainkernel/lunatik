@@ -18,6 +18,9 @@
 * `set:match` walks a key by `.` returning the bitwise OR of the labels of every member
 * that is a suffix of it (0 when nothing matches); one binary search per `.`-separated
 * level, `O(d log n)` for a `d`-level key.
+* `set.valued` builds a valued set: each member carries a 32-bit label that is a value, and
+* `set:match` walks a key the same way returning the label of the longest member that is a
+* suffix of it (0 when nothing matches), so the most specific member decides alone.
 *
 * @module set
 * @see rcu
@@ -42,9 +45,11 @@ static int luaset_new(lua_State *L);
 static int luaset_labeled(lua_State *L);
 static const lunatik_class_t luaset_class;
 static const lunatik_class_t luaset_labeled_class;
+static const lunatik_class_t luaset_valued_class;
 
-LUNATIK_PRIVATECHECKERS(luaset_check, luaset_t *, "set", &luaset_class, &luaset_labeled_class);
+LUNATIK_PRIVATECHECKERS(luaset_check, luaset_t *, "set", &luaset_class, &luaset_labeled_class, &luaset_valued_class);
 LUNATIK_PRIVATECHECKER(luaset_checklabeled, luaset_t *, &luaset_labeled_class);
+LUNATIK_PRIVATECHECKER(luaset_checkvalued, luaset_t *, &luaset_valued_class);
 
 static inline int luaset_keycmp(const char *a, uint32_t alen, const char *b, uint32_t blen)
 {
@@ -211,20 +216,26 @@ static int luaset_new(lua_State *L)
 	return 1; /* object */
 }
 
+static inline bool luaset_next(const char **s, size_t *len)
+{
+	const char *sep = memchr(*s, LUASET_SEP, *len);
+
+	if (sep == NULL)
+		return false;
+	*len -= (size_t)(sep - *s) + 1;
+	*s = sep + 1;
+	return true;
+}
+
 static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len)
 {
 	uint32_t labels = 0;
-	size_t i = 0;
 
-	while (i <= len) {
-		ssize_t idx = luaset_find(set, s + i, (uint32_t)(len - i));
+	do {
+		ssize_t idx = luaset_find(set, s, (uint32_t)len);
 		if (idx >= 0)
 			labels |= set->labels[idx];
-		const char *next = memchr(s + i, LUASET_SEP, len - i);
-		if (next == NULL)
-			break;
-		i = (size_t)(next - s) + 1;
-	}
+	} while (luaset_next(&s, &len));
 	return labels;
 }
 
@@ -315,28 +326,14 @@ static void luaset_store(uint32_t *off, char *blob, uint32_t *labels, const luas
 	}
 }
 
-/***
-* Builds a labeled set from a table of members, each with a label bitmask.
-*
-* It allocates, so call it where it can sleep (a process-context runtime, or any
-* runtime's load).
-* @function labeled
-* @tparam {[string]=integer} t the member/labels pairs; labels are in `[1, 2^32)`.
-* @treturn set.labeled the built labeled set.
-* @raise Error on a non-string member, a label outside `[1, 2^32)`, if the members
-* exceed 4 GiB, or on allocation failure.
-* @usage local s = set.labeled({ ["a.b.c"] = 1, ["b.c"] = 2, ["c"] = 4 })
-* local labels = s:match("a.b.c")  --> 7, the union 1 | 2 | 4
-* @within set
-*/
-static int luaset_labeled(lua_State *L)
+static int luaset_newlabeled(lua_State *L, const lunatik_class_t *class)
 {
 	size_t total = 0;
 
 	luaL_checktype(L, 1, LUA_TTABLE);
 	size_t n = luaset_count(L, 1, &total);
 
-	lunatik_object_t *object = lunatik_newobject(L, &luaset_labeled_class, sizeof(luaset_t), LUNATIK_OPT_NONE);
+	lunatik_object_t *object = lunatik_newobject(L, class, sizeof(luaset_t), LUNATIK_OPT_NONE);
 	luaset_t *set = (luaset_t *)object->private;
 	set->n = n;
 
@@ -363,9 +360,84 @@ out:
 	return 1; /* object */
 }
 
+/***
+* Builds a labeled set from a table of members, each with a label bitmask.
+*
+* It allocates, so call it where it can sleep (a process-context runtime, or any
+* runtime's load).
+* @function labeled
+* @tparam {[string]=integer} t the member/labels pairs; labels are in `[1, 2^32)`.
+* @treturn set.labeled the built labeled set.
+* @raise Error on a non-string member, a label outside `[1, 2^32)`, if the members
+* exceed 4 GiB, or on allocation failure.
+* @usage local s = set.labeled({ ["a.b.c"] = 1, ["b.c"] = 2, ["c"] = 4 })
+* local labels = s:match("a.b.c")  --> 7, the union 1 | 2 | 4
+* @within set
+*/
+static int luaset_labeled(lua_State *L)
+{
+	return luaset_newlabeled(L, &luaset_labeled_class);
+}
+
+static uint32_t luaset_longest(const luaset_t *set, const char *s, size_t len)
+{
+	do {
+		ssize_t idx = luaset_find(set, s, (uint32_t)len);
+		if (idx >= 0)
+			return set->labels[idx];
+	} while (luaset_next(&s, &len));
+	return 0;
+}
+
+/***
+* A built valued `set`, returned by `set.valued`; `#s` is its number of members.
+* @type set.valued
+*/
+
+/***
+* Returns the label of the longest member that is `s` or a suffix of it, or 0.
+*
+* Walks `s` by `.` (`"a.b.c"` tries `"a.b.c"`, `"b.c"`, `"c"`) and stops at the first
+* level that is a member, so the most specific member decides alone.
+* @function match
+* @tparam string s the string to look up.
+* @treturn integer the label of the longest matching level, or 0.
+*/
+static int luaset_valued_match(lua_State *L)
+{
+	luaset_t *set = luaset_checkvalued(L, 1);
+	size_t len;
+	const char *s = luaL_checklstring(L, 2, &len);
+
+	lua_pushinteger(L, luaset_longest(set, s, len));
+	return 1;
+}
+
+/***
+* Builds a valued set from a table of members, each with a label that is a value.
+*
+* A label names one thing, a classid or an application number, which `match` answers
+* from the longest member alone; `set.labeled` is the set whose labels are bitmasks,
+* unioned over every member. It allocates, so call it where it can sleep (a
+* process-context runtime, or any runtime's load).
+* @function valued
+* @tparam {[string]=integer} t the member/label pairs; labels are in `[1, 2^32)`.
+* @treturn set.valued the built valued set.
+* @raise Error on a non-string member, a label outside `[1, 2^32)`, if the members
+* exceed 4 GiB, or on allocation failure.
+* @usage local s = set.valued({ ["go.com"] = 7, ["abcnews.go.com"] = 9 })
+* local label = s:match("www.abcnews.go.com")  --> 9, abcnews.go.com decides alone
+* @within set
+*/
+static int luaset_valued(lua_State *L)
+{
+	return luaset_newlabeled(L, &luaset_valued_class);
+}
+
 static const luaL_Reg luaset_lib[] = {
 	{"new", luaset_new},
 	{"labeled", luaset_labeled},
+	{"valued", luaset_valued},
 	{NULL, NULL}
 };
 
@@ -380,6 +452,13 @@ static const luaL_Reg luaset_labeled_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"__len", luaset_length},
 	{"match", luaset_match},
+	{NULL, NULL}
+};
+
+static const luaL_Reg luaset_valued_mt[] = {
+	{"__gc", lunatik_deleteobject},
+	{"__len", luaset_length},
+	{"match", luaset_valued_match},
 	{NULL, NULL}
 };
 
@@ -399,7 +478,15 @@ static const lunatik_class_t luaset_labeled_class = {
 	.owner = THIS_MODULE,
 };
 
-LUNATIK_CLASSES(set, &luaset_class, &luaset_labeled_class);
+static const lunatik_class_t luaset_valued_class = {
+	.name = "set.valued",
+	.methods = luaset_valued_mt,
+	.release = luaset_release,
+	.opt = LUNATIK_OPT_SOFTIRQ,
+	.owner = THIS_MODULE,
+};
+
+LUNATIK_CLASSES(set, &luaset_class, &luaset_labeled_class, &luaset_valued_class);
 LUNATIK_NEWLIB(set, luaset_lib, luaset_classes);
 
 static int __init luaset_init(void)

@@ -125,3 +125,68 @@ test("set.labeled match refuses a plain set", function()
 	assert(not ok and err:find("(set.labeled expected, got set)", 1, true), "expected the refusal, got " .. tostring(err))
 end)
 
+test("set.valued match returns the longest member's label alone", function()
+	local s = set.valued({["c"] = 1, ["b.c"] = 2, ["a.b.c"] = 4})
+	local label = s:match("a.b.c")
+	assert(label == 4, "a.b.c itself, got " .. label)
+	assert(s:match("x.a.b.c") == 4, "deeper still takes a.b.c")
+	assert(s:match("b.c") == 2, "b.c, not b.c|c")
+	assert(s:match("z.b.c") == 2, "z.b.c takes b.c")
+	assert(s:match("z.c") == 1, "z.c takes c")
+	assert(s:match("nope") == 0, "no match is 0")
+	assert(#s == 3, "expected 3, got " .. #s)
+end)
+
+test("a label is a value in set.valued and a bitmask in set.labeled", function()
+	local apps = {["go.com"] = 7, ["abcnews.go.com"] = 9}
+	local valued, labeled = set.valued(apps), set.labeled(apps)
+	assert(valued:match("www.abcnews.go.com") == 9, "abcnews.go.com decides alone")
+	assert(valued:match("espn.go.com") == 7, "espn.go.com takes go.com")
+	assert(labeled:match("www.abcnews.go.com") == 7 | 9, "set.labeled unions both levels")
+end)
+
+test("set.valued matches a member at a level, not inside one", function()
+	local s = set.valued({["b.c"] = 2, ["ab.c"] = 1})
+	local label = s:match("ab.c")
+	assert(label == 1, "ab.c does not end in the level b.c, got " .. label)
+	assert(s:match("x.b.c") == 2, "x.b.c ends in b.c")
+end)
+
+test("empty valued set", function()
+	local s = set.valued({})
+	assert(#s == 0, "empty size")
+	assert(s:match("a.b") == 0, "empty match")
+end)
+
+test("a valued member may be the empty string, matched via a trailing separator", function()
+	local s = set.valued({[""] = 1, ["a."] = 2})
+	assert(s:match("x.a.") == 2, "a. is the longest member x.a. ends in")
+	assert(s:match("b.") == 1, "trailing '.' reaches the empty-string member")
+	assert(s:match("b") == 0, "no trailing '.', the empty string is not reached")
+end)
+
+test("set.valued labels across the 32-bit range round-trip", function()
+	for _, label in ipairs({1, 65536, 4294967295}) do
+		local s = set.valued({["k"] = label})
+		assert(s:match("k") == label, "label " .. label .. " round-trips, got " .. s:match("k"))
+	end
+end)
+
+test("set.valued rejects what set.labeled rejects", function()
+	assert(not pcall(set.valued, {[42] = 1}), "non-string member should raise")
+	assert(not pcall(set.valued, {["k"] = 0}), "label 0 should raise")
+	assert(not pcall(set.valued, {["k"] = 4294967296}), "label >= 2^32 should raise")
+end)
+
+test("set.valued match refuses a set of another type", function()
+	local valued, labeled = set.valued({["a"] = 1}), set.labeled({["a"] = 1})
+	local ok, err = pcall(valued.match, set.new({}), "a")
+	assert(not ok and err:find("(set.valued expected, got set)", 1, true), "expected the refusal, got " .. tostring(err))
+	ok, err = pcall(valued.match, labeled, "a")
+	assert(not ok and err:find("(set.valued expected, got set.labeled)", 1, true),
+		"expected the refusal, got " .. tostring(err))
+	ok, err = pcall(labeled.match, valued, "a")
+	assert(not ok and err:find("(set.labeled expected, got set.valued)", 1, true),
+		"expected the refusal, got " .. tostring(err))
+end)
+
