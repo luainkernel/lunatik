@@ -4,10 +4,12 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Stop adapter: reads the reply a turn ends on through tools/checks/decision.sh,
-# tools/checks/reboot-capture.sh and tools/checks/handoff.sh and sends it back once when it hands the
+# tools/checks/reboot-capture.sh, tools/checks/handoff.sh, tools/checks/citation.sh,
+# tools/checks/tldr.sh and tools/checks/settled.sh and sends it back once when it hands the
 # maintainer a decision without the question, the options and a recommendation, asks for a reboot
-# nothing captured for, or hands him a long command to copy; the checks are plain path-taking scripts
-# (.agents/rules/checks.md), this only translates.
+# nothing captured for, hands him a long command to copy, cites a rule it does not quote from the
+# tree, runs long without a TL;DR, or asks him whether to file a finding; the checks are plain
+# path-taking scripts (.agents/rules/checks.md), this only translates.
 
 input=$(cat)
 command -v jq > /dev/null || exit 0
@@ -25,7 +27,7 @@ fi
 [ -s "$reply" ] || exit 0
 
 checks="$(dirname "$0")/../../tools/checks"
-findings=$(bash "$checks/decision.sh" "$reply"; bash "$checks/reboot-capture.sh" "$reply"; bash "$checks/handoff.sh" "$reply")
+findings=$(for check in decision reboot-capture handoff citation tldr settled; do bash "$checks/$check.sh" "$reply"; done)
 [ -n "$findings" ] || exit 0
 jq -n --arg reason "${findings//$reply/the reply}" '{decision: "block", reason: $reason}'
 exit 0

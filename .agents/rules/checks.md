@@ -379,6 +379,14 @@ the one line that runs it (AGENTS.md, *Deciding what to change*); on 2026-10-11 
 delete of the 21 branches a merge left as one line of 600 characters. A command handed without the
 prefix is not read.
 
+`citation.sh`, `tldr.sh` and `settled.sh` read the same reply in the same hook. `citation.sh` names a
+line that says what AGENTS.md, a rule or a skill asks without the passage in double quotes, or with
+one that AGENTS.md, CLAUDE.md and `.agents/` do not hold: a reply recommended a split because "the
+AGENTS asks" for it, of a rule nobody had written. `tldr.sh` names a reply of more than 15 lines that
+does not open with a TL;DR of five lines at most, since the maintainer asked for one after a plan of
+20 and a report of 21. `settled.sh` names a decision line that asks whether to file a finding, which
+the conventions settle: the finding is filed and the reply says its number.
+
 `push-guard.sh`, wired before a shell call, refuses a `git push` in a command that also runs a
 rebase, a merge, a cherry-pick, an am or a revert, and one from a tree with any of those in progress:
 the one that stops on a conflict leaves HEAD on the base with the branch's commits still to apply,
