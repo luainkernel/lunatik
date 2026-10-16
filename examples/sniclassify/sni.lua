@@ -14,7 +14,7 @@ local function TC_H_MAKE(maj, min)
 	return (maj << 16) | min
 end
 
-local policy = set.labeled{
+local policy = set.valued{
 	["netflix.com"] = TC_H_MAKE(1, 0x30),
 	["zoom.com"]    = TC_H_MAKE(1, 0x10),
 }
