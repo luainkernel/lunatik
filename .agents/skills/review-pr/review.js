@@ -23,6 +23,8 @@
 //   examples    the examples the change touches, as tools/checks/examples-touched.sh lists
 //               them over the changed files; the build phase runs whichever of them
 //               validated does not carry
+//   defects     [{patch, suite, fails}], the defect each new test is for, as implement-issue's
+//               implementer writes them; the build plants each once the suite passed
 //   focus       what this round is for, in the maintainer's words
 //   smallest    the implementer's smallest shape, when implement-issue launches the review
 //   hunt        false to run the build phase alone, as implement-issue does after a fix
@@ -167,6 +169,14 @@ driven as its README says and stopped, with dmesg read after.`}
 ${(a.examples || []).length ? `The examples the change touches: ${a.examples.join(', ')}. Your answer's examples names
 the ones that ran clean, spelled as they are listed here.` : 'The change touches no example.'}
 ${unrun.length ? 'These have not been run on this head: ' + unrun.join(', ') + '.' : ''}
+${(a.defects || []).length ? `Once the suite passed, plant each defect below in turn, to watch the test it is for
+fail: \`git apply <patch>\` in a call of its own, so crash-guard.sh reads the tree it leaves, then \`make\`, and only
+when it builds the install, the reload and \`lunatik test <suite>\` through tools/lunatik-host; the cases it names
+should fail, and no other. \`git apply -R <patch>\`, in a call of its own, reverts it before the next. After the
+last, build, install and reload the tip again and run those suites once more. A patch that does not apply and a
+call a guard refuses are reported, not tried another way. Your answer's discrimination says, for each patch, the
+cases that failed.
+${JSON.stringify(a.defects, null, 2)}` : ''}
 ${a.validated && !unrun.length ? `Before any of that: \`${a.head}\` already passed (${a.validated.suite}, core ${a.validated.core}),
 so list what the branch changed since, \`git diff --name-only ${a.head} ${tip}\`. When every path is ${UNBUILT},
 which the build, the install and the suite never read, run nothing: answer skipped true, with the tip as head, the
@@ -212,6 +222,10 @@ const BUILD_OUT = {
     totals: { type: 'string' }, core: { type: 'string' }, head: { type: 'string' },
     skipped: { type: 'boolean', description: 'true when only unbuilt paths moved past the validated head' },
     examples: { type: 'array', items: { type: 'string' } }, clean: { type: 'boolean' }, notes: { type: 'string' },
+    discrimination: { type: 'array', items: { type: 'object', properties: {
+      patch: { type: 'string' }, failed: { type: 'array', items: { type: 'string' }, description: 'the cases that failed with the defect planted' },
+      notes: { type: 'string' },
+    }, required: ['patch', 'failed'] } },
     findings_left: LEFT,
   },
   required: ['totals', 'core', 'head', 'clean', 'findings_left'],

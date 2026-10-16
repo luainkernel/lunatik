@@ -30,6 +30,12 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   suite and of the examples it touches, in the `lunatik-host` agent, after the hunt's fixups. A failure
   goes to a fix agent with the implementer's checkpoint, and the build runs again, twice at most; the
   fix is not reviewed again, which the hand-back says.
+- The implementer writes, for each test the change adds or changes, the defect it is for as a patch,
+  and the build plants each once the suite passed, in a call of its own that `crash-guard.sh` reads,
+  runs the test's suite and reverts it. The hand-back carries the cases each defect failed; one that
+  left its cases passing is a test that does not discriminate, which the session brings back before
+  the merge. A defect that removes a crash guard is not written, since its test rests on the message
+  it asserts.
 - The pull request opens, in the `lunatik-github` agent, only on a head that passed with every example
   the change touches, with the implementer's body, and takes the `workflow-reviewed` label. A run that
   did not pass returns its branch and its last build for the session to read.
