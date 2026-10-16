@@ -226,6 +226,13 @@ first he reads.
 fails on a pull request that carries one, so a pull request merged before its squash shows red rather
 than landing its fixups on master.
 
+`discard-guard.sh`, wired before a shell call, refuses a command that writes over a file holding a
+change nobody committed, a checkout or a restore of a path, `git reset --hard`, and a checkout or a
+switch that forces, naming the files: a session that meant to put back its head's version of two
+guards typed `origin/master`, and the edit it had made over them went with no copy left. A defect
+planted to prove a test is a patch reverted with `git apply -R`; `DISCARD_OK=1` writes over files
+known to hold nothing to keep.
+
 `stage-guard.sh`, wired before a shell call, refuses staging the whole tree, `git add -A`, `--all`, `-u`,
 `--update`, `.` or `:/`, and `git commit -a`: a commit is staged by purpose, and a tree an edit left with
 several changes in it otherwise fuses them under a message that explains one. `STAGE_OK=1` stages a tree

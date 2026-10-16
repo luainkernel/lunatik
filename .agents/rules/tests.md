@@ -40,7 +40,9 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
 * coverage means the matrix of operation by type by outcome, including the successes, not a list of
   features and not only the error paths;
 * prove the test discriminates: disable the mechanism it covers, watch it fail, restore. Commit
-  first, since restoring is a `git checkout --` that takes any uncommitted work with it. Each step is
+  first, write the defect as a patch, `git diff > <defect>.patch`, and restore with `git apply -R` of
+  it: a `git checkout --` takes any uncommitted work with the defect, and `discard-guard.sh` refuses
+  one over a file that holds some. Each step is
   a call of its own, the plant, the run, the restore and the run after it: `crash-guard.sh` reads the
   worktrees before a call runs, and refuses one that writes a C file and installs or runs in the
   same line. The defective
