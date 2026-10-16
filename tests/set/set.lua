@@ -119,3 +119,9 @@ test("set.labeled rejects a label outside [1, 2^32)", function()
 	assert(not pcall(function() set.labeled({["k"] = 4294967296}) end), "label >= 2^32 should raise")
 end)
 
+test("set.labeled match refuses a plain set", function()
+	local plain = set.new({}) -- empty, so a build without the refusal answers 0 rather than reading a label through NULL
+	local ok, err = pcall(set.labeled({["a"] = 1}).match, plain, "a")
+	assert(not ok and err:find("(set.labeled expected, got set)", 1, true), "expected the refusal, got " .. tostring(err))
+end)
+

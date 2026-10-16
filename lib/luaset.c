@@ -44,6 +44,7 @@ static const lunatik_class_t luaset_class;
 static const lunatik_class_t luaset_labeled_class;
 
 LUNATIK_PRIVATECHECKERS(luaset_check, luaset_t *, "set", &luaset_class, &luaset_labeled_class);
+LUNATIK_PRIVATECHECKER(luaset_checklabeled, luaset_t *, &luaset_labeled_class);
 
 static inline int luaset_keycmp(const char *a, uint32_t alen, const char *b, uint32_t blen)
 {
@@ -243,7 +244,7 @@ static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len)
 */
 static int luaset_match(lua_State *L)
 {
-	luaset_t *set = luaset_check(L, 1);
+	luaset_t *set = luaset_checklabeled(L, 1);
 	size_t len;
 	const char *s = luaL_checklstring(L, 2, &len);
 

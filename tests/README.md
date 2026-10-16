@@ -1684,7 +1684,8 @@ pid, what a valid call does, and where it refuses to run.
   over the matching suffix hierarchy (0 on a miss); members that suffix one
   another; a label crossed as a bitmask on the Lua side; labels across the 32-bit
   range; the empty and empty-string-member edges; and the raises (non-string
-  member, label outside [1, 2^32)).
+  member, label outside [1, 2^32), a plain set given to `match`, which has no
+  labels to read).
 
 ### skb
 
