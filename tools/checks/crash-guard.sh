@@ -27,7 +27,7 @@ cmds=$(commands "$input")
 runs_lunatik "$cmds" '(reload|run|spawn|test)( |$)' || runs_install "$cmds" || runs_test "$cmds" ||
 	runs_watchdog "$cmds" || exit 0
 
-case "$input" in
+case "$(command_text "$input")" in
 	*CRASH_AB_OK=1*) exit 0 ;;
 esac
 

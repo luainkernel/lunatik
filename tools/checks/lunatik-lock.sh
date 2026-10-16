@@ -19,7 +19,7 @@ input=$(cat)
 cmds=$(commands "$input")
 runs_lunatik "$cmds" '(test|reload|load|unload|run|spawn|stop|list|-V|--version)( |$)' || runs_repl "$cmds" ||
 	runs_install "$cmds" || runs_test "$cmds" || runs_watchdog "$cmds" || exit 0
-case "$input" in
+case "$(command_text "$input")" in
 	*LUNATIK_LOCK_OK=1*) exit 0 ;;
 esac
 

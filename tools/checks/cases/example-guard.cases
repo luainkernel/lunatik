@@ -9,3 +9,4 @@ pass	NETWORK_LOSS_OK=1 sudo lunatik run examples/filter/sni
 pass	sudo lunatik run tests/runtime/self_stop
 pass	git grep 'lunatik run examples/filter'
 pass	bash -n tests/run.sh
+block	sudo lunatik run examples/filter/sni	runs the example, NETWORK_LOSS_OK=1 not set

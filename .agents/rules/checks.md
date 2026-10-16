@@ -258,7 +258,11 @@ request, so a change to the guard or to `commands.sh` beneath it is read against
 A command guard whose verdict also reads the repository the command runs in keeps its cases there
 too, beside `<guard>.fixture.sh`, which builds that repository in a scratch directory the cases run
 in: `rewrite-guard.sh` refused a restack's push naming the branches already rebased onto it, and
-another naming a detached HEAD as four branches, with no case to read either against.
+another naming a detached HEAD as four branches, with no case to read either against. One whose
+verdict reads the process table keeps them too, and its fixture starts the process it reads, which ends
+with the directory: `lunatik-lock.sh` had none, its verdict waiting on a busy device, and passed the
+marker a call's description carried. While they run, every session on the machine reads the device as
+busy.
 
 `lunatik-lock.sh`, wired before a shell call, refuses a command that touches the device, an install, a
 reload, a run, a `list`, `-V`, the REPL on a pipe or with `-e`, or a suite, while another operation is on
@@ -268,7 +272,7 @@ what it lists is known to be stale. What a command runs is read by `commands.sh`
 guards share: a CLI verb, `make install`, a test script or `watchdog.sh` counts when it is the command,
 read through `sudo` and `env` with their options, `tools/lunatik-host` and a shell's `-c` string, and
 not when it is handed to `git`, `grep` or a check, to a shell's `-n`, which reads it and runs nothing,
-or written into a file by a heredoc. The post guards read through it too, the `gh` command that writes and not the raw input; the approval marker counts only in the command. A cycle a script file runs names nothing a
+or written into a file by a heredoc. The post guards read through it too, the `gh` command that writes and not the raw input; an approval marker counts only in the command, in every guard, since the raw input carries the description too. A cycle a script file runs names nothing a
 text can read, so it goes through `tools/lunatik-host`, whose lock orders it against the cycles that
 take it too.
 

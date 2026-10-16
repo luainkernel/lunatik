@@ -11,6 +11,8 @@
 
 input=$(cat)
 
+. "$(dirname "$0")/commands.sh"
+
 case "$input" in
 	*"gh api"*pulls*) ;;
 	*) exit 0 ;;
@@ -19,7 +21,7 @@ case "$input" in
 	*"-X POST"*|*"-X PATCH"*) ;;
 	*) exit 0 ;;
 esac
-case "$input" in
+case "$(command_text "$input")" in
 	*CONSUMERS_OK=1*) exit 0 ;;
 esac
 

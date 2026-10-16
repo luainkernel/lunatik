@@ -16,7 +16,7 @@ input=$(cat)
 . "$(dirname "$0")/commands.sh"
 
 runs_lunatik "$(commands "$input")" '(run|spawn)( .*)? examples/' || exit 0
-case "$input" in
+case "$(command_text "$input")" in
 	*NETWORK_LOSS_OK=1*) exit 0 ;;
 esac
 
