@@ -5,9 +5,10 @@
 
 // An issue implemented, reviewed, run once on the host and opened as a pull request, as one workflow:
 // an implementer that traces the issue and commits what builds, review.js over the branch as a nested
-// workflow, whose build phase is the one run of the suite and the examples the change touches, a fix
-// of what that run fails, and the opening of the pull request on the head that passed. The host runs
-// in an agent of its own, so the implementer's context never waits on a suite.
+// workflow, whose build phase is the one run of the suite, the examples the change touches and the
+// defect each new test is for, a fix of what that run fails, and the opening of the pull request on
+// the head that passed. The host runs in an agent of its own, so the implementer's context never
+// waits on a suite.
 //
 // Usage: Workflow({scriptPath: '.agents/skills/implement-issue/implement.js', args: {...}})
 //   issue       the issue to implement
@@ -78,14 +79,19 @@ you take it, what you read, decided, committed and measured, and your answer bef
 3. Commit as "Patches and commits" asks: one change per commit, the harness apart from the code, tests
    wired and described (the new-test skill), each doc where its reader looks. \`make\` is clean on every
    commit, and \`make C=1\` where the change touches an annotated pointer. ${PUSH}
-4. Run "Before opening a pull request" with the pr-prep skill, except what needs the host: the suite and
+4. For each test under tests/ the change adds or changes, write the defect it is for, the mechanism it
+   covers disabled (.agents/rules/tests.md), as a patch over the head: edit the tree, see that \`make\`
+   builds it, \`git diff > ${a.scratch}/issue${a.issue}/defect<n>.patch\`, then \`git apply -R\` of that patch.
+   A defect that removes a crash guard is not written, since its test rests on the message it asserts.
+   Your answer's defects names each patch, the suite that runs the test and the cases it should fail.
+5. Run "Before opening a pull request" with the pr-prep skill, except what needs the host: the suite and
    the examples run once, after the review, in an agent of their own, and a failure comes back to a fix.
    Run no install, reload, suite or example yourself. List the examples tools/checks/examples-touched.sh
    names over the changed files.
-5. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/pr-body.sh
+6. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/pr-body.sh
    passes the body, which carries \`Closes #${a.issue}\` on a line of its own and names each example as run:
    the pull request opens only on a head the host run passed with every one of them. Open nothing.
-6. Remove your worktree (\`rm -rf <tree> && git worktree prune\`) once the branch is pushed: the review, the host
+7. Remove your worktree (\`rm -rf <tree> && git worktree prune\`) once the branch is pushed: the review, the host
    run and a fix each work in one of their own.
 
 What you leave, a defect found on the way that is not this change's or a cell of the matrix no test covers,
@@ -187,6 +193,12 @@ const SMALLEST = { type: 'object', properties: {
   }, required: ['mechanism', 'buys'] } },
 }, required: ['shape', 'lines', 'diff', 'beyond'] }
 
+const DEFECTS = { type: 'array', items: { type: 'object', properties: {
+  patch: { type: 'string', description: 'the absolute path of the patch that plants the defect' },
+  suite: { type: 'string', description: 'the suite `lunatik test` runs the test in' },
+  fails: { type: 'array', items: { type: 'string' }, description: 'the cases the defect should fail, as the test prints them' },
+}, required: ['patch', 'suite', 'fails'] } }
+
 const IMPLEMENTED = {
   type: 'object',
   properties: {
@@ -195,13 +207,14 @@ const IMPLEMENTED = {
     base: { type: 'string', description: 'the full SHA of the base the branch sits on, after any rebase' },
     commits: { type: 'array', items: { type: 'string' } },
     examples: { type: 'array', items: { type: 'string' }, description: 'what examples-touched.sh lists' },
+    defects: DEFECTS,
     title: { type: 'string' },
     body: { type: 'string', description: 'the pull request body, which pr-body.sh passes' },
     smallest: SMALLEST,
     findings_left: LEFT,
     notes: { type: 'string' },
   },
-  required: ['branch', 'head', 'base', 'commits', 'examples', 'title', 'body', 'smallest', 'findings_left', 'notes'],
+  required: ['branch', 'head', 'base', 'commits', 'examples', 'defects', 'title', 'body', 'smallest', 'findings_left', 'notes'],
 }
 
 const FIXED = { type: 'object', properties: {
@@ -219,7 +232,7 @@ const FILED = { type: 'object', properties: {
 }, required: ['filed'] }
 
 const reviewArgs = (impl, extra) => ({
-  pr: 0, branch: impl.branch, base: impl.base, scratch: a.scratch, validated: null, examples: impl.examples,
+  pr: 0, branch: impl.branch, base: impl.base, scratch: a.scratch, validated: null, examples: impl.examples, defects: impl.defects,
   focus: a.focus || a.notes, smallest: impl.smallest, effort: a.effort, model: a.model, push: a.push,
   repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
 })
