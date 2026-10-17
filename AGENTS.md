@@ -248,6 +248,13 @@ chain took a macro signature, two wrappers and an API newer than the tree's floo
 small shape down first, even when the larger one is chosen, so the choice is a comparison and not a
 default.
 
+An issue states the need, its contract and the API the maintainer settled, the types, names and calls
+a script sees, and leaves the code's inner structure to whoever implements it: a sentence that
+prescribes a helper, a loop or a step two functions share is read as the spec, and weighed by no one.
+#1895 asked the two walks of a set to share the step from one level to the next, and #1896 wrote
+`luaset_next` and kept it because the issue asked, where the tree spells a loop that two functions
+share as a foreach macro.
+
 The comparison starts in the kernel. Before a mechanism is written over a kernel primitive, the
 kernel's own answer to the same problem is read, `Documentation/` for the family and the primitive's
 users under `lib/` and `kernel/`, and the commit body names the facility the shape was compared with,
