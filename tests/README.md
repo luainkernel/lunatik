@@ -1448,7 +1448,7 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   which `lunatik_cloneobject` creates there from the class's methods
   without opening the library or adding a `package.loaded` entry: `data`
   into a softirq runtime, where the clone must not sleep, and
-  `set.labeled`, the crypto classes and the `bpf` maps into a process
+  `set`, the crypto classes and the `bpf` maps into a process
   one. The `crypto.comp` case skips where the kernel has no crypto_comp
   API (6.15 and later), the `bpf` one where bpftool cannot pin a map.
 
@@ -1676,15 +1676,15 @@ pid, what a valid call does, and where it refuses to run.
 
 ### set
 
-- **set**: `set.new` sorting unsorted input and binary-search membership
-  (`has`); size (`#`); duplicates kept; the empty-set and empty-string-member
-  edges; and the raises on a non-string member and on a map, the shape
-  `set.labeled` takes. For the labeled flavor:
-  `set.labeled` mapping members to labels and `match` returning the bitwise OR
-  over the matching suffix hierarchy (0 on a miss); members that suffix one
-  another; a label crossed as a bitmask on the Lua side; labels across the 32-bit
-  range; the empty and empty-string-member edges; and the raises (non-string
-  member, label outside [1, 2^32)).
+- **set**: `set.new` from a list, sorting unsorted input without reordering the
+  table, and binary-search membership (`has`); size (`#`), a duplicate counted
+  once; the empty-set and empty-string-member edges; `match` on a list answering
+  1 for a member or a key below one. From a map: `match` answering the label of
+  the longest member a key ends in at a level, alone (0 on a miss), and not a
+  member inside a level; `has` as exact membership; the empty-string member
+  reached by a trailing separator; labels across the 32-bit range; and the raises
+  (non-string member of a list or a map, label outside [1, 2^32), a list and a
+  map in one table).
 
 ### skb
 

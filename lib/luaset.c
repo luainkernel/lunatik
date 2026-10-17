@@ -8,16 +8,14 @@
 *
 * It stores many short strings as a sorted blob of key bytes plus a uint32 offset
 * array, with no per-key allocation, so it costs about `length + 4` bytes per key,
-* instead of the hash node and slab rounding a Lua or `rcu` table pays per key.
-* Built once, it is then read-only: lookups take no lock and allocate nothing, safe
-* from softirq.
+* and 4 more for a label, instead of the hash node and slab rounding a Lua or `rcu`
+* table pays per key. Built once, it is then read-only: lookups take no lock and
+* allocate nothing, safe from softirq.
 *
-* `set.new` builds a plain set, tested for exact membership with `set:has`: a single
-* binary search, `O(log n)`.
-* `set.labeled` builds a labeled set: each member carries a 32-bit label bitmask, and
-* `set:match` walks a key by `.` returning the bitwise OR of the labels of every member
-* that is a suffix of it (0 when nothing matches); one binary search per `.`-separated
-* level, `O(d log n)` for a `d`-level key.
+* `set:has` tests exact membership: a single binary search, `O(log n)`.
+* `set:match` walks a key by `.` and returns the label of the longest member the key
+* ends in at a level (0 when nothing matches); one binary search per `.`-separated level,
+* `O(d log n)` for a `d`-level key.
 *
 * @module set
 * @see rcu
@@ -35,15 +33,12 @@ typedef struct luaset_s {
 	size_t n;		/* number of members */
 	const uint32_t *off;	/* n+1 offsets into blob */
 	const char *blob;	/* sorted members concatenated, no separator */
-	const uint32_t *labels;	/* NULL for a plain set; per-member labels when labeled */
+	const uint32_t *labels;	/* per-member labels of a map; NULL for a list, whose members carry 1 */
 } luaset_t;
 
-static int luaset_new(lua_State *L);
-static int luaset_labeled(lua_State *L);
 static const lunatik_class_t luaset_class;
-static const lunatik_class_t luaset_labeled_class;
 
-LUNATIK_PRIVATECHECKERS(luaset_check, luaset_t *, "set", &luaset_class, &luaset_labeled_class);
+LUNATIK_PRIVATECHECKER(luaset_check, luaset_t *, &luaset_class);
 
 static inline int luaset_keycmp(const char *a, uint32_t alen, const char *b, uint32_t blen)
 {
@@ -88,7 +83,7 @@ static void luaset_release(void *private)
 }
 
 /***
-* A built plain `set`, returned by `set.new`; `#s` is its number of members.
+* A built `set`, returned by `set.new`; `#s` is its number of members.
 * @type set
 */
 
@@ -108,138 +103,31 @@ static int luaset_has(lua_State *L)
 	return 1;
 }
 
-static bool luaset_isempty(lua_State *L, int ix)
-{
-	lua_pushnil(L);
-	if (lua_next(L, ix) == 0)
-		return true;
-	lua_pop(L, 2); /* key and value */
-	return false;
-}
-
-static void luaset_sort(lua_State *L, int ix)
-{
-	lua_getglobal(L, "table");
-	lua_getfield(L, -1, "sort");
-	lua_pushvalue(L, ix);
-	lua_call(L, 1, 0);
-	lua_pop(L, 1); /* the table library */
-}
-
-static size_t luaset_measure(lua_State *L, uint32_t *off, lua_Integer cap)
-{
-	lua_Integer i;
-	size_t total = 0;
-
-	for (i = 1; i <= cap; i++) {
-		luaL_argcheck(L, lua_rawgeti(L, 1, i) == LUA_TSTRING, 1, "members must be strings");
-		off[i - 1] = (uint32_t)total;
-		total += lua_rawlen(L, -1);
-		luaL_argcheck(L, total <= U32_MAX, 1, "table too large"); /* offsets are uint32 */
-		lua_pop(L, 1);
-	}
-	off[cap] = (uint32_t)total;
-	return total;
-}
-
-static void luaset_pack(lua_State *L, char *blob, const uint32_t *off, lua_Integer cap)
-{
-	lua_Integer i;
-
-	for (i = 1; i <= cap; i++) {
-		size_t len;
-		const char *s;
-
-		lua_rawgeti(L, 1, i);
-		s = lua_tolstring(L, -1, &len);
-		memcpy(blob + off[i - 1], s, len);
-		lua_pop(L, 1);
-	}
-}
-
-static void luaset_build(lua_State *L, luaset_t *set, lua_Integer cap)
-{
-	size_t total;
-	char *blob;
-	uint32_t *off = lunatik_malloc(L, sizeof(uint32_t) * (cap + 1));
-
-	if (off == NULL)
-		lunatik_enomem(L);
-	set->off = off; /* own off before measure can raise, so release frees it */
-	set->n = (size_t)cap;
-
-	total = luaset_measure(L, off, cap);
-	if (total == 0) /* no bytes to store; lookups never read blob */
-		return;
-
-	blob = lunatik_malloc(L, total);
-	if (blob == NULL)
-		lunatik_enomem(L);
-	set->blob = blob;
-	luaset_pack(L, blob, off, cap);
-}
-
-/***
-* Builds a plain set from an array of strings.
-*
-* The array is sorted in place. The members must be unique; duplicates are kept,
-* which keeps lookups correct but wastes space, so de-duplicate first if it
-* matters. It allocates, so call it where it can sleep (a process-context
-* runtime, or any runtime's load).
-* @function new
-* @tparam {string,...} strings the member strings, in any order.
-* @treturn set the built set.
-* @raise Error on a table with entries and no sequence (`set.labeled` takes a map), a
-* non-string member, if the keys exceed 4 GiB, or on allocation failure.
-* @usage local s = set.new({ "alpha", "bravo" })
-* @within set
-*/
-static int luaset_new(lua_State *L)
-{
-	lunatik_object_t *object;
-	luaset_t *set;
-
-	luaL_checktype(L, 1, LUA_TTABLE);
-	luaL_argcheck(L, lua_rawlen(L, 1) > 0 || luaset_isempty(L, 1), 1, "not a sequence, set.labeled takes a map");
-	luaset_sort(L, 1);
-
-	object = lunatik_newobject(L, &luaset_class, sizeof(luaset_t), LUNATIK_OPT_NONE);
-	set = (luaset_t *)object->private;
-
-	luaset_build(L, set, (lua_Integer)lua_rawlen(L, 1));
-	return 1; /* object */
-}
-
 static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len)
 {
-	uint32_t labels = 0;
 	size_t i = 0;
 
 	while (i <= len) {
 		ssize_t idx = luaset_find(set, s + i, (uint32_t)(len - i));
 		if (idx >= 0)
-			labels |= set->labels[idx];
+			return set->labels != NULL ? set->labels[idx] : 1;
 		const char *next = memchr(s + i, LUASET_SEP, len - i);
 		if (next == NULL)
 			break;
 		i = (size_t)(next - s) + 1;
 	}
-	return labels;
+	return 0;
 }
 
 /***
-* A built labeled `set`, returned by `set.labeled`; `#s` is its number of members.
-* @type set.labeled
-*/
-
-/***
-* Returns the union of the labels of `s` and its suffixes, or 0.
+* Returns the label of the longest member `s` ends in at a level, or 0.
 *
-* Walks `s` by `.` (`"a.b.c"` tries `"a.b.c"`, `"b.c"`, `"c"`), ORing the labels of
-* every level that is a member. This roots the hierarchy on the right.
+* Walks `s` by `.` (`"a.b.c"` tries `"a.b.c"`, `"b.c"`, `"c"`) and stops at the first
+* level that is a member, so the most specific member decides. This roots the
+* hierarchy on the right.
 * @function match
 * @tparam string s the string to look up.
-* @treturn integer the union of the matching levels' labels, or 0.
+* @treturn integer the label of the longest matching level, or 0.
 */
 static int luaset_match(lua_State *L)
 {
@@ -265,7 +153,9 @@ static int luaset_membercmp(const void *a, const void *b)
 
 #define luaset_foreach(L, ix)	for (lua_pushnil(L); lua_next((L), (ix)) != 0; lua_pop((L), 1))
 
-static size_t luaset_count(lua_State *L, int ix, size_t *total)
+#define luaset_memberix(map)	((map) ? -2 : -1) /* a map's member is the key, a list's the value */
+
+static size_t luaset_count(lua_State *L, int ix, bool map, size_t *total)
 {
 	lua_Integer n = 0;
 
@@ -274,10 +164,11 @@ static size_t luaset_count(lua_State *L, int ix, size_t *total)
 		size_t len;
 		lua_Integer label = lua_tointeger(L, -1);
 
-		luaL_argcheck(L, lua_type(L, -2) == LUA_TSTRING, ix, "members must be strings");
-		luaL_argcheck(L, lua_isinteger(L, -1) && label >= 1 && label <= U32_MAX, ix,
+		luaL_argcheck(L, map || lua_type(L, -2) == LUA_TNUMBER, ix, "a list and a map mixed");
+		luaL_argcheck(L, lua_type(L, luaset_memberix(map)) == LUA_TSTRING, ix, "members must be strings");
+		luaL_argcheck(L, !map || (lua_type(L, -1) == LUA_TNUMBER && label >= 1 && label <= U32_MAX), ix,
 			"labels must be integers in [1, 2^32)");
-		lua_tolstring(L, -2, &len);
+		lua_tolstring(L, luaset_memberix(map), &len);
 		*total += len;
 		n++;
 	}
@@ -285,19 +176,30 @@ static size_t luaset_count(lua_State *L, int ix, size_t *total)
 	return (size_t)n;
 }
 
-static luaset_member_t *luaset_load(lua_State *L, int ix, size_t n)
+static luaset_member_t *luaset_load(lua_State *L, int ix, bool map, size_t n)
 {
 	luaset_member_t *members = lunatik_checkalloc(L, n * sizeof(luaset_member_t));
 	size_t i = 0;
 
 	luaset_foreach(L, ix) {
 		size_t len;
-		members[i].lstr = lua_tolstring(L, -2, &len);
+		members[i].lstr = lua_tolstring(L, luaset_memberix(map), &len);
 		members[i].len = (uint32_t)len;
 		members[i].label = (uint32_t)lua_tointeger(L, -1);
 		i++;
 	}
 	return members;
+}
+
+static size_t luaset_unique(luaset_member_t *members, size_t n)
+{
+	size_t m = 1;
+	size_t i;
+
+	for (i = 1; i < n; i++)
+		if (luaset_membercmp(&members[m - 1], &members[i]) != 0)
+			members[m++] = members[i];
+	return m;
 }
 
 static void luaset_store(uint32_t *off, char *blob, uint32_t *labels, const luaset_member_t *members, size_t n)
@@ -309,41 +211,20 @@ static void luaset_store(uint32_t *off, char *blob, uint32_t *labels, const luas
 		off[i] = (uint32_t)pos;
 		if (members[i].len > 0)
 			memcpy(blob + pos, members[i].lstr, members[i].len);
-		labels[i] = members[i].label;
+		if (labels != NULL)
+			labels[i] = members[i].label;
 		pos += members[i].len;
 	}
+	off[n] = (uint32_t)pos;
 }
 
-/***
-* Builds a labeled set from a table of members, each with a label bitmask.
-*
-* It allocates, so call it where it can sleep (a process-context runtime, or any
-* runtime's load).
-* @function labeled
-* @tparam {[string]=integer} t the member/labels pairs; labels are in `[1, 2^32)`.
-* @treturn set.labeled the built labeled set.
-* @raise Error on a non-string member, a label outside `[1, 2^32)`, if the members
-* exceed 4 GiB, or on allocation failure.
-* @usage local s = set.labeled({ ["a.b.c"] = 1, ["b.c"] = 2, ["c"] = 4 })
-* local labels = s:match("a.b.c")  --> 7, the union 1 | 2 | 4
-* @within set
-*/
-static int luaset_labeled(lua_State *L)
+static void luaset_build(lua_State *L, luaset_t *set, bool map, size_t n, size_t total)
 {
-	size_t total = 0;
-
-	luaL_checktype(L, 1, LUA_TTABLE);
-	size_t n = luaset_count(L, 1, &total);
-
-	lunatik_object_t *object = lunatik_newobject(L, &luaset_labeled_class, sizeof(luaset_t), LUNATIK_OPT_NONE);
-	luaset_t *set = (luaset_t *)object->private;
-	set->n = n;
-
 	uint32_t *off = lunatik_checkalloc(L, sizeof(uint32_t) * (n + 1));
 	set->off = off;
-	off[n] = (uint32_t)total;
+	off[0] = 0;
 	if (n == 0) /* empty set: only the terminating offset */
-		goto out;
+		return;
 
 	char *blob = NULL;
 	if (total > 0) { /* all-empty members store no blob */
@@ -351,20 +232,50 @@ static int luaset_labeled(lua_State *L)
 		set->blob = blob;
 	}
 
-	uint32_t *labels = lunatik_checkalloc(L, sizeof(uint32_t) * n);
-	set->labels = labels;
+	uint32_t *labels = NULL;
+	if (map) {
+		labels = lunatik_checkalloc(L, sizeof(uint32_t) * n);
+		set->labels = labels;
+	}
 
-	luaset_member_t *members = luaset_load(L, 1, n);
+	luaset_member_t *members = luaset_load(L, 1, map, n);
 	sort(members, n, sizeof(luaset_member_t), luaset_membercmp, NULL);
-	luaset_store(off, blob, labels, members, n);
+	set->n = luaset_unique(members, n); /* a list's duplicates count once */
+	luaset_store(off, blob, labels, members, set->n);
 	lunatik_free(members);
-out:
+}
+
+/***
+* Builds a set from a list of strings or from a map of strings to labels.
+*
+* A label is an integer in `[1, 2^32)`, which `match` returns; the members of a list
+* carry 1, and a list's duplicates count once. It allocates, so call it where it can
+* sleep (a process-context runtime, or any runtime's load).
+* @function new
+* @tparam table t the members, as a list of strings or as a map from each member to its label.
+* @treturn set the built set.
+* @raise Error on a non-string member, a label outside `[1, 2^32)`, a list and a map
+* mixed, if the members exceed 4 GiB, or on allocation failure.
+* @usage local allowed = set.new({ "alpha", "bravo" })
+* local policy = set.new({ ["go.com"] = 7, ["abcnews.go.com"] = 9 })
+* local label = policy:match("www.abcnews.go.com")  --> 9, the longest member decides
+* @within set
+*/
+static int luaset_new(lua_State *L)
+{
+	luaL_checktype(L, 1, LUA_TTABLE);
+	bool map = lua_rawlen(L, 1) == 0; /* an empty table builds the empty set either way */
+	/* before count and load read the table: allocating may run a __gc that changes it between them */
+	lunatik_object_t *object = lunatik_newobject(L, &luaset_class, sizeof(luaset_t), LUNATIK_OPT_NONE);
+	size_t total;
+	size_t n = luaset_count(L, 1, map, &total);
+
+	luaset_build(L, (luaset_t *)object->private, map, n, total);
 	return 1; /* object */
 }
 
 static const luaL_Reg luaset_lib[] = {
 	{"new", luaset_new},
-	{"labeled", luaset_labeled},
 	{NULL, NULL}
 };
 
@@ -372,12 +283,6 @@ static const luaL_Reg luaset_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"__len", luaset_length},
 	{"has", luaset_has},
-	{NULL, NULL}
-};
-
-static const luaL_Reg luaset_labeled_mt[] = {
-	{"__gc", lunatik_deleteobject},
-	{"__len", luaset_length},
 	{"match", luaset_match},
 	{NULL, NULL}
 };
@@ -390,15 +295,7 @@ static const lunatik_class_t luaset_class = {
 	.owner = THIS_MODULE,
 };
 
-static const lunatik_class_t luaset_labeled_class = {
-	.name = "set.labeled",
-	.methods = luaset_labeled_mt,
-	.release = luaset_release,
-	.opt = LUNATIK_OPT_SOFTIRQ,
-	.owner = THIS_MODULE,
-};
-
-LUNATIK_CLASSES(set, &luaset_class, &luaset_labeled_class);
+LUNATIK_CLASSES(set, &luaset_class);
 LUNATIK_NEWLIB(set, luaset_lib, luaset_classes);
 
 static int __init luaset_init(void)

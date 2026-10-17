@@ -10,7 +10,7 @@ local set    = require("set")
 local check  = require("tests.runtime.check")
 
 check.clones(data.new(4), "softirq")
-check.clones(set.labeled({key = 1}))
+check.clones(set.new({key = 1}))
 check.clones(crypto.shash("sha256"))
 check.clones(crypto.skcipher("cbc(aes)"))
 check.clones(crypto.aead("gcm(aes)"))
