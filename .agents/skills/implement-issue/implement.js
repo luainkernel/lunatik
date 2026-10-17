@@ -73,7 +73,8 @@ you take it, what you read, decided, committed and measured, and your answer bef
    before it is written down (AGENTS.md rule 1). An issue whose stimulus is a script out of contract
    (AGENTS.md, "Deciding what to change") closes as not a defect, with no pull request.
 2. Write the smallest shape that makes the defect unreachable, or meets the need, in the checkpoint
-   before any other, and take a larger one only for what it buys (AGENTS.md, "Deciding what to change").
+   before any other, and take a larger one only for what it buys (AGENTS.md, "Deciding what to change"),
+   a helper or a loop the issue prescribes included, which is a shape to weigh and not the spec.
    Your answer's smallest carries that shape beside the diff, and names what each mechanism past it
    buys; the review and the maintainer read the change against it.
 3. Commit as "Patches and commits" asks: one change per commit, the harness apart from the code, tests
