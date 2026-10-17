@@ -21,7 +21,10 @@
 # from its first commit until a stripped chunk had to ship encrypted (#1767). A refusal raised
 # with the family's wording as a literal, "not allowed ...", is a context check outside the
 # lunatik_check helpers guards.sh counts: #1818's netlink.channel.new refused a hardirq runtime
-# that way until the maintainer asked for lunatik_checkhardirq.
+# that way until the maintainer asked for lunatik_checkhardirq. A helper of the file that steps a loop through
+# out parameters, `while (next(&s, &len))`, is a foreach macro too, and two functions whose one statement
+# returns the same call with another argument are a pair a macro generates: #1896 spelled luaset_next and the
+# set.labeled and set.valued constructors that way, which the loop check above and the review read past.
 # Takes file paths; silent on files that carry none, and on the Lua fork under lua/, whose
 # guards keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
@@ -48,6 +51,14 @@ for file in "$@"; do
 	function callee(s) {
 		sub(/^return /, "", s)
 		return s ~ /^[A-Za-z_][A-Za-z0-9_]*\(.*\);$/ ? substr(s, 1, index(s, "(") - 1) : ""
+	}
+	# the function a static definition opening line s names, "" for any other line
+	function defined(s,   head) {
+		if (!match(s, /^static [^;(=]*[ *][a-z_][a-z0-9_]*\(/))
+			return ""
+		head = substr(s, 1, RLENGTH - 1)
+		sub(/.*[ *]/, "", head)
+		return head
 	}
 	{
 		line = trim($0)
@@ -137,6 +148,38 @@ for file in "$@"; do
 		if (NR > 3 && arm[NR - 1] == "else" && arm[NR - 3] ~ /^if \(.*\)([ \t]*\/\*.*\*\/)?$/ && callee(arm[NR - 2]) != "" &&
 		    callee(arm[NR - 2]) == callee(line) && arm[NR - 4] != "else")
 			printf "%s:%d: both arms call %s: two short exclusive calls are a ternary\n", f, NR - 3, callee(line)
+		if ((name = defined($0)) != "")
+			helpers[name] = NR
+		if (line ~ /^(\} )?while \(!?[a-z_][a-z0-9_]*\(&/) {
+			step = line
+			sub(/^(\} )?while \(!?/, "", step)
+			step = substr(step, 1, index(step, "(") - 1)
+			if (step in helpers)
+				printf "%s:%d: %s steps the loop through out parameters: a foreach macro names the walk, as lunatik_foreachruntime does\n", f, NR, step
+		}
+		# a function whose one statement returns the call another such function returns, with another argument
+		if ($0 ~ /^static [^;]*\)$/)
+			wsig = NR
+		else if (wsig && $0 == "{") {
+			wfn = wsig
+			wn = 0
+			wsig = 0
+		}
+		else if (wfn && $0 ~ /^\}/) {
+			if (wn == 1 && wfirst ~ /^return / && (wcall = callee(wfirst)) != "") {
+				if (wcall in wraps)
+					printf "%s:%d: like the function of line %d, it returns %s with another argument: a macro generates the pair, as LUABPF_OPENER does\n", f, wfn, wraps[wcall], wcall
+				else
+					wraps[wcall] = wfn
+			}
+			wfn = 0
+		}
+		else if (wfn && line != "") {
+			if (++wn == 1)
+				wfirst = line
+		}
+		else
+			wsig = 0
 		prev = line
 	}' "$file"
 done
