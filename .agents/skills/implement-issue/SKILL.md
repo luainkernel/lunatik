@@ -22,6 +22,14 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   launch, and the notes never restate it: the implementer reads both, and where they differ the review
   hands the difference back as a decision.
 - `effort` has no default: an agent that names none runs at the session's default (AGENTS.md, "Skills").
+- `agents` gives each agent its own model and effort, `{model, effort}` under `groom`, `implement`, `fix`,
+  `hunt`, `build` and `github`. What it leaves out takes `model` and `effort`, the fix the implementer's,
+  and the host's and GitHub's agents their definitions, sonnet, since they run and post and judge nothing.
+- A groomer runs only when `agents.groom` names one. An issue is a request, and the groomer asks whether it
+  should be done before anyone builds it: it weighs the issue's merit and its approach against the smallest
+  shape and the kernel's own answer, and its verdict either settles the API in the issue under `Update:`
+  and lets the implementer start (`implement`), or stops the run with another shape for the maintainer to
+  decide on (`reshape`) or the reason to build nothing (`decline`).
 - `repo` has no default either: the review is read from it when the implementer is done, and a relative
   path then resolves against the session's directory, which may be a worktree removed since or one on
   another branch. #1538's review did not run, its script not found under a worktree the session had removed.
