@@ -1273,8 +1273,9 @@ from a pid namespace other than the initial one, whose pids are not the ones
 
 ### rcu
 
-- **foreach_values**: `rcu.foreach()` iterates booleans, integers, userdata,
-  mixed types, and skips nil (deleted) entries.
+- **foreach_values**: `rcu.foreach()` iterates booleans, integers, strings
+  (the empty one and one with an embedded NUL among them), userdata, mixed
+  types, and skips nil (deleted) entries.
 
 - **foreach_foreign**: `rcu.foreach()` refuses an object of another class
   instead of walking its private data as a table.
@@ -1283,6 +1284,15 @@ from a pid namespace other than the initial one, whose pids are not the ones
   prefix of a stored key reads `nil` and an assignment to it adds an entry
   instead of replacing the longer one, the empty key reads `nil` until it is
   set, and two keys alike up to an embedded NUL are told apart.
+
+- **strings**: `rcu.table` stores a string and reads it back whole, empty, with
+  an embedded NUL or past a page; a string read indexes a Lua table as its
+  literal; the entry keeps its string once the writer's is collected, and a
+  string read keeps its bytes once the entry goes; an entry turns from a string
+  into an integer, a boolean and an object and back. An armed softirq and an
+  armed hardirq runtime, reached through `resume`, each read whole a string past
+  `KMALLOC_MAX_SIZE` that the process runtime stored, then replace it, putting
+  its last reference with bottom halves or interrupts off.
 
 - **foreach_next**: `rcu.foreach()` walks inside an SRCU read-side critical section,
   so the callback may sleep, and it skips an entry a writer unlinked under it.
@@ -1355,6 +1365,15 @@ from a pid namespace other than the initial one, whose pids are not the ones
   object or nil, the reader saw the entry replaced while it read, and `dmesg`
   carries no refcount warning or oops. A stress, not a forced window; skips
   unless the loaded core carries `lunatik_trygetobject`.
+
+- **string_grace**: the same stress over a string, whose reader takes its
+  reference under `rcu_read_lock` alone as it does an object's, so the string's
+  memory outlives the grace period. The writer stores numbered strings that
+  carry their own length, from empty to past a page, and every read, by index or
+  through `rcu.foreach`, is one of them whole or nil, the reader saw the entry
+  replaced, and `dmesg` carries no refcount warning or oops. Skips unless the
+  loaded core carries `lunatik_unholdstring`, since a core that frees a string
+  without a grace period reads freed memory under the same stress.
 
 - **foreach_overflow**: `rcu.foreach()` takes its reference on an entry's
   object inside the handle's protected call, so a call that overflows the
