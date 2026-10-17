@@ -95,6 +95,10 @@ step, or reverted before the session pauses. A session's scratch worktrees live 
 reboot such a crash forces clears `/tmp` and every tree it held, and a script a cycle reruns lives
 under `scratch/` for the same reason; `tools/lunatik-host` names one it runs from `/tmp`.
 
+A change the host does not read, a comment, spacing, a document, is not run at all: the suite would
+measure what it measured already. `tools/checks/functional.sh <base>` names the files of a change that the
+build, the install or the suite reads, and when it names none the change goes out on the checks alone.
+
 A tree with a conflict pending (`git status` showing `UU`) is not a test subject: a suite run over a
 half-applied rebase or cherry-pick measures neither side. Resolve and commit, then build.
 

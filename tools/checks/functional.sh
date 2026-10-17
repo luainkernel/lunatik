@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
+# Names the files a change touches in what the host cycle reads, the build, the install and the suite.
+# A change to comments and spacing alone, or to a document or the harness, alters no module and no script,
+# and the suite would measure what it measured already. A C file counts when its tokens differ once the
+# comments are gone, a Lua file when its bytecode stripped of debug information does, a shell script when
+# a line other than a comment does, and any other file when its bytes or its mode do; one the compiler
+# cannot read counts too. Exits 1 when it names one.
+#
+# Usage: bash tools/checks/functional.sh <base> [<head>]   (default head HEAD)
+
+set -o pipefail # a compiler that cannot read the file fails the pipe it feeds
+base=$1
+head=${2:-HEAD}
+[ -n "$base" ] || { echo "usage: $0 <base> [<head>]" >&2; exit 2; }
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+# what the build reads of <path> at <rev>, as a checksum; nothing when the file is not there
+code() {
+	local rev=$1 path=$2
+
+	git show "$rev:$path" > "$tmp/file" 2> /dev/null || return 0
+	git ls-tree "$rev" -- "$path" | cut -c1-6
+	case "$path" in
+		*.c|*.h) gcc -fpreprocessed -dD -E -P -x c "$tmp/file" 2> /dev/null | tr -s ' \t\n' ' ' > "$tmp/code" ;;
+		*.lua) luac5.5 -s -o "$tmp/code" "$tmp/file" 2> /dev/null ;;
+		*.sh) sed '1!{/^[[:space:]]*#/d;}' "$tmp/file" | tr -s ' \t\n' ' ' > "$tmp/code" ;;
+		*) cp "$tmp/file" "$tmp/code" ;;
+	esac || { echo "$rev: unreadable"; return; }
+	cksum < "$tmp/code"
+}
+
+status=0
+while read -r path; do
+	case "$path" in
+		*.md|config.ld|doc/*|.agents/*|.claude/*|.github/*|tools/checks/*) continue ;;
+	esac
+	[ "$(code "$base" "$path")" = "$(code "$head" "$path")" ] && continue
+	echo "$path"
+	status=1
+done < <(git diff --name-only "$base" "$head")
+exit $status
+
