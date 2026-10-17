@@ -1685,6 +1685,23 @@ pid, what a valid call does, and where it refuses to run.
   reached by a trailing separator; labels across the 32-bit range; and the raises
   (non-string member of a list or a map, label outside [1, 2^32), a list and a
   map in one table).
+- **load**: `set.load` over the files `write.lua` writes in userspace, a list's and a
+  map's, whose `#`, `has` and `match` answer what `set.new` answers over the
+  same members and labels, the label 2^32 - 1 among them, and an empty list's
+  and an empty map's, the empty set; a file of `maxbytes` loads and one byte less raises `EFBIG`,
+  a missing file `ENOENT`, an empty file and a directory `EINVAL`, a file the
+  shell holds open for writing `ETXTBSY`, and a `maxbytes` of 0 is out of
+  bounds. Copies of a valid file broken at one rule
+  each raise the path and the rule: a magic other than `LSET` or a file shorter
+  than the header, not a set file; version 2, unsupported; a flag past bit 0,
+  unknown; a byte short, a byte past, a count of 2^32 - 1 and a length past the
+  members, a size mismatch; `off[0]` other than 0 and `off[n]` other than the
+  length, out of bounds; an offset above the next, out of order; two members
+  swapped or repeated, unsorted or repeated; a label of 0, outside
+  `[1, 2^32)`. A runtime loads in its body in every context, and loads again
+  resumed in a process runtime; an armed softirq or hardirq runtime answers
+  from the set its body loaded and refuses the load, not allowed once the
+  runtime is armed.
 
 ### skb
 
