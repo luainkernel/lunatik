@@ -8,18 +8,24 @@
 // workflow, whose build phase is the one run of the suite, the examples the change touches and the
 // defect each new test is for, a fix of what that run fails, and the opening of the pull request on
 // the head that passed. The host runs in an agent of its own, so the implementer's context never
-// waits on a suite.
+// waits on a suite. A groomer, when the launch names one, judges the issue's merit and approach first:
+// it settles the API in the issue and lets the implementer start, or stops the run with the shape it
+// would take instead or the reason to take none.
 //
 // Usage: Workflow({scriptPath: '.agents/skills/implement-issue/implement.js', args: {...}})
 //   issue       the issue to implement
-//   effort      the reasoning effort of the implementer, the reviewer and a fix; required, since an agent
-//               that names none runs at the session's default
+//   effort      the reasoning effort of every agent agents does not name, the GitHub's and the host's
+//               aside; required, since an agent that names none runs at the session's default
 //   scratch     an absolute directory for worktrees and the checkpoints
 //   base        the branch the work starts from and the pull request targets, default master
 //   branch      the branch the implementer creates, default one it names for the change
 //   notes       what the launching session adds for the implementer, in its own words
 //   focus       what the review is for, default notes
-//   model       the model of the implementer, the reviewer and a fix, default the session's
+//   model       the model of every agent agents does not name, the GitHub's and the host's aside,
+//               default the session's
+//   agents      {model, effort} per agent, under groom, implement, fix, review, build and github, over
+//               model and effort; fix defaults to implement's, and build and github to their agents'
+//               definitions, sonnet. groom runs a groomer before the implementer, only when named
 //   push        false where a push from an agent is refused on this machine: the implementer leaves
 //               its commits on the branch, and no review runs
 //   repo        the checkout's absolute path, where review.js is read and its phases work; required, since
@@ -36,7 +42,7 @@
 export const meta = {
   name: 'implement-issue',
   description: 'Implement an issue, review it, run it once on the host, and open its pull request',
-  phases: [{ title: 'Implement' }, { title: 'Fix' }, { title: 'Open' }, { title: 'File' }],
+  phases: [{ title: 'Groom' }, { title: 'Implement' }, { title: 'Fix' }, { title: 'Open' }, { title: 'File' }],
 }
 
 const a = args || {}
@@ -44,7 +50,16 @@ for (const key of ['issue', 'effort', 'scratch', 'repo'])
   if (!a[key]) throw new Error(`implement-issue: args.${key} is required`)
 
 const base = a.base || 'master'
-const model = a.model ? { model: a.model } : {}
+// an agent's model and effort: its own under agents, else the fallback, else its definition's
+const role = (name, fallback = { model: a.model, effort: a.effort }) => {
+  const own = { ...fallback, ...((a.agents || {})[name] || {}) }
+  return { ...(own.model ? { model: own.model } : {}), ...(own.effort ? { effort: own.effort } : {}) }
+}
+const implementer = role('implement')
+const fixer = role('fix', implementer)
+const reviewer = role('review')
+const githubber = role('github', { effort: 'low' })
+const groomCheckpoint = `${a.scratch}/issue${a.issue}/GROOM.md`
 const checkpoint = `${a.scratch}/issue${a.issue}/IMPLEMENT.md`
 const fileCheckpoint = `${a.scratch}/issue${a.issue}/FILED.md`
 const bodyFile = `${a.scratch}/issue${a.issue}/pull-request.md`
@@ -59,6 +74,45 @@ const PUSH = a.push === false
   ? 'Push nothing: the session that launched this workflow pushes the branch.'
   : 'Push each commit as a command of its own, as you make it.'
 const DRAFT = base === 'master' ? '' : ' It opens as a draft (`-F draft=true`), which GitHub will not merge before its base.'
+
+const GROOM = `
+You groom issue #${a.issue} of Lunatik before anyone implements it, in a worktree of your own under ${a.scratch}/
+at \`origin/${base}\` as fetched now, removed when you are done. GitHub is read through its REST API,
+${github}, and you write nothing to it.
+${a.notes ? '\nFROM THE SESSION THAT LAUNCHED THIS: ' + a.notes + '\n' : ''}
+CHECKPOINT: ${groomCheckpoint} is your memory across a death. If it exists, read it first and continue from
+it. Append a line per step as you take it, and your answer before you return.
+
+An issue is a request, not a decision to implement it. Judge it before you shape it:
+1. Its merit: whether the need is real and general or one consumer's, whether its contract holds against the
+   binding's documentation and the honest-mistake bullet of AGENTS.md, "Deciding what to change", and what
+   leaving it undone costs.
+2. Its approach: the smallest shape that meets the need, written first, beside the one the issue proposes and
+   the alternatives, each with what it buys and what it costs, the comparison starting in the kernel's own
+   answer (AGENTS.md, "Deciding what to change"). Read what the issue asks to be researched, in the kernel
+   source and on the web, and name what you read.
+3. Your verdict. implement settles, as text the issue takes under an Update: line, the API, the contract and
+   whatever format the issue leaves open, and leaves helpers and loops to the implementer (AGENTS.md, on what
+   an issue states). reshape is a shape other than the issue's, which the maintainer decides on; decline is
+   the reason to build nothing. Either stops the run.
+`
+
+const UPDATE = (text) => `
+${MACHINE}Append to the body of issue #${a.issue} of luainkernel/lunatik, as GitHub has it now, a blank line, a line
+\`Update:\` and this text, and change nothing else in it:
+${JSON.stringify(text)}
+
+Write the whole new body with your Write tool to exactly ${a.scratch}/issue${a.issue}/update.md, and pass that
+path spelled out in the command that edits the issue (\`gh api -X PATCH repos/luainkernel/lunatik/issues/${a.issue}
+-F body=@${a.scratch}/issue${a.issue}/update.md\`): the guards before a shell call read the file the command
+names. Your answer is the issue's number.
+`
+
+const GROOMING = (groomed) => `
+THE GROOMER judged the issue worth implementing and settled its API under the issue's Update: line. Its
+reading of the shapes, for your step 2, and what it read:
+${JSON.stringify({ shapes: groomed.shapes, sources: groomed.sources }, null, 2)}
+`
 
 const IMPLEMENT = `
 You implement issue #${a.issue} of Lunatik, in a worktree of your own under ${a.scratch}/ on
@@ -226,6 +280,19 @@ const FIXED = { type: 'object', properties: {
 
 const OPENED = { type: 'object', properties: { pr: { type: 'integer' }, notes: { type: 'string' } }, required: ['pr'] }
 
+const GROOMED = { type: 'object', properties: {
+  verdict: { type: 'string', enum: ['implement', 'reshape', 'decline'] },
+  merit: { type: 'string', description: 'whether the need is real, general and in contract, and what leaving it undone costs' },
+  shapes: { type: 'array', items: { type: 'object', properties: {
+    shape: { type: 'string' }, buys: { type: 'string' }, costs: { type: 'string' },
+  }, required: ['shape', 'buys', 'costs'] }, description: 'the smallest first, then the issue\'s and the alternatives' },
+  update: { type: 'string', description: 'for implement, the text the issue takes under its Update: line; empty otherwise' },
+  sources: { type: 'array', items: { type: 'string' }, description: 'what was read, as file:line or URL' },
+  notes: { type: 'string' },
+}, required: ['verdict', 'merit', 'shapes', 'update', 'sources', 'notes'] }
+
+const UPDATED = { type: 'object', properties: { issue: { type: 'integer' } }, required: ['issue'] }
+
 const FILED = { type: 'object', properties: {
   filed: { type: 'array', items: { type: 'object', properties: {
     index: { type: 'integer' }, number: { type: 'integer' }, action: { type: 'string', enum: ['created', 'updated', 'skipped'] },
@@ -234,15 +301,29 @@ const FILED = { type: 'object', properties: {
 
 const reviewArgs = (impl, extra) => ({
   pr: 0, branch: impl.branch, base: impl.base, scratch: a.scratch, validated: null, examples: impl.examples, defects: impl.defects,
-  focus: a.focus || a.notes, smallest: impl.smallest, effort: a.effort, model: a.model, push: a.push,
-  repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
+  focus: a.focus || a.notes, smallest: impl.smallest, effort: reviewer.effort, model: reviewer.model, push: a.push,
+  agents: { build: (a.agents || {}).build }, repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
 })
 const passed = (build) => build && build.clean && /fail:0\b/.test(build.totals || '')
 const unrun = (impl, build) => (impl.examples || []).filter(e => !(build?.examples || []).includes(e))
 
+let groomed = null
+if ((a.agents || {}).groom) {
+  phase('Groom')
+  groomed = await agent(GROOM, { label: `groom:${a.issue}`, phase: 'Groom', schema: GROOMED, ...role('groom') })
+  if (groomed?.verdict !== 'implement') {
+    log(`#${a.issue} ${groomed ? `groomed: ${groomed.verdict}` : 'not groomed: the groomer died'}; the session reads the result`)
+    return { issue: a.issue, groomed, pr: 0 }
+  }
+  if (groomed.update)
+    await agent(UPDATE(groomed.update), {
+      label: `update:${a.issue}`, phase: 'Groom', agentType: 'lunatik-github', schema: UPDATED, ...githubber,
+    })
+}
+
 phase('Implement')
-const implemented = await agent(IMPLEMENT, {
-  label: `implement:${a.issue}`, phase: 'Implement', effort: a.effort, schema: IMPLEMENTED, ...model,
+const implemented = await agent(IMPLEMENT + (groomed ? GROOMING(groomed) : ''), {
+  label: `implement:${a.issue}`, phase: 'Implement', schema: IMPLEMENTED, ...implementer,
 })
 
 let review = null, build = null, pr = 0
@@ -258,7 +339,7 @@ if (implemented?.branch && a.push !== false) {
   while (review && !passed(build) && fixes.length < FIXES) {
     phase('Fix')
     const fix = await agent(FIX({ totals: build?.totals, clean: build?.clean, notes: build?.notes }, head), {
-      label: `fix:${a.issue}:${fixes.length + 1}`, phase: 'Fix', effort: a.effort, schema: FIXED, ...model,
+      label: `fix:${a.issue}:${fixes.length + 1}`, phase: 'Fix', schema: FIXED, ...fixer,
     })
     fixes.push(fix)
     if (!fix) break
@@ -274,7 +355,7 @@ if (implemented?.branch && a.push !== false) {
     phase('Open')
     const unrelated = fixes.filter(f => f && !f.caused).map(f => f.notes)
     const opened = await agent(OPEN(implemented, head, unrelated), {
-      label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', effort: 'low', schema: OPENED,
+      label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
     })
     pr = opened?.pr || 0
   } else {
@@ -293,7 +374,7 @@ if (a.gh === false && findings_left.length)
 else if (findings_left.length) {
   phase('File')
   const filing = await agent(FILE(findings_left, pr || a.issue, review?.reviewer?.findings || [], fixes), {
-    label: `file:${a.issue}`, phase: 'File', agentType: 'lunatik-github', effort: 'low', schema: FILED,
+    label: `file:${a.issue}`, phase: 'File', agentType: 'lunatik-github', schema: FILED, ...githubber,
   })
   filed = filing?.filed || []
 }
@@ -302,5 +383,5 @@ if (unfiled.length) {
   log(`${unfiled.length} of ${findings_left.length} left unfiled: ${unfiled.map(f => f.title).join('; ')}`)
 }
 const issues = [...new Set(filed.filter(f => f.action !== 'skipped').map(f => f.number))]
-return { issue: a.issue, pr, implemented, review, build, fixes, findings_left, filed, issues, unfiled }
+return { issue: a.issue, groomed, pr, implemented, review, build, fixes, findings_left, filed, issues, unfiled }
 

@@ -30,6 +30,8 @@
 //   reviewer    false to run the build phase alone, as implement-issue does after a fix
 //   effort      the reviewer's reasoning effort, default "high"
 //   model       the model the reviewer runs on, default the session's
+//   agents      {model, effort} for each phase's agent, under review and build: review's over effort
+//               and model, build's over its agent's definition, sonnet at medium effort
 //   push        false where a push from an agent is refused on this machine, so a fixup stays a
 //               commit on review<pr>-fixups and the session that launched the review pushes it
 //   repo        the checkout the phases work in, default the repository they start in
@@ -53,8 +55,10 @@ export const meta = {
 }
 
 const a = args
-const effort = a.effort || 'high'
-const model = a.model ? { model: a.model } : {}
+const agents = a.agents || {}
+const effort = agents.review?.effort || a.effort || 'high'
+const model = agents.review?.model || a.model ? { model: agents.review?.model || a.model } : {}
+const builder = { effort: (agents.build || {}).effort || 'medium', ...((agents.build || {}).model ? { model: agents.build.model } : {}) }
 const github = a.github || 'luainkernel/lunatik'
 const lunatik = github === 'luainkernel/lunatik'
 const packetTool = a.packet || 'tools/review-packet.sh'
@@ -243,7 +247,7 @@ if (a.build === false)
   log('build skipped: nothing runs on the host for this tree')
 else if (!a.validated || changed || unrun.length) {
   phase('Build')
-  build = await agent(BUILD(reviewer?.tip || a.head), { label: `build:${a.pr || a.branch}`, phase: 'Build', agentType: 'lunatik-host', effort: 'medium', schema: BUILD_OUT })
+  build = await agent(BUILD(reviewer?.tip || a.head), { label: `build:${a.pr || a.branch}`, phase: 'Build', agentType: 'lunatik-host', schema: BUILD_OUT, ...builder })
   if (build?.skipped)
     log(`build skipped: ${a.head} validated, and the branch moved past it only in what the build does not read`)
 } else {
