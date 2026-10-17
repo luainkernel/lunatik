@@ -184,16 +184,14 @@
 <p class="lead">A <a href="../modules/set.html#">set</a> is a compact, immutable set of strings, queried by binary search.</p>
  It stores many short strings as a sorted blob of key bytes plus a uint32 offset
  array, with no per-key allocation, so it costs about <code>length + 4</code> bytes per key,
- instead of the hash node and slab rounding a Lua or <a href="../modules/rcu.html#">rcu</a> table pays per key.
- Built once, it is then read-only: lookups take no lock and allocate nothing, safe
- from softirq.</p>
+ and 4 more for a label, instead of the hash node and slab rounding a Lua or <a href="../modules/rcu.html#">rcu</a>
+ table pays per key. Built once, it is then read-only: lookups take no lock and
+ allocate nothing, safe from softirq.</p>
 
-<p> <a href="../modules/set.html#new">set.new</a> builds a plain set, tested for exact membership with <a href="../modules/set.html#set:has">set:has</a>: a single
- binary search, <code>O(log n)</code>.
- <a href="../modules/set.html#set.labeled">set.labeled</a> builds a labeled set: each member carries a 32-bit label bitmask, and
- <a href="../modules/set.html#set.labeled:match">set:match</a> walks a key by <code>.</code> returning the bitwise OR of the labels of every member
- that is a suffix of it (0 when nothing matches); one binary search per <code>.</code>-separated
- level, <code>O(d log n)</code> for a <code>d</code>-level key.
+<p> <a href="../modules/set.html#set:has">set:has</a> tests exact membership: a single binary search, <code>O(log n)</code>.
+ <a href="../modules/set.html#set:match">set:match</a> walks a key by <code>.</code> and returns the label of the longest member the key
+ ends in at a level (0 when nothing matches); one binary search per <code>.</code>-separated level,
+ <code>O(d log n)</code> for a <code>d</code>-level key.
     <h3>See also</h3>
     <ul>
          <a href="../modules/rcu.html#">rcu</a>
@@ -205,30 +203,23 @@
 	<td class="name"><a href="#set:has">set:has (s)</a></td>
 	<td class="summary">Returns whether a string is in the set.</td>
 	</tr>
+	<tr>
+	<td class="name"><a href="#set:match">set:match (s)</a></td>
+	<td class="summary">Returns the label of the longest member <code>s</code> ends in at a level, or 0.</td>
+	</tr>
 </table></div>
 <h2 id="set">set</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#labeled">labeled (t)</a></td>
-	<td class="summary">Builds a labeled set from a table of members, each with a label bitmask.</td>
-	</tr>
-	<tr>
-	<td class="name"><a href="#new">new (strings)</a></td>
-	<td class="summary">Builds a plain set from an array of strings.</td>
-	</tr>
-</table></div>
-<h2 id="Class_set_labeled">Class set.labeled </h2>
-<div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#set.labeled:match">set.labeled:match (s)</a></td>
-	<td class="summary">Returns the union of the labels of <code>s</code> and its suffixes, or 0.</td>
+	<td class="name"><a href="#new">new (t)</a></td>
+	<td class="summary">Builds a set from a list of strings or from a map of strings to labels.</td>
 	</tr>
 </table></div>
 
     <h2 class="section-header" id="Class_set-details"><a name="Class_set"></a>Class set  in detail</h2>
 
           <div class="section-description">
-          A built plain <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#new">set.new</a>; <code>#s</code> is its number of members.
+          A built <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#new">set.new</a>; <code>#s</code> is its number of members.
           </div>
     <dl class="function">
     <dt id="set:has"><a name="set:has"></a><strong>set:has (s)</strong></dt>
@@ -255,90 +246,13 @@
 
 
 </dd>
-</dl>
-    <h2 class="section-header" id="set-details"><a name="set"></a>set in detail</h2>
-
-    <dl class="function">
-    <dt id="labeled"><a name="labeled"></a><strong>labeled (t)</strong></dt>
+    <dt id="set:match"><a name="set:match"></a><strong>set:match (s)</strong></dt>
     <dd>
-    Builds a labeled set from a table of members, each with a label bitmask.</p>
+    Returns the label of the longest member <code>s</code> ends in at a level, or 0.</p>
 
-<p> It allocates, so call it where it can sleep (a process-context runtime, or any
- runtime&rsquo;s load).
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">t</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">{[string]=integer}</a></span>
-         the member/labels pairs; labels are in <code>[1, 2<sup>32</sup>)</code>.
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/set.html#set.labeled">set.labeled</a></span>
-        the built labeled set.
-    </ol>
-
-    <h3>Raises</h3>
-    Error on a non-string member, a label outside <code>[1, 2<sup>32</sup>)</code>, if the members
- exceed 4 GiB, or on allocation failure.
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> s = set.<span class="function-name">labeled</span>({ [<span class="string">"a.b.c"</span>] = <span class="number">1</span>, [<span class="string">"b.c"</span>] = <span class="number">2</span>, [<span class="string">"c"</span>] = <span class="number">4</span> })
- <span class="keyword">local</span> labels = s:<span class="function-name">match</span>(<span class="string">"a.b.c"</span>)  <span class="comment">--&gt; 7, the union 1 | 2 | 4</span></pre>
-
-</dd>
-    <dt id="new"><a name="new"></a><strong>new (strings)</strong></dt>
-    <dd>
-    Builds a plain set from an array of strings.</p>
-
-<p> The array is sorted in place. The members must be unique; duplicates are kept,
- which keeps lookups correct but wastes space, so de-duplicate first if it
- matters. It allocates, so call it where it can sleep (a process-context
- runtime, or any runtime&rsquo;s load).
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">strings</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">{string,...}</a></span>
-         the member strings, in any order.
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="../modules/set.html#set">set</a></span>
-        the built set.
-    </ol>
-
-    <h3>Raises</h3>
-    Error on a table with entries and no sequence (<a href="../modules/set.html#set.labeled">set.labeled</a> takes a map), a
- non-string member, if the keys exceed 4 GiB, or on allocation failure.
-
-
-    <h3>Usage</h3>
-        <pre class="example"><span class="keyword">local</span> s = set.<span class="function-name">new</span>({ <span class="string">"alpha"</span>, <span class="string">"bravo"</span> })</pre>
-
-</dd>
-</dl>
-    <h2 class="section-header" id="Class_set_labeled-details"><a name="Class_set_labeled"></a><a name="set.labeled"></a>Class set.labeled  in detail</h2>
-
-          <div class="section-description">
-          A built labeled <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#set.labeled">set.labeled</a>; <code>#s</code> is its number of members.
-          </div>
-    <dl class="function">
-    <dt id="set.labeled:match"><a name="set.labeled:match"></a><strong>set.labeled:match (s)</strong></dt>
-    <dd>
-    Returns the union of the labels of <code>s</code> and its suffixes, or 0.</p>
-
-<p> Walks <code>s</code> by <code>.</code> (<code>&quot;a.b.c&quot;</code> tries <code>&quot;a.b.c&quot;</code>, <code>&quot;b.c&quot;</code>, <code>&quot;c&quot;</code>), ORing the labels of
- every level that is a member. This roots the hierarchy on the right.
+<p> Walks <code>s</code> by <code>.</code> (<code>&quot;a.b.c&quot;</code> tries <code>&quot;a.b.c&quot;</code>, <code>&quot;b.c&quot;</code>, <code>&quot;c&quot;</code>) and stops at the first
+ level that is a member, so the most specific member decides. This roots the
+ hierarchy on the right.
 
 
     <h3>Parameters</h3>
@@ -353,11 +267,50 @@
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        the union of the matching levels' labels, or 0.
+        the label of the longest matching level, or 0.
     </ol>
 
 
 
+
+</dd>
+</dl>
+    <h2 class="section-header" id="set-details"><a name="set"></a>set in detail</h2>
+
+    <dl class="function">
+    <dt id="new"><a name="new"></a><strong>new (t)</strong></dt>
+    <dd>
+    Builds a set from a list of strings or from a map of strings to labels.</p>
+
+<p> A label is an integer in <code>[1, 2<sup>32</sup>)</code>, which <a href="../modules/set.html#set:match">match</a> returns; the members of a list
+ carry 1, and a list&rsquo;s duplicates count once. It allocates, so call it where it can
+ sleep (a process-context runtime, or any runtime&rsquo;s load).
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         the members, as a list of strings or as a map from each member to its label.
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/set.html#set">set</a></span>
+        the built set.
+    </ol>
+
+    <h3>Raises</h3>
+    Error on a non-string member, a label outside <code>[1, 2<sup>32</sup>)</code>, a list and a map
+ mixed, if the members exceed 4 GiB, or on allocation failure.
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">local</span> allowed = set.<span class="function-name">new</span>({ <span class="string">"alpha"</span>, <span class="string">"bravo"</span> })
+<span class="keyword">local</span> policy = set.<span class="function-name">new</span>({ [<span class="string">"go.com"</span>] = <span class="number">7</span>, [<span class="string">"abcnews.go.com"</span>] = <span class="number">9</span> })
+<span class="keyword">local</span> label = policy:<span class="function-name">match</span>(<span class="string">"www.abcnews.go.com"</span>)  <span class="comment">--&gt; 9, the longest member decides</span></pre>
 
 </dd>
 </dl>
@@ -377,7 +330,7 @@
 <a href="../../modules/set.html">5.1 docs</a> ·
 <a href="../../5.0/modules/set.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:52:50</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-17 12:15:13</span>
 </div>
 </footer>
 </body>
