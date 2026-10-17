@@ -6,7 +6,7 @@
 // A review as a workflow in two phases, each short enough to survive a provider error and resumable
 // from the cache when one does not: a hunt that reads the change once, through the packet the
 // machine gathers for it, and a build that runs the host only when the head was not validated, a
-// fixup moved it in a file the build reads, or an example the change touches was not run on it.
+// fixup changed what the build reads, or an example the change touches was not run on it.
 //
 // Every phase appends what it finds to a checkpoint file the moment it finds it, so a phase that
 // dies leaves its findings on disk and its successor continues from them instead of reading the
@@ -156,7 +156,6 @@ is the Build phase's.
 `
 
 const unrun = (a.examples || []).filter(e => !(a.validated?.examples || []).includes(e))
-const UNBUILT = 'a Markdown file, or a path under doc/, .agents/, .claude/, .github/ or tools/checks/, or config.ld'
 
 const BUILD = (tip) => `
 PHASE: BUILD of ${a.pr ? `pull request #${a.pr}` : `the branch \`${a.branch}\``} of ${github}, in the checkout at \`${repo}\`.
@@ -178,9 +177,9 @@ call a guard refuses are reported, not tried another way. Your answer's discrimi
 cases that failed.
 ${JSON.stringify(a.defects, null, 2)}` : ''}
 ${a.validated && !unrun.length ? `Before any of that: \`${a.head}\` already passed (${a.validated.suite}, core ${a.validated.core}),
-so list what the branch changed since, \`git diff --name-only ${a.head} ${tip}\`. When every path is ${UNBUILT},
-which the build, the install and the suite never read, run nothing: answer skipped true, with the tip as head, the
-validated totals and core, and the paths in notes.` : ''}
+so ask what the branch changed since in what the host reads, \`(cd ${repo} && bash tools/checks/functional.sh ${a.head} ${tip})\`.
+When it names nothing, comments, spacing, documents or the harness alone having moved, run nothing: answer skipped
+true, with the tip as head, the validated totals and core, and \`git diff --name-only ${a.head} ${tip}\` in notes.` : ''}
 Remove your worktree when you are done (\`rm -rf <tree> && git -C ${repo} worktree prune\`).
 `
 
@@ -220,7 +219,7 @@ const BUILD_OUT = {
   type: 'object',
   properties: {
     totals: { type: 'string' }, core: { type: 'string' }, head: { type: 'string' },
-    skipped: { type: 'boolean', description: 'true when only unbuilt paths moved past the validated head' },
+    skipped: { type: 'boolean', description: 'true when functional.sh named nothing past the validated head' },
     examples: { type: 'array', items: { type: 'string' } }, clean: { type: 'boolean' }, notes: { type: 'string' },
     discrimination: { type: 'array', items: { type: 'object', properties: {
       patch: { type: 'string' }, failed: { type: 'array', items: { type: 'string' }, description: 'the cases that failed with the defect planted' },
@@ -245,7 +244,7 @@ else if (!a.validated || changed || unrun.length) {
   phase('Build')
   build = await agent(BUILD(hunt?.tip || a.head), { label: `build:${a.pr || a.branch}`, phase: 'Build', agentType: 'lunatik-host', effort: 'medium', schema: BUILD_OUT })
   if (build?.skipped)
-    log(`build skipped: ${a.head} validated, and the branch moved past it only in paths the build does not read`)
+    log(`build skipped: ${a.head} validated, and the branch moved past it only in what the build does not read`)
 } else {
   log(`build skipped: head ${a.head} already validated (${a.validated.suite}, core ${a.validated.core}, examples ${(a.validated.examples || []).join(' ') || 'none'}) and no fixup changed it`)
 }
