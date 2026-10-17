@@ -23,6 +23,13 @@ paths:
   says. State the why; the what and the how are the code's job. A second clause defending the choice,
   or walking the mechanism a second time, is neither and reads as doubt: `/* a bottom-half unlock with
   IRQs off runs the pending softirqs inline, inside a kprobe handler */` gives the reason and stops.
+* A comment is read by someone who has that line and the code around it and nothing else, so each
+  thing it names is a name that code carries, a function, a variable, a metamethod, and its reason
+  says what runs and what that would break. A label the writer coined is a word the reader cannot
+  look up: `/* before the walks: its GC step may run a finalizer that changes the table */`, above
+  `set.new`'s allocation, made the maintainer ask what the walks, the finalizer and the table were;
+  `/* before count and load read the table: allocating may run a __gc that changes it between them */`
+  names the two functions, the metamethod and what moves.
 * A comment about a specific call goes on that call's line, not above the function signature, and
   the call is the one the fact is about: `%pe keeps the sign` is about the `snprintf` that formats
   the errno, and the `buf + 1` on the line below reads on from it; put on the `lua_pushstring`
