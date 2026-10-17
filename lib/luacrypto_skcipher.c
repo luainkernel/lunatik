@@ -110,6 +110,12 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 	return 1;
 }
 
+#define LUACRYPTO_SKCIPHER_CRYPT(op)					\
+static int luacrypto_skcipher_##op(lua_State *L)			\
+{									\
+	return luacrypto_skcipher_crypt(L, crypto_skcipher_##op);	\
+}
+
 /***
 * Encrypts data. IV length must match `ivsize()`.
 * @function encrypt
@@ -119,10 +125,7 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 * @raise on encryption failure or incorrect IV length, "not enough memory" when one kmalloc block
 *   cannot be allocated for the data, always past `KMALLOC_MAX_SIZE`
 */
-static int luacrypto_skcipher_encrypt(lua_State *L)
-{
-	return luacrypto_skcipher_crypt(L, crypto_skcipher_encrypt);
-}
+LUACRYPTO_SKCIPHER_CRYPT(encrypt)
 
 /***
 * Decrypts data. IV length must match `ivsize()`.
@@ -133,10 +136,7 @@ static int luacrypto_skcipher_encrypt(lua_State *L)
 * @raise on decryption failure or incorrect IV length, "not enough memory" when one kmalloc block
 *   cannot be allocated for the data, always past `KMALLOC_MAX_SIZE`
 */
-static int luacrypto_skcipher_decrypt(lua_State *L)
-{
-	return luacrypto_skcipher_crypt(L, crypto_skcipher_decrypt);
-}
+LUACRYPTO_SKCIPHER_CRYPT(decrypt)
 
 /***
 * Returns the driver-independent name of the algorithm the transform was allocated with.
