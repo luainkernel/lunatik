@@ -90,7 +90,10 @@ as a `static inline` whose body is one `return`, which the tree spells as a macr
 two arms call one function, which is a ternary. It runs at edit time and over a pull request's diff.
 It names an `is` or `has` predicate macro spelled
 with `?:`, which reads as two rules where an `||` of the exception and the rule reads as one, and a
-loop header a file spells twice, which a foreach macro names, as `lunatik_foreachruntime` does. It names
+loop header a file spells twice, which a foreach macro names, as `lunatik_foreachruntime` does, and so
+is a helper of the file that steps a loop through out parameters, the shape #1896's `luaset_next` took
+past that check; and two functions whose one statement returns the same call with another argument,
+a pair a macro generates, as `LUABPF_OPENER` does. It names
 a value a function computes before a check that raises and does not read it, which decides before
 validating, and a load of one mode, which refuses what `require` and `load` take. It names a refusal
 raised with the family's wording as a literal, `luaL_error(L, "not allowed ...")`, whose message is a
