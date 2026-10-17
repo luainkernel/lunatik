@@ -138,7 +138,8 @@ the host.
 its report asks for is done outside it, on the host or in an issue, or by stopping the workflow and
 relaunching it with notes.
 
-An issue goes to agents through the implement-issue skill's workflow: an implementer commits the
+An issue goes to agents through the implement-issue skill's workflow: a groomer, when the launch names
+one, first judges whether and how the issue is to be done, an implementer commits the
 change, review-pr's workflow runs over the branch nested, so a review runs one way whoever launches it,
 and its build is the one run on the host, in an agent of its own, before the pull request opens; so
 does a shape a review proposes, and `implement-guard.sh` refuses a commit of code in the session's
