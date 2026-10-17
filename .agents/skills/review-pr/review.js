@@ -75,13 +75,13 @@ const FIXUP = a.push === false
 branch ${unit}-fixups, taken from \`${a.branch}\`. Push nothing: the session that launched this
 review pushes, and your answer names every SHA it made.`
   : a.pr
-  ? `A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` on
-\`${a.branch}\`, pushed as soon as made (\`git push origin ${a.branch}:${a.branch}\`; where \`origin\`
-is not writable from this machine, CLAUDE.local.md says how it pushes).`
-  : `A finding you can fix is \`git commit --fixup=<the commit that introduced it>\` on \`${a.branch}\`, folded
-into that commit before you return (\`git rebase -i --autosquash ${a.base}\`), since no pull request exists yet
-and the maintainer's first review reads it squashed; push the branch with
-\`--force-with-lease=refs/heads/${a.branch}:<the head you started from>\` (where \`origin\` is not writable from
+  ? `A finding you can fix ships as \`git commit --fixup=<the commit that introduced it>\` in your own
+worktree, detached at the head of \`${a.branch}\`, pushed as soon as made (\`git push origin HEAD:refs/heads/${a.branch}\`;
+where \`origin\` is not writable from this machine, CLAUDE.local.md says how it pushes).`
+  : `A finding you can fix is \`git commit --fixup=<the commit that introduced it>\` in your own worktree, detached at
+\`${a.head}\`, folded into that commit before you return (\`git rebase -i --autosquash ${a.base}\`), since no pull request exists yet
+and the maintainer's first review reads it squashed; push it with \`git push origin HEAD:refs/heads/${a.branch}
+--force-with-lease=refs/heads/${a.branch}:<the head you started from>\` (where \`origin\` is not writable from
 this machine, CLAUDE.local.md says how it pushes), and your answer's tip is the head after the fold.`
 
 const COMMON = `
@@ -102,9 +102,10 @@ the verdict on disk.
 
 ENVIRONMENT:
 - Work in a worktree of your own under ${a.scratch}/, created with an ABSOLUTE path
-  (\`git -C ${repo} worktree add <abs path> <ref>\`, then \`git submodule update --init\`),
-  named ${unit}-<phase>. The worktrees, the stash, the device and the examples are shared, as AGENTS.md
-  "Build, install, test" and the guards it describes say.
+  (\`git -C ${repo} worktree add --detach <abs path> <ref>\`, then \`git submodule update --init\`),
+  named ${unit}-<phase>. A worktree that has the branch checked out is the launching session's, with its
+  work in progress, and no phase commits, rebases or checks out there. The worktrees, the stash, the
+  device and the examples are shared, as AGENTS.md "Build, install, test" and the guards it describes say.
 - GitHub reads go through \`${api('<path>')}\`. DO NOT POST ANYTHING TO GITHUB.
 - A command the host's policy refuses is written in the checkpoint and not tried again.
 
