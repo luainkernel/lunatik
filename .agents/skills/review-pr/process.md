@@ -96,7 +96,10 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   form the tree uses: a predicate written as a function in a header of macros, a comment on one
   member of a struct whose members carry none, a wrapper a vararg made unnecessary, a field the
   accessor could read from `current`. A guard added to the core for one binding is read against every binding with the
-  same shape before the verdict, module by module, and a consumer found leaves as an issue.
+  same shape before the verdict, module by module, and a consumer found leaves as an issue. Each comment the
+  diff adds or rewrites is read as a stranger would, with the code around it and nothing else, a fixup
+  included: a word that names nothing in that code, or a reason that does not say what runs and what it
+  would break, is a finding (`.agents/rules/comments.md`).
 * A review holds new code to the conventions AGENTS.md and `.agents/rules/` record; it does not impose preferences beyond
   them. Where the tree itself is inconsistent and a style seems worth settling, that is an exclusive
   pull request that fixes the whole tree and records the convention here — never a finding on someone's
