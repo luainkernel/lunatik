@@ -37,7 +37,7 @@
 //
 // It returns the implementer's answer, the review's, the last host run's build, the pull request, the
 // issues that now hold each entry of findings_left the filing did not skip, and any entry left unfiled.
-// findings_left holds what the implementer, the review and each build run again after a fix left.
+// findings_left holds what the implementer, the review, each fix and each build run again after one left.
 
 export const meta = {
   name: 'implement-issue',
@@ -114,6 +114,10 @@ reading of the shapes, for your step 2, and what it read:
 ${JSON.stringify({ shapes: groomed.shapes, sources: groomed.sources }, null, 2)}
 `
 
+const LEAVE = `goes in findings_left with a body that can be filed as it stands, its severity the label
+.agents/skills/review-pr/process.md "Findings" names, read against the contract the entry quotes, and its
+home the open issue it belongs to, where one exists; nothing is left in prose alone.`
+
 const IMPLEMENT = `
 You implement issue #${a.issue} of Lunatik, in a worktree of your own under ${a.scratch}/ on
 ${a.branch ? `the branch \`${a.branch}\`` : 'a branch named for the change'}, started from \`origin/${base}\` as
@@ -150,9 +154,7 @@ you take it, what you read, decided, committed and measured, and your answer bef
    run and a fix each work in one of their own.
 
 What you leave, a defect found on the way that is not this change's or a cell of the matrix no test covers,
-goes in findings_left with a body that can be filed as it stands, its severity the label
-.agents/skills/review-pr/process.md "Findings" names, read against the contract the entry quotes, and its
-home the open issue it belongs to, where one exists; nothing is left in prose alone.
+${LEAVE}
 `
 
 const FIX = (failed, head) => `
@@ -167,6 +169,9 @@ request opens squashed, \`make\` clean, and pushed with \`--force-with-lease\`; 
 failing on master, is said as such with its evidence and the open issue that reports it, and fixes nothing. Run no install, reload, suite or
 example: the host run that follows is another agent's. Append what you traced and committed to the checkpoint,
 and remove the worktree you worked in once the fix is pushed.
+
+What you find past the failure and do not fix, in the change or beside it,
+${LEAVE}
 `
 
 const OPEN = (impl, head, unrelated) => `
@@ -275,8 +280,9 @@ const IMPLEMENTED = {
 const FIXED = { type: 'object', properties: {
   head: { type: 'string', description: 'the full SHA of the branch tip after the fix' },
   caused: { type: 'boolean', description: 'false when the failure is not the change\'s' },
+  findings_left: LEFT,
   notes: { type: 'string' },
-}, required: ['head', 'caused', 'notes'] }
+}, required: ['head', 'caused', 'findings_left', 'notes'] }
 
 const OPENED = { type: 'object', properties: { pr: { type: 'integer' }, notes: { type: 'string' } }, required: ['pr'] }
 
@@ -367,7 +373,7 @@ if (implemented?.branch && a.push !== false) {
   log(`no review for #${a.issue}: ${why}`)
 }
 
-const findings_left = [implemented, review, ...reruns].flatMap(r => r?.findings_left || [])
+const findings_left = [implemented, review, ...reruns, ...fixes].flatMap(r => r?.findings_left || [])
 let filed = []
 if (a.gh === false && findings_left.length)
   log('gh is absent: the session files what the agents left')

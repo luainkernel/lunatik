@@ -55,8 +55,8 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
 - Where gh is absent (`gh: false`), the agents read GitHub through curl and write nothing to it, since no
   guard reads a write through curl: the implementer opens no pull request, and the filing stage leaves
   every entry `unfiled` for the session.
-- The last stage files `findings_left`, what the implementer, the review and each build run again after
-  a fix leave as issues: an entry
+- The last stage files `findings_left`, what the implementer, the review, each fix and each build run
+  again after one leave as issues: an entry
   opens an issue with its `severity:` label, or goes under an `Update:` line into the open issue it
   names as its home or reports again. It posts nothing on a pull request, and skips, `skipped` in
   `filed`, what the branch fixed after the entry was written, a review's commit or a fix's, and a host
