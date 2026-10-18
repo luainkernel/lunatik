@@ -11,7 +11,8 @@ local CAPACITY <const> = 16
 local MESSAGE  <const> = "hello"
 local FULL     <const> = string.rep("x", CAPACITY)
 
-local accepted   <const> = {2, 16, 4096, 1 << 20}
+-- 4 MiB is an order-10 block where pages are 4 KiB, which a fragmented machine has none of
+local accepted   <const> = {2, 16, 4096, 1 << 20, 1 << 22}
 -- fifo.new tops out at KMALLOC_MAX_SIZE, which follows the kernel's page size and MAX_PAGE_ORDER;
 -- 2^32 is past it on every configuration.
 local refused    <const> = {1, 0, -1, (1 << 32) + 8, math.maxinteger, math.mininteger}
