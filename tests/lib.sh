@@ -100,6 +100,34 @@ run_test() {
 	return 1
 }
 
+# a call refused with IRQs disabled: probe_refusal <case> <script> <prefix> runs the script in a
+# hardirq runtime, whose pre handler on the personality syscall prints "<prefix>refused" when the
+# call raises the refusal and "<prefix>" with anything else when it does not, makes the syscall with
+# setarch, and passes the case when the handler only refused; skips without CONFIG_KPROBES or setarch
+probe_refusal() {
+	local name=$1 script=$2 prefix=$3 config refused other errs
+	config=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null)
+	if [ -n "$config" ] && ! grep -q '^CONFIG_KPROBES=y' <<< "$config"; then
+		ktap_skip "$name: needs CONFIG_KPROBES"
+	elif ! command -v setarch > /dev/null 2>&1; then
+		ktap_skip "$name: needs setarch"
+	elif run_test --context=hardirq "$script"; then
+		setarch "$(uname -m)" -R true > /dev/null 2>&1
+		lunatik stop "$script" 2>/dev/null
+		refused=$(dmesg_since | grep -cF "${prefix}refused")
+		other=$(dmesg_since | grep -F "$prefix" | grep -cvF "${prefix}refused")
+		errs=$(dmesg_since | grep -E "$KTAP_ERRORS")
+		if [ "$refused" -ge 1 ] && [ "$other" -eq 0 ] && [ -z "$errs" ]; then
+			ktap_pass "$name"
+		else
+			[ -n "$errs" ] && comment "$errs"
+			ktap_fail "$name: the handler's call was refused $refused times and went through $other times"
+		fi
+	else
+		ktap_fail "$name"
+	fi
+}
+
 # runs the CLI, keeping its status in $status, its stdout in $out and its stderr in $err
 cli() {
 	local errfile
