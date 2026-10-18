@@ -90,7 +90,7 @@ static int luafifo_pop(lua_State *L)
 static void luafifo_release(void *private)
 {
 	struct kfifo *fifo = (struct kfifo *)private;
-	kfifo_free(fifo);
+	lunatik_free(fifo->kfifo.data);
 }
 
 static int luafifo_new(lua_State *L);
@@ -98,12 +98,15 @@ static int luafifo_new(lua_State *L);
 /***
 * Creates a new kernel FIFO (kfifo) object.
 * Allocates and initializes a kfifo of the specified size. The size should
-* ideally be a power of two for kfifo's internal optimizations, though kfifo
-* will handle non-power-of-two sizes by rounding up.
+* ideally be a power of two for kfifo's internal optimizations, though a
+* non-power-of-two size is rounded up. In a process runtime, and in the body
+* of a softirq or hardirq runtime, a buffer larger than a page may come from
+* vmalloc, which needs no physically contiguous pages; past that body, the
+* buffer needs them.
 * @function new
 * @tparam integer size desired capacity of the FIFO in bytes, from 2 up to `KMALLOC_MAX_SIZE`.
 * @treturn fifo A new fifo object.
-* @raise Error if `size` is out of bounds; `ENOMEM` if the kernel cannot allocate the buffer.
+* @raise Error if `size` is out of bounds; "not enough memory" if the kernel cannot allocate the buffer.
 * @usage
 *   local myfifo = fifo.new(1024) -- Creates a FIFO with a capacity of 1024 bytes
 * @within fifo
@@ -120,8 +123,9 @@ static const luaL_Reg luafifo_lib[] = {
 * @function close
 * @treturn nil
 * @raise "not allowed with IRQs disabled" when called with IRQs disabled, as in every callback of a
-*   hardirq runtime, a probe's handlers among them, and so does the end of the scope of a `<close>`
-*   variable holding the fifo there; the fifo is then released with its last reference.
+*   hardirq runtime, a probe's handlers among them, where a buffer from vmalloc cannot be freed, and
+*   so does the end of the scope of a `<close>` variable holding the fifo there; the fifo is then
+*   released with its last reference.
 */
 static const luaL_Reg luafifo_mt[] = {
 	{"__gc", lunatik_deleteobject},
@@ -142,11 +146,11 @@ static const lunatik_class_t luafifo_class = {
 
 static int luafifo_new(lua_State *L)
 {
-	size_t size = (size_t)lunatik_checkinteger(L, 1, 2, KMALLOC_MAX_SIZE);
+	size_t size = roundup_pow_of_two(lunatik_checkinteger(L, 1, 2, KMALLOC_MAX_SIZE));
 	lunatik_object_t *object = lunatik_newobject(L, &luafifo_class, sizeof(struct kfifo), LUNATIK_OPT_NONE);
-	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
+	void *buffer = lunatik_checkalloc(L, size);
 
-	lunatik_try(L, kfifo_alloc, (struct kfifo *)object->private, size, gfp);
+	kfifo_init((struct kfifo *)object->private, buffer, size);
 	return 1; /* object */
 }
 

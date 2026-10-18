@@ -419,14 +419,23 @@ status the CLI exits by.
 
 ### fifo
 
-- **bounds**: `fifo.new()` accepts the capacities it serves and refuses
-  zero, one (kfifo's own floor), a negative and anything past
-  `KMALLOC_MAX_SIZE`, including a value `__kfifo_alloc()`'s `unsigned int`
-  truncated into a small fifo; `fifo:pop()` refuses a size past the
-  capacity, which it could never return, and `fifo:push()` a string past it,
-  which no pop makes room for.
+- **bounds**: `fifo.new()` accepts the capacities it serves, 4 MiB among
+  them, a block of order 10 where pages are 4 KiB, which a machine whose free
+  memory is fragmented serves only from `vmalloc`, and refuses zero, one
+  (kfifo's own floor), a negative and anything past `KMALLOC_MAX_SIZE`,
+  including a value `kfifo_init()`'s `unsigned int` would truncate into a
+  small fifo; `fifo:pop()` refuses a size past the capacity, which it could
+  never return, and `fifo:push()` a string past it, which no pop makes room
+  for. No case forces the `vmalloc` fallback, which needs fault injection.
 - **push**: `fifo:push()` answers `true`, alone, while the fifo has room for
   every byte, and `false` when it has not, taking none of them.
+- **close**: `fifo:close()` closes a fifo of a megabyte, whose buffer may come
+  from `vmalloc`, in a process runtime and in a softirq runtime resumed past
+  its body, with bottom halves off and IRQs on, and a push then raises
+  `closed object`; that softirq runtime also creates a fifo of its own past
+  its body, which `kmalloc` serves there, passes a byte through it and closes
+  it at the end of the scope. A refusal keyed on the runtime's context rather
+  than on IRQs raises in the softirq runtime and fails the case.
 
 ### fsnotify
 
