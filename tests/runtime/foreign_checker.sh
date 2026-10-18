@@ -15,7 +15,7 @@
 # object is a spawned body's, since thread.run is refused from a script body.
 #
 # The close case, foreign_checker_close, closes a thread, a device and a
-# runtime through fifo's close, lunatik_closeobject, which refuses each as an
+# runtime through crypto.shash's close, lunatik_closeobject, which refuses each as an
 # object of another class, and a thread, a device and a fifo through the
 # runtime's stop, which refuses each naming both classes; each object then
 # answers its own methods, the thread's stop among them, run by the CLI. It

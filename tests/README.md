@@ -412,14 +412,24 @@ status the CLI exits by.
 
 ### fifo
 
-- **bounds**: `fifo.new()` accepts the capacities it serves and refuses
+- **bounds**: `fifo.new()` accepts the capacities it serves, 4 MiB among
+  them, which no free block holds once memory is fragmented, and refuses
   zero, one (kfifo's own floor), a negative and anything past
-  `KMALLOC_MAX_SIZE`, including a value `__kfifo_alloc()`'s `unsigned int`
+  `KMALLOC_MAX_SIZE`, including a value `kfifo_init()`'s `unsigned int`
   truncated into a small fifo; `fifo:pop()` refuses a size past the
   capacity, which it could never return, and `fifo:push()` a string past it,
   which no pop makes room for.
 - **push**: `fifo:push()` answers `true`, alone, while the fifo has room for
   every byte, and `false` when it has not, taking none of them.
+- **close**: `fifo:close()` closes a fifo of a megabyte, whose buffer may be
+  vmalloc'd, in a process runtime and in a softirq runtime resumed past its
+  body, with IRQs on, and a push then raises `closed object`.
+- **probe**: a hardirq runtime's body closes a fifo, and the pre handler of a
+  kprobe on the personality syscall, which `setarch` makes, sees
+  `fifo:close()` raise `not allowed with IRQs disabled`, where `vfree` may not
+  release a vmalloc'd buffer. The fifo is kmalloc'd, so a module without the
+  refusal closes it and fails the case (skips without `CONFIG_KPROBES` or
+  `setarch`).
 
 ### fsnotify
 
@@ -1410,7 +1420,7 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   of another class naming both classes, refuses `nil` and refuses a userdata
   of another library; `rcu.foreach` refuses `nil`; and a method on a closed
   runtime or fifo is refused instead of dereferencing its NULL private.
-  A close of another class, `fifo`'s `close` on a thread, a device and a
+  A close of another class, `crypto.shash`'s `close` on a thread, a device and a
   runtime, and the runtime's `stop` on a thread, a device and a fifo, is
   refused, and each object then answers its own methods; a `crypto.shash`
   closes through its `__close`. The close case skips unless the loaded core is

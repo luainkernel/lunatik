@@ -24,9 +24,10 @@ local driver = {name = DEVICE, mode = stat.IRUGO, read = empty}
 local dev = device.new(driver)
 local runtime = lunatik.runtime(RUNTIME)
 local queue = fifo.new(16)
+local digest = crypto.shash("sha256")
 
 local closes = {
-	{name = "fifo:close", method = getmetatable(queue).close, refusal = "object of another class",
+	{name = "crypto.shash:close", method = getmetatable(digest).close, refusal = "object of another class",
 		objects = {thread = spawned, device = dev, runtime = runtime}},
 	{name = "runtime:stop", method = getmetatable(runtime).stop, refusal = "lunatik%%.runtime expected, got %s",
 		objects = {thread = spawned, device = dev, fifo = queue}},
@@ -41,7 +42,6 @@ for _, close in ipairs(closes) do
 	end
 end
 
-local digest = crypto.shash("sha256")
 do
 	local scoped <close> = digest
 end

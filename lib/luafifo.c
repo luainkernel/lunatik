@@ -90,7 +90,7 @@ static int luafifo_pop(lua_State *L)
 static void luafifo_release(void *private)
 {
 	struct kfifo *fifo = (struct kfifo *)private;
-	kfifo_free(fifo);
+	lunatik_free(fifo->kfifo.data);
 }
 
 static int luafifo_new(lua_State *L);
@@ -119,11 +119,19 @@ static const luaL_Reg luafifo_lib[] = {
 * "closed object".
 * @function close
 * @treturn nil
+* @raise "not allowed with IRQs disabled", as in a kprobe handler.
 */
+static int luafifo_close(lua_State *L)
+{
+	lunatik_checkirqs(L); /* a vmalloc'd buffer is one vfree may not release with IRQs off */
+	lunatik_closeprivate(lunatik_checkobjectclass(L, 1, &luafifo_class));
+	return 0;
+}
+
 static const luaL_Reg luafifo_mt[] = {
 	{"__gc", lunatik_deleteobject},
-	{"__close", lunatik_closeobject},
-	{"close", lunatik_closeobject},
+	{"__close", luafifo_close},
+	{"close", luafifo_close},
 	{"push", luafifo_push},
 	{"pop", luafifo_pop},
 	{NULL, NULL}
@@ -139,11 +147,13 @@ static const lunatik_class_t luafifo_class = {
 
 static int luafifo_new(lua_State *L)
 {
-	size_t size = (size_t)lunatik_checkinteger(L, 1, 2, KMALLOC_MAX_SIZE);
+	size_t size = roundup_pow_of_two((size_t)lunatik_checkinteger(L, 1, 2, KMALLOC_MAX_SIZE));
 	lunatik_object_t *object = lunatik_newobject(L, &luafifo_class, sizeof(struct kfifo), LUNATIK_OPT_NONE);
-	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));
+	void *buffer = lunatik_malloc(L, size);
 
-	lunatik_try(L, kfifo_alloc, (struct kfifo *)object->private, size, gfp);
+	if (buffer == NULL)
+		lunatik_throw(L, -ENOMEM);
+	kfifo_init((struct kfifo *)object->private, buffer, size);
 	return 1; /* object */
 }
 
