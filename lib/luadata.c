@@ -150,7 +150,7 @@ static int luadata_checksum(lua_State *L)
 	void *value = (void*)luadata_checkbounds(L, 2, data, offset, length);
 
 	__wsum sum = csum_partial(value, length, 0);
-	lua_pushinteger(L, csum_fold(sum));
+	lua_pushinteger(L, (__force u16)csum_fold(sum));
 	return 1;
 }
 
