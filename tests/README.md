@@ -1657,7 +1657,12 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   pushes into the fifo the refusals left open. The fifo's buffer is kmalloc'd,
   so a module without the refusal closes it in the handler and fails the case,
   as does one that refuses after the release (skips without `CONFIG_KPROBES`
-  or `setarch`).
+  or `setarch`). No case closes in a softirq callback entered with IRQs
+  off, the same `lunatik_checkirqs` branch: a softirq runtime runs there only
+  from a hook the kernel calls with IRQs off, a hid `raw_event` that a USB host
+  controller completes with IRQs off, which a case could drive only as a HID
+  gadget on `dummy_hcd`, a driver Ubuntu's kernels do not build, and a hardirq
+  runtime, whose `lunatik` module is the stub, cannot resume a softirq one.
 
 - **cstack**: a recursion that crosses C raises "C stack overflow" once it has
   used the kernel stack the core allows past where it entered Lua. The driver's

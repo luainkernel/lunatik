@@ -23,7 +23,13 @@
 # hardirq runtime takes its lock with spin_lock_irqsave for every callback. The
 # fifo's buffer is kmalloc'd, so a module without the refusal closes it in the
 # handler and fails the case, as does one that refuses after the release.
-# Skips without CONFIG_KPROBES or setarch.
+# Skips without CONFIG_KPROBES or setarch. No case closes in a softirq callback
+# entered with IRQs off, the same lunatik_checkirqs branch: a softirq runtime
+# runs there only from a hook the kernel calls with IRQs off, a hid raw_event
+# that a USB host controller completes with IRQs off, which a case could drive
+# only as a HID gadget on dummy_hcd, a driver Ubuntu's kernels do not build, and
+# a hardirq runtime, whose lunatik module is the stub, cannot resume a softirq
+# one.
 #
 # Usage: sudo bash tests/runtime/close_irqs.sh
 
