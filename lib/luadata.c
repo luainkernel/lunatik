@@ -88,6 +88,11 @@ LUADATA_NEWINT(int64, LUA_MININTEGER, LUA_MAXINTEGER);
 * is collected, and is then cleared the same way. A write to a view a binding marks
 * read only raises "read only".
 *
+* A binding that builds over the bytes of a buffer, as `set.fromdata` does, takes only one that owns
+* its memory, from `data.new()` or `data.load()`, and makes it read only for good: its setters and
+* `resize` raise "read only" from then on, while `#`, the getters, `getstring`, `checksum` and
+* `tostring` keep reading.
+*
 * An integer setter takes a value of its width read either signed or unsigned, so
 * `setint8` and `setuint8` both store -1 and 255 as the same byte, and raises "out of
 * bounds" for a value past it.
@@ -491,6 +496,21 @@ int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt)
 	return 0;
 }
 EXPORT_SYMBOL(luadata_reset);
+
+lunatik_object_t *luadata_checkreadonly(lua_State *L, int ix, const void **ptr, size_t *size)
+{
+	luadata_t *data = luadata_check(L, ix);
+	lunatik_object_t *object = lunatik_toobject(L, ix);
+
+	luaL_argcheck(L, data->opt & LUADATA_OPT_FREE, ix, "external memory");
+	lunatik_lock(object);
+	data->opt |= LUADATA_OPT_READONLY; /* before ptr and size are read: resize changes both */
+	*ptr = data->ptr;
+	*size = data->size;
+	lunatik_unlock(object);
+	return object;
+}
+EXPORT_SYMBOL(luadata_checkreadonly);
 
 static int __init luadata_init(void)
 {
