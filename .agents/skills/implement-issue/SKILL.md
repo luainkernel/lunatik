@@ -45,8 +45,10 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   the merge. A defect that removes a crash guard is not written, since its test rests on the message
   it asserts.
 - The pull request opens, in the `lunatik-github` agent, only on a head that passed with every example
-  the change touches, with the implementer's body, and takes the `workflow-reviewed` label. A run that
-  did not pass returns its branch and its last build for the session to read.
+  the change touches, with the implementer's body, and takes the `workflow-reviewed` label. A label the
+  agent could not write, which #1917's was not when the auto mode classifier refused it, comes back as
+  `labelled: false` with the refusal, and the session adds it. A run that did not pass returns its
+  branch and its last build for the session to read.
 - `machine` says how this machine gets root and authenticates gh, copied by the session from its
   CLAUDE.local.md: the host's and GitHub's agents load no CLAUDE.md, which keeps the instructions they
   start with to what their job reads, so the prompt is where they learn it.
