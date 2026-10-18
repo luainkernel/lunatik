@@ -651,7 +651,7 @@ containing a pointer to the object onto the Lua stack.
 It allocates `size` bytes for the object's private data, unless `LUNATIK_OPT_EXTERNAL` is set in
 `class->opt`, in which case `object->private` is expected to be set by the caller. The private is
 zeroed and comes from the runtime's allocator, `GFP_ATOMIC` in a softirq or hardirq runtime once
-it is armed; it is freed with `kvfree` after `release`.
+it is armed; it is freed with [`lunatik_free`](#lunatik_free) after `release`.
 
 The userdata's `__gc` drops the reference the object is created with. In a state that is closing,
 where Lua arms no `__gc` (see [`lunatik_isclosing`](#lunatik_isclosing)), the state holds that
@@ -770,6 +770,7 @@ typedef struct lunatik_defer_s {
 
 void lunatik_initdefer(lunatik_defer_t *defer, work_func_t func);
 bool lunatik_defer(lunatik_defer_t *defer);
+lunatik_defer_t *lunatik_syncdefer(struct work_struct *work);
 ```
 Runs `func` on a kernel worker, in process context, for a caller that cannot: one in softirq or
 hardirq context, with bottom halves or interrupts off, or in a probe handler on code the scheduler
@@ -781,11 +782,12 @@ runqueue lock. It may be called from any context and returns `false` when the it
 queued.
 
 The item lives in what defers, so deferring allocates nothing: `lunatik_initdefer` sets it up before
-the first `lunatik_defer`, and `func` finds what defers through `container_of` on `work`. Calls made
-before `func` starts run it once, and one made while it runs runs it again after it returns, so what
-each call hands `func` goes on a list `func` drains. A `func` that frees the item calls
-`irq_work_sync` on `irq` first, since the first hop still writes it after queuing `work`. Both are
-macros, and `lunatik_initdefer` gives each call site a lockdep class of its own, as `INIT_WORK` does.
+the first `lunatik_defer`, and `func` takes it from `work` through `lunatik_syncdefer`, which waits
+for the first hop, since it still writes the item after queuing `work`, and reaches what defers
+through `container_of` on it. Calls made before `func` starts run it once, and one made while it runs
+runs it again after it returns, so what each call hands `func` goes on a list `func` drains.
+`lunatik_initdefer` and `lunatik_defer` are macros, and the first gives each call site a lockdep
+class of its own, as `INIT_WORK` does.
 
 ### lunatik\_isatomic
 ```C
@@ -1491,9 +1493,13 @@ accepted.
 
 ### lunatik\_free
 ```C
-void lunatik_free(void *ptr);
+void lunatik_free(const void *ptr);
 ```
-Frees memory allocated by `lunatik_malloc` or `lunatik_realloc`. Equivalent to `kvfree`.
+Frees memory allocated by `lunatik_malloc` or `lunatik_realloc`, at once, as `kvfree` does, unless
+the block came from `vmalloc` and [`lunatik_isatomic`](#lunatik_isatomic) holds, where `vfree` may
+sleep and, in NMI, BUGs: the block then goes back on a kernel worker, through
+[`lunatik_defer`](#lunatik_defer), its first bytes holding the item, which a block past a page has
+room for. `lunatik_realloc` frees the same way, at size zero and when it moves a block.
 
 ### lunatik\_checkalloc
 ```C

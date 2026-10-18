@@ -50,6 +50,10 @@ awaited() { for _ in $(seq "${TRIES:-50}"); do "$@" && return 0; sleep 0.1; done
 # builds the C peer <source> into <binary>; fails where there is no gcc or it does not build
 build_peer() { command -v gcc > /dev/null 2>&1 && gcc -O2 -o "$2" "$1" 2>/dev/null; }
 
+# KMALLOC_MAX_SIZE, the page size shifted by the largest page order, the last of the orders
+# /proc/buddyinfo lists: kvmalloc takes a block past it from vmalloc whatever memory is free
+kmalloc_max() { echo $(( $(getconf PAGESIZE) << ($(awk 'NR == 1 {print NF - 4}' /proc/buddyinfo) - 1) )); }
+
 # counts how often a function runs: kprobe_place <group>/<event> <symbol> arms a kprobe in a
 # tracing instance named for the group, and fails where tracing or the symbol is unavailable;
 # kprobe_hits <group>/<event> reads its count from kprobe_profile, misses included, which is how

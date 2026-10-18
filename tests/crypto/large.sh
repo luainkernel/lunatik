@@ -13,9 +13,9 @@
 # associated data, and a byte flipped in the last page of either fails the tag. A string past
 # KMALLOC_MAX_SIZE, which kvmalloc always takes from vmalloc, is refused with "not enough memory" as
 # the data of skcipher's encrypt and decrypt and of aead's, and as aead's associated data, and
-# run_test reads no WARNING in dmesg, the copy asking kmalloc for none. KMALLOC_MAX_SIZE is the page
-# size shifted by the largest page order, the last of the orders /proc/buddyinfo lists; this script
-# writes both into large_sizes.lua for the case.
+# run_test reads no WARNING in dmesg, the copy asking kmalloc for none. This script writes the page
+# size and KMALLOC_MAX_SIZE, which lib.sh's kmalloc_max reads from /proc/buddyinfo, into
+# large_sizes.lua for the case.
 #
 # A build that maps the string itself hands the cipher a struct page virt_to_page() made up from a
 # vmalloc address, which arm64 reads when the walk flushes a page it wrote, an oops under the
@@ -48,8 +48,7 @@ grep -Eq " $COPY[[:space:]]\[$MODULE\]$" /proc/kallsyms 2> /dev/null || {
 }
 
 page=$(getconf PAGESIZE)
-orders=$(awk 'NR == 1 {print NF - 4}' /proc/buddyinfo)
-printf 'return {page = %d, kmalloc = %d}\n' "$page" "$((page << (orders - 1)))" > "$SIZES"
+printf 'return {page = %d, kmalloc = %d}\n' "$page" "$(kmalloc_max)" > "$SIZES"
 
 if run_test "$SCRIPT"; then
 	ktap_pass "crypto/large"

@@ -1557,6 +1557,19 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   case runs only after the first passed, and the test skips unless the loaded
   core carries `lunatik_deferirq`.
 
+- **vfree**: a block the runtimes' allocator took from `vmalloc` and frees
+  with interrupts off goes back on a kernel worker. A data and a string a page
+  past `KMALLOC_MAX_SIZE`, which `kvmalloc` always takes from `vmalloc`, are
+  freed by a hardirq runtime, the string collected and the data resized to a
+  byte, which moves it: once resumed by a process runtime, under the hardirq
+  runtime's lock, and once from a handler on the personality syscall. The
+  function tracer, filtered to `vfree`, reads no free on a task with interrupts
+  off, a kprobe on `vfree` none inside the handler, which the kernel counts as
+  a miss, and `/proc/vmallocinfo` reads every block back. A build that frees
+  in place fails those reads on arm64; the test skips unless the loaded core
+  exports `lunatik_free`, since a core without it frees in place in the
+  handler, where `vfree` may sleep.
+
 - **self_stop**: a runtime cannot be stopped, resumed, threaded or dispatched
   to from under its own lock. A child resumed with its own handle, and a percpu
   set resumed with its own, call `stop()` and `resume()` on it from the resumed

@@ -143,10 +143,7 @@ static void lunatik_freeobject(lunatik_object_t *object)
 
 static void lunatik_freedeferred(struct work_struct *work)
 {
-	lunatik_object_t *object = container_of(work, lunatik_object_t, defer.work);
-
-	irq_work_sync(&object->defer.irq); /* the first hop writes the item after it queues this work */
-	lunatik_freeobject(object);
+	lunatik_freeobject(container_of(lunatik_syncdefer(work), lunatik_object_t, defer));
 }
 
 void lunatik_releaseobject(struct kref *kref)

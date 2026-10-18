@@ -107,6 +107,14 @@ do {									\
 
 #define lunatik_defer(defer)	irq_work_queue(&(defer)->irq)
 
+static inline lunatik_defer_t *lunatik_syncdefer(struct work_struct *work)
+{
+	lunatik_defer_t *defer = container_of(work, lunatik_defer_t, work);
+
+	irq_work_sync(&defer->irq); /* the first hop writes the item after it queues this work */
+	return defer;
+}
+
 typedef struct lunatik_class_s {
 	const char *name;
 	const luaL_Reg *methods;
@@ -269,7 +277,7 @@ static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t osize, size_
 }
 
 #define lunatik_malloc(L, s)	lunatik_realloc((L), NULL, LUA_TNONE, (s))
-#define lunatik_free(p)		kvfree(p)
+void lunatik_free(const void *ptr);
 #define lunatik_gfp(runtime)	((runtime)->gfp)
 
 #define lunatik_enomem(L)	luaL_error((L), "not enough memory")

@@ -13,6 +13,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
 #include <linux/mm.h>
+#include <linux/vmalloc.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -46,6 +47,24 @@ static inline void lunatik_setversion(lua_State *L)
 #define lunatik_cankrealloc(p, n, f)	\
 	(((f) == GFP_ATOMIC || (n) <= PAGE_SIZE) && (!is_vmalloc_addr(p) || (p) == NULL))
 
+static void lunatik_vfreedeferred(struct work_struct *work)
+{
+	vfree(lunatik_syncdefer(work));
+}
+
+void lunatik_free(const void *ptr)
+{
+	if (is_vmalloc_addr(ptr) && lunatik_isatomic()) { /* vfree may sleep, and BUGs in NMI */
+		lunatik_defer_t *defer = (lunatik_defer_t *)ptr; /* the item fits: a vmalloc'd block is past a page */
+
+		lunatik_initdefer(defer, lunatik_vfreedeferred);
+		lunatik_defer(defer);
+	}
+	else
+		kvfree(ptr);
+}
+EXPORT_SYMBOL(lunatik_free);
+
 /***
 * Isolated Lua state running within the Linux kernel.
 * @type runtime
@@ -53,7 +72,7 @@ static inline void lunatik_setversion(lua_State *L)
 static void *lunatik_alloc(void *ud, void *optr, size_t osize, size_t nsize)
 {
 	if (nsize == 0) {
-		kvfree(optr);
+		lunatik_free(optr);
 		return NULL;
 	}
 
@@ -69,7 +88,7 @@ static void *lunatik_alloc(void *ud, void *optr, size_t osize, size_t nsize)
 		return nsize <= osize ? optr : nptr;
 	else if (optr != NULL) {
 		memcpy(nptr, optr, min(osize, nsize));
-		kvfree(optr);
+		lunatik_free(optr);
 	}
 	return nptr;
 }
