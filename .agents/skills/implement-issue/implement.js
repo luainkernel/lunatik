@@ -12,14 +12,14 @@
 //
 // Usage: Workflow({scriptPath: '.agents/skills/implement-issue/implement.js', args: {...}})
 //   issue       the issue to implement
-//   effort      the reasoning effort of the implementer, the hunt and a fix; required, since an agent
+//   effort      the reasoning effort of the implementer, the reviewer and a fix; required, since an agent
 //               that names none runs at the session's default
 //   scratch     an absolute directory for worktrees and the checkpoints
 //   base        the branch the work starts from and the pull request targets, default master
 //   branch      the branch the implementer creates, default one it names for the change
 //   notes       what the launching session adds for the implementer, in its own words
 //   focus       what the review is for, default notes
-//   model       the model of the implementer, the hunt and a fix, default the session's
+//   model       the model of the implementer, the reviewer and a fix, default the session's
 //   push        false where a push from an agent is refused on this machine: the implementer leaves
 //               its commits on the branch, and no review runs
 //   repo        the checkout's absolute path, where review.js is read and its phases work; required, since
@@ -254,7 +254,7 @@ if (implemented?.branch && a.push !== false) {
     log(`the review of ${implemented.branch} did not run: ${e.message}`)
   }
   build = review?.build
-  let head = build?.head || review?.hunt?.tip || implemented.head
+  let head = build?.head || review?.reviewer?.tip || implemented.head
   while (review && !passed(build) && fixes.length < FIXES) {
     phase('Fix')
     const fix = await agent(FIX({ totals: build?.totals, clean: build?.clean, notes: build?.notes }, head), {
@@ -264,7 +264,7 @@ if (implemented?.branch && a.push !== false) {
     if (!fix) break
     // a failure the change does not cause, a test that fails on a busy host among them, is read once more
     head = fix.head || head
-    const rerun = await workflow({ scriptPath: REVIEW }, reviewArgs(implemented, { head, hunt: false }))
+    const rerun = await workflow({ scriptPath: REVIEW }, reviewArgs(implemented, { head, reviewer: false }))
     reruns.push(rerun)
     build = rerun?.build
     head = build?.head || head
@@ -292,7 +292,7 @@ if (a.gh === false && findings_left.length)
   log('gh is absent: the session files what the agents left')
 else if (findings_left.length) {
   phase('File')
-  const filing = await agent(FILE(findings_left, pr || a.issue, review?.hunt?.findings || [], fixes), {
+  const filing = await agent(FILE(findings_left, pr || a.issue, review?.reviewer?.findings || [], fixes), {
     label: `file:${a.issue}`, phase: 'File', agentType: 'lunatik-github', effort: 'low', schema: FILED,
   })
   filed = filing?.filed || []

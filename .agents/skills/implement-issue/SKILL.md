@@ -13,7 +13,7 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   pushes what builds as it goes, and drafts the pull request's title and body; it runs nothing on the
   host. Its answer's `smallest`, the shape beside the size of the diff and what each
   mechanism past it buys, goes to the review, and the hand-back of the pull request carries it with
-  the hunt's own reading. Its prompt names the rule each step needs and restates none, since every
+  the reviewer's own reading. Its prompt names the rule each step needs and restates none, since every
   agent loads AGENTS.md and the machine's CLAUDE.local.md; what belongs to the machine, a credential or how
   it gets root, stays in the latter, and `machine-leak.sh` keeps it out of the tree.
 - `notes` carries what only the session knows: what the maintainer asked for, what was already traced,
@@ -27,7 +27,7 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   another branch. #1538's review did not run, its script not found under a worktree the session had removed.
 - The review is `review.js` of the review-pr skill, run nested over the branch before any pull request
   exists, so a review runs one way whoever launches it. Its build phase is the change's one run of the
-  suite and of the examples it touches, in the `lunatik-host` agent, after the hunt's fixups. A failure
+  suite and of the examples it touches, in the `lunatik-host` agent, after the reviewer's fixups. A failure
   goes to a fix agent with the implementer's checkpoint, and the build runs again, twice at most; the
   fix is not reviewed again, which the hand-back says.
 - The implementer writes, for each test the change adds or changes, the defect it is for as a patch,

@@ -74,7 +74,7 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
   that can be filed as they stand, its severity and the open issue it belongs to where there is one;
   `review.js` returns them together, so they are filed from its answer and not copied out of the
   checkpoint.
-- A review is phases, not one agent: hunt the findings, then build and run. The hunt reads first what
+- A review is phases, not one agent: a reviewer, then a build. The reviewer reads first what
   `tools/review-packet.sh` gathers, the commits, the files, every check's lines over the change and the
   diff with each function it touches whole, and answers each check's line; the build runs in the
   `lunatik-host` agent, which loads no CLAUDE.md, so `args.machine` says how this machine gets root.
