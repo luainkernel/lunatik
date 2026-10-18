@@ -152,7 +152,7 @@ What the implementer and the review leave as issues, their `findings_left`, the 
 last stage, each under its severity label or appended to the open issue it belongs to, so no finding
 waits on a session to copy it out and the numbers come back with the result. An entry quotes the
 contract its severity was read against, which the issue carries as a `Contract:` line. The implementer's
-answer and the review's hunt each carry the smallest shape beside the size of the diff and what every
+answer and the reviewer's each carry the smallest shape beside the size of the diff and what every
 mechanism past it buys, and the hand-back shows it.
 
 ### Running a script

@@ -4,7 +4,7 @@
 */
 
 // A review as a workflow in two phases, each short enough to survive a provider error and resumable
-// from the cache when one does not: a hunt that reads the change once, through the packet the
+// from the cache when one does not: a reviewer that reads the change once, through the packet the
 // machine gathers for it, and a build that runs the host only when the head was not validated, a
 // fixup changed what the build reads, or an example the change touches was not run on it.
 //
@@ -27,9 +27,9 @@
 //               implementer writes them; the build plants each once the suite passed
 //   focus       what this round is for, in the maintainer's words
 //   smallest    the implementer's smallest shape, when implement-issue launches the review
-//   hunt        false to run the build phase alone, as implement-issue does after a fix
-//   effort      the hunt's reasoning effort, default "high"
-//   model       the model the hunt runs on, default the session's
+//   reviewer    false to run the build phase alone, as implement-issue does after a fix
+//   effort      the reviewer's reasoning effort, default "high"
+//   model       the model the reviewer runs on, default the session's
 //   push        false where a push from an agent is refused on this machine, so a fixup stays a
 //               commit on review<pr>-fixups and the session that launched the review pushes it
 //   repo        the checkout the phases work in, default the repository they start in
@@ -48,8 +48,8 @@
 
 export const meta = {
   name: 'review-pr',
-  description: 'Review a pull request: hunt findings over the packet the machine gathers, build and run only if needed',
-  phases: [{ title: 'Hunt' }, { title: 'Build' }],
+  description: 'Review a pull request: read it for findings over the packet the machine gathers, build and run only if needed',
+  phases: [{ title: 'Review' }, { title: 'Build' }],
 }
 
 const a = args
@@ -112,8 +112,8 @@ ENVIRONMENT:
 ${a.focus ? 'THIS ROUND, in the maintainer\'s words: ' + a.focus : ''}
 `
 
-const HUNT = COMMON + `
-PHASE: HUNT. The process is .agents/skills/review-pr/process.md; read its "Findings" and "Fixups" first.
+const REVIEW = COMMON + `
+PHASE: REVIEW. The process is .agents/skills/review-pr/process.md; read its "Findings" and "Fixups" first.
 
 Then, in your worktree at \`${a.head}\`, write the packet the machine gathers for you, and read it whole
 before anything else: \`bash ${packetTool} ${a.base} ${a.head} > ${packet}\`. It carries the commits
@@ -128,7 +128,7 @@ Every line under "# Checks" is answered in the checkpoint: a fixup, or why the c
 function-shape.sh with the function's jobs listed, and one of kernel-answer.sh with the facility the commit
 was compared with. Where a check complains about something master already does, say so with the evidence.
 
-Hunt the smallest shape first: for every mechanism the diff adds (a registration path, a new API argument,
+Look for the smallest shape first: for every mechanism the diff adds (a registration path, a new API argument,
 a helper, a name), write the smaller change that would leave the same defect unreachable and why it was not
 taken; where correctness is equal and the shape is smaller, that is a finding, shipped as the fixup that
 makes it. Your answer's smallest is that reading of the whole diff: the smallest shape, its size beside the
@@ -231,25 +231,25 @@ const BUILD_OUT = {
   required: ['totals', 'core', 'head', 'clean', 'findings_left'],
 }
 
-let hunt = null
-if (a.hunt !== false) {
-  phase('Hunt')
-  hunt = await agent(HUNT, { label: `hunt:${a.pr || a.branch}`, phase: 'Hunt', effort, schema: FINDINGS, ...model })
+let reviewer = null
+if (a.reviewer !== false) {
+  phase('Review')
+  reviewer = await agent(REVIEW, { label: `review:${a.pr || a.branch}`, phase: 'Review', effort, schema: FINDINGS, ...model })
 }
 
-const changed = a.hunt !== false && (!hunt || hunt.fixups.length > 0)
+const changed = a.reviewer !== false && (!reviewer || reviewer.fixups.length > 0)
 let build = null
 if (a.build === false)
   log('build skipped: nothing runs on the host for this tree')
 else if (!a.validated || changed || unrun.length) {
   phase('Build')
-  build = await agent(BUILD(hunt?.tip || a.head), { label: `build:${a.pr || a.branch}`, phase: 'Build', agentType: 'lunatik-host', effort: 'medium', schema: BUILD_OUT })
+  build = await agent(BUILD(reviewer?.tip || a.head), { label: `build:${a.pr || a.branch}`, phase: 'Build', agentType: 'lunatik-host', effort: 'medium', schema: BUILD_OUT })
   if (build?.skipped)
     log(`build skipped: ${a.head} validated, and the branch moved past it only in what the build does not read`)
 } else {
   log(`build skipped: head ${a.head} already validated (${a.validated.suite}, core ${a.validated.core}, examples ${(a.validated.examples || []).join(' ') || 'none'}) and no fixup changed it`)
 }
 
-const findings_left = [hunt, build].flatMap(p => p?.findings_left || [])
-return { checkpoint, hunt, build, validated: build && !build.skipped ? null : a.validated, findings_left }
+const findings_left = [reviewer, build].flatMap(p => p?.findings_left || [])
+return { checkpoint, reviewer, build, validated: build && !build.skipped ? null : a.validated, findings_left }
 
