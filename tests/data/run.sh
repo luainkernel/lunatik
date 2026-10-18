@@ -27,22 +27,42 @@
 # every allocation itself reads the same on a fixed data.new and a broken one, so the case
 # skips there rather than report a pass it cannot back.
 #
+# load: data.load over the files prepare writes, a buffer of the file's size holding its bytes
+# that takes writes and resizes keeping them, from the runtime's allocator and not a vmalloc
+# /proc/vmallocinfo would list as kernel_read_file's; a file of maxbytes loads and one byte less
+# raises EFBIG, a maxbytes of 0 or past INT_MAX is out of bounds, a missing file raises ENOENT, an
+# empty file and a directory EINVAL, and busy, which this shell holds open for writing while the
+# suite runs, ETXTBSY. A runtime loads in its body in every context, and loads again resumed in a
+# process runtime; an armed softirq or hardirq runtime refuses the load, not allowed once the
+# runtime is armed.
+#
 # Usage: sudo bash tests/data/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="bounds zeroed"
+TESTS="bounds zeroed load"
 TOTAL=$(echo $TESTS | wc -w)
+SCRATCH="/tmp/lunatik-data"
+BYTES="0123456789abcdef" # BYTES in load.lua
 
 cleanup() {
 	for t in $TESTS; do
 		lunatik stop "tests/data/$t" 2>/dev/null
 	done
+	rm -rf "$SCRATCH"
 }
 trap cleanup EXIT
 cleanup
+
+prepare() {
+	mkdir -p "$SCRATCH/dir" &&
+	printf '%s' "$BYTES" > "$SCRATCH/bytes" &&
+	: > "$SCRATCH/zero" &&
+	cp "$SCRATCH/bytes" "$SCRATCH/busy" &&
+	exec 3>> "$SCRATCH/busy"
+}
 
 ktap_header
 ktap_plan $TOTAL
@@ -60,6 +80,8 @@ zeroesallocations() {
 for t in $TESTS; do
 	if [ "$t" = zeroed ] && zeroesallocations; then
 		ktap_skip "data/$t: init_on_alloc zeroes every allocation here, nothing tells the cases apart"
+	elif [ "$t" = load ] && ! prepare; then
+		ktap_fail "data/$t: couldn't write the files it loads"
 	elif run_test "tests/data/$t"; then
 		ktap_pass "data/$t"
 	else
