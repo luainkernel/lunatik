@@ -10,6 +10,7 @@ local test    = require("tests.lib").test
 
 local RECEIVER <const> = "tests/fifo/close_recv"
 local CAPACITY <const> = 1 << 20
+local MESSAGE  <const> = "hello"
 
 local function closed(queue)
 	local ok, err = pcall(queue.push, queue, "x")
@@ -18,6 +19,8 @@ end
 
 test("fifo:close closes a fifo in a process runtime", function()
 	local queue = fifo.new(CAPACITY)
+	queue:push(MESSAGE)
+	assert(queue:pop(#MESSAGE) == MESSAGE, "the fifo lost the message")
 	queue:close()
 	assert(closed(queue), "the close left the fifo open")
 end)
