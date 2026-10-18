@@ -206,6 +206,7 @@ tests_install:
 	${INSTALL} -m 0644 tests/xdp/Makefile tests/xdp/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/xdp
 	${INSTALL} -m 0644 tests/tc/Makefile tests/tc/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/tc
 	${INSTALL} -m 0644 tests/scx/Makefile tests/scx/*.bpf.c tests/scx/*.bpf.h ${LUNATIK_TESTS_INSTALL_PATH}/scx
+	${INSTALL} -m 0644 tests/fifo/Makefile tests/fifo/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/fifo
 	${INSTALL} -m 0755 tools/shade.sh ${LUNATIK_TESTS_INSTALL_PATH}/darken
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket

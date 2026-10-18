@@ -426,16 +426,28 @@ status the CLI exits by.
   including a value `kfifo_init()`'s `unsigned int` would truncate into a
   small fifo; `fifo:pop()` refuses a size past the capacity, which it could
   never return, and `fifo:push()` a string past it, which no pop makes room
-  for. No case forces the `vmalloc` fallback, which needs fault injection.
+  for.
 - **push**: `fifo:push()` answers `true`, alone, while the fifo has room for
   every byte, and `false` when it has not, taking none of them.
 - **close**: `fifo:close()` closes a fifo of a megabyte, whose buffer may come
-  from `vmalloc`, in a process runtime and in a softirq runtime resumed past
-  its body, with bottom halves off and IRQs on, and a push then raises
-  `closed object`; that softirq runtime also creates a fifo of its own past
-  its body, which `kmalloc` serves there, passes a byte through it and closes
-  it at the end of the scope. A refusal keyed on the runtime's context rather
-  than on IRQs raises in the softirq runtime and fails the case.
+  from `vmalloc`, in a process runtime, once a message has passed through it,
+  and in a softirq runtime resumed past its body, with bottom halves off and
+  IRQs on, and a push then raises `closed object`; that softirq runtime also
+  creates a fifo of its own past its body, which `kmalloc` serves there, passes
+  a byte through it and closes it at the end of the scope. A refusal keyed on
+  the runtime's context rather than on IRQs raises in the softirq runtime and
+  fails the case.
+- **fallback**: close runs again under a kprobe program on
+  `should_fail_alloc_page` that refuses an allocation of a megabyte to tasks
+  named `lunatik`, the CLI that runs it, and counts each refusal, so that
+  `kvmalloc` serves its two fifos of a megabyte from `vmalloc`: the process
+  runtime frees one with `vfree`, and the softirq runtime the other through
+  `vfree_atomic`, since `vfree` defers whenever bottom halves are off. The case
+  passes when close passes and the program refused both `kmalloc` attempts, a
+  count read once the program is detached; a `fifo.new()` that takes its buffer
+  from `kmalloc` alone raises there (skips without `clang`, `bpftool`, BTF,
+  `CONFIG_BPF_KPROBE_OVERRIDE` or `should_fail_alloc_page`, which kernels from
+  6.11 build only with `CONFIG_FAIL_PAGE_ALLOC`).
 
 ### fsnotify
 
