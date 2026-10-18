@@ -64,26 +64,7 @@ else
 	ktap_fail "signal/softirq"
 fi
 
-CONFIG=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null)
-if [ -n "$CONFIG" ] && ! grep -q '^CONFIG_KPROBES=y' <<< "$CONFIG"; then
-	ktap_skip "signal/probe: needs CONFIG_KPROBES"
-elif ! command -v setarch > /dev/null 2>&1; then
-	ktap_skip "signal/probe: needs setarch"
-elif run_test --context=hardirq "$SCRIPT_PROBE"; then
-	setarch "$(uname -m)" -R true > /dev/null 2>&1
-	lunatik stop "$SCRIPT_PROBE" 2>/dev/null
-	refused=$(dmesg_since | grep -cF "${PREFIX}refused")
-	answered=$(dmesg_since | grep -cF "${PREFIX}answered")
-	errs=$(dmesg_since | grep -E "$KTAP_ERRORS")
-	if [ "$refused" -ge 1 ] && [ "$answered" -eq 0 ] && [ -z "$errs" ]; then
-		ktap_pass "signal/probe"
-	else
-		[ -n "$errs" ] && comment "$errs"
-		ktap_fail "signal/probe: the handler's kill was refused $refused times and answered $answered times"
-	fi
-else
-	ktap_fail "signal/probe"
-fi
+probe_refusal "signal/probe" "$SCRIPT_PROBE" "$PREFIX"
 
 if ! initpidns || ! unshare --pid --fork true 2>/dev/null; then
 	ktap_skip "signal/kill: needs to run in the initial pid namespace and to create another"
