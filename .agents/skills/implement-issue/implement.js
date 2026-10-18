@@ -35,8 +35,9 @@
 //   gh          false where gh is absent: the agents write nothing to GitHub, and the pull request and
 //               the filing are the session's
 //
-// It returns the implementer's answer, the review's, the last host run's build, the pull request, the
-// issues that now hold each entry of findings_left the filing did not skip, and any entry left unfiled.
+// It returns the implementer's answer, the review's, the last host run's build, the pull request and
+// whether GitHub took its label, the issues that now hold each entry of findings_left the filing did not
+// skip, and any entry left unfiled.
 // findings_left holds what the implementer, the review, each fix and each build run again after one left.
 
 export const meta = {
@@ -188,7 +189,8 @@ ${JSON.stringify(impl.body)}
 Write the body with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it, and pass that
 path spelled out in the command that opens the pull request (\`-F body=@${bodyFile}\`): the guards before a shell
 call read the file the command names, and refuse a path a shell variable holds. Then label the pull request
-\`workflow-reviewed\`, since the review ran over this head. Your answer is the pull request's number.
+\`workflow-reviewed\`, since the review ran over this head. Your answer is the pull request's number, and
+labelled, whether the label is on it when you read its labels back; a write refused goes in notes, word for word.
 `
 
 const FILE = (entries, source, findings, fixes) => `
@@ -284,7 +286,7 @@ const FIXED = { type: 'object', properties: {
   notes: { type: 'string' },
 }, required: ['head', 'caused', 'findings_left', 'notes'] }
 
-const OPENED = { type: 'object', properties: { pr: { type: 'integer' }, notes: { type: 'string' } }, required: ['pr'] }
+const OPENED = { type: 'object', properties: { pr: { type: 'integer' }, labelled: { type: 'boolean' }, notes: { type: 'string' } }, required: ['pr', 'labelled'] }
 
 const GROOMED = { type: 'object', properties: {
   verdict: { type: 'string', enum: ['implement', 'reshape', 'decline'] },
@@ -332,7 +334,7 @@ const implemented = await agent(IMPLEMENT + (groomed ? GROOMING(groomed) : ''), 
   label: `implement:${a.issue}`, phase: 'Implement', schema: IMPLEMENTED, ...implementer,
 })
 
-let review = null, build = null, pr = 0
+let review = null, build = null, pr = 0, labelled = false
 const fixes = [], reruns = []
 if (implemented?.branch && a.push !== false) {
   try {
@@ -364,6 +366,9 @@ if (implemented?.branch && a.push !== false) {
       label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
     })
     pr = opened?.pr || 0
+    labelled = !!opened?.labelled
+    if (pr && !labelled)
+      log(`#${pr} opened without workflow-reviewed: ${opened.notes || 'the agent gave no reason'}; the session adds it`)
   } else {
     const why = !passed(build) ? 'the host run did not pass' : missing.length ? `the host run left ${missing.join(', ')} unrun` : 'gh is absent'
     log(`no pull request for #${a.issue}: ${why}; the session reads the result`)
@@ -389,5 +394,5 @@ if (unfiled.length) {
   log(`${unfiled.length} of ${findings_left.length} left unfiled: ${unfiled.map(f => f.title).join('; ')}`)
 }
 const issues = [...new Set(filed.filter(f => f.action !== 'skipped').map(f => f.number))]
-return { issue: a.issue, groomed, pr, implemented, review, build, fixes, findings_left, filed, issues, unfiled }
+return { issue: a.issue, groomed, pr, labelled, implemented, review, build, fixes, findings_left, filed, issues, unfiled }
 
