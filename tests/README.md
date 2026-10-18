@@ -1685,6 +1685,21 @@ pid, what a valid call does, and where it refuses to run.
 
 ### set
 
+- **data**: `set.fromdata` over a `data` the script writes, the members first
+  and their offsets and labels where the layout puts them, which answers what
+  `set.new` answers over a table of the same members and labels, the empty set
+  and a `"single"` data among them. The data is read only from then on, its
+  setters and `resize` raising `read only` while `#`, the getters,
+  `tostring` and `checksum` keep reading, and stays so when the layout is
+  refused. A layout field outside the data and an array past it or at an
+  offset not a multiple of 4 each raise `out of bounds`; a member whose offsets
+  reach past the data, far past it or end before they start answers as no
+  member, read nowhere outside the data; a layout that is not a table raises
+  naming it and leaves the data writable, one that lacks a field raises naming
+  it; an object other than a data raises `data expected` and a value other than
+  a table or an object `invalid object`; and `set.new` refuses a data at its
+  first argument. A set whose data no handle of the script holds, once
+  collected, answers from a softirq runtime it is passed to.
 - **set**: `set.new` from a list, sorting unsorted input without reordering the
   table, and binary-search membership (`has`); size (`#`), a duplicate counted
   once; the empty-set and empty-string-member edges; `match` on a list answering
@@ -1694,6 +1709,9 @@ pid, what a valid call does, and where it refuses to run.
   reached by a trailing separator; labels across the 32-bit range; and the raises
   (non-string member of a list or a map, label outside [1, 2^32), a list and a
   map in one table).
+- **view**: a `LOCAL_OUT` netfilter hook, reached by a ping to the loopback
+  address, passes its `skb:data()` to `set.fromdata`, which refuses the view as
+  `external memory`.
 
 ### skb
 

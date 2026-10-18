@@ -17,6 +17,8 @@
 
 lunatik_object_t *luadata_new(lua_State *L, lunatik_opt_t opt);
 int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt);
+/* raises unless ix is a data that owns its memory, which it then makes read only for good */
+lunatik_object_t *luadata_checkreadonly(lua_State *L, int ix, const void **ptr, size_t *size);
 
 static inline void luadata_close(lunatik_object_t *object)
 {

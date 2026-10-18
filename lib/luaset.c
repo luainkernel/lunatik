@@ -27,13 +27,17 @@
 
 #include <lunatik.h>
 
+#include "luadata.h"
+
 #define LUASET_SEP	'.'
 
 typedef struct luaset_s {
 	size_t n;		/* number of members */
-	const uint32_t *off;	/* n+1 offsets into blob */
+	const __le32 *off;	/* n+1 offsets into blob */
 	const char *blob;	/* sorted members concatenated, no separator */
-	const uint32_t *labels;	/* per-member labels of a map; NULL for a list, whose members carry 1 */
+	size_t len;		/* bytes of the blob, past which no member is read */
+	const __le32 *labels;	/* per-member labels of a map; NULL for a list, whose members carry 1 */
+	lunatik_object_t *data;	/* the data the arrays sit in; NULL when the set allocated them */
 } luaset_t;
 
 static const lunatik_class_t luaset_class;
@@ -47,16 +51,24 @@ static inline int luaset_keycmp(const char *a, size_t alen, const char *b, size_
 	return c != 0 ? c : (alen > blen) - (alen < blen);
 }
 
+#define luaset_off(set, i)	le32_to_cpu((set)->off[(i)])
+
+/* a data's offsets are its writer's, checked by the lookup that reads them */
+#define luaset_isinside(set, start, end)	((start) <= (end) && (end) <= (set)->len)
+
 static ssize_t luaset_find(const luaset_t *set, const char *s, size_t len)
 {
 	ssize_t lo = 0, hi = (ssize_t)set->n - 1;
 
 	while (lo <= hi) {
 		ssize_t mid = lo + (hi - lo) / 2;
-		const char *member = set->blob + set->off[mid];
-		uint32_t mlen = set->off[mid + 1] - set->off[mid];
-		int c = luaset_keycmp(s, len, member, mlen);
+		uint32_t start = luaset_off(set, mid);
+		uint32_t end = luaset_off(set, mid + 1);
 
+		if (!luaset_isinside(set, start, end))
+			return -1;
+
+		int c = luaset_keycmp(s, len, set->blob + start, end - start);
 		if (c == 0)
 			return mid;
 		if (c < 0)
@@ -74,12 +86,21 @@ static int luaset_length(lua_State *L)
 	return 1;
 }
 
-static void luaset_release(void *private)
+static inline void luaset_free(luaset_t *set)
 {
-	luaset_t *set = (luaset_t *)private;
 	lunatik_free(set->blob);
 	lunatik_free(set->off);
 	lunatik_free(set->labels);
+}
+
+static void luaset_release(void *private)
+{
+	luaset_t *set = (luaset_t *)private;
+
+	if (set->data != NULL)
+		lunatik_putobject(set->data);
+	else
+		luaset_free(set);
 }
 
 /***
@@ -110,7 +131,7 @@ static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len)
 	while (i <= len) {
 		ssize_t idx = luaset_find(set, s + i, len - i);
 		if (idx >= 0)
-			return set->labels != NULL ? set->labels[idx] : 1;
+			return set->labels != NULL ? le32_to_cpu(set->labels[idx]) : 1;
 		const char *next = memchr(s + i, LUASET_SEP, len - i);
 		if (next == NULL)
 			break;
@@ -202,20 +223,20 @@ static size_t luaset_unique(luaset_member_t *members, size_t n)
 	return m;
 }
 
-static void luaset_store(uint32_t *off, char *blob, uint32_t *labels, const luaset_member_t *members, size_t n)
+static void luaset_store(__le32 *off, char *blob, __le32 *labels, const luaset_member_t *members, size_t n)
 {
 	size_t pos = 0;
 	size_t i;
 
 	for (i = 0; i < n; i++) {
-		off[i] = (uint32_t)pos;
+		off[i] = cpu_to_le32((uint32_t)pos);
 		if (members[i].len > 0)
 			memcpy(blob + pos, members[i].lstr, members[i].len);
 		if (labels != NULL)
-			labels[i] = members[i].label;
+			labels[i] = cpu_to_le32(members[i].label);
 		pos += members[i].len;
 	}
-	off[n] = (uint32_t)pos;
+	off[n] = cpu_to_le32((uint32_t)pos);
 }
 
 static void luaset_build(lua_State *L, int ix, luaset_t *set, bool map, size_t n, size_t total)
@@ -223,18 +244,19 @@ static void luaset_build(lua_State *L, int ix, luaset_t *set, bool map, size_t n
 	if (n == 0) /* the empty set allocates nothing: a search over no members reads no offset */
 		return;
 
-	uint32_t *off = lunatik_checkalloc(L, sizeof(uint32_t) * (n + 1));
+	__le32 *off = lunatik_checkalloc(L, sizeof(__le32) * (n + 1));
 	set->off = off;
 
 	char *blob = NULL;
 	if (total > 0) { /* all-empty members store no blob */
 		blob = lunatik_checkalloc(L, total);
 		set->blob = blob;
+		set->len = total;
 	}
 
-	uint32_t *labels = NULL;
+	__le32 *labels = NULL;
 	if (map) {
-		labels = lunatik_checkalloc(L, sizeof(uint32_t) * n);
+		labels = lunatik_checkalloc(L, sizeof(__le32) * n);
 		set->labels = labels;
 	}
 
@@ -274,8 +296,83 @@ static int luaset_new(lua_State *L)
 	return 1; /* object */
 }
 
+typedef struct luaset_layout_s {
+	lua_Integer n;
+	lua_Integer offsets;
+	lua_Integer labels;
+	lua_Integer blob;
+} luaset_layout_t;
+
+#define LUASET_NOLABELS	(-1)
+
+static const __le32 *luaset_checkarray(lua_State *L, const char *ptr, size_t size, lua_Integer offset, lua_Integer n)
+{
+	bool aligned = offset % sizeof(__le32) == 0; /* the lookups read each u32 where it sits */
+
+	luaL_argcheck(L, aligned && offset + n * sizeof(__le32) <= size, 2, "out of bounds");
+	return (const __le32 *)(ptr + offset);
+}
+
+static void luaset_checklayout(lua_State *L, luaset_t *set, const char *ptr, size_t size)
+{
+	luaset_layout_t layout;
+
+	lunatik_setinteger(L, 2, (&layout), n, 0, size);
+	lunatik_setinteger(L, 2, (&layout), offsets, 0, size);
+	lunatik_optinteger(L, 2, (&layout), labels, 0, size, LUASET_NOLABELS);
+	lunatik_setinteger(L, 2, (&layout), blob, 0, size);
+
+	set->n = (size_t)layout.n;
+	set->off = luaset_checkarray(L, ptr, size, layout.offsets, layout.n + 1);
+	set->labels = layout.labels != LUASET_NOLABELS ? luaset_checkarray(L, ptr, size, layout.labels, layout.n) : NULL;
+	set->blob = ptr + layout.blob;
+	set->len = size - layout.blob;
+}
+
+/***
+* Builds a set over the bytes of a `data`, without copying them.
+*
+* `layout` holds byte offsets into `d`, counted from 0: `n`, the number of members;
+* `offsets`, where `n + 1` u32 offsets sit, member `i` being bytes `off[i]` up to `off[i+1]`
+* of the members; `labels`, where `n` u32 labels sit, absent for a list, whose members carry 1;
+* and `blob`, where the members' bytes begin. The u32 are little-endian and their offsets
+* multiples of 4. Every array is checked to fit in `d`, and a lookup reads a member only when its
+* offsets keep it inside the bytes from `blob` on, so no layout or content makes it read outside
+* the data. That is the whole check: members out of order or repeated, offsets that decrease or
+* reach past the data and a label of 0 make the lookups answer wrong, the error of whoever wrote
+* the bytes. `d` must own its memory: the set makes it
+* read only for good, a refused layout included, and holds it for as long as the set lives, so
+* the bytes a set reads neither move nor change, and the set is read without a lock from any
+* runtime it is passed to.
+* @function fromdata
+* @tparam data d the data that holds the members.
+* @tparam table layout where the set's arrays sit in `d`.
+* @treturn set the built set.
+* @raise `external memory` for a data that views memory it does not own, as `skb:data()` does;
+* `out of bounds` for a layout field outside the data or an array that does not fit in it or whose
+* offset is not a multiple of 4; or on allocation failure.
+* @within set
+*/
+static int luaset_fromdata(lua_State *L)
+{
+	const void *ptr;
+	size_t size;
+
+	/* before the data is made read only for good: its type needs nothing of the data, its fields do */
+	luaL_checktype(L, 2, LUA_TTABLE);
+	lunatik_object_t *data = luadata_checkreadonly(L, 1, &ptr, &size);
+	lunatik_object_t *object = lunatik_newobject(L, &luaset_class, sizeof(luaset_t), LUNATIK_OPT_NONE);
+	luaset_t *set = (luaset_t *)object->private;
+
+	lunatik_getobject(data);
+	set->data = data;
+	luaset_checklayout(L, set, (const char *)ptr, size);
+	return 1; /* object */
+}
+
 static const luaL_Reg luaset_lib[] = {
 	{"new", luaset_new},
+	{"fromdata", luaset_fromdata},
 	{NULL, NULL}
 };
 
