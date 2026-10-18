@@ -207,6 +207,15 @@ after it.
   leaving the bytes; `setint64` takes every integer. A zero length at any offset
   up to the size, the end included, reads an empty string and writes nothing,
   and one past the end raises `out of bounds`.
+- **load**: `data.load` over files the suite writes: a buffer of the file's
+  size holding its bytes, which takes writes and resizes keeping them and comes
+  from the runtime's allocator, no vmalloc `/proc/vmallocinfo` lists as
+  `kernel_read_file`'s; a file of `maxbytes` loads and one byte less raises
+  `EFBIG`, a `maxbytes` of 0 or past `INT_MAX` is out of bounds, a missing
+  file raises `ENOENT`, an empty file and a directory `EINVAL`, and a file the
+  shell holds open for writing `ETXTBSY`. A runtime loads in its body in every
+  context, and loads again resumed in a process runtime; an armed softirq or
+  hardirq runtime refuses the load, not allowed once the runtime is armed.
 - **resize_atomic**: a failed reallocation must not look like a success. A
   vmalloc-backed buffer grown from a `GFP_ATOMIC` runtime asks the page
   allocator for an order past `MAX_PAGE_ORDER`, so the allocation fails by

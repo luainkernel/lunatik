@@ -10,6 +10,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/bitops.h>
+#include <linux/kernel_read_file.h>
 #include <net/checksum.h>
 
 #include <lunatik.h>
@@ -24,6 +25,7 @@ typedef struct luadata_s {
 } luadata_t;
 
 static int luadata_lnew(lua_State *L);
+static int luadata_load(lua_State *L);
 
 static const lunatik_class_t luadata_class;
 
@@ -73,7 +75,7 @@ LUADATA_NEWINT(int64, LUA_MININTEGER, LUA_MAXINTEGER);
 
 /***
 * Represents a byte buffer.
-* This is a userdata object returned by `data.new()` and by the modules that
+* This is a userdata object returned by `data.new()`, by `data.load()` and by the modules that
 * expose kernel memory (as `skb:data()`), read and written through the
 * `getuint*`/`setuint*` accessors below.
 *
@@ -220,6 +222,7 @@ static void luadata_release(void *private)
 */
 static const luaL_Reg luadata_lib[] = {
 	{"new", luadata_lnew},
+	{"load", luadata_load},
 	{NULL, NULL}
 };
 
@@ -387,6 +390,74 @@ static int luadata_lnew(lua_State *L)
 	luadata_t *data = (luadata_t *)object->private;
 
 	luadata_set(data, lunatik_checkzalloc(L, size), size, LUADATA_OPT_FREE);
+	return 1; /* object */
+}
+
+static inline loff_t luadata_filesize(struct file *file, size_t maxbytes)
+{
+	struct inode *inode = file_inode(file);
+	loff_t size = i_size_read(inode);
+
+	if (!S_ISREG(inode->i_mode) || size <= 0) /* kernel_read_file's, before the buffer it sizes */
+		return -EINVAL;
+	return size > maxbytes ? -EFBIG : size;
+}
+
+static ssize_t luadata_readfile(lua_State *L, struct file *file, size_t maxbytes, void **buf)
+{
+	loff_t size = luadata_filesize(file, maxbytes);
+	ssize_t ret;
+
+	if (size < 0)
+		return size;
+	if ((*buf = lunatik_malloc(L, size)) == NULL) /* lunatik_free's: kernel_read_file vmallocs any size */
+		return -ENOMEM;
+	if ((ret = kernel_read_file(file, 0, buf, size, NULL, READING_UNKNOWN)) < 0)
+		lunatik_free(*buf);
+	return ret;
+}
+
+static ssize_t luadata_readpath(lua_State *L, const char *path, size_t maxbytes, void **buf)
+{
+	struct file *file = filp_open(path, O_RDONLY, 0);
+	ssize_t ret;
+
+	if (IS_ERR(file))
+		return PTR_ERR(file);
+	ret = luadata_readfile(L, file, maxbytes, buf);
+	fput(file);
+	return ret;
+}
+
+/***
+* Reads a file whole into a new buffer, which it owns.
+* The read is the kernel's own for the files it loads, so the file passes the security hooks
+* those pass. The path is resolved by the calling task. Reading sleeps, so call it where it can
+* sleep (a process-context runtime, or any runtime's load).
+* @function load
+* @tparam string path the file.
+* @tparam integer maxbytes the largest file it reads, in bytes, from 1 up to `INT_MAX`.
+* @treturn data a `"shared"` buffer of the file's size, holding its bytes.
+* @raise "out of bounds" for a `maxbytes` outside that range; `ENOENT`, `EACCES`, `EFBIG` for a
+*   file larger than `maxbytes`, refused before it is read, `EINVAL` for an empty or non-regular
+*   file, `ETXTBSY` while the file is open for writing, `ENOMEM` when the buffer cannot be
+*   allocated, `EIO` for a file that reads shorter than its size, as a sysfs attribute does, or the
+*   errno a security module refuses the read with; or `not allowed once the runtime is armed` (its
+*   script body has returned) on an interrupt-context runtime
+* @usage local db = data.load("/lib/firmware/regulatory.db", 64 << 10)
+* @within data
+*/
+static int luadata_load(lua_State *L)
+{
+	lunatik_checkarmed(L);
+	const char *path = luaL_checkstring(L, 1);
+	size_t maxbytes = (size_t)lunatik_checkinteger(L, 2, 1, INT_MAX);
+	lunatik_object_t *object = lunatik_newobject(L, &luadata_class, sizeof(luadata_t), LUNATIK_OPT_MONITOR);
+	void *buf = NULL;
+	ssize_t size;
+
+	lunatik_tryret(L, size, luadata_readpath, L, path, maxbytes, &buf);
+	luadata_set((luadata_t *)object->private, buf, (size_t)size, LUADATA_OPT_FREE);
 	return 1; /* object */
 }
 
