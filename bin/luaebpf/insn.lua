@@ -120,6 +120,18 @@ function code:alui(op, dst, imm)
 	return append(self, {code = ALU64 | op, dst = dst, src = 0, off = 0, imm = imm})
 end
 
+--- `dst := -dst`; eBPF's negation is a one-operand ALU op, so it takes no source.
+-- @function luaebpf.insn.code:neg
+function code:neg(dst)
+	return self:alui(insn.alu.NEG, dst, 0)
+end
+
+--- Signed division or modulo, which eBPF spells as the unsigned op with `off` set to 1.
+-- @function luaebpf.insn.code:sdiv
+function code:sdiv(op, dst, src)
+	return append(self, {code = ALU64 | op | SRC_X, dst = dst, src = src, off = 1, imm = 0})
+end
+
 --- `dst := imm`, over the whole 64-bit range.
 -- @function luaebpf.insn.code:set
 function code:set(dst, imm)

@@ -12,11 +12,15 @@
 # vararg function, a metatable, an unresolvable global and an unresolvable
 # field of a compile-time module, which are one opcode and read back as what the source says, a
 # call through an unresolvable value, the context, '..', '#', a method call, a tail call, an upvalue
-# assignment, a to-be-closed variable, a generic for, and a program declared with an
-# argument beyond the context; and what the host adds, since the body runs in the CLI's Lua: a float
-# its libraries return, as a value, as a field of a table and as the default verdict, a float
-# literal, which lunatic refuses to parse, a C function, which has no bytecode, and a function the
-# CLI's Lua compiled from a string, which lunatic never saw.
+# assignment, a to-be-closed variable, a generic for, a program declared with an argument
+# beyond the context, arithmetic on a boolean at each shape the emitter checks on its own:
+# the two opcodes the VM follows with no metamethod, a binary opcode with both operands live,
+# one whose result is written over the operand it read, and a shift whose constant is on the
+# left; and arithmetic on a nil, which is a local declared without a value; and what the host
+# adds, since the body runs in the CLI's Lua: a float its libraries return, as a value, as a field
+# of a table and as the default verdict, a float literal, which lunatic refuses to parse, a C
+# function, which has no bytecode, and a function the CLI's Lua compiled from a string, which
+# lunatic never saw.
 #
 # Usage: sudo bash tests/luaebpf/refuse.sh
 
@@ -27,7 +31,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-ROWS=22
+ROWS=28
 
 luaebpf_start $ROWS
 
@@ -88,6 +92,18 @@ row generic_for "generic_for.bpf.lua:5: a generic 'for' cannot be compiled" \
 	$'\tfor k, v in next, ports do return v end\n\treturn 0' 'local ports = {1}'
 row twoargs "twoargs.bpf.lua:4: a program takes one argument, the context" \
 	$'\treturn extra' '' 'ctx, extra'
+row unmbool "unmbool.bpf.lua:6: attempt to perform arithmetic on a boolean value" \
+	$'\tlocal b = true\n\treturn -b'
+row bnotbool "bnotbool.bpf.lua:6: attempt to perform arithmetic on a boolean value" \
+	$'\tlocal b = true\n\treturn ~b'
+row addbool "addbool.bpf.lua:6: attempt to perform arithmetic on a boolean value" \
+	$'\tlocal b = true\n\treturn b + one' 'local one = 1'
+row aliasbool "aliasbool.bpf.lua:5: attempt to perform arithmetic on a boolean value" \
+	$'\tlocal v = true + 1\n\treturn v'
+row shlbool "shlbool.bpf.lua:6: attempt to perform arithmetic on a boolean value" \
+	$'\tlocal b = true\n\treturn 3 << b'
+row nilarith "nilarith.bpf.lua:6: attempt to perform arithmetic on a nil value" \
+	$'\tlocal v\n\treturn v + one' 'local one = 1'
 row float "float.bpf.lua:5: 'half' is a float, which a compiled function cannot hold" \
 	$'\treturn half' 'local half = math.sqrt(4)'
 row literal "literal.bpf.lua:3: malformed number near '.5'" $'\treturn half' 'local half = 2.5'
