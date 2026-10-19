@@ -62,8 +62,7 @@ output=$(luaebpf_refuses calledstep "calledstep.bpf.lua:5: $message") \
 	|| { comment "$output"; fail "luaebpf: a run-time step in a called function is not refused"; }
 ktap_pass "luaebpf: a 'for' whose step a called function gets at run time is refused with its line"
 
-release=$(uname -r | cut -d. -f1,2)
-if [ "$(printf '%s\n6.9\n' "$release" | sort -V | head -1)" != "6.9" ]; then
+if ! luaebpf_maygoto; then
 	output=$(luaebpf_compile forvar 2>&1)
 	echo "$output" | grep -q "may_goto, which this kernel lacks" \
 		|| { comment "$output"; fail "luaebpf: an unbounded loop is not refused without may_goto"; }
