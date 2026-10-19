@@ -109,7 +109,7 @@ static int luadevice_new(lua_State *L);
 typedef struct luadevice_ctx_s {
 	struct file *f;
 	const char *fop;
-	char *buf;
+	char __user *buf;
 	size_t len;
 	loff_t *off;
 	ssize_t ret;
@@ -255,7 +255,7 @@ static int luadevice_fop_open(struct inode *inode, struct file *f)
 	return ret;
 }
 
-static ssize_t luadevice_fop_read(struct file *f, char *buf, size_t len, loff_t *off)
+static ssize_t luadevice_fop_read(struct file *f, char __user *buf, size_t len, loff_t *off)
 {
 	luadevice_ctx_t ctx = {.f = f, .buf = buf, .len = len, .off = off};
 	ssize_t ret;
@@ -264,9 +264,9 @@ static ssize_t luadevice_fop_read(struct file *f, char *buf, size_t len, loff_t 
 	return ret;
 }
 
-static ssize_t luadevice_fop_write(struct file *f, const char *buf, size_t len, loff_t* off)
+static ssize_t luadevice_fop_write(struct file *f, const char __user *buf, size_t len, loff_t* off)
 {
-	luadevice_ctx_t ctx = {.f = f, .buf = (char *)buf, .len = len, .off = off};
+	luadevice_ctx_t ctx = {.f = f, .buf = (char __user *)buf, .len = len, .off = off};
 	ssize_t ret;
 
 	luadevice_run(write, ret, &ctx);
