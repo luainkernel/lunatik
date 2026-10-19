@@ -91,7 +91,7 @@ static size_t luasocket_checkaddr(lua_State *L, struct socket *socket, struct so
 	else if (addr->ss_family == AF_PACKET) {
 		struct sockaddr_ll *addr_ll = (struct sockaddr_ll *)addr;
 		addr_ll->sll_protocol = luasocket_checkethertype(L, ix);
-		addr_ll->sll_ifindex = (int)lunatik_checkinteger(L, ix + 1, 0, INT_MAX);;
+		addr_ll->sll_ifindex = (int)lunatik_checkinteger(L, ix + 1, 0, INT_MAX);
 		return sizeof(struct sockaddr_ll);
 	}
 	else if (addr->ss_family == AF_NETLINK) {
