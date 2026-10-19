@@ -12,15 +12,16 @@
 # vararg function, a metatable, an unresolvable global and an unresolvable
 # field of a compile-time module, which are one opcode and read back as what the source says, a
 # call through an unresolvable value, the context, '..', '#', a method call, a tail call, an upvalue
-# assignment, a to-be-closed variable, a generic for, a program declared with an argument
-# beyond the context, arithmetic on a boolean at each shape the emitter checks on its own:
-# the two opcodes the VM follows with no metamethod, a binary opcode with both operands live,
-# one whose result is written over the operand it read, and a shift whose constant is on the
-# left; and arithmetic on a nil, which is a local declared without a value; and what the host
-# adds, since the body runs in the CLI's Lua: a float its libraries return, as a value, as a field
-# of a table and as the default verdict, a float literal, which lunatic refuses to parse, a C
-# function, which has no bytecode, and a function the CLI's Lua compiled from a string, which
-# lunatic never saw.
+# assignment, a to-be-closed variable, a generic for, while, repeat, a program declared with an
+# argument beyond the context, arithmetic on a boolean at each shape the emitter checks on its
+# own: the two opcodes the VM follows with no metamethod, a binary opcode with both operands
+# live, one whose result is written over the operand it read, and a shift whose constant is on
+# the left; arithmetic on a nil, which is a local declared without a value; the two comparisons a
+# join leaves undecidable, where a register carries one of several types and its bits say which
+# for none of them, and for that reason a verdict that may be nil; and what the host adds, since
+# the body runs in the CLI's Lua: a float its libraries return, as a value, as a field of a table
+# and as the default verdict, a float literal, which lunatic refuses to parse, a C function, which
+# has no bytecode, and a function the CLI's Lua compiled from a string, which lunatic never saw.
 #
 # Usage: sudo bash tests/luaebpf/refuse.sh
 
@@ -31,7 +32,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-ROWS=28
+ROWS=33
 
 luaebpf_start $ROWS
 
@@ -90,6 +91,10 @@ row toclose "toclose.bpf.lua:5: a to-be-closed variable cannot be compiled" \
 	$'\tlocal h <close> = handle\n\treturn 0' 'local handle = setmetatable({}, {__close = function() end})'
 row generic_for "generic_for.bpf.lua:5: a generic 'for' cannot be compiled" \
 	$'\tfor k, v in next, ports do return v end\n\treturn 0' 'local ports = {1}'
+row while_ "while_.bpf.lua:7: 'while' and 'repeat' are not compiled yet" \
+	$'\tlocal n = 0\n\twhile n < 4 do\n\t\tn = n + 1\n\tend\n\treturn n'
+row repeat_ "repeat_.bpf.lua:8: 'while' and 'repeat' are not compiled yet" \
+	$'\tlocal n = 0\n\trepeat\n\t\tn = n + 1\n\tuntil n > 3\n\treturn n'
 row twoargs "twoargs.bpf.lua:4: a program takes one argument, the context" \
 	$'\treturn extra' '' 'ctx, extra'
 row unmbool "unmbool.bpf.lua:6: attempt to perform arithmetic on a boolean value" \
@@ -104,6 +109,13 @@ row shlbool "shlbool.bpf.lua:6: attempt to perform arithmetic on a boolean value
 	$'\tlocal b = true\n\treturn 3 << b'
 row nilarith "nilarith.bpf.lua:6: attempt to perform arithmetic on a nil value" \
 	$'\tlocal v\n\treturn v + one' 'local one = 1'
+row join_number "join_number.bpf.lua:7: a value cannot be compared with a number here" \
+	$'\tlocal v\n\tif one < 2 then v = 7 end\n\treturn v == 7' 'local one = 1'
+row join_join "join_join.bpf.lua:8: a value cannot be compared with a value here" \
+	$'\tlocal v, w\n\tif one < 2 then v = false end\n\tif one > 2 then w = false end\n\treturn v == w' \
+	'local one = 1'
+row maybenil "maybenil.bpf.lua:7: the verdict may be nil here; test it first" \
+	$'\tlocal v\n\tif one < 2 then v = 7 end\n\treturn v' 'local one = 1'
 row float "float.bpf.lua:5: 'half' is a float, which a compiled function cannot hold" \
 	$'\treturn half' 'local half = math.sqrt(4)'
 row literal "literal.bpf.lua:3: malformed number near '.5'" $'\treturn half' 'local half = 2.5'

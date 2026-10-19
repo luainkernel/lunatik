@@ -41,11 +41,5 @@ local operands = {
 	{1, 64}, {1, 65}, {1, -1}, {255, 0}, {-1, MIN}, {MAX, 2}, {MIN, MAX},
 }
 
-local rows = corpus.new()
-for _, op in ipairs(order) do
-	for i, pair in ipairs(operands) do
-		rows:declare(op .. i, makers[op](pair[1], pair[2]))
-	end
-end
-rows:close()
+corpus.declare(makers, order, operands)
 
