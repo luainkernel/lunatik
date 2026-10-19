@@ -12,7 +12,6 @@
 
 #include <crypto/hash.h>
 #include <linux/err.h>
-#include <linux/slab.h>
 
 #include "luacrypto.h"
 
