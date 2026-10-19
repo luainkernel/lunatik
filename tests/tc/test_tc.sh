@@ -91,7 +91,7 @@ ktap_plan 17
 skip_all()
 {
 	echo "# SKIP: $1"
-	ktap_skip "tc pass: verdict enforced, packet and argument content verified"
+	ktap_skip "tc pass: verdict enforced, packet and argument content verified, priority and mark read back"
 	ktap_skip "tc drop: verdict enforced correctly"
 	ktap_skip "$REPLACED"
 	ktap_skip "tc reattach: re-attach installs the last callback"
@@ -346,7 +346,7 @@ verdict_case()
 }
 
 run_case tc_pass.bpf.o pass.lua yes "tc pass" \
-	"tc pass test pass: packet and argument content verified" --context=softirq
+	"tc pass test pass: packet and argument content verified, priority and mark read back" --context=softirq
 run_case tc_drop.bpf.o drop.lua no "tc drop" \
 	"tc drop test pass: verdict set to drop" --context=softirq --percpu
 replaced_case
