@@ -11,9 +11,10 @@ Run everything with `sudo lunatik test`, one suite with `sudo lunatik test luaeb
 
 ## What this suite needs that others do not
 
-**A compiler on the host.** Every test compiles a program file with `lunatikc` at test time, on
-the machine that runs it. `lunatikc` is built by `make` and installed next to `lunatik`; a
-missing binary is a skip with a message naming `make`.
+**A compiler on the host.** Every test compiles a program file with `lunatik bpf` at test time,
+on the machine that runs it. The CLI's Lua runs the body from the chunk `lunatic` writes, and
+`lunatic` is built by `make` and installed next to `lunatik`; a missing binary is a skip with a
+message naming `make`.
 
 **Three oracles, in this order.**
 
@@ -22,8 +23,9 @@ missing binary is a skip with a message naming `make`.
    prints the log. This is the test that matters most: the design's claim is that every emitted
    shape is one the verifier accepts by construction.
 2. *The interpreter.* A compiled program is run with `bpftool prog run` (`BPF_PROG_TEST_RUN`,
-   XDP and TC only) over a packet file, and the same Lua function is run on the host under
-   `lunatikc` with a `data`-like proxy over the same bytes. The verdicts must match on every
+   XDP and TC only) over a packet file, and the same Lua function is run on the host, from the
+   bytecode `lunatic` compiled, in the CLI's Lua with a `data`-like proxy over the same bytes, so
+   the oracle divides as the kernel does. The verdicts must match on every
    packet of a corpus. Where the interpreted side raises (an out-of-bounds read, a division by
    zero), the compiled side must return the program's default verdict, and the test asserts that
    pairing, not equality.
@@ -96,7 +98,7 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 |------|--------|
 | `run.sh` | `lunatik run` on a script with a program file pins the maps, starts the runtime, attaches and pins the link, in that order (checked by what exists after a failure injected at each step) |
 | `stop.sh` | `lunatik stop` leaves nothing under the script's pin root, and a second `run` after a killed one succeeds |
-| `notarget.sh` | a run without `dev=` for an XDP program fails before the runtime starts, with a message naming the option |
+| `notarget.sh` | a run without `--dev=` for an XDP program fails before the runtime starts, with a message naming the option |
 | `xdp_compiled.sh`, `tc_compiled.sh` | the `xdp` and `tc` suites' pass and drop cases with a compiled program in place of the C stub |
 | `verifierlog.sh` | a program the verifier rejects makes `run` print the log with the Lua line and exit non-zero |
 
@@ -126,11 +128,11 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 |------|--------|
 | `example_filter.sh` | the SNI filter compiled whole blocks the listed host on the veth pair and passes another |
 | `example_sniclassify.sh` | the classifier sets the priority from the map on a cached flow and from Lua on a new one |
-| `example_speed.sh` | the phase 0 script runs against the compiled filter; informational, not a gate |
+| `example_speed.sh` | the benchmark's XDP event runs against the compiled filter; informational, not a gate |
 
 ## Conventions to follow
 
-* skip, do not fail, when the kernel lacks a feature, the toolchain lacks a tool, or `lunatikc`
+* skip, do not fail, when the kernel lacks a feature, the toolchain lacks a tool, or `lunatic`
   is not built, and say which;
 * mark `dmesg` before the run, read only what came after, and `check_dmesg` at the end;
 * clean up in a `trap`, and run the cleanup once up front as well;
