@@ -10,10 +10,11 @@
 # on the module implementing the algorithm for the rest of the boot.
 #
 # The kernel's own refcount is the instrument. One object of each kind held
-# alive names the modules that back sha256 and lz4 here, whatever they are on
-# this architecture: those /proc/crypto lists whose reference count rose while
-# the objects lived. The refusals then have to name the class, crypto.shash
-# or crypto.comp, and leave those counts where they found them.
+# alive names the modules that back sha256, lz4 and ecdsa-nist-p256 here,
+# whatever they are on this architecture: those /proc/crypto lists whose
+# reference count rose while the objects lived. The refusals then have to name
+# the class, crypto.shash, crypto.comp or crypto.sig, and leave those counts
+# where they found them.
 #
 # The case only runs against the build it was installed with. The refusal is a
 # static inline compiled into luacrypto, so a build from before it allocates the
@@ -90,7 +91,7 @@ if ! check_dmesg; then
 	ktap_totals
 	exit 1
 elif [ -z "$providers" ]; then
-	ktap_skip "crypto/context: no module backs sha256 or lz4 here, so a leaked tfm counts nowhere"
+	ktap_skip "crypto/context: no module backs sha256, lz4 or ecdsa-nist-p256 here, so a leaked tfm counts nowhere"
 elif [ -n "$leaked" ]; then
 	ktap_fail "crypto/context: a refused object left a reference on$leaked"
 else

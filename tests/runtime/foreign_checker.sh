@@ -5,8 +5,8 @@
 #
 # Regression test for the checker matrix: a method of every class a process
 # runtime can construct (data, fifo, completion, set, crypto.shash,
-# crypto.skcipher, crypto.aead, crypto.rng, task, thread, lunatik.runtime,
-# fsnotify.watch),
+# crypto.skcipher, crypto.aead, crypto.rng, crypto.sig, task, thread,
+# lunatik.runtime, fsnotify.watch),
 # called through the class's metatable, refuses an object of another class
 # naming both classes, which proves the metatables carry __name,
 # refuses nil and a userdata of another library (io's) as no object at all;

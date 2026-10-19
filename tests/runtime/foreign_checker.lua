@@ -32,6 +32,7 @@ local cases = {
 	{name = "crypto.skcipher", object = crypto.skcipher("cbc(aes)"), foreign = data.new(8), method = "ivsize", args = {}},
 	{name = "crypto.aead",  object = crypto.aead("gcm(aes)"), foreign = data.new(8),  method = "ivsize",     args = {}},
 	{name = "crypto.rng",   object = crypto.rng("stdrng"),    foreign = data.new(8),  method = "seedsize",   args = {}},
+	{name = "crypto.sig",   object = crypto.sig("ecdsa-nist-p256"), foreign = data.new(8), method = "algname", args = {}},
 	{name = "task",         object = task.current(),              foreign = data.new(8),  method = "pid",        args = {}},
 	{name = "thread",       object = spawned,                     foreign = data.new(8),  method = "stop",       args = {}},
 	{name = "thread",       object = spawned,                     foreign = data.new(8),  method = "task",       args = {}},

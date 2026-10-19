@@ -150,7 +150,9 @@ config LUNATIK_CRYPTO
 	tristate "Lunatik Crypto Support"
 	default m
 	help
-	  Linux Crypto API support (hash, cipher, AEAD, RNG, compression).
+	  Linux Crypto API support (hash, cipher, AEAD, RNG, compression,
+	  signature verification). Signature verification links
+	  crypto_alloc_sig, which CRYPTO_SIG2 builds.
 
 config LUNATIK_DARKEN
 	tristate "Lunatik Darken (Encrypted Script) Support"
