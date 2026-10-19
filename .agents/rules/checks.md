@@ -229,6 +229,13 @@ first he reads.
 fails on a pull request that carries one, so a pull request merged before its squash shows red rather
 than landing its fixups on master.
 
+`capi-entries.sh` takes headers of `lib/` and names each identifier of a header's own prefix,
+`lua<name>_` or `LUA<NAME>_`, its comments and its include guard left out, that no C block of
+`doc/capi.md` carries, and the `Checks` workflow fails on a pull request that leaves one in
+`lib/*.h`: the reference is written by hand, and until #1931 gave the headers their sections a module
+that called `luadata_reset` read the `.c` for what it raises, the context it runs in and who owns what
+it takes. It catches a name missing, not an entry that no longer says what the code does.
+
 `discard-guard.sh`, wired before a shell call, refuses a command that writes over a file holding a
 change nobody committed, a checkout or a restore of a path, `git reset --hard`, and a checkout or a
 switch that forces, naming the files: a session that meant to put back its head's version of two
