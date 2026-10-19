@@ -1383,7 +1383,8 @@ string a script reads as `_LUNATIK_VERSION` and `lunatik -V` prints. A module de
 ### Writing a binding
 A kernel module exposing a Lua library `foo` whose objects count: the private structure, its
 checker, a method table carrying `__gc` and `__close`, the class, a constructor, and the module's
-entry points.
+entry points. `lib/luaskel.c`, the template to copy to `lib/lua<name>.c`, carries the same shape
+with a `release`.
 ```C
 #include <linux/module.h>
 
