@@ -276,7 +276,6 @@ static int luahid_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	if (ret != 0)
 		return ret;
 
-	hid_set_drvdata(hdev, hid);
 	if ((ret = hid_parse(hdev)) != 0 || (ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT)) != 0)
 		luahid_detach(hid, hdev); /* the HID core calls no remove after a failed probe */
 	return ret;
