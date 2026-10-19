@@ -13,7 +13,6 @@
 #include <crypto/rng.h>
 #include <linux/err.h>
 #include <linux/limits.h>
-#include <linux/slab.h>
 
 #include "luacrypto.h"
 
