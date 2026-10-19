@@ -9,7 +9,7 @@ local closing = require("tests.crypto.closing")
 local test = require("tests.lib").test
 local hex2bin = util.hex2bin
 
-test("crypto_shash.new and digestsize", function()
+test("crypto.shash and digestsize", function()
 	local hasher = shash("sha256")
 	assert(hasher, "Failed to create sha256 hasher")
 	assert(hasher:digestsize() == 32, "SHA256 digest size should be 32 bytes")
@@ -19,7 +19,7 @@ test("crypto_shash.new and digestsize", function()
 	assert(hmac_hasher:digestsize() == 32, "HMAC(SHA256) digest size should be 32 bytes")
 end)
 
-test("crypto_shash:digest (single-shot)", function()
+test("crypto.shash:digest (single-shot)", function()
 	local hasher = shash("sha256")
 	local data = "The quick brown fox jumps over the lazy dog"
 	local expected_digest = hex2bin("d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592")
@@ -35,7 +35,7 @@ test("crypto_shash:digest (single-shot)", function()
 	assert(hmac_digest == expected_hmac_digest, "HMAC(SHA256) digest mismatch")
 end)
 
-test("crypto_shash:init, update, final (multi-part)", function()
+test("crypto.shash:init, update, final (multi-part)", function()
 	local hasher = shash("sha256")
 	local data1 = "The quick brown "
 	local data2 = "fox jumps over "
@@ -50,7 +50,7 @@ test("crypto_shash:init, update, final (multi-part)", function()
 	assert(digest == expected_digest, "Multi-part SHA256 digest mismatch")
 end)
 
-test("crypto_shash:finup", function()
+test("crypto.shash:finup", function()
 	local hasher = shash("sha256")
 	local data1 = "The quick brown "
 	local data2 = "fox jumps over the lazy dog"
@@ -62,7 +62,7 @@ test("crypto_shash:finup", function()
 	assert(digest == expected_digest, "Finup SHA256 digest mismatch")
 end)
 
-test("crypto_shash:export and import functionality", function()
+test("crypto.shash:export and import functionality", function()
 	local hasher1 = shash("sha256")
 	local hasher2 = shash("sha256")
 
@@ -109,7 +109,7 @@ test("crypto_shash:export and import functionality", function()
 	assert(digest4 == digest_data1, "Imported state final digest does not match digest of data1")
 end)
 
-test("crypto_shash:close releases the transform, and __close is close", function()
+test("crypto.shash:close releases the transform, and __close is close", function()
 	closing.check(shash("sha256"), "digestsize")
 end)
 
