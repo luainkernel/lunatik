@@ -157,7 +157,7 @@ static int luaset_membercmp(const void *a, const void *b)
 
 static size_t luaset_count(lua_State *L, int ix, bool map, size_t *total)
 {
-	lua_Integer n = 0;
+	size_t n = 0;
 
 	*total = 0;
 	luaset_foreach(L, ix) {
@@ -173,7 +173,7 @@ static size_t luaset_count(lua_State *L, int ix, bool map, size_t *total)
 		n++;
 	}
 	luaL_argcheck(L, *total <= U32_MAX, ix, "table too large"); /* offsets are uint32 */
-	return (size_t)n;
+	return n;
 }
 
 static luaset_member_t *luaset_load(lua_State *L, int ix, bool map, size_t n)
