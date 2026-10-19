@@ -46,8 +46,12 @@ static int subscribe(int grp)
 	struct timeval tv = { .tv_sec = 5 };
 	int fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 
-	if (fd < 0 ||
-	    bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0 ||
+	if (fd < 0) {
+		perror("socket");
+		return -1;
+	}
+
+	if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0 ||
 	    setsockopt(fd, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP, &grp, sizeof(grp)) < 0 ||
 	    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
 		perror("subscribe");
