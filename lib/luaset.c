@@ -40,14 +40,14 @@ static const lunatik_class_t luaset_class;
 
 LUNATIK_PRIVATECHECKER(luaset_check, luaset_t *, &luaset_class);
 
-static inline int luaset_keycmp(const char *a, uint32_t alen, const char *b, uint32_t blen)
+static inline int luaset_keycmp(const char *a, size_t alen, const char *b, size_t blen)
 {
-	uint32_t m = min(alen, blen);
+	size_t m = min(alen, blen);
 	int c = memcmp(a, b, m);
 	return c != 0 ? c : (alen > blen) - (alen < blen);
 }
 
-static ssize_t luaset_find(const luaset_t *set, const char *s, uint32_t len)
+static ssize_t luaset_find(const luaset_t *set, const char *s, size_t len)
 {
 	ssize_t lo = 0, hi = (ssize_t)set->n - 1;
 
@@ -99,7 +99,7 @@ static int luaset_has(lua_State *L)
 	size_t len;
 	const char *s = luaL_checklstring(L, 2, &len);
 
-	lua_pushboolean(L, luaset_find(set, s, (uint32_t)len) >= 0);
+	lua_pushboolean(L, luaset_find(set, s, len) >= 0);
 	return 1;
 }
 
@@ -108,7 +108,7 @@ static uint32_t luaset_walk(const luaset_t *set, const char *s, size_t len)
 	size_t i = 0;
 
 	while (i <= len) {
-		ssize_t idx = luaset_find(set, s + i, (uint32_t)(len - i));
+		ssize_t idx = luaset_find(set, s + i, len - i);
 		if (idx >= 0)
 			return set->labels != NULL ? set->labels[idx] : 1;
 		const char *next = memchr(s + i, LUASET_SEP, len - i);
