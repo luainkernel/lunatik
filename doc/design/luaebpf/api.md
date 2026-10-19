@@ -10,35 +10,38 @@ A script that has a compiled program keeps its kernel Lua where it is and adds a
 beside it:
 
     examples/filter/sni.lua        the kernel script, as today: runs in the kernel Lua VM
-    examples/filter/sni.bpf.lua    the program file: compiled by lunatikc into sni.bpf.o
+    examples/filter/sni.bpf.lua    the program file: compiled by lunatik bpf into sni.bpf.o
 
-`lunatikc sni.bpf.lua` produces `sni.bpf.o`, a BPF ELF object that `bpftool prog load` accepts
-like any other. `make install` compiles every program file it installs and puts the object beside
-the script, under `/lib/modules/lua/`, so `lunatik run examples/filter/sni` finds
-`/lib/modules/lua/examples/filter/sni.bpf.o` the way the kernel finds `sni.lua`.
+`lunatik bpf sni.bpf.lua` produces `sni.bpf.o` (`-o` names another), a BPF ELF object that
+`bpftool prog load` accepts like any other. `make install` compiles every program file it
+installs and puts the object beside the script, under `/lib/modules/lua/`, so
+`lunatik run examples/filter/sni` finds `/lib/modules/lua/examples/filter/sni.bpf.o` the way the
+kernel finds `sni.lua`.
 
 A program file may exist without a kernel script (a program that never calls into Lua), and a
 kernel script may exist without a program file (everything the tree runs today).
 
 ## The program file has two halves
 
-The body of the program file is **compile-time Lua**. It runs once, on the host, inside
-`lunatikc`, under the kernel's own Lua build: integer arithmetic, the 80-opcode set, the standard
-libraries. Every value it computes is a constant of the program: a table of ports, a set of host
-names, a map declaration, an offset. The functions it hands to a program constructor are the
-**compiled half**: they run in the kernel, verified, and are held to the subset below.
+The body of the program file is **compile-time Lua**. `lunatic` compiles the file under the
+kernel's own Lua build (integer arithmetic, `/` as integer division, the 80-opcode set), and the
+body runs once, on the host, from that bytecode, in the CLI's Lua 5.5 with its standard libraries.
+Every value it computes is a constant of the program: a table of ports, a set of host names, a map
+declaration, an offset. The functions it hands to a program constructor are the **compiled
+half**: the translator reads their bytecode, the same the body ran from, and they run in the
+kernel, verified, held to the subset below.
 
     local xdp    = require("bpf.xdp")
-    local action = require("linux.xdp")
+    local action = require("linux.xdp").action
 
     return xdp.program(function(ctx)
         return action.PASS
     end)
 
 That is the whole of `tests/xdp/xdp_pass.bpf.c`, minus the call into Lua. `xdp.program` records
-the function; `lunatikc` reads its bytecode, types it, emits it, links the runtime library and
-writes the object. The program returns an XDP verdict from `linux.xdp`, the same table the kernel
-scripts use.
+the function; `lunatik bpf` reads its bytecode, types it, emits it, links the runtime library and
+writes the object. The program returns an XDP verdict from `linux.xdp.action`, the same table the
+kernel scripts use.
 
 The split mirrors the runtime model AGENTS.md describes: a kernel script's body runs once, in
 process context, and its hooks run later under stricter rules. Here the body runs once at compile
@@ -58,7 +61,7 @@ A compiled function is Lua where every value has a type the translator can prove
 | calls to functions the program file declares | BPF-to-BPF calls; no recursion, five register arguments |
 | the context, the packet, a map, a struct view | proxies (next sections) |
 | `return` | the program's verdict |
-| constants captured from the body: numbers, booleans, strings used as bytes, tables of constants | folded at compile time |
+| constants captured from the body: integers, booleans, strings used as bytes, tables of constants | folded at compile time |
 
 Everything else is a compile error naming the line: runtime tables and strings, closures created
 at runtime, varargs, `pcall`, coroutines, metatables other than the proxies', a global that is
@@ -85,7 +88,7 @@ is `examples/common/sni.lua`'s helper, unchanged, and it compiles.
 
 Every packet access carries a bounds check against `data_end`. An access that fails it does not
 raise (there is nothing to raise to): the function returns the program's **default verdict**, the
-type's safe answer (`PASS` for XDP, `ACT_OK` for TC), overridable in the constructor:
+type's safe answer (`PASS` for XDP, `OK` for TC), overridable in the constructor:
 
     return xdp.program{default = action.DROP}(function(ctx) ... end)
 
@@ -113,7 +116,7 @@ assignment updates, assigning `nil` deletes.
     local cached = flows[skb.hash]
     if cached then
         skb.priority = cached
-        return action.ACT_OK
+        return action.OK
     end
 
 `flows[key]` has the type "value or nil", and the translator refuses to use it as a number until
@@ -137,7 +140,7 @@ The escape hatch is a call the program writes, at the point it chooses:
 
     local tc     = require("bpf.tc")
     local map    = require("bpf.map")
-    local action = require("linux.tc")
+    local action = require("linux.tc").action
 
     local HTTPS <const> = 443
 
@@ -152,20 +155,20 @@ The escape hatch is a call the program writes, at the point it chooses:
         local cached = flows[skb.hash]
         if cached then
             skb.priority = cached
-            return action.ACT_OK
+            return action.OK
         end
 
         local packet = skb:packet()
         local ihl    = (packet:getbyte(14) & 0x0f) * 4
         local tcp    = 14 + ihl
         if packet:getbyte(23) ~= 6 or u16(packet, tcp + 2) ~= HTTPS or packet:getbyte(tcp + 13) & 0x08 == 0 then
-            return action.ACT_OK
+            return action.OK
         end
 
         local payload = tcp + (packet:getbyte(tcp + 12) >> 4) * 4
         local verdict = lua(payload)
         if verdict == nil then
-            return action.ACT_OK
+            return action.OK
         end
         flows[skb.hash] = skb.priority
         return verdict
@@ -173,11 +176,11 @@ The escape hatch is a call the program writes, at the point it chooses:
 
 That is `examples/sniclassify/classify.c`, in Lua. `tc.runtime(name)` names a kernel runtime by
 the key the kfunc looks up, defaulting to the script this program file belongs to; the call
-lowers to `bpf_luatc_run(key, key__sz, skb, &args, sizeof(args))` (or #561's name once it lands),
-with each argument packed as a native 64-bit integer in order. The kernel side is what it is
-today: `tc.attach(callback)`, `ctx:argument():getint64(0)` for the first argument, `ctx:action`
-for the verdict, `ctx:skb()` for the packet. A verdict of `-1` from the kfunc (no runtime under
-that name, or a raise in the callback) becomes `nil`.
+lowers to `bpf_luatc_run(key, key__sz, skb, &args, sizeof(args))`, with each argument packed as
+a native 64-bit integer in order. The kernel side is what it is today: `tc.attach(callback)`,
+`ctx:argument():getint64(0)` for the first argument, `ctx:skb()` for the packet, and the verdict
+the callback returns. A verdict of `-1` from the kfunc (no runtime under that name, a callback that
+returns `nil` or a value outside `linux.tc.action`, or one that raises) becomes `nil`.
 
 The compiler reports every such call in its summary, with the line, so a program that calls Lua
 on every packet is visible for what it is: the trampoline, generated.
@@ -187,7 +190,7 @@ in the tree does today. A program that does not needs nothing from the modules.
 
 ## Loading and attaching
 
-    sudo lunatik run examples/sniclassify/sni softirq dev=eth0
+    sudo lunatik run --context=softirq --dev=eth0 examples/sniclassify/sni
     sudo lunatik stop examples/sniclassify/sni
 
 When `<script>.bpf.o` exists, `run`:
@@ -195,8 +198,8 @@ When `<script>.bpf.o` exists, `run`:
 1. opens the object with libbpf, resolves the tree's kfuncs through the module BTF, creates the
    maps and pins them under `/sys/fs/bpf/lunatik/<script>/`;
 2. starts the runtime, as today, so the kernel script finds its maps;
-3. attaches the program to the target named on the command line (`dev=` for XDP and TC,
-   `cgroup=` for cgroup programs, nothing for an LSM hook, which the program names itself) and
+3. attaches the program to the target named on the command line (`--dev=` for XDP and TC,
+   `--cgroup=` for cgroup programs, nothing for an LSM hook, which the program names itself) and
    pins the link under the same root.
 
 The order matters: the maps exist before the script opens them, and the program attaches after
@@ -217,8 +220,8 @@ deployment, and goes on the command line, as it does with `bpftool net attach` t
 
 | Module | Program type | Context | Verdicts | Default |
 |--------|-------------|---------|----------|---------|
-| `bpf.xdp` | `BPF_PROG_TYPE_XDP` | `ctx` with `ctx:packet()` | `linux.xdp` | `PASS` |
-| `bpf.tc` | `BPF_PROG_TYPE_SCHED_CLS`, tcx ingress or egress | `skb` with `skb:packet()` | `linux.tc` | `ACT_OK` |
+| `bpf.xdp` | `BPF_PROG_TYPE_XDP` | `ctx` with `ctx:packet()` | `linux.xdp.action` | `PASS` |
+| `bpf.tc` | `BPF_PROG_TYPE_SCHED_CLS`, tcx ingress or egress | `skb` with `skb:packet()` | `linux.tc.action` | `OK` |
 | `bpf.lsm` | `BPF_PROG_TYPE_LSM` on a named hook | the hook's arguments as struct views | `0` or `-linux.errno.*` | `0` |
 | `bpf.cgroup` | `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` | `sock_addr` view | as `lsm`, translated to 1/0 by the emitter | allow |
 
@@ -234,19 +237,20 @@ What the body of a program file can `require`:
   proxies;
 * `bpf.map`: map declarations;
 * `linux.*`: the autogen constant tables, loaded from the same files the kernel scripts use;
-* `string`, `table`, `math`, `utf8`: the standard libraries the kernel build ships, for building
-  constants;
-* other program files or Lua modules on the host path, for shared helpers such as
-  `examples/common/sni.lua`.
+* `string`, `table`, `math`, `utf8`: the CLI's standard libraries, for building constants;
+* other program files or Lua modules among the kernel scripts, for shared helpers such as
+  `examples/common/sni.lua`, compiled by `lunatic` as the program file is, whether installed as
+  source or, with `BYTECODE=1`, as a chunk.
 
-What a compiled function may reference from the body: constants (numbers, booleans, strings,
+What a compiled function may reference from the body: constants (integers, booleans, strings,
 tables of those, folded), map proxies, runtime proxies, and other functions declared in the file.
 A body value of any other type reached from a compiled function is a compile error at the line
-that reaches it.
+that reaches it. A float is one: the body's own arithmetic is the kernel's, `10 / 4` is 2 there,
+but the CLI's libraries can still return one, as `math.sqrt` does.
 
 ## Open questions for review
 
-1. Whether the deployment target belongs on the command line (`dev=eth0`) or in the program file
+1. Whether the deployment target belongs on the command line (`--dev=eth0`) or in the program file
    with a command-line override. The proposal keeps it out of the source because a program file
    is installed once and attached wherever an operator says.
 2. Whether a map declared by a program file that a kernel script also declares (`map.hash(path,

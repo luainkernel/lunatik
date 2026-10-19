@@ -34,8 +34,9 @@ The eBPF surface of the tree at `22c5afe2` is a trampoline. Read it before chang
   `examples/sniclassify/classify.c`), each with a Makefile that runs `clang -target bpf` against a
   `vmlinux.h` dumped by `bpftool`, and a test or README step that loads and attaches with
   `bpftool` or `tc`.
-* `lib/luaxdp.c` and `lib/luatc.c` publish the kfuncs; `lunatik_ebpf.h` factors the lookup, lock
-  and `pcall` sequence they share; issue #561 turns it into one `lunatik_bpf_run`. The callback
+* `lib/luaxdp.c` and `lib/luatc.c` publish the kfuncs, `bpf_luaxdp_run` and `bpf_luatc_run`;
+  `lib/luakfunc.h` holds the lookup, lock and `pcall` sequence they share, #561 having closed
+  without one kfunc for every type. The callback
   runs in the kernel Lua VM, in an IRQ-context runtime, under the runtime lock, with the packet
   and the argument wrapped in two `data` objects reset per call.
 * `lib/luabpf.c` and `lib/bpf/map.lua` give a kernel script typed access to pinned maps by path:
@@ -43,9 +44,10 @@ The eBPF surface of the tree at `22c5afe2` is a trampoline. Read it before chang
 * `examples/sniclassify/classify.c` is a partitioned program written by hand: a hash map decides
   the common case in eBPF and only a miss calls Lua; the LSM plan's phase 4 asks for the same
   shape on LSM.
-* `lunatikc` (#742, not merged) builds the kernel's own Lua on the host and dumps bytecode the
-  kernel loads unchanged. Its `doc/design/luac/kernel-notes.md` states the fact this plan leans
-  on: the kernel Lua is integer only, with `/` as integer division and five opcodes fenced out.
+* `lunatic` (#743) builds `luac.c` on the host against the `lua/` submodule with the `_KERNEL`
+  configuration and dumps bytecode the kernel loads unchanged. That bytecode carries the fact
+  this plan leans on: the kernel Lua is integer only, with `/` as integer division and five
+  opcodes fenced out (`kernel-notes.md`, "The compiler host").
 
 What exists for Lua-to-eBPF compilation: nothing in the tree, and nothing maintained elsewhere.
 bcc's LuaJIT frontend (2016) is the closest ancestor and is bound to LuaJIT's bytecode and `ffi`;
@@ -65,10 +67,13 @@ bcc's LuaJIT frontend (2016) is the closest ancestor and is bound to LuaJIT's by
 
 Supporting gaps:
 
-* `lunatikc` links the Lua core only; hosting a translator written in Lua adds the standard
-  libraries to that link, and a way to hand a function's prototype (instructions, constants,
-  upvalue descriptors, line info) to Lua code;
-* the CLI is Lua 5.4 and has no C extension; the loader needs libbpf;
+* `lunatic` compiles and runs nothing, and the CLI's Lua, where the translator runs, refuses the
+  chunk `lunatic` writes: its header carries an integer `lua_Number`, and its opcodes and
+  metamethod events are numbered without the ones `_KERNEL` fences out. Running the body from that
+  chunk takes a rewrite of it in the CLI's numbering, and handing a function's prototype
+  (instructions, constants, upvalue descriptors, line info) to Lua code takes a reader of a chunk,
+  both with the tables of the opcodes, the events and the format of each build;
+* the CLI has no C extension; the loader needs libbpf;
 * nothing in the build compiles a BPF object at `make install`.
 
 ## Decisions
@@ -80,7 +85,7 @@ change in the facts behind it can reopen it.
 |----------|--------|----------------------|
 | The loader is the CLI over `bpf(2)`, not the module over `kern_sys_bpf` | The module path has no verifier log, no module BTF fd for the tree's kfuncs, no pinned object by path, and a symbol namespaced against it; the CLI has all four and runs on the same host, so it compiles against the same kernel (`kernel-notes.md`, first section) | A kernel that accepts a kernel log buffer and adds `BPF_BTF_GET_FD_BY_ID` and `BPF_OBJ_GET` to the allowlist; then the loader becomes a `bpf.prog` object in `lib/luabpf.c` and the CLI keeps the fallback |
 | One loader, one back end | AGENTS.md: two mechanisms doing one job. A second loader (kernel) buys runtimes that start without a CLI process, which the pinned program already serves; a second back end (C for clang) buys LLVM's verifier-friendly shapes, which the runtime library buys for the fixed algorithms without a second emitter | A verified shape the direct emitter cannot produce and the library cannot wrap |
-| The compiler runs the kernel-configured Lua 5.5 (`lunatikc`), not the CLI's 5.4 | The translator folds constants and reads bytecode; doing that with the kernel's own arithmetic and opcode numbering makes the compiled program agree with the interpreted one by construction. This is #742's shape (a C driver the tree owns, which can host a translator); #743 builds upstream `luac.c` against the kernel configuration, a compiler driver the tree does not own | Nothing short of the kernel Lua leaving `_KERNEL` behind |
+| The translator runs under the CLI's Lua 5.5, which runs the body from the chunk `lunatic` writes | The bytecode decides what a compiled function means: `lunatic` compiles it with the kernel's own arithmetic, and the CLI's Lua loads that chunk, renumbered for its build, so the body computes as the kernel does and the functions it hands over are the bytecode compiled, with no second compilation to match them against. A driver hosting the translator under the kernel configuration was weighed and declined: a second host build of the kernel's Lua to keep in step with `_KERNEL`, where the renumbering takes two generated tables. So was the CLI's Lua compiling the file again from source to run the body: `10 / 4` is 2.5 there and 2 in the kernel, and each function the body hands over has to be found in `lunatic`'s chunk by its lines and its shape | An opcode the `_KERNEL` patch makes the VM run differently on integer operands; then the body needs the kernel's VM, not only its bytecode |
 | The compiler does not wait for a benchmark | Three of its four reasons are independent of speed: contexts the trampoline cannot reach, the verifier checking the user's own code, and no C on the user's side. Speed is the fourth, and the only one the number decides | Nothing; the number changes what the docs claim about speed, not whether the compiler is built |
 | The number is measured in phase 0 anyway | The design claims the per-call sequence of the trampoline as a cost; a cost claim without a number is a duplication, and the escape hatch's users need to know what a call into the VM costs on their hook | Not applicable |
 | A precompiled BPF runtime library is in | Fixed algorithms (string compare, bounded copies, header walks) are C compiled once by clang at `make` and linked into every program by libbpf's linker, so the emitter emits straight-line code and calls; DTrace 2.0 ships this shape (`kernel-notes.md`) | The library growing past what the emitter could have done in a few lines each: then move those into the emitter and shrink it |
@@ -93,18 +98,21 @@ change in the facts behind it can reopen it.
 
 Four artefacts, none of them a kernel module:
 
-* **the translator**, Lua run by `lunatikc`: it loads the program file, captures the functions it
-  declares, reads their bytecode and emits `bpf_insn`, `.BTF`, `.BTF.ext` and the map definitions
-  into a BPF ELF object, then links the runtime library into it;
-* **the runtime library**, C under `lunatikc/rt/`, compiled by clang at `make`, shipped as one
-  BPF object;
+* **the translator**, a Lua library, `luaebpf/`, a peer of `lib/` and `autogen/`, that the CLI's
+  Lua runs through `lunatik bpf`: it has `lunatic` compile the program file, runs the body from
+  that chunk, captures the functions it declares, reads their bytecode and emits `bpf_insn`,
+  `.BTF`, `.BTF.ext` and the map definitions into a BPF ELF object. The chunk reader and rewriter,
+  the BTF reader and the ELF writer are Lua inside the library; the tables they take, the opcodes,
+  the metamethod events and the format, are generated from `lua/` at `make`;
+* **the runtime library**, C under `luaebpf/rt/`, compiled by clang at `make`, shipped as one
+  BPF object and linked into each program by libbpf's static linker as a step `make` runs;
 * **the loader**, a libbpf C extension for the CLI's Lua: open, load, pin maps by name under a
   root, attach, pin the link, and the reverse;
 * **the tests**, `tests/luaebpf/`, plus the existing `xdp` and `tc` suites gaining compiled
   programs.
 
-The kernel modules are unchanged. `lunatik_ebpf.h`, `lib/luaxdp.c`, `lib/luatc.c` and #561 stay
-what they are and gain a caller: generated code instead of hand-written C. `lib/luabpf.c` and
+The kernel modules are unchanged. `lib/luakfunc.h`, `lib/luaxdp.c` and `lib/luatc.c` stay what
+they are and gain a caller: generated code instead of hand-written C. `lib/luabpf.c` and
 `lib/bpf/map.lua` stay the control plane.
 
 Two constraints shape everything. The first is where the compiler runs:
@@ -116,9 +124,10 @@ Two constraints shape everything. The first is where the compiler runs:
 
 The second is what a program is:
 
-> The program file's body is compile-time Lua: it runs once, on the host, under the kernel's own
-> Lua, and every value it computes is a constant of the program. The functions it declares are the
-> program: they run in the kernel, verified, over a subset the translator can type. This mirrors
+> The program file's body is compile-time Lua: it runs once, on the host, in the CLI's Lua, from
+> the bytecode the kernel's own Lua build gives it, and every value it computes is a constant of
+> the program. The functions it declares are the program: compiled from that same bytecode, they
+> run in the kernel, verified, over a subset the translator can type. This mirrors
 > the runtime model AGENTS.md describes for a script, where the body runs once in process context
 > and the hooks run later under stricter rules.
 
@@ -141,8 +150,8 @@ Naming what goes, as AGENTS.md asks:
 * `make btf_install` as a requirement for every user: needed only by programs that call into the
   kernel runtime.
 
-Not displaced: the trampoline and #561 (the escape hatch's kernel side), `luabpf`/`bpf.map`, the
-runtime model, `lunatikc`'s bytecode role.
+Not displaced: the trampoline and `lib/luakfunc.h` (the escape hatch's kernel side),
+`luabpf`/`bpf.map`, the runtime model, `lunatic`'s bytecode role.
 
 ## Prior art
 
@@ -180,19 +189,24 @@ Each phase is one or more self contained pull requests.
 
 ### Phase 0: the number and the dependency decisions
 
-Measure the trampoline on the tree's own XDP path: a native `XDP_PASS` program against
-`xdp_pass.bpf.c` calling a Lua callback that sets the verdict, on the `tests/xdp` veth pair, with
-a packet generator, reporting packets per second and CPU. The script lives under `tools/`, its
-numbers go into these documents, and the same script measures every later phase.
+Measure the trampoline on the tree's own XDP path with the benchmark's XDP event (#1912,
+`doc/design/benchmark/plan.md`, Phase 3): packets per second through a native `XDP_PASS` program,
+one whose callback only returns the verdict and one whose callback reads a packet byte first, in
+one runtime and in a percpu one, with pktgen injecting on one CPU. Its numbers go into these
+documents, and the same driver measures every later phase.
 
-Settle, with the maintainer: that `lunatikc` lands in #742's shape (a C driver in the tree, which
-this design extends), and that #561 lands before phase 4 (the escape hatch calls whatever name the
-module publishes, so phases 1 to 3 do not wait for it).
+Settled with the maintainer: the translator runs in the CLI's Lua from the chunk `lunatic` (#743)
+writes ("Decisions"), a program file is compiled by `lunatik bpf`, and the escape hatch calls the
+kfunc of the program's type, `bpf_luaxdp_run` or `bpf_luatc_run`, since #561 closed without one
+name for every type.
 
 ### Phase 1: the translator and the object
 
-`lunatikc` gains the standard libraries and a way to hand a function's prototype to Lua; the
-translator gains a type lattice (integer, boolean, constant, and the proxies of later phases),
+`luaebpf/` is created as a library with its own tests, and `lunatik bpf` calls it; the chunk
+`lunatic` writes is rewritten in the CLI's numbering and loaded, and a reader hands each function's
+prototype to Lua, with the tables of the opcodes, the metamethod events and the chunk format
+generated from `lua/` at `make`. The translator gains a type lattice (integer,
+boolean, constant, and the proxies of later phases),
 arithmetic with Lua's floor semantics, comparisons, jumps, numeric `for` (bounded, or `may_goto`
 when the bound is not constant), calls to functions the program file declares (subprograms, no
 recursion), `return`; and an object writer for `.text`, `license`, `.BTF` and `.BTF.ext` with
@@ -222,7 +236,7 @@ access past `data_end` takes the failure path and returns the default verdict; a
 The CLI loads `<script>.bpf.o` when it exists: creates and pins the maps under
 `/sys/fs/bpf/lunatik/<script>/`, starts the runtime, attaches with the target given on the
 command line, pins the link; `stop` reverses it. `make install` compiles program files with
-`lunatikc`. The `xdp` and `tc` suites gain compiled programs beside the C stubs that must stay;
+`lunatik bpf`. The `xdp` and `tc` suites gain compiled programs beside the C stubs that must stay;
 the README's XDP section loses its `bpftool` lines.
 
 Tests: `lunatik run` then `lunatik stop` leaves nothing pinned; a run with a missing target fails
@@ -232,7 +246,7 @@ before the runtime starts; the existing `xdp` and `tc` cases pass with a compile
 
 The callable proxy over the kernel runtime: `runtime(args...)` lowers to the kfunc call with the
 arguments packed into `arg`, the return value mapped to `nil` on `-1`. The kernel side is what
-`xdp.attach` and `tc.attach` are today (or #561's `lunatik_bpf_run` once it lands); the callback
+`xdp.attach` and `tc.attach` are today, over `bpf_luaxdp_run` and `bpf_luatc_run`; the callback
 reads `ctx:argument()` as it does now. `btf_install` becomes a requirement of this phase only.
 
 Tests: a compiled program that defers to Lua on a miss sees the callback's verdict; the callback
@@ -253,7 +267,8 @@ and a `c64`-keyed map lookup agree with the interpreter; a loop with a runtime b
 `examples/filter` rewritten with the SNI parser compiled whole (`examples/common/sni.lua` as the
 source, shared with the interpreted path), `examples/sniclassify` with its map and its call into
 Lua, the README module and usage sections, the LDoc for the compile-time modules, and the API
-cleanup the examples expose. The phase 0 script produces the numbers these documents then quote.
+cleanup the examples expose. The benchmark's XDP event, run on the compiled filter, produces the
+numbers these documents then quote.
 
 ## Sizing
 
@@ -296,21 +311,22 @@ from it on, a user runs one.
 | The emitter produces a shape the verifier rejects on some kernel | The subset is chosen so every shape is one the verifier accepts by construction; the suite loads every emitted program on the running kernel; the loop form is probed, not assumed |
 | The verification budget is exhausted by `may_goto` loops in a real program | Measured in phase 1 with the budget line the log prints ("processed N insns"); global subprograms and iterators are the documented remedies |
 | The subset proves too small for the programs the maintainer wants | The escape hatch keeps the whole language one call away; a program that calls Lua on every packet is the status quo generated instead of hand written, and the compiler reports every such call |
-| `lunatikc` lands in #743's shape, or not at all | Phase 0 settles it; the translator needs a host state running the kernel's Lua with the libraries, which #742's driver provides in a dozen lines |
+| The CLI's VM runs the kernel's bytecode differently from the kernel's VM | The `_KERNEL` patch to `lvm.c` removes the float paths and keeps the integer ones, so integer operands run alike; the body's own run is the interpreter oracle the compiled program is compared against, so a difference fails a differential case |
+| The CLI's libraries hand the body a float the kernel's Lua would not (`math.sqrt`, a string coerced to a number) | A float reached from a compiled function is refused at the line that reaches it |
 | libbpf on the target lacks `bpf_program__attach_tcx` (1.3.0) | The loader reports the missing attach as an error naming the version; the suite skips |
 | A stale pinned program or link survives a failed run | `lunatik stop` and the suite cleanup unpin everything under the script's root, up front and in the trap |
 | The compiled and the interpreted program disagree on an edge (division by zero, out-of-bounds) | The differential tests in `testing.md` run both on the same inputs; the failure path is specified as the program type's default verdict, and the interpreted side raises where the compiled side takes that path |
 
 ## Definition of done, per phase
 
-1. `make` builds `lunatikc` and the runtime library clean, no new warnings;
+1. `make` builds `lunatic`, the generated tables and the runtime library clean, no new warnings;
 2. LDoc comments on every new compile-time module, listed in `config.ld` in alphabetical order;
 3. a row in the README module table for the compile-time modules, and the XDP usage section
    updated when the loader lands;
 4. a test in `tests/luaebpf/`, wired into that suite's `run.sh`, and described in
    `tests/README.md`;
 5. the test skips (not fails) when the kernel lacks a feature, the toolchain lacks `bpftool` or
-   libbpf, or `lunatikc` is not built;
+   libbpf, or `lunatic` is not built;
 6. the full suite still passes: `sudo lunatik test`;
 7. every refusal the phase adds has a test asserting its message and line;
 8. commits are small and each one stands alone.
