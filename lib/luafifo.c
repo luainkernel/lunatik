@@ -119,6 +119,9 @@ static const luaL_Reg luafifo_lib[] = {
 * "closed object".
 * @function close
 * @treturn nil
+* @raise "not allowed with IRQs disabled" when called with IRQs disabled, as in every callback of a
+*   hardirq runtime, a probe's handlers among them, and so does the end of the scope of a `<close>`
+*   variable holding the fifo there; the fifo is then released with its last reference.
 */
 static const luaL_Reg luafifo_mt[] = {
 	{"__gc", lunatik_deleteobject},

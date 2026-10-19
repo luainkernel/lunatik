@@ -269,6 +269,10 @@ static int luabpf_map_next(lua_State *L)
 * Releases the map reference.
 * This is an alias for the `__close` metamethod.
 * @function close
+* @raise "not allowed with IRQs disabled" when called with IRQs disabled, as in every callback of a
+*   hardirq runtime, a probe's handlers among them, where the CPU may already hold a lock the release
+*   takes. The end of the scope of a `<close>` variable holding the map raises there too, and the map
+*   is then released with its last reference.
 */
 
 /***

@@ -41,6 +41,7 @@ TESTS=(
 	errobj.sh
 	killable.sh
 	close.sh
+	close_irqs.sh
 	cstack.sh
 )
 

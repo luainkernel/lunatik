@@ -12,6 +12,15 @@
 # bpf.map layer from kernel Lua scripts: per-type coverage in process context,
 # a softirq-runtime script, and a Lua-to-bpftool interop check.
 #
+# bpf/probe: the body of a hardirq runtime, which runs with IRQs on, closes a
+# hash map and a queue map, and the pre handler of a kprobe on the personality
+# syscall, which setarch makes, sees the close of each raise "not allowed with
+# IRQs disabled" and then reads the map's info, which the refusal left open: a
+# hardirq runtime takes its lock with spin_lock_irqsave for every callback. The
+# maps stay pinned, so the handler's close is never their last reference, and a
+# module without the refusal closes them there and fails the case. Skips without
+# CONFIG_KPROBES or setarch.
+#
 # Usage: sudo bash tests/bpf/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -28,6 +37,8 @@ QUEUE_MAP=$BPF_FS/test_map_queue
 STACK_MAP=$BPF_FS/test_map_stack
 FULL_MAP=$BPF_FS/test_map_full
 SOFTIRQ_SCRIPT=tests/bpf/map_softirq
+PROBE_SCRIPT=tests/bpf/probe
+PREFIX="bpf probe: "
 
 skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
 
@@ -38,6 +49,7 @@ create_map() { bpftool map create "$@" > /dev/null || skip "bpf: cannot create p
 cleanup()
 {
 	lunatik stop "$SOFTIRQ_SCRIPT" 2>/dev/null
+	lunatik stop "$PROBE_SCRIPT" 2>/dev/null
 	rm -f "$MAP" "$ARRAY_MAP" "$LRU_MAP" "$TBL_MAP" "$PERCPU_MAP" "$QUEUE_MAP" "$STACK_MAP" "$FULL_MAP"
 }
 
@@ -61,7 +73,7 @@ create_map "$FULL_MAP" type hash key 4 value 4 entries 2 name test_full
 bpftool map update pinned "$MAP" key hex 66 6f 6f value hex 62 61 72 || skip "bpf: cannot seed the pinned map"
 
 TESTS="map_values array lru queue stack map"
-TOTAL=$(($(echo $TESTS | wc -w) + 2))
+TOTAL=$(($(echo $TESTS | wc -w) + 3))
 
 ktap_header
 ktap_plan $TOTAL
@@ -80,6 +92,8 @@ else
 	ktap_fail "bpf/map_softirq"
 fi
 lunatik stop "$SOFTIRQ_SCRIPT" 2>/dev/null
+
+probe_refusal "bpf/probe" "$PROBE_SCRIPT" "$PREFIX"
 
 if bpftool map lookup pinned "$MAP" key hex 61 62 63 | grep -q "78 79 7a"; then
 	ktap_pass "bpf/interop: bpftool reads Lua-written value"

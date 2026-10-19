@@ -120,6 +120,7 @@ int lunatik_closekillable(lunatik_object_t *object)
 
 int lunatik_closeobject(lua_State *L)
 {
+	lunatik_checkirqs(L);
 	lunatik_object_t *object = lunatik_checkobject(L, 1);
 
 	luaL_argcheck(L, luaL_getmetafield(L, 1, "__close") != LUA_TNIL &&

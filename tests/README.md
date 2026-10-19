@@ -86,6 +86,13 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
   and the cross-type rejection.
 - **map_softirq**: opens and exercises the hash map while loading a
   softirq runtime (atomic-context allocator path).
+- **probe**: a hardirq runtime's body, which runs with IRQs on, closes a
+  hash map and a queue map, and the pre handler of a kprobe on the
+  personality syscall, which `setarch` makes, sees the close of each raise
+  `not allowed with IRQs disabled` and then reads its `info`, which the
+  refusal left open. The maps stay pinned, so the handler's close is never
+  their last reference, and a module without the refusal closes them there
+  and fails the case (skips without `CONFIG_KPROBES` or `setarch`).
 - The harness also cross-checks a Lua-written value with
   `bpftool map lookup` (kernel-to-userspace interop).
 
@@ -1616,6 +1623,20 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   notifier is stopped by a softirq runtime while its body loads, the context
   `notifier.netdevice` requires, and the probe by a hardirq runtime, where its
   stop may sleep, and its kprobe refuses an enable with "closed object".
+
+- **close_irqs**: `lunatik_closeobject`, the `close` and `__close` of every
+  class that takes it, refuses a call made with IRQs disabled and closes
+  everywhere else, read on a fifo. A softirq runtime resumed past its body,
+  with bottom halves off and IRQs on as in a netfilter or XDP hook, closes a
+  fifo through `close` and another at the end of the scope of a to-be-closed
+  variable, which a refusal keyed on the context rather than on IRQs would
+  raise. A hardirq runtime's body, which runs with IRQs on, closes a fifo both
+  ways, and the pre handler of a kprobe on the personality syscall, which
+  `setarch` makes, sees both raise `not allowed with IRQs disabled` and then
+  pushes into the fifo the refusals left open. The fifo's buffer is kmalloc'd,
+  so a module without the refusal closes it in the handler and fails the case,
+  as does one that refuses after the release (skips without `CONFIG_KPROBES`
+  or `setarch`).
 
 - **cstack**: a recursion that crosses C raises "C stack overflow" once it has
   used the kernel stack the core allows past where it entered Lua. The driver's
