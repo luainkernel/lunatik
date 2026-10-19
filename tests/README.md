@@ -2098,7 +2098,8 @@ was bound before, and a first attach, which finds nothing, logs nothing.
 
 - **tc pass**: the callback inspects `ctx:skb()` (IPv4 ethertype and the
   ICMP protocol byte of the ping) and `ctx:argument()` (a magic word the
-  eBPF program passed through), and the `action.OK` it returns lets the
+  eBPF program passed through), sets the packet's priority and mark and reads
+  them back, failing on a mismatch, and the `action.OK` it returns lets the
   packet reach its destination; the runtime is plain, covering the plain-name
   kfunc lookup.
   Every callback that reads the packet acts only on the ping, through the
