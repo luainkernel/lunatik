@@ -780,7 +780,7 @@ after the watch is stopped.
 ### io
 
 - **test**: kernel `io` library (open/read/write/seek/lines/type); also
-  asserts `io` is absent from softirq runtimes.
+  asserts `io` is absent from softirq and hardirq runtimes.
 
 ### linux
 
