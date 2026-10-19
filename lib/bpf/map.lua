@@ -141,6 +141,7 @@ end
 -- Also wired as the proxy's `__close` metamethod.
 -- @function close
 -- @tparam map_hash proxy the table proxy
+-- @raise "not allowed with IRQs disabled" when called with IRQs disabled, as `bpf` map `close` does.
 function map.close(proxy)
 	states[proxy].map:close()
 end
@@ -312,6 +313,7 @@ end
 -- Releases the map reference.
 -- Also wired as the object's `__close` metamethod.
 -- @function map_queue:close
+-- @raise "not allowed with IRQs disabled" when called with IRQs disabled, as `bpf` map `close` does.
 function map_queue:close()
 	self.map:close()
 end

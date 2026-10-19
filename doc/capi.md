@@ -806,7 +806,13 @@ the object at index `1` through [`lunatik_closeprivate`](#lunatik_closeprivate);
 stays, holding its reference. `lunatik_deleteobject`, for `__gc`, drops the reference the
 userdata holds and releases the object when it was the last. Both raise `invalid object` when
 index `1` holds no Lunatik object, and `lunatik_closeobject` raises `object of another class` when
-the object's own `__close` is not `lunatik_closeobject`.
+the object's own `__close` is not `lunatik_closeobject`. `lunatik_closeobject` also raises
+`not allowed with IRQs disabled`, through [`lunatik_checkirqs`](#lunatik_checkirqs), when called
+with interrupts off, as in a probe's handler: the class's `release` runs in the caller's context,
+where the CPU may hold a lock it takes, `bpf_map_put`'s `map_idr_lock` among them, and only the
+drop of the object's last reference is deferred to a worker. Only an object of an
+interrupt-context class reaches it there, since `lunatik_newobject` and `lunatik_cloneobject` refuse
+a process-context class in an interrupt-context runtime.
 
 ---
 
