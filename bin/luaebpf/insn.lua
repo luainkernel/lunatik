@@ -27,6 +27,7 @@ local ALU64 <const> = 0x07
 local DW    <const> = 0x18
 local MEM   <const> = 0x60
 local SRC_X <const> = 0x08
+local PSEUDO_CALL <const> = 1
 local MAY_GOTO    <const> = 0
 local SIZE  <const> = 8
 
@@ -180,6 +181,12 @@ function code:maygoto(label)
 	return append(self, {code = JMP | insn.jump.JCOND, dst = 0, src = MAY_GOTO, imm = 0, target = label})
 end
 
+--- A BPF-to-BPF call to the function registered under `name`.
+-- @function luaebpf.insn.code:call
+function code:call(name)
+	return append(self, {code = JMP | insn.jump.CALL, dst = 0, src = PSEUDO_CALL, off = 0, imm = -1, call = name})
+end
+
 --- Returns from the function, with the value in `R0`.
 -- @function luaebpf.insn.code:exit
 function code:exit()
@@ -204,6 +211,21 @@ function code:sourcelines()
 		lines[i] = self.records[i].line
 	end
 	return lines
+end
+
+---
+-- Where each call sits and what it calls, for the relocations the object carries.
+-- @function luaebpf.insn.code:relocations
+-- @treturn table `{at, name}` entries, `at` an index into the buffer
+function code:relocations()
+	local calls = {}
+	for i = 1, self.n do
+		local record = self.records[i]
+		if record.call ~= nil then
+			insert(calls, {at = i, name = record.call})
+		end
+	end
+	return calls
 end
 
 ---
