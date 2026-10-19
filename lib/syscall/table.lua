@@ -27,11 +27,11 @@
 local syscall = require("syscall")
 local numbers = require("linux.syscall").numbers
 
-local table = {}
+local addresses = {}
 
 for name, number in pairs(numbers) do
-	table[name] = syscall.address(number)
+	addresses[name] = syscall.address(number)
 end
 
-return table
+return addresses
 
