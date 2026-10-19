@@ -220,11 +220,11 @@ static void luaset_store(uint32_t *off, char *blob, uint32_t *labels, const luas
 
 static void luaset_build(lua_State *L, luaset_t *set, bool map, size_t n, size_t total)
 {
+	if (n == 0) /* the empty set allocates nothing: a search over no members reads no offset */
+		return;
+
 	uint32_t *off = lunatik_checkalloc(L, sizeof(uint32_t) * (n + 1));
 	set->off = off;
-	off[0] = 0;
-	if (n == 0) /* empty set: only the terminating offset */
-		return;
 
 	char *blob = NULL;
 	if (total > 0) { /* all-empty members store no blob */
