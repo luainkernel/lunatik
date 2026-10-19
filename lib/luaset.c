@@ -218,7 +218,7 @@ static void luaset_store(uint32_t *off, char *blob, uint32_t *labels, const luas
 	off[n] = (uint32_t)pos;
 }
 
-static void luaset_build(lua_State *L, luaset_t *set, bool map, size_t n, size_t total)
+static void luaset_build(lua_State *L, int ix, luaset_t *set, bool map, size_t n, size_t total)
 {
 	if (n == 0) /* the empty set allocates nothing: a search over no members reads no offset */
 		return;
@@ -238,7 +238,7 @@ static void luaset_build(lua_State *L, luaset_t *set, bool map, size_t n, size_t
 		set->labels = labels;
 	}
 
-	luaset_member_t *members = luaset_load(L, 1, map, n);
+	luaset_member_t *members = luaset_load(L, ix, map, n);
 	sort(members, n, sizeof(luaset_member_t), luaset_membercmp, NULL);
 	set->n = luaset_unique(members, n); /* a list's duplicates count once */
 	luaset_store(off, blob, labels, members, set->n);
@@ -270,7 +270,7 @@ static int luaset_new(lua_State *L)
 	size_t total;
 	size_t n = luaset_count(L, 1, map, &total);
 
-	luaset_build(L, (luaset_t *)object->private, map, n, total);
+	luaset_build(L, 1, (luaset_t *)object->private, map, n, total);
 	return 1; /* object */
 }
 
