@@ -34,6 +34,8 @@
 //               CLAUDE.local.md, the host's and GitHub's; the launching session copies it from there
 //   gh          false where gh is absent: the agents write nothing to GitHub, and the pull request and
 //               the filing are the session's
+//   build       what the host runs in place of the suite and the examples, review.js's own argument:
+//               a change whose done criteria are a run of its own tool spells that run here
 //
 // It returns the implementer's answer, the review's, the last host run's build, the pull request, the
 // issues that now hold each entry of findings_left the filing did not skip, and any entry left unfiled.
@@ -308,7 +310,7 @@ const FILED = { type: 'object', properties: {
 const reviewArgs = (impl, extra) => ({
   pr: 0, branch: impl.branch, base: impl.base, scratch: a.scratch, validated: null, examples: impl.examples, defects: impl.defects,
   focus: a.focus || a.notes, smallest: impl.smallest, effort: reviewer.effort, model: reviewer.model, push: a.push,
-  agents: { build: (a.agents || {}).build }, repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
+  agents: { build: (a.agents || {}).build }, build: a.build, repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
 })
 const passed = (build) => build && build.clean && /fail:0\b/.test(build.totals || '')
 const unrun = (impl, build) => (impl.examples || []).filter(e => !(build?.examples || []).includes(e))
