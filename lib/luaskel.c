@@ -69,7 +69,17 @@ static const luaL_Reg luaskel_lib[] = {
 	{NULL, NULL}
 };
 
+/***
+* Closes and releases the skeleton object.
+* It also runs when a to-be-closed variable holding the object goes out of scope. Later calls raise
+* "closed object".
+* @function close
+* @treturn nil
+*/
 static const luaL_Reg luaskel_mt[] = {
+	{"__gc", lunatik_deleteobject},
+	{"__close", lunatik_closeobject},
+	{"close", lunatik_closeobject},
 	{"nop", luaskel_nop},
 	{NULL, NULL}
 };
