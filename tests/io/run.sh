@@ -26,6 +26,7 @@ ktap_plan 2
 
 mark_dmesg
 run_script "$SCRIPT"
+lunatik stop "$SCRIPT"
 check_dmesg || { ktap_totals; exit 1; }
 
 ktap_pass "io: open/read/write/seek/lines/type and edge cases"
