@@ -9,6 +9,7 @@ modules.builtin
 modules.order
 build/
 lunatik_sym.h
+vmlinux.h
 moontastik*
 doc/*
 !doc/capi.md
