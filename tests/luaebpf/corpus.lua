@@ -11,7 +11,10 @@
 local class = require("class")
 local xdp   = require("bpf.xdp")
 
+local unpack = table.unpack
+
 local VERDICT <const> = 0xffffffff -- the 32 bits bpf_prog_run returns
+local ORACLE  <const> = "oracle.txt"
 
 local corpus = {}
 
@@ -27,19 +30,28 @@ local function answer(ok, value)
 	return tostring(value & VERDICT)
 end
 
-function corpus.new(path)
-	return rows:new{out = assert(io.open(path or "oracle.txt", "w"))}
+function corpus.new()
+	return rows:new{out = assert(io.open(ORACLE, "w"))}
 end
 
-function rows:declare(name, fn, opts)
-	opts = opts or {}
-	opts.name = name
-	xdp.program(fn, opts)
+function rows:declare(name, fn, default)
+	xdp.program(fn, {name = name, default = default})
 	self.out:write(name, "\t", answer(pcall(fn, 0)), "\n")
 end
 
 function rows:close()
 	self.out:close()
+end
+
+-- a row per maker in order and argument list in operands, named after the maker and the list's place
+function corpus.declare(makers, order, operands, default)
+	local declared = corpus.new()
+	for _, op in ipairs(order) do
+		for i, args in ipairs(operands) do
+			declared:declare(op .. i, makers[op](unpack(args)), default)
+		end
+	end
+	declared:close()
 end
 
 return corpus

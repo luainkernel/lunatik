@@ -19,12 +19,7 @@ function makers.idivreg(a) return function(_) local d = a - a return 100 // d en
 function makers.modreg(a) return function(_) local d = a - a return 100 % d end end
 
 local order = {"idivzero", "modzero", "idivminus", "modminus", "idivreg", "modreg"}
+local operands = {{7}, {-7}, {MIN}, {0}}
 
-local rows = corpus.new()
-for _, op in ipairs(order) do
-	for i, a in ipairs({7, -7, MIN, 0}) do
-		rows:declare(op .. i, makers[op](a), {default = action.REDIRECT})
-	end
-end
-rows:close()
+corpus.declare(makers, order, operands, action.REDIRECT)
 
