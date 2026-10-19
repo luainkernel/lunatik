@@ -161,10 +161,17 @@ unread() {
 	$1 ~ /^([^ ]*\/)?gh$/ && $2 == "api" && $3 == "graphql"')"
 }
 
+# the gh api field <name> the write <post> passes, -f <name>=<value> in any spelling gh takes
+field() {
+	printf '%s' "$1" | grep -oE -- "(-f|-F|--raw-field|--field)[ =]$2=[\"']?[^[:space:]\"']+" | head -n 1 | sed "s/.*$2=[\"']\{0,1\}//"
+}
+
 # a pull request opened on a branch names every example its change touches (examples-named.sh); the
-# head is read from the write, `head=<branch>` or the JSON's head, and resolved in this checkout
+# head and the base are read from the write, `head=<branch>` and `base=<branch>` or the JSON's, and
+# resolved in this checkout, the base as its remote-tracking ref first: a stacked pull request's change
+# is what its head adds to the branch below it, and read against master it carries that branch's too
 examples() {
-	local post body file head base files findings project
+	local post body file head target ref base files findings project
 	project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
 	while IFS= read -r post; do
 		[ -n "$post" ] || continue
@@ -172,16 +179,22 @@ examples() {
 		case $body in ""|inline) continue ;; esac
 		file=${body#* }
 		[ -f "$file" ] || continue
+		case $file in /*) ;; *) file=$PWD/$file ;; esac # examples-named.sh reads it from the project
 		if [ "${body%% *}" = input ]; then
 			head=$(jq -r '.head // empty' "$file" 2> /dev/null)
+			target=$(jq -r '.base // empty' "$file" 2> /dev/null)
 			jq -r '.body // empty' "$file" > "$tmp/examples-body" 2> /dev/null
 			file=$tmp/examples-body
 		else
-			head=$(printf '%s' "$post" | grep -oE -- "(-f|-F|--raw-field|--field)[ =]head=[\"']?[^[:space:]\"']+" | head -n 1 | sed "s/.*head=[\"']\{0,1\}//")
+			head=$(field "$post" head)
+			target=$(field "$post" base)
 		fi
 		[ -n "$head" ] || continue
-		if ! base=$(git -C "$project" merge-base origin/master "$head" 2> /dev/null); then
-			echo "pr-body-guard: the head $head is not a ref this checkout can read, so the examples its change touches cannot be listed; fetch it, or pass EXAMPLES_OK=1 once the body says of each what it did." >&2
+		target=${target:-master}
+		ref=origin/$target
+		git -C "$project" rev-parse -q --verify "$ref^{commit}" > /dev/null || ref=$target
+		if ! base=$(git -C "$project" merge-base "$ref" "$head" 2> /dev/null); then
+			echo "pr-body-guard: the head $head or the base $target is not a ref this checkout can read, so the examples its change touches cannot be listed; fetch it, or pass EXAMPLES_OK=1 once the body says of each what it did." >&2
 			exit 2
 		fi
 		files=$(git -C "$project" diff --name-only "$base" "$head")

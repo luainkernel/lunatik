@@ -17,7 +17,7 @@
 #
 # Usage: bash tools/checks/cases.sh [<cases file>...]   (default every file under tools/checks/cases)
 
-dir=$(dirname "$0")
+dir=$(cd "$(dirname "$0")" && pwd)
 [ $# -gt 0 ] || set -- "$dir"/cases/*.cases
 # shellcheck disable=SC2046 # git rebase -x and a hook export GIT_DIR, where a fixture would write
 unset $(git rev-parse --local-env-vars)
@@ -48,7 +48,7 @@ for cases in "$@"; do
 		jq -nc --arg tool "$tool" --arg field "$field" --arg value "$value" --arg description "$description" --arg agent "$agent" --arg cwd "$cwd" \
 			'{tool_name: $tool, tool_input: ({($field): $value} + if $description == "" then {} else {description: $description} end)}
 			+ if $agent == "" then {} else {agent_id: $agent} end + if $cwd == "" then {} else {cwd: $cwd} end' |
-			bash "$guard" > /dev/null 2>&1
+			(cd "${cwd:-.}" && bash "$guard") > /dev/null 2>&1
 		rc=$?
 		got=pass
 		[ $rc -eq 2 ] && got=block

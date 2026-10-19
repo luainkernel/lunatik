@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run in the repository pr-body-guard.fixture.sh builds
+block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F draft=true -F body=@silent.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -F body=@silent.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@named.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=fifo -F draft=true -F body=@silent.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=local-base -F draft=true -F body=@silent.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=gone -F draft=true -F body=@silent.md
+block	gh api repos/luainkernel/lunatik/pulls --input master.json
+pass	gh api repos/luainkernel/lunatik/pulls --input fifo.json
+pass	EXAMPLES_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@silent.md
+
