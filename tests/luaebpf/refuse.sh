@@ -9,7 +9,7 @@
 # object was left behind.
 #
 # The rows are the runtime table and its constructor, a runtime string operation, a closure, a
-# vararg function, a metatable, an unresolvable global and an unresolvable
+# vararg function, pcall, a coroutine, a metatable, an unresolvable global and an unresolvable
 # field of a compile-time module, which are one opcode and read back as what the source says, a
 # call through an unresolvable value, the context, '..', '#', a method call, a tail call, an upvalue
 # assignment, a to-be-closed variable, a generic for, while, repeat, a program declared with an
@@ -32,7 +32,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-ROWS=33
+ROWS=36
 
 luaebpf_start $ROWS
 
@@ -73,12 +73,18 @@ row closure "closure.bpf.lua:5: a closure cannot be created in a compiled functi
 	$'\tlocal f = function() return 1 end\n\treturn f()'
 row vararg "vararg.bpf.lua:4: a vararg function cannot be compiled" \
 	$'\tlocal n = select("#", ...)\n\treturn n' '' '...'
+row pcall_ "pcall_.bpf.lua:5: 'pcall' is not a Lua function this program file declares" \
+	$'\tlocal ok = pcall(ctx)\n\treturn 0'
+row coroutine_ "coroutine_.bpf.lua:5: 'wrap' is not a Lua function this program file declares" \
+	$'\tlocal c = wrap(ctx)\n\treturn 0' 'local wrap = coroutine.wrap'
 row metatable "metatable.bpf.lua:5: a method call cannot be compiled" \
 	$'\tlocal v = proxy:get()\n\treturn v' 'local proxy = setmetatable({}, {__index = function() end})'
 row unknown_global "unknown_global.bpf.lua:5: global 'nowhere' is not a compile-time value" \
 	$'\treturn nowhere'
 row unknown_field "unknown_field.bpf.lua:5: 'action.TYPO' is not a compile-time value" \
 	$'\treturn action.TYPO' 'local action = require("linux.xdp").action'
+row unknown_call "unknown_call.bpf.lua:5: a call through a value the compiler cannot resolve" \
+	$'\tlocal v = ctx(1)\n\treturn v'
 row context "context.bpf.lua:5: the program context cannot be read yet" \
 	$'\treturn ctx'
 row self_call "self_call.bpf.lua:5: a method call cannot be compiled" \
