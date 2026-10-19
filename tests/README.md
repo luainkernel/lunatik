@@ -1057,6 +1057,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   table's field and as the default verdict, a float literal `lunatic` refuses
   to parse, a C function handed to `xdp.program`, and a function the CLI's Lua
   compiled from a string among them.
+- **budget**: the "processed N insns" figure the verifier prints for the
+  worst program of each corpus, reported as a comment and asserted under a
+  ceiling; the loops under a `may_goto` header are counted on a kernel that
+  has it.
 
 ### monitor
 

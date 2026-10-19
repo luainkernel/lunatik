@@ -30,6 +30,11 @@ luaebpf_reason() {
 	[ -r "$LUAEBPF_SRC/pass.bpf.lua" ] || { echo "the program files are not installed"; return; }
 }
 
+# whether the running kernel takes the may_goto header a loop without a proven bound needs
+luaebpf_maygoto() {
+	[ "$(printf '%s\n6.9\n' "$(uname -r | cut -d. -f1,2)" | sort -V | head -1)" = "6.9" ]
+}
+
 # the plan, the skips a missing tool turns every case into, and a scratch directory of its own
 luaebpf_start() {
 	local reason i
