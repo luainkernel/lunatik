@@ -16,6 +16,10 @@
 #
 # seed: rng and reset without a seed seed an algorithm with seedsize() random bytes, ansi_cprng's 48.
 #
+# sig: crypto.sig verifies the kernel's own ECDSA P-256 vector and an RSA PKCS#1 v1.5 pair openssl
+# signed, each verifier allocated by its 6.13 name and, on ENOENT, by the name of 6.12 and earlier.
+# It skips where the kernel builds no ECDSA or no RSA.
+#
 # comp is served only where the kernel still has the crypto_comp API, which
 # Linux 6.15 removed: lib/luacrypto_comp.c compiles to nothing there and
 # crypto.comp is nil. hascomp asks the runtime for the binding, so the suite
@@ -27,9 +31,15 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="shash skcipher aead rng hkdf comp"
+TESTS="shash skcipher aead rng sig hkdf comp"
 TOTAL=$(echo $TESTS | wc -w)
 PROBE="tests/crypto/hascomp"
+
+CONFIG=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null)
+
+hassig() {
+	grep -q '^CONFIG_CRYPTO_ECDSA=' <<< "$CONFIG" && grep -q '^CONFIG_CRYPTO_RSA=' <<< "$CONFIG"
+}
 
 cleanup() {
 	for t in $TESTS; do
@@ -53,6 +63,8 @@ esac
 for t in $TESTS; do
 	if [ "$t" = "$MISSING" ]; then
 		ktap_skip "crypto/$t: the binding is not built on this kernel"
+	elif [ "$t" = sig ] && [ -n "$CONFIG" ] && ! hassig; then
+		ktap_skip "crypto/$t: needs CONFIG_CRYPTO_ECDSA and CONFIG_CRYPTO_RSA"
 	elif run_test "tests/crypto/$t"; then
 		ktap_pass "crypto/$t"
 	else

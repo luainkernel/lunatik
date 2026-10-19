@@ -98,7 +98,7 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 
 ### crypto
 
-Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
+Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
 `comp`.
 
 - **shash**: `sha256` and `hmac(sha256)` report a 32-byte digest and match
@@ -119,6 +119,27 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   a seed, refuses 0 bytes as out of bounds and an additional input or a seed
   that is not a string; `drbg_nopr_hmac_sha512`, a DRBG named by its driver,
   gives bytes after a reset with a seed and reports a seed size of 0.
+- **sig**: each verifier is allocated by its 6.13 name, `x962(ecdsa-nist-p256)`
+  or `pkcs1(rsa,sha256)`, and on `ENOENT` by the name of 6.12 and earlier,
+  `ecdsa-nist-p256` or `pkcs1pad(rsa,sha256)`. ECDSA verifies the P-256 vector of
+  the kernel's `testmgr.h` that signs a SHA-256 digest, also with that digest
+  padded to 65535 bytes, and answers false and `EKEYREJECTED` for a byte of `s`
+  or of the digest flipped, `EBADMSG` for bytes that are not DER and for an empty
+  signature, `EINVAL` for an `r` of 34 bytes; `algname` is the name allocated and
+  `maxsize` 72 under `x962` and 32 under the older name. RSA verifies a 2048-bit
+  pair openssl signed over the SHA-256 of a message, reports a `maxsize` of 256,
+  and answers false and `EKEYREJECTED` for a flipped digest and `EINVAL` for a
+  signature a byte short. `setpubkey` refuses with `EINVAL` a compressed point, a
+  point a byte short, a point off the curve and an RSA modulus of 256 bits, and
+  with `EBADMSG` a truncated RSA key; after any of them, as before a key is set,
+  `verify` and `maxsize` raise `ENOKEY`, and the point set again verifies. A
+  signature or a digest past 65535 bytes and an empty digest are refused as out
+  of bounds. `rsa`, where the RSA verifier allocated is `pkcs1pad`, raises
+  `ENOKEY` from `maxsize` and `verify` before its key and after a truncated one,
+  where `rsa_max_size` would dereference a NULL modulus, takes the key, reports 256
+  and raises `ENOSYS` from `verify`; where the verifier is `pkcs1` it is `ENOENT`.
+  An unknown name is `ENOENT`. Skipped where the kernel builds no
+  `CONFIG_CRYPTO_ECDSA` or no `CONFIG_CRYPTO_RSA`.
 - **hkdf**: `hkdf` matches the SHA-256 vectors of RFC 5869, `extract` without
   a salt matches it with an empty one, and `extract` and `expand` match the
   client initial secret, key and IV of the QUIC worked example at
@@ -132,12 +153,13 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   asks the runtime for the binding, instead of the suite reading the kernel
   version.
 - **context**: an object refused for its execution context leaves nothing
-  allocated. `crypto.shash("sha256")` and `crypto.comp("lz4")` from an armed
-  softirq runtime are refused naming their class, `crypto.shash` and
-  `crypto.comp`, and the modules backing those algorithms -
+  allocated. `crypto.shash("sha256")`, `crypto.comp("lz4")` and
+  `crypto.sig("ecdsa-nist-p256")` from an armed softirq runtime are refused
+  naming their class, `crypto.shash`, `crypto.comp` and `crypto.sig`, and the
+  modules backing those algorithms -
   named by holding one object of each kind alive and watching which of
   `/proc/crypto`'s modules gain a reference - keep the reference counts they
-  had. Skips when no module backs either, and when the loaded `luacrypto` cannot
+  had. Skips when no module backs any of them, and when the loaded `luacrypto` cannot
   be shown to be the build this case was installed with, since only that one is
   known to refuse before allocating.
 - **async**: `skcipher` and `aead` refuse an asynchronous implementation with
@@ -165,7 +187,7 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `hkdf`,
   a seed of 31 bytes and an empty one are refused with `EINVAL`. Skips where the
   kernel has no `ansi_cprng`, and unloads it when the test loaded it.
 
-Each of `shash`, `skcipher`, `aead`, `rng` and `comp` also closes an object
+Each of `shash`, `skcipher`, `aead`, `rng`, `sig` and `comp` also closes an object
 through `closing.lua`: its metatable holds one function under `__close` and
 `close`, a second close does nothing, and a method raises "closed object"
 after it.
@@ -1442,7 +1464,7 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 
 - **foreign_checker**: a method of every class a process runtime can construct
   (`data`, `fifo`, `completion`, `set`, `crypto.shash`, `crypto.skcipher`,
-  `crypto.aead`, `crypto.rng`, `task`, `thread`, `lunatik.runtime`,
+  `crypto.aead`, `crypto.rng`, `crypto.sig`, `task`, `thread`, `lunatik.runtime`,
   `fsnotify.watch`), called through the class's metatable, refuses an object
   of another class naming both classes, refuses `nil` and refuses a userdata
   of another library; `rcu.foreach` refuses `nil`; and a method on a closed

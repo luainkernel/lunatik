@@ -31,6 +31,7 @@ file = {
 	'./lib/luacrypto_comp.c',
 	'./lib/luacrypto_rng.c',
 	'./lib/luacrypto_shash.c',
+	'./lib/luacrypto_sig.c',
 	'./lib/luacrypto_skcipher.c',
 	'./lib/luadarken.c',
 	'./lib/luadata.c',

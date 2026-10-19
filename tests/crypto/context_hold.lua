@@ -7,11 +7,17 @@
 -- modules back their algorithms.
 
 local crypto = require("crypto")
+local insert = table.insert
 
 HELD = {crypto.shash("sha256")} -- global: the references are what raise the modules' refcounts
 
-local ok, comp = pcall(crypto.comp, "lz4") -- the binding has no comp from 6.15 on, and lz4 may not be built
-if ok then
-	table.insert(HELD, comp)
+local function hold(new, algname)
+	local ok, object = pcall(new, algname)
+	if ok then
+		insert(HELD, object)
+	end
 end
+
+hold(crypto.comp, "lz4") -- the binding has no comp from 6.15 on, and lz4 may not be built
+hold(crypto.sig, "ecdsa-nist-p256") -- ECDSA may not be built
 

@@ -9,7 +9,7 @@ local crypto = require("crypto")
 local ATTEMPTS <const> = 16
 local REFUSAL  <const> = "'crypto%.%l+': process%-context class in interrupt%-context runtime"
 
-local constructors = {sha256 = crypto.shash}
+local constructors = {sha256 = crypto.shash, ["ecdsa-nist-p256"] = crypto.sig}
 if crypto.comp then -- the binding has no comp from 6.15 on
 	constructors.lz4 = crypto.comp
 end
