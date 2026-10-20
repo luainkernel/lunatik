@@ -1135,13 +1135,36 @@ interpreter raises, the compiled program owes its default verdict instead.
   side's ingress, in a run of its own, answers the pings and the segment the
   namespace sends the host the same way. Skips the device cases without `socat`
   or `tc`.
+- **mapget**: the maps a program file declares are created and pinned by
+  `bpftool prog loadall ... pinmaps`, each as the type its constructor names,
+  and every program is run against the empty
+  maps and against maps the case seeded from the shell: a key present in a hash
+  and in an LRU hash, a key absent from it, a key computed from the packet, an
+  array index in range,
+  where a lookup answers a pointer to zeros and Lua reads 0 as true, one past
+  the array's entries, a lookup whose pointer is spilled to the frame, a
+  register nil on the path that skips the lookup, tested as the lookup is, on a
+  frame that takes the lookup and on one that skips it, a key
+  the program computes past its unsigned or its signed spec, whose low bytes are
+  a seeded key, which takes the default verdict, and a negative key a signed
+  spec packs. The program file's body writes what each owes either way, from
+  the constants and specs the programs were compiled against, a key
+  `string.pack` refuses owing the default. An untested use, a string key, a
+  method call on a lookup and a register two lookups in different maps merge
+  into, at a branch or through a loop's back edge, are refused with their
+  messages and lines, and so is a declaration the
+  object cannot carry: a key spec of two values, one that pads its integer, a
+  value spec Lua cannot read back or reads as a float, a width no load covers,
+  no entries, a name BTF cannot spell, an array keyed by eight bytes, a foreign
+  byte order, a name declared twice and a constructor without a name.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind; a verdict that may be nil, which a register
   cannot tell from `0`, a float the CLI's `math` returns, as a value, as a
   table's field and as the default verdict, a float literal `lunatic` refuses
-  to parse, a C function handed to `xdp.program`, and a function the CLI's Lua
-  compiled from a string among them.
+  to parse, a C function handed to `xdp.program`, a function the CLI's Lua
+  compiled from a string, and a map key the compiler holds that its spec does
+  not pack, in a register and as a `GETI` index, among them.
 - **budget**: the "processed N insns" figure the verifier prints for the
   worst program of each corpus, reported as a comment and asserted under a
   ceiling; the loops under a `may_goto` header are counted on a kernel that

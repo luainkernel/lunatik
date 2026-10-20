@@ -15,14 +15,16 @@ local packets = require("tests.luaebpf.packets")
 local xdp     = require("bpf.xdp")
 local tc      = require("bpf.tc")
 
-local pack, unpack = string.pack, string.unpack
-local tabunpack    = table.unpack
+local pack, unpack     = string.pack, string.unpack
+local tabunpack, insert = table.unpack, table.insert
+local concat            = table.concat
 
 local VERDICT  <const> = 0xffffffff -- the 32 bits bpf_prog_run returns
 local U32MAX   <const> = 0xffffffff -- the largest value luaskb_integer stores
 local ORACLE   <const> = "oracle.txt"
 local LOOPBACK <const> = 1
 local QUEUE    <const> = 0
+local FRAME    <const> = "\xff\xff\xff\xff\xff\xff\x00\x11\x22\x33\x44\x55\x08\x00"
 
 local corpus = {}
 
@@ -183,6 +185,21 @@ end
 -- the corpus behind TC contexts
 function corpus.skbpackets()
 	return bypacket(sched)
+end
+
+-- the fourteen bytes BPF_PROG_TEST_RUN demands of an XDP program, behind a context named "frame",
+-- for a case whose programs read a map rather than the packet
+function corpus.frame()
+	return loopback("frame", FRAME)
+end
+
+-- a packed value's bytes as bpftool takes and prints them, each formatted with how, "%d" when nil
+function corpus.bytes(packed, how)
+	local out = {}
+	for i = 1, #packed do
+		insert(out, (how or "%d"):format(packed:byte(i)))
+	end
+	return concat(out, " ")
 end
 
 local function answer(ok, value)
