@@ -16,9 +16,10 @@ beside it:
 `bpftool prog load` accepts like any other. The CLI is the only part that touches a file:
 `luaebpf.compile(path)` returns the object as a string and raises on a refusal, so a program that
 does not compile leaves no object behind by construction rather than by a cleanup path. `make
-install` compiles every program file it installs and puts the object beside the script, under
+install` compiles every program file and puts the object beside the script, under
 `/lib/modules/lua/`, so `lunatik run examples/filter/sni` finds
-`/lib/modules/lua/examples/filter/sni.bpf.o` the way the kernel finds `sni.lua`.
+`/lib/modules/lua/examples/filter/sni.bpf.o` the way the kernel finds `sni.lua`. The program file
+itself stays out of that tree: its body runs on the host, and the kernel's `require` never loads it.
 
 A program file may exist without a kernel script (a program that never calls into Lua), and a
 kernel script may exist without a program file (everything the tree runs today).
@@ -259,15 +260,27 @@ When `<script>.bpf.o` exists, `run`:
 1. opens the object with libbpf, resolves the tree's kfuncs through the module BTF, creates the
    maps and pins them under `/sys/fs/bpf/lunatik/<script>/`;
 2. starts the runtime, as today, so the kernel script finds its maps;
-3. attaches the program to the target named on the command line (`--dev=` for XDP and TC,
-   `--cgroup=` for cgroup programs, nothing for an LSM hook, which the program names itself) and
-   pins the link under the same root.
+3. attaches every program the object declares to the target named on the command line (`--dev=`
+   for XDP and TC, `--cgroup=` for cgroup programs, nothing for an LSM hook, which the program
+   names itself) and pins each link at `/sys/fs/bpf/lunatik/<script>/<program>-link`: bpffs
+   refuses a dot in a name, and a map name cannot carry a hyphen.
 
 The order matters: the maps exist before the script opens them, and the program attaches after
 the runtime is up, so its first packet finds a callback if it calls one. `stop` runs it backwards:
-unpin the link (which detaches), stop the runtime, unpin the maps. A failure at any step undoes
-the steps before it; a stale pin from a crashed run is removed by the next `run` of the same
-script, since the root is the script's.
+detach the links, stop the runtime, unpin what the root holds. A failure at any step undoes the
+steps before it; a stale pin from a crashed run is removed by the next `run` of the same script,
+since the root is the script's, and a `run` of a script already running is refused before that
+removal, since the root would be the live run's. A teardown removes the pins a root holds and then
+the directory, never a root below it.
+
+`unload`, and `reload` and `lunatik test` with it, detaches every link under `/sys/fs/bpf/lunatik/`
+and removes the tree before it stops the runtimes. A program outlives its runtime, one with no
+kernel script has none, and one that calls a kfunc holds the module that registers it for as long
+as the program lives (`btf_try_get_module` in `__find_kfunc_desc_btf`), so a shutdown of the runtimes
+alone would leave the program on the device and its module loaded.
+
+What the command line owes is read before anything is created: a missing `--dev`, a `--dev` for a
+script with no object, and a context for a program with no kernel script are refused as misuses.
 
 The verifier's log is the error `run` prints when the load fails, and its `line_info` names the
 Lua file and line. `lunatik list` is unchanged.
@@ -317,9 +330,9 @@ but the CLI's libraries can still return one, as `math.sqrt` does.
 
 ## Open questions for review
 
-1. Whether the deployment target belongs on the command line (`--dev=eth0`) or in the program file
-   with a command-line override. The proposal keeps it out of the source because a program file
-   is installed once and attached wherever an operator says.
+1. ~~Whether the deployment target belongs on the command line (`--dev=eth0`) or in the program
+   file with a command-line override.~~ Settled on 2026-10-19: the target is an option of the CLI's
+   parser, `--dev=<ifname>` and `--cgroup=<path>`, beside `--context` and `-p`.
 2. Whether a map declared by a program file that a kernel script also declares (`map.hash(path,
    ...)`) should be checked at `run` for a matching spec, or left to the size check `bpf.map`
    already performs on open.
@@ -329,7 +342,7 @@ but the CLI's libraries can still return one, as `math.sqrt` does.
 4. Whether the per-argument marshalling of the runtime call (native 64-bit integers, in order)
    should instead take a `string.pack` format, so the kernel side can keep `getuint32(0)` where it
    has it.
-5. Whether `lunatik run` should refuse a program file without a kernel script, or run the program
-   alone with an empty runtime. The proposal runs it alone; a program that calls no Lua needs no
-   script.
+5. ~~Whether `lunatik run` should refuse a program file without a kernel script, or run the
+   program alone with an empty runtime.~~ Settled in phase 3 as the proposal, with no runtime at
+   all: a program that calls no Lua needs no script, and a context given to such a run is refused.
 

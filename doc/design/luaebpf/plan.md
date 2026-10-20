@@ -249,9 +249,12 @@ access past `data_end` takes the failure path and returns the default verdict; a
 
 The CLI loads `<script>.bpf.o` when it exists: creates and pins the maps under
 `/sys/fs/bpf/lunatik/<script>/`, starts the runtime, attaches with the target given on the
-command line, pins the link; `stop` reverses it. `make install` compiles program files with
-`lunatik bpf`. The `xdp` and `tc` suites gain compiled programs beside the C stubs that must stay;
-the README's XDP section loses its `bpftool` lines.
+command line as `--dev=`, pins the link; `stop` reverses it. `make install` compiles program files
+with `lunatik bpf`, beside the scripts they belong to. The `xdp` and `tc` suites gain compiled
+programs beside the C stubs that must stay; the guide's `lunatik bpf` block loses its
+`bpftool prog load` line. `make ebpf`, `make ebpf_install` and `LUNATIK_EBPF_INSTALL_PATH` stay:
+they build and install the C stubs of `examples/filter` and `examples/sniclassify`, and go in
+phase 6 with them.
 
 Tests: `lunatik run` then `lunatik stop` leaves nothing pinned; a run with a missing target fails
 before the runtime starts; the existing `xdp` and `tc` cases pass with a compiled program.
