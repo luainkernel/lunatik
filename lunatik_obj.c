@@ -92,6 +92,7 @@ static inline void lunatik_releaseprivate(const lunatik_class_t *class, void *pr
 }
 
 static void lunatik_closelocked(lunatik_object_t *object)
+	__releases(object)
 {
 	void *private = object->private;
 

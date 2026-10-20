@@ -899,7 +899,8 @@ Like `lunatik_lock`, but the wait for a process-context object's mutex ends earl
 `-EINTR` without the lock: on a kernel thread, on its stop, since the wait is interruptible there;
 on any other task, on a fatal signal. A SOFTIRQ or HARDIRQ object is locked as `lunatik_lock`
 does, and it returns `0`. The entries a script reaches take a runtime's lock through it, and
-`lunatik_try` raises the `EINTR`.
+`lunatik_try` raises the `EINTR`. Sparse cannot read a lock taken only on a `0` return, so through
+6.19 `make C=1` reports a context imbalance at every caller, however it unlocks.
 
 ### lunatik\_closeprivate
 ```C
