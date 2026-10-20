@@ -27,7 +27,7 @@ output=$(luaebpf_compile arith) || { comment "$output"; fail "luaebpf: arith.bpf
 output=$(luaebpf_loadall arith) || { comment "$output"; fail "luaebpf: the corpus did not verify"; }
 ktap_pass "luaebpf: every arithmetic row verifies"
 
-output=$(luaebpf_differential 2) \
+output=$(luaebpf_differential) \
 	|| { comment "$output"; fail "luaebpf: the compiled arithmetic differs from the interpreter"; }
 ktap_pass "luaebpf: every arithmetic row agrees with the interpreter"
 

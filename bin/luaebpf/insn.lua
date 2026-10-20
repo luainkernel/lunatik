@@ -21,6 +21,7 @@ local insert = table.insert
 -- instruction classes and fields: uapi/linux/bpf.h, uapi/linux/bpf_common.h
 local LD    <const> = 0x00
 local LDX   <const> = 0x01
+local ST    <const> = 0x02
 local STX   <const> = 0x03
 local JMP   <const> = 0x05
 local ALU64 <const> = 0x07
@@ -155,6 +156,12 @@ end
 -- @function luaebpf.insn.code:store
 function code:store(dst, off, src)
 	return append(self, {code = STX | DW | MEM, dst = dst, src = src, off = off, imm = 0})
+end
+
+--- `*(u64 *)(dst + off) := imm`; `imm` must fit in 32 signed bits.
+-- @function luaebpf.insn.code:storei
+function code:storei(dst, off, imm)
+	return append(self, {code = ST | DW | MEM, dst = dst, src = 0, off = off, imm = imm})
 end
 
 --- Jumps to `label` when `dst op src` holds.

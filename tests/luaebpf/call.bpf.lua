@@ -5,6 +5,7 @@
 -- Program file of the call case (see call.sh).
 
 local corpus = require("tests.luaebpf.corpus")
+local action = require("linux.xdp").action
 
 local function twice(x)
 	return x + x
@@ -16,8 +17,8 @@ local function quadruple(x)
 	return result
 end
 
-local function five(a, b, c, d, e)
-	return a + b + c + d + e
+local function four(a, b, c, d)
+	return a + b + c + d
 end
 
 -- a value that may be nil, which a subprogram returns and its caller tests
@@ -27,23 +28,36 @@ local function positive(x)
 	return v
 end
 
--- the deepest chain MAX_CALL_FRAMES takes: the program's own frame and seven more
-local function deep7(x) return x + 1 end
-local function deep6(x) local v = deep7(x) return v end
-local function deep5(x) local v = deep6(x) return v end
-local function deep4(x) local v = deep5(x) return v end
-local function deep3(x) local v = deep4(x) return v end
-local function deep2(x) local v = deep3(x) return v end
-local function deep1(x) local v = deep2(x) return v end
+local function half(n, d)
+	return n // d
+end
+
+-- every path through this one raises, so its abort tail is the only exit the call reaches
+local function always(n)
+	local zero = n - n
+	return 1 // zero
+end
+
+-- the deepest chain MAX_CALL_FRAMES takes: the program's own frame and seven more, each able to
+-- abort, so the flag is forwarded one frame at a time
+local function deep7(x) return 100 // x end
+local function deep6(x) local v = deep7(x) return v // 1 end
+local function deep5(x) local v = deep6(x) return v // 1 end
+local function deep4(x) local v = deep5(x) return v // 1 end
+local function deep3(x) local v = deep4(x) return v // 1 end
+local function deep2(x) local v = deep3(x) return v // 1 end
+local function deep1(x) local v = deep2(x) return v // 1 end
 
 local makers = {}
 
 function makers.once(n) return function(_) local v = twice(n) return v end end
 function makers.twolevels(n) return function(_) local v = quadruple(n) return v end end
-function makers.fivearguments(n) return function(_) local v = five(n, 1, 2, 3, 4) return v end end
+function makers.fourarguments(n) return function(_) local v = four(n, 1, 2, 3) return v end end
 function makers.shared(n) return function(_) local v = twice(n) + quadruple(n) return v end end
 function makers.deepest(n) return function(_) local v = deep1(n) return v end end
 function makers.nilable(n) return function(_) if positive(n) then return 11 end return 22 end end
+function makers.calleddiv(n) return function(_) local v = half(10, n) return v end end
+function makers.onlyabort(n) return function(_) local v = always(n) return v end end
 -- a call asking for two results, where Lua fills the second with nil
 function makers.oneresult(n) return function(_) local v, w = twice(n) if w == nil then return 11 end return v end end
 -- more live values than the emitter keeps in registers, so the rest go to the frame
@@ -59,8 +73,10 @@ function makers.spilled(n)
 	end
 end
 
-local order = {"once", "twolevels", "fivearguments", "shared", "deepest", "nilable", "oneresult", "spilled"}
+local order = {"once", "twolevels", "fourarguments", "shared", "deepest", "nilable", "calleddiv",
+	"onlyabort", "oneresult", "spilled"}
 local operands = {{0}, {3}, {-5}, {1000000}}
 
-corpus.declare(makers, order, operands)
+-- a default no other path returns, so a raise answers the verdict the file asked for
+corpus.declare(makers, order, operands, action.REDIRECT)
 
