@@ -112,17 +112,21 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
 - **skcipher**: `cbc(aes)` encrypts and decrypts a known vector and reports a
   16-byte IV and block, refuses a short key, a short IV and data that is not a
   whole number of blocks with `EINVAL`, survives 5000 round trips, and
-  `ecb(aes)` round-trips with no IV.
+  `ecb(aes)` round-trips with no IV. Skipped where the kernel serves no
+  `cbc(aes)` or no `ecb(aes)`, which the script allocates before its cases.
 - **aead**: `gcm(aes)` encrypts and decrypts a known vector with associated
   data and reports a 12-byte IV and the tag size it was set to, refuses a
   short key, an invalid tag size and a short IV with `EINVAL`, answers a
   truncated or tampered tag with nil and `EBADMSG`, and round-trips without associated
-  data, with an empty plaintext, and 5000 times.
+  data, with an empty plaintext, and 5000 times. Skipped where the kernel serves
+  no `gcm(aes)`, which the script allocates before its cases.
 - **rng**: `stdrng` gives the number of bytes asked for through `generate`,
   with or without additional input, and `getbytes`, also after a reset without
   a seed, refuses 0 bytes as out of bounds and an additional input or a seed
   that is not a string; `drbg_nopr_hmac_sha512`, a DRBG named by its driver,
-  gives bytes after a reset with a seed and reports a seed size of 0.
+  gives bytes after a reset with a seed and reports a seed size of 0. Skipped
+  where the kernel serves no `stdrng` or no `drbg_nopr_hmac_sha512`, which the
+  script allocates before its cases.
 - **sig**: each verifier is allocated by its 6.13 name, `x962(ecdsa-nist-p256)`
   or `pkcs1(rsa,sha256)`, and on `ENOENT` by the name of 6.12 and earlier,
   `ecdsa-nist-p256` or `pkcs1pad(rsa,sha256)`. ECDSA verifies the P-256 vector of
@@ -182,7 +186,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   always vmalloc's, is refused with "not enough memory" as the data of each
   `encrypt` and `decrypt` and as `aead`'s associated data, with no warning in
   `dmesg`. Skips unless the loaded `luacrypto` lists `luacrypto_newbuffer` in
-  `/proc/kallsyms`, since a build that maps the string oopses on arm64.
+  `/proc/kallsyms`, since a build that maps the string oopses on arm64, and
+  where the kernel serves no `cbc(aes)`, `gcm(aes)` or `ctr(aes)`.
 - **seed**: `rng` and `reset` without a seed seed an algorithm with `seedsize()`
   random bytes the kernel draws. `ansi_cprng`, which refuses a seed under 32
   bytes with `EINVAL`, is created, reports a seed size of 48 and gives other
@@ -197,6 +202,9 @@ through `closing.lua`: its metatable holds one function under `__close` and
 after it.
 
 ### darken
+
+Every case but **shade_error** skips where the kernel serves no `gcm(aes)`, the
+algorithm `darken` decrypts with, which each script allocates before its cases.
 
 - **context**: `darken.run` decrypts and runs a chunk in a process runtime,
   in its body and resumed past it, and in the body of a `softirq` and a
@@ -1516,7 +1524,8 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   into a softirq runtime, where the clone must not sleep, and
   `set`, the crypto classes and the `bpf` maps into a process
   one. The `crypto.comp` case skips where the kernel has no crypto_comp
-  API (6.15 and later), the `bpf` one where bpftool cannot pin a map.
+  API (6.15 and later), the `bpf` one where bpftool cannot pin a map, and
+  the first where the kernel serves no `cbc(aes)`, `gcm(aes)` or `stdrng`.
 
 - **require_reopen**: a library opened in a state that already has its
   classes (the `_ENV` object's clone creates the `rcu.table` metatables,

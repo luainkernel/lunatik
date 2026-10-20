@@ -8,11 +8,17 @@ local crypto = require("crypto")
 local data   = require("data")
 local set    = require("set")
 local check  = require("tests.runtime.check")
+local alloc  = require("tests.lib").alloc
+
+-- allocated before any clone runs, so require_cloneobject.sh skips the case where the kernel lacks one
+local skcipher = alloc(crypto.skcipher, "cbc(aes)")
+local aead     = alloc(crypto.aead, "gcm(aes)")
+local rng      = alloc(crypto.rng, "stdrng")
 
 check.clones(data.new(4), "softirq")
 check.clones(set.new({key = 1}))
 check.clones(crypto.shash("sha256"))
-check.clones(crypto.skcipher("cbc(aes)"))
-check.clones(crypto.aead("gcm(aes)"))
-check.clones(crypto.rng("stdrng"))
+check.clones(skcipher)
+check.clones(aead)
+check.clones(rng)
 

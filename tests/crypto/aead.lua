@@ -5,9 +5,13 @@
 local aead = require("crypto").aead
 local util = require("util")
 local closing = require("tests.crypto.closing")
-local test = require("tests.lib").test
+local lib = require("tests.lib")
+local test = lib.test
 local hex2bin = util.hex2bin
 local bin2hex = util.bin2hex
+
+-- the algorithm the cases allocate, before they run, so run.sh skips the test where the kernel lacks it
+lib.alloc(aead, "gcm(aes)")
 
 test("AEAD AES-128-GCM encrypt", function()
 	local c = aead("gcm(aes)")

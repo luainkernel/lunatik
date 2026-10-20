@@ -104,6 +104,22 @@ run_test() {
 	return 1
 }
 
+# served_case <description> <command...> passes the case when the command succeeds, and fails it with what the command
+# printed when it does not, except where that names an algorithm the kernel serves no provider of, the message
+# tests/lib.lua's alloc raises for ENOENT: there the case skips
+served_case() {
+	local name=$1 output unserved
+	shift
+	if output=$("$@"); then
+		ktap_pass "$name"
+	elif unserved=$(grep -o -m 1 'the kernel serves no [^[:space:]]*' <<< "$output"); then
+		ktap_skip "$name: $unserved"
+	else
+		[ -n "$output" ] && echo "$output"
+		ktap_fail "$name"
+	fi
+}
+
 # a call refused with IRQs disabled: probe_refusal <case> <script> <prefix> runs the script in a
 # hardirq runtime, whose pre handler on the personality syscall prints "<prefix>refused" when the
 # call raises the refusal and "<prefix>" with anything else when it does not, makes the syscall with

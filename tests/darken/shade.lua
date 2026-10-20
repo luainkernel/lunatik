@@ -4,10 +4,15 @@
 --
 -- Kernel-side script for the darken shade test (see run.sh).
 
-local test = require("tests.lib").test
+local aead = require("crypto").aead
+local lib  = require("tests.lib")
+local test = lib.test
 
 local ANSWER <const> = "shaded"
 local NESTED <const> = "nested"
+
+-- the algorithm darken allocates, before the cases run, so run.sh skips the test where the kernel lacks it
+lib.alloc(aead, "gcm(aes)")
 
 -- the key run.sh made with shade.sh, in place of /lib/modules/lua/light.lua
 package.loaded.light = require("tests.darken.shade_light")

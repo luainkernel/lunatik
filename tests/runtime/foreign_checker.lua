@@ -13,7 +13,10 @@ local crypto     = require("crypto")
 local task       = require("task")
 local rcu        = require("rcu")
 local fsnotify   = require("fsnotify")
-local test       = require("tests.lib").test
+local lib        = require("tests.lib")
+
+local test  = lib.test
+local alloc = lib.alloc
 
 local SCRIPT <const> = "tests/runtime/resume_shared_recv"
 local BODY   <const> = "tests/runtime/my_body"
@@ -21,15 +24,6 @@ local BODY   <const> = "tests/runtime/my_body"
 local spawned = lunatik._ENV.threads[BODY]
 local receiver <close> = lunatik.runtime(SCRIPT)
 local watch = fsnotify.watch(function() end)
-
--- ENOENT is how the crypto API answers for an algorithm no provider serves; foreign_checker.sh skips on the message
-local function alloc(new, name)
-	local ok, object = pcall(new, name)
-	if not ok then
-		error(object == "ENOENT" and "the kernel serves no " .. name or object, 0)
-	end
-	return object
-end
 
 local cases = {
 	{name = "data",         object = data.new(8),                 foreign = fifo.new(16), method = "getuint8",   args = {0},

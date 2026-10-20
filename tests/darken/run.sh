@@ -5,6 +5,9 @@
 #
 # Runs the darken tests and reports aggregated KTAP results.
 #
+# context, decrypt, shade and shade_chunk skip where the kernel serves no gcm(aes), the
+# algorithm darken decrypts with, which each script allocates before its cases and names.
+#
 # context: darken.run allocates its transform with crypto_alloc_aead, which
 # allocates with GFP_KERNEL and may load a module, so a hook of an
 # interrupt-context runtime that calls it would sleep under the runtime's
@@ -141,27 +144,19 @@ ktap_plan 5
 if ! [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] ||
 	! grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
 	ktap_skip "darken/context: the loaded $MODULE does not carry the refusal: it would allocate under a spinlock"
-elif run_test "$SCRIPT"; then
-	ktap_pass "darken/context"
 else
-	ktap_fail "darken/context"
+	served_case "darken/context" run_test "$SCRIPT"
 fi
 
-if run_test "$DECRYPT"; then
-	ktap_pass "darken/decrypt"
-else
-	ktap_fail "darken/decrypt"
-fi
+served_case "darken/decrypt" run_test "$DECRYPT"
 
 for name in shade shade_chunk shade_error; do
 	if ! openssl mac -help > /dev/null 2>&1; then
 		ktap_skip "darken/$name: tools/shade.sh needs OpenSSL 3 or later"
 	elif [ "$name" = shade_chunk ] && ! command -v lunatic > /dev/null; then
 		ktap_skip "darken/$name: lunatic not installed"
-	elif $name; then
-		ktap_pass "darken/$name"
 	else
-		ktap_fail "darken/$name"
+		served_case "darken/$name" "$name"
 	fi
 done
 
