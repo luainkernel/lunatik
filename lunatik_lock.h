@@ -28,8 +28,10 @@ static inline void lunatik_freelock(lunatik_object_t *object)
 
 static inline void lunatik_lock(lunatik_object_t *object)
 {
-	if (!lunatik_isirq(object->opt))
+	if (!lunatik_isirq(object->opt)) {
 		mutex_lock(&object->mutex);
+		__acquire(&object->mutex);
+	}
 	else if (lunatik_isirqsave(object))
 		spin_lock_irqsave(&object->spin, object->flags);
 	else
@@ -57,8 +59,10 @@ static inline int lunatik_lockkillable(lunatik_object_t *object)
 static inline void lunatik_unlock(lunatik_object_t *object)
 {
 	lunatik_setowner(object, NULL);
-	if (!lunatik_isirq(object->opt))
+	if (!lunatik_isirq(object->opt)) {
 		mutex_unlock(&object->mutex);
+		__release(&object->mutex);
+	}
 	else if (lunatik_isirqsave(object))
 		spin_unlock_irqrestore(&object->spin, object->flags);
 	else
