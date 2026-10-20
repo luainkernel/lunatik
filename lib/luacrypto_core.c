@@ -9,6 +9,8 @@
 * constructor raises "'crypto.shash': process-context class in interrupt-context runtime", naming
 * its class. Errors are raised as errno names: "ENOENT" for an unknown algorithm, "EINVAL" for a
 * wrong IV, key or state length or a block cipher input that is not a multiple of `blocksize()`,
+* and on 6.12 and later for a name whose template refuses the type the constructor asks for, such
+* as `shash("cbc(aes)")`, which 6.11 and earlier answer with "ENOENT",
 * "ENOMEM" when the kernel cannot allocate the transform, "ENOKEY" for a signature verifier used
 * before its key is set, and
 * "not enough memory" when the binding cannot allocate its own state, its output or the copy of its
@@ -88,7 +90,9 @@
 * @tparam string algname algorithm name (e.g., "x962(ecdsa-nist-p256)", "pkcs1(rsa,sha256)")
 * @treturn crypto_sig
 * @raise "ENOENT" for an unknown algorithm, or one the kernel serves only for encryption, such as
-*   `rsa` on 6.13 and later, "ENOMEM" or "not enough memory" on allocation failure
+*   `rsa` on 6.13 and later, "EINVAL" for a name its template refuses, such as
+*   `pkcs1pad(rsa,sha256)` on 6.14 and later, whose template serves only encryption, where 6.11 and
+*   earlier and 6.13 raise "ENOENT", "ENOMEM" or "not enough memory" on allocation failure
 * @usage
 *   local sig = require("crypto").sig
 *   local function verifier(name, older)
