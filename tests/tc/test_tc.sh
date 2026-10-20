@@ -31,6 +31,14 @@
 # through reaches the kernel; the five that are not an action log "invalid action",
 # which no other case logs, and each case reads back the line its callback printed.
 #
+# The reload case keeps the pass program attached across `lunatik reload`: the
+# program holds luatc loaded while lunatik_run unloads and loads again with a new
+# _ENV. A ping before the reload has the kfunc find the pass script, and the one
+# after it reaches the callback of the script run again only through the new
+# _ENV.runtimes; a kfunc that kept the table it first found looks the key up in the
+# one the runner emptied, and the callback never runs. The case runs last, since
+# the reload replaces every module nothing holds.
+#
 # Usage: sudo bash tests/tc/test_tc.sh
 
 MODULE="luatc"
@@ -51,6 +59,7 @@ REPLACED_OBJECTS=4 # the replaced context's three views and its argument
 PREFIX="tc verdict: "
 INVALID="$MODULE: invalid action"
 RAISED="${PREFIX}raised"
+RELOADED="tc reload: the callback runs after lunatik_run reloads under an attached program"
 
 # the verdict cases: the payload sizes verdict.lua reads, the case each picks, what it logs
 VERDICT_PAYLOADS=(101 102 103 104 105 106 107)
@@ -86,7 +95,7 @@ tc_unload()
 }
 
 ktap_header
-ktap_plan 17
+ktap_plan 18
 
 skip_all()
 {
@@ -104,6 +113,7 @@ skip_all()
 	for title in "${VERDICT_TITLES[@]}"; do
 		ktap_skip "$title"
 	done
+	ktap_skip "$RELOADED"
 	ktap_totals
 	exit 0
 }
@@ -345,6 +355,33 @@ verdict_case()
 	done
 }
 
+reload_case()
+{
+	local before reloaded
+
+	tc_load tc_pass.bpf.o || { ktap_fail "$RELOADED: failed to load/attach TC program"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/tc/pass"
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
+	before=$(dmesg_since)
+	lunatik reload > /dev/null 2>&1
+	reloaded=$?
+	mark_dmesg
+	run_script --context=softirq "tests/tc/pass"
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
+
+	tc_unload
+	lunatik stop tests/tc/pass > /dev/null 2>&1
+
+	grep -qE "$KTAP_ERRORS" <<< "$before" && { ktap_fail "$RELOADED: script raised an error"; return 1; }
+	grep -qF "tc pass test pass" <<< "$before" || { ktap_fail "$RELOADED: the callback did not run before the reload"; return 1; }
+	[ "$reloaded" -eq 0 ] || { ktap_fail "$RELOADED: lunatik reload failed"; return 1; }
+	check_dmesg || { ktap_fail "$RELOADED: script raised an error"; return 1; }
+	dmesg_since | grep -qF "tc pass test pass" || { ktap_fail "$RELOADED: the callback did not run after the reload"; return 1; }
+	ktap_pass "$RELOADED"
+}
+
 run_case tc_pass.bpf.o pass.lua yes "tc pass" \
 	"tc pass test pass: packet and argument content verified, priority and mark read back" --context=softirq
 run_case tc_drop.bpf.o drop.lua no "tc drop" \
@@ -367,6 +404,7 @@ run_case tc_data.bpf.o data.lua yes "tc data" \
 
 nonlinear_case
 verdict_case
+reload_case
 
 ktap_totals
 

@@ -9,23 +9,17 @@
 #include "luarcu.h"
 
 static const char luakfunc_env_key;
-static lunatik_object_t *luakfunc_runtimes = NULL;
 
 static inline lunatik_object_t *luakfunc_getruntimes(void)
 {
 	static const char runtimes_key[] = "runtimes";
-	lunatik_object_t *runtimes = READ_ONCE(luakfunc_runtimes);
-	lunatik_object_t *env;
+	lunatik_object_t *env, *runtimes = NULL;
 
-	if (runtimes != NULL)
-		return runtimes;
 	rcu_read_lock();
 	if ((env = rcu_dereference(lunatik_env)) != NULL)
 		runtimes = luarcu_getobject(env, runtimes_key, sizeof(runtimes_key) - 1);
 	rcu_read_unlock();
-	if (runtimes != NULL && cmpxchg(&luakfunc_runtimes, NULL, runtimes) != NULL)
-		lunatik_putobject(runtimes); /* another CPU cached the table first */
-	return READ_ONCE(luakfunc_runtimes);
+	return runtimes;
 }
 
 static inline lunatik_object_t *luakfunc_lookupruntime(char *key, size_t key_sz)
@@ -41,6 +35,7 @@ static inline lunatik_object_t *luakfunc_lookupruntime(char *key, size_t key_sz)
 		return NULL;
 	}
 	lunatik_object_t *runtime = luarcu_getobject(runtimes, key, keylen);
+	lunatik_putobject(runtimes);
 	if (runtime == NULL || likely(lunatik_isirq(runtime->opt)))
 		return runtime;
 
@@ -170,8 +165,6 @@ static int __init lua##subsys##_init(void) \
 #define LUAKFUNC_EXIT(subsys) \
 static void __exit lua##subsys##_exit(void) \
 { \
-	if (luakfunc_runtimes != NULL) \
-		lunatik_putobject(luakfunc_runtimes); \
 }
 
 #endif

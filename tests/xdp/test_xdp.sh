@@ -15,6 +15,14 @@
 # reaches the kernel; the five that are not an action log "invalid action", which
 # no other case logs, and each case reads back the line its callback printed.
 #
+# The reload case keeps the pass program attached across `lunatik reload`: the
+# program holds luaxdp loaded while lunatik_run unloads and loads again with a new
+# _ENV. A ping before the reload has the kfunc find the pass script, and the one
+# after it reaches the callback of the script run again only through the new
+# _ENV.runtimes; a kfunc that kept the table it first found looks the key up in the
+# one the runner emptied, and the callback never runs. The case runs last, since
+# the reload replaces every module nothing holds.
+#
 # Usage: sudo bash tests/xdp/test_xdp.sh
 
 MODULE="luaxdp"
@@ -26,6 +34,7 @@ TARGET="10.199.0.1"
 PREFIX="xdp verdict: "
 INVALID="$MODULE: invalid action"
 RAISED="${PREFIX}raised"
+RELOADED="xdp reload: the callback runs after lunatik_run reloads under an attached program"
 
 # the verdict cases: the payload sizes verdict.lua reads, the case each picks, what it logs
 VERDICT_PAYLOADS=(101 102 103 104 105 106 107)
@@ -46,7 +55,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 15
+ktap_plan 16
 
 skip_all()
 {
@@ -62,6 +71,7 @@ skip_all()
 	for title in "${VERDICT_TITLES[@]}"; do
 		ktap_skip "$title"
 	done
+	ktap_skip "$RELOADED"
 	ktap_totals
 	exit 0
 }
@@ -75,7 +85,7 @@ cleanup()
 {
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
 	rm -f "${PIN}_pass" "${PIN}_drop" "${PIN}_reattach" "${PIN}_detach" "${PIN}_zerokey" "${PIN}_process" "${PIN}_percpu"
-	rm -f "${PIN}_verdict"
+	rm -f "${PIN}_verdict" "${PIN}_reload"
 	lunatik stop tests/xdp/pass > /dev/null 2>&1
 	lunatik stop tests/xdp/drop > /dev/null 2>&1
 	lunatik stop tests/xdp/reattach > /dev/null 2>&1
@@ -291,6 +301,37 @@ verdict_case()
 	done
 }
 
+reload_case()
+{
+	local before reloaded
+
+	bpftool prog load "$DIR/xdp_pass.bpf.o" "${PIN}_reload" type xdp ||
+		{ ktap_fail "$RELOADED: failed to load XDP program"; return 1; }
+	bpftool net attach xdp pinned "${PIN}_reload" dev "$IFACE" ||
+		{ ktap_fail "$RELOADED: failed to attach XDP program"; rm -f "${PIN}_reload"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/xdp/pass"
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
+	before=$(dmesg_since)
+	lunatik reload > /dev/null 2>&1
+	reloaded=$?
+	mark_dmesg
+	run_script --context=softirq "tests/xdp/pass"
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
+
+	bpftool net detach xdp dev "$IFACE" 2>/dev/null
+	rm -f "${PIN}_reload"
+	lunatik stop tests/xdp/pass > /dev/null 2>&1
+
+	grep -qE "$KTAP_ERRORS" <<< "$before" && { ktap_fail "$RELOADED: script raised an error"; return 1; }
+	grep -qF "xdp pass test pass" <<< "$before" || { ktap_fail "$RELOADED: the callback did not run before the reload"; return 1; }
+	[ "$reloaded" -eq 0 ] || { ktap_fail "$RELOADED: lunatik reload failed"; return 1; }
+	check_dmesg || { ktap_fail "$RELOADED: script raised an error"; return 1; }
+	dmesg_since | grep -qF "xdp pass test pass" || { ktap_fail "$RELOADED: the callback did not run after the reload"; return 1; }
+	ktap_pass "$RELOADED"
+}
+
 run_case xdp_pass.bpf.o "${PIN}_pass" pass.lua yes "xdp pass" \
 	"xdp pass: verdict enforced, packet and argument content verified" --context=softirq
 run_case xdp_drop.bpf.o "${PIN}_drop" drop.lua no "xdp drop" \
@@ -309,6 +350,7 @@ zerokey_case
 process_case
 percpu_case
 verdict_case
+reload_case
 
 ktap_totals
 
