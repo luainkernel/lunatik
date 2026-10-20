@@ -4,12 +4,12 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Names the files a change touches in what the host cycle reads, the build, the install and the suite.
-# A change to comments and spacing alone, or to a document or the harness, alters no module and no script,
-# and the suite would measure what it measured already. A C file counts when its tokens differ once the
-# comments are gone, a Lua file when the listing of its stripped bytecode does, read without the lines its
-# functions span and the addresses it was loaded at, a shell script when a line other than a comment does,
-# a submodule when the commit it points at does, and any other file when its bytes or its mode do; one the
-# compiler cannot read counts too. Exits 1 when it names one.
+# A change to comments and spacing alone, or to a document, the harness or a .gitignore, alters no module
+# and no script, and the suite would measure what it measured already. A C file counts when its tokens
+# differ once the comments are gone, a Lua file when the listing of its stripped bytecode does, read
+# without the lines its functions span and the addresses it was loaded at, a shell script when a line
+# other than a comment does, a submodule when the commit it points at does, and any other file when its
+# bytes or its mode do; one the compiler cannot read counts too. Exits 1 when it names one.
 #
 # Usage: bash tools/checks/functional.sh <base> [<head>]   (default head HEAD)
 
@@ -45,7 +45,7 @@ code() {
 status=0
 while read -r path; do
 	case "$path" in
-		*.md|config.ld|doc/*|.agents/*|.claude/*|.github/*|tools/checks/*) continue ;;
+		*.md|config.ld|doc/*|.agents/*|.claude/*|.github/*|tools/checks/*|.gitignore|*/.gitignore) continue ;;
 	esac
 	[ "$(code "$base" "$path")" = "$(code "$head" "$path")" ] && continue
 	echo "$path"
