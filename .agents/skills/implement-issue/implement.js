@@ -152,7 +152,8 @@ you take it, what you read, decided, committed and measured, and your answer bef
    names over the changed files.
 6. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/pr-body.sh
    passes the body, which carries \`Closes #${a.issue}\` on a line of its own and names each example as run:
-   the pull request opens only on a head the host run passed with every one of them. Open nothing.
+   the pull request opens only on a head the host run passed, and says of an example the host only loaded
+   what the build said of it. Open nothing.
 7. Remove your worktree (\`rm -rf <tree> && git worktree prune\`) once the branch is pushed: the review, the host
    run and a fix each work in one of their own.
 
@@ -177,7 +178,7 @@ What you find past the failure and do not fix, in the change or beside it,
 ${LEAVE}
 `
 
-const OPEN = (impl, head, unrelated) => `
+const OPEN = (impl, head, unrelated, body, loaded) => `
 ${MACHINE}Open a pull request on luainkernel/lunatik from the branch \`${impl.branch}\` against \`${base}\`, whose head is
 \`${head}\`; push the branch first if GitHub's tip of it is not that SHA.${DRAFT} Title: ${JSON.stringify(impl.title)}
 A pull request GitHub already has for the branch is that one, read with
@@ -185,8 +186,10 @@ A pull request GitHub already has for the branch is that one, read with
 
 Body, as it stands${unrelated.length ? `, with one sentence added to its last paragraph naming the failure a host
 run showed and the change does not cause, and the issue that reports it, from this record:
-${JSON.stringify(unrelated)}` : ''}:
-${JSON.stringify(impl.body)}
+${JSON.stringify(unrelated)}` : ''}${loaded.length ? `, and with its sentence on the examples saying of each
+example of this record that the host only loaded it, or could not run it, and why, in the record's words:
+${JSON.stringify(loaded)}` : ''}:
+${JSON.stringify(body)}
 
 Write the body with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it, and pass that
 path spelled out in the command that opens the pull request (\`-F body=@${bodyFile}\`): the guards before a shell
@@ -311,11 +314,13 @@ const FILED = { type: 'object', properties: {
 
 const reviewArgs = (impl, extra) => ({
   pr: 0, branch: impl.branch, base: impl.base, scratch: a.scratch, validated: null, examples: impl.examples, defects: impl.defects,
-  focus: a.focus || a.notes, smallest: impl.smallest, effort: reviewer.effort, model: reviewer.model, push: a.push,
+  focus: a.focus || a.notes, smallest: impl.smallest, body: impl.body, effort: reviewer.effort, model: reviewer.model, push: a.push,
   agents: { build: (a.agents || {}).build }, build: a.build, repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
 })
 const passed = (build) => build && build.clean && /fail:0\b/.test(build.totals || '')
-const unrun = (impl, build) => (impl.examples || []).filter(e => !(build?.examples || []).includes(e))
+// an example the host only loaded is accounted for, and the body says so
+const unrun = (impl, build) => (impl.examples || []).filter(e =>
+  ![...(build?.examples || []), ...(build?.loaded || []).map(l => l.example)].includes(e))
 
 let groomed = null
 if ((a.agents || {}).groom) {
@@ -364,7 +369,8 @@ if (implemented?.branch && a.push !== false) {
   if (passed(build) && !missing.length && a.gh !== false) {
     phase('Open')
     const unrelated = fixes.filter(f => f && !f.caused).map(f => f.notes)
-    const opened = await agent(OPEN(implemented, head, unrelated), {
+    const body = review?.reviewer?.body || implemented.body
+    const opened = await agent(OPEN(implemented, head, unrelated, body, build?.loaded || []), {
       label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
     })
     pr = opened?.pr || 0

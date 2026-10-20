@@ -27,6 +27,8 @@
 //               implementer writes them; the build plants each once the suite passed
 //   focus       what this round is for, in the maintainer's words
 //   smallest    the implementer's smallest shape, when implement-issue launches the review
+//   body        the body a branch with no pull request yet opens with, which the reviewer answers
+//               corrected against the final diff
 //   reviewer    false to run the build phase alone, as implement-issue does after a fix
 //   effort      the reviewer's reasoning effort, default "high"
 //   model       the model the reviewer runs on, default the session's
@@ -137,7 +139,10 @@ a helper, a name), write the smaller change that would leave the same defect unr
 taken; where correctness is equal and the shape is smaller, that is a finding, shipped as the fixup that
 makes it. Your answer's smallest is that reading of the whole diff: the smallest shape, its size beside the
 diff's, and what each mechanism past it buys.${a.smallest ? `
-The implementer's own reading, which yours is not bound by: ${JSON.stringify(a.smallest)}` : ''}
+The implementer's own reading, which yours is not bound by: ${JSON.stringify(a.smallest)}` : ''}${a.body && !a.pr ? `
+The pull request opens with this body once the build passes; read it with the commit bodies, and your answer's
+body is this text with what the final diff, your fixups included, makes untrue corrected, the rest as it stands:
+${JSON.stringify(a.body)}` : ''}
 For every mechanism the diff builds over a kernel primitive, name the kernel's own answer to the problem it
 solves, from Documentation/ and the primitive's users in the kernel tree, and say why the diff's shape and not
 that one. For every field the diff adds beside an embedded kernel object, say what the object already records.
@@ -171,7 +176,8 @@ In a worktree of your own under ${a.scratch}/ at \`${tip}\`, the tip of \`${a.br
 lunatik-cycle skill orders it, then the examples the change touches through tools/watchdog.sh, each one
 driven as its README says and stopped, with dmesg read after.`}
 ${(a.examples || []).length ? `The examples the change touches: ${a.examples.join(', ')}. Your answer's examples names
-the ones that ran clean, spelled as they are listed here.` : 'The change touches no example.'}
+the ones that ran clean, driven until they did what their README shows, spelled as they are listed here; one
+that only loaded and stopped, or could not run on this host, goes in loaded instead, with why.` : 'The change touches no example.'}
 ${unrun.length ? 'These have not been run on this head: ' + unrun.join(', ') + '.' : ''}
 ${(a.defects || []).length ? `Once the suite passed, plant each defect below in turn, to watch the test it is for
 fail: \`git apply <patch>\` in a call of its own, so crash-guard.sh reads the tree it leaves, then \`make\`, and only
@@ -214,6 +220,7 @@ const FINDINGS = {
     tip: { type: 'string', description: 'the full SHA of the branch tip after every fixup' },
     coverage: { type: 'string', description: 'the matrix the change is held to, and what nothing on this kernel can see' },
     smallest: SMALLEST,
+    body: { type: 'string', description: 'the body the pull request opens with, when one was handed to correct' },
     findings_left: LEFT,
     notes: { type: 'string' },
   },
@@ -226,6 +233,9 @@ const BUILD_OUT = {
     totals: { type: 'string' }, core: { type: 'string' }, head: { type: 'string' },
     skipped: { type: 'boolean', description: 'true when functional.sh named nothing past the validated head' },
     examples: { type: 'array', items: { type: 'string' } }, clean: { type: 'boolean' }, notes: { type: 'string' },
+    loaded: { type: 'array', items: { type: 'object', properties: {
+      example: { type: 'string' }, why: { type: 'string' },
+    }, required: ['example', 'why'] }, description: 'the examples that only loaded and stopped, or could not run on this host' },
     discrimination: { type: 'array', items: { type: 'object', properties: {
       patch: { type: 'string' }, failed: { type: 'array', items: { type: 'string' }, description: 'the cases that failed with the defect planted' },
       notes: { type: 'string' },
