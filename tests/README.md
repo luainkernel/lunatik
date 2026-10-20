@@ -7,6 +7,10 @@ Integration tests for lunatik kernel modules. Output follows
 
 - Lunatik installed: `sudo make install`
 - Root privileges
+- A kernel built with `CONFIG_SYMBOLIC_ERRNAME`, the default where `PRINTK` is:
+  the suites assert the errno names `linux.errname` gives, which are all
+  "unknown" without it, so `tests/lib.sh` skips every script there. A kernel
+  whose config cannot be read runs them.
 
 Optional tools, without which the suites that need them skip:
 
