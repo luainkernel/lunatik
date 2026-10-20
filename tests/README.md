@@ -1084,31 +1084,57 @@ interpreter raises, the compiled program owes its default verdict instead.
   expose, `iphdr`'s whole-byte members, its bitfields and its anonymous union
   absent from the layout though the dump names them, and a struct the kernel
   does not publish raising a message that names it.
-- **ctx**: an XDP program reads `ctx:ingress()` and `ctx:queue()`, the
-  kernel's XDP ctx object's spelling, and answers
-  what `prog run` was told to build the context from, the body having written
-  those bytes at the offsets `luaebpf.vmlinux` reports; a field read or
-  assigned, `ctx.ingress_ifindex` and `ctx.rx_queue_index` among them, a field
-  the struct does not carry, and `ctx.data` are refused with their messages and
-  lines.
+- **ctx**: one program file declares both kinds, so the object carries an `xdp`,
+  a `tcx/ingress` and a `tcx/egress` section and `loadall` reads each program's
+  type off the section it sits in, the egress one answering `#skb` as the
+  ingress one does. The XDP programs read `ctx:ingress()` and `ctx:queue()`,
+  the kernel's XDP ctx object's spelling, and the TC
+  ones `#skb`, `skb:ifindex()`, `skb:hash()` and `skb:priority()`, the kernel's
+  skb object's, each answering what `prog run` was told to build the context
+  from, the hash 0 since `prog run` sets none, the body having written those
+  bytes at the offsets `luaebpf.vmlinux` reports; `skb:priority(v)`, of a
+  constant, of `U32_MAX` and of a value computed from `#skb` with the field's
+  top bit set, answers `v` back through the kernel's own context, the constant
+  in `ctx_out` too, and a value the program computes past 32 bits or below zero
+  takes the default verdict and leaves `ctx_out` with the priority it was
+  given. A field read or assigned on either context, `ctx.ingress_ifindex`,
+  `ctx.rx_queue_index`, `skb.len` and `skb.priority` among them, `#` on an XDP
+  context, `ingress_ifindex`, which the kernel's skb object does not carry, a
+  field the struct does not carry, `skb:priority` given a boolean and a
+  constant past 32 bits or below zero, `ctx.data`, `ctx:data()` on XDP and
+  `skb:packet()` on TC, each the other's name for the packet, and
+  `skb:data("net")`, a layer no compiled read reaches yet, are refused with
+  their messages and lines.
 - **packet**: every accessor the kernel's `data` object publishes, `#`, an
   offset an earlier read computed, a read inside `examples/common/sni.lua`'s
   `u16` helper and an accessor asked for two results, where Lua fills the second
-  with nil, each over the five packets of `packets.lua`, against the interpreted
-  twin reading the same bytes with `string.unpack`; a method neither proxy has,
-  `getuint64` among them, is refused by name, and so is an accessor called
-  without an offset or with one that is not a number, and a function an earlier
-  call compiled for a number that a later one hands a packet. A read wider than
-  a byte is refused, and a byte read is not, where the kernel lacks efficient
-  unaligned access: the program file's body sets `luaebpf.emit.unaligned` to the
-  answer such a kernel gives, since the suite runs on x86 and arm64, which
-  always have it.
+  with nil, each over the five packets of `packets.lua` through `ctx:packet()`
+  and through `skb:data()`, against the interpreted twin reading the same
+  bytes with `string.unpack`; a method neither proxy has, `getuint64` among
+  them, is refused by name, and so is an accessor called without an offset or
+  with one that is not a number, and a function an earlier call compiled for a
+  number that a later one hands a packet. A read wider than a byte is refused,
+  and a byte read is not, where the kernel lacks efficient unaligned access:
+  the program file's body sets `luaebpf.emit.unaligned` to the answer such a
+  kernel gives, since the suite runs on x86 and arm64, which always have it.
 - **bounds**: a read one byte past the last, one above the offset ceiling, one
   that lands in the whole ClientHello but past the truncated one, and one at a
-  negative offset the program computed, each declared under either default so
-  the answer is the verdict the file asked for; with `LUAEBPF_DROP=bounds` the
-  object is still written and the verifier refuses it naming an invalid packet
-  access.
+  negative offset the program computed, each through `ctx:packet()` and through
+  `skb:data()` and declared under either default so the answer is the verdict
+  the file asked for; with `LUAEBPF_DROP=bounds` the object is still written and
+  the verifier refuses it naming an invalid packet access.
+- **nonlinear**: `skb:data()` on an skb that is not linear, which `prog run`
+  builds only from v6.19: the TC program is attached with `tc` to the egress of
+  a veth pair whose peer sits in a namespace, lets a packet shorter than 1024
+  bytes out, and opens `skb:data()` on a longer one and drops it, its default
+  verdict letting the packet out. A short ping is answered and a long one,
+  which `ip_append_data` builds linear, is dropped; a TCP segment carrying 1024
+  bytes, whose payload `tcp_sendmsg` keeps in page fragments, reaches the
+  listener, the default verdict taken at `skb:data()`, where the kernel's
+  `skb:data()` raises in a tc callback. The same program attached at the host
+  side's ingress, in a run of its own, answers the pings and the segment the
+  namespace sends the host the same way. Skips the device cases without `socat`
+  or `tc`.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind; a verdict that may be nil, which a register

@@ -2,21 +2,24 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- The rows a corpus case's program file declares (see common.sh): each is handed to
--- xdp.program, and what the CLI's Lua answers for it is written beside the object, which the
--- case compares against what the compiled program returns. A program file's body requires it,
--- so it installs with the kernel scripts and loads through lunatic, which makes that answer the
--- one the kernel computes; nothing runs it in the kernel.
+-- The rows a corpus case's program file declares (see common.sh): each is handed to the
+-- constructor its context's program type takes, xdp.program where it names no context, and what
+-- the CLI's Lua answers for it is written beside the object, which the case compares against
+-- what the compiled program returns. A program file's body requires it, so it installs with the
+-- kernel scripts and loads through lunatic, which makes that answer the one the kernel computes;
+-- nothing runs it in the kernel.
 
 local class   = require("class")
 local vmlinux = require("luaebpf.vmlinux")
 local packets = require("tests.luaebpf.packets")
 local xdp     = require("bpf.xdp")
+local tc      = require("bpf.tc")
 
 local pack, unpack = string.pack, string.unpack
 local tabunpack    = table.unpack
 
 local VERDICT  <const> = 0xffffffff -- the 32 bits bpf_prog_run returns
+local U32MAX   <const> = 0xffffffff -- the largest value luaskb_integer stores
 local ORACLE   <const> = "oracle.txt"
 local LOOPBACK <const> = 1
 local QUEUE    <const> = 0
@@ -33,6 +36,9 @@ local packet = class{}
 -- what a twin is called and what it carries, kept outside it so that a kernel context struct may
 -- have a member of any name
 local states = setmetatable({}, {__mode = "k"})
+
+-- the program type whose context each struct is
+local constructors = {xdp_md = xdp.program, __sk_buff = tc.program}
 
 local function read(self, format, at)
 	if at < 0 then
@@ -70,6 +76,39 @@ function context:packet()
 	return states[self].packet
 end
 
+-- the skb the interpreted side is handed, spelled as the kernel's skb object (lib/luaskb.c), over
+-- the fields prog run was given, and the packet behind :data()
+local skb = class{}
+
+function skb.__len(self)
+	return states[self].fields.len
+end
+
+function skb:ifindex()
+	return states[self].fields.ifindex
+end
+
+-- convert___skb_to_skb refuses a ctx_in that sets the hash, and the skb prog run builds has none
+function skb:hash()
+	return 0
+end
+
+-- luaskb_integer: a value is stored, within the 32 bits the field has, and the field is returned
+function skb:priority(value)
+	local fields = states[self].fields
+	if value ~= nil then
+		if value < 0 or value > U32MAX then
+			error("out of bounds", 0)
+		end
+		fields.priority = value
+	end
+	return fields.priority
+end
+
+function skb:data()
+	return states[self].packet
+end
+
 local function write(path, bytes)
 	local file = assert(io.open(path, "wb"))
 	file:write(bytes)
@@ -102,8 +141,16 @@ function corpus.context(name, what, fields, bytes)
 	end
 	write(name .. ".ctx", contextbytes(what, fields))
 	write(name .. ".bin", bytes)
-	local twin = context:new()
-	states[twin] = {name = name, packet = packet:new{bytes = bytes}, fields = fields}
+	local twin
+	if what == "__sk_buff" then
+		-- convert___skb_to_skb refuses a non-zero __sk_buff.len and sizes skb->len from the packet
+		fields.len = #bytes
+		twin = skb:new()
+	else
+		twin = context:new()
+	end
+	states[twin] = {name = name, packet = packet:new{bytes = bytes}, program = constructors[what],
+		fields = fields}
 	return twin
 end
 
@@ -114,13 +161,28 @@ local function loopback(name, bytes)
 	return corpus.context(name, "xdp_md", {ingress_ifindex = LOOPBACK, rx_queue_index = QUEUE}, bytes)
 end
 
--- every packet of packets.lua behind an XDP context of its own, by the packet's name
-function corpus.packets()
+-- a TC context over a packet, which prog run builds on loopback when ctx_in names no device
+local function sched(name, bytes)
+	return corpus.context("skb" .. name, "__sk_buff", {}, bytes)
+end
+
+-- every packet of packets.lua behind a context of its own, by the packet's name
+local function bypacket(build)
 	local contexts = {}
 	for _, name in ipairs(packets.order) do
-		contexts[name] = loopback(name, packets[name])
+		contexts[name] = build(name, packets[name])
 	end
 	return contexts
+end
+
+-- the corpus behind XDP contexts
+function corpus.packets()
+	return bypacket(loopback)
+end
+
+-- the corpus behind TC contexts
+function corpus.skbpackets()
+	return bypacket(sched)
 end
 
 local function answer(ok, value)
@@ -138,7 +200,8 @@ function corpus.new()
 end
 
 function rows:declare(name, fn, default, ctx)
-	local program = xdp.program(fn, {name = name, default = default})
+	local declare = ctx ~= nil and states[ctx].program or xdp.program
+	local program = declare(fn, {name = name, default = default})
 	self.out:write(name, "\t", answer(pcall(fn, ctx or 0)), "\t", program.default, "\t",
 		ctx ~= nil and states[ctx].name or "", "\n")
 end

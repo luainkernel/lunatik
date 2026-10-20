@@ -142,10 +142,10 @@ lunatik bpf filter.bpf.lua
 sudo bpftool prog load filter.bpf.o /sys/fs/bpf/filter type xdp
 ```
 
-`require` in the body finds the compile-time modules first, `bpf.xdp`, then the compiler's own
-`luaebpf` modules, then `/lib/modules/lua/`, whose modules `lunatic` compiles as it does the
-program file, installed as source or, with `BYTECODE=1`, as chunks. It finds nothing else the CLI's
-Lua would, so a Lua or C module the host installs never stands in for a kernel script. `10 / 4` is
-`2` in the body as in the kernel; the CLI's libraries can still return a float, as `math.sqrt`
-does, and one reaching a compiled function is refused at the line that reaches it.
+`require` in the body finds the compile-time modules first, `bpf.xdp` and `bpf.tc`, then the
+compiler's own `luaebpf` modules, then `/lib/modules/lua/`, whose modules `lunatic` compiles as it
+does the program file, installed as source or, with `BYTECODE=1`, as chunks. It finds nothing else
+the CLI's Lua would, so a Lua or C module the host installs never stands in for a kernel script.
+`10 / 4` is `2` in the body as in the kernel; the CLI's libraries can still return a float, as
+`math.sqrt` does, and one reaching a compiled function is refused at the line that reaches it.
 

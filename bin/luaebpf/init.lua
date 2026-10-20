@@ -33,7 +33,6 @@ local concat = table.concat
 local format = string.format
 local getenv = os.getenv
 
-local SECTION <const> = "xdp"
 local TEXT    <const> = ".text"
 local LICENSE <const> = "Dual MIT/GPL"
 local DROP    <const> = "LUAEBPF_DROP"
@@ -99,10 +98,21 @@ local function lineinfo(types, frame, at, cache)
 	return records
 end
 
--- one blob per ELF section: the program entries in "xdp", every subprogram in ".text", which
--- is where libbpf resolves a call relocation
+-- one blob per ELF section: a program's entry in the section its kind names, which is how
+-- libbpf reads the program type back, and every subprogram in ".text", where libbpf resolves a
+-- call relocation
 local function blob(name)
 	return {name = name, code = {}, funcs = {}, lines = {}, relocations = {}, at = 0}
+end
+
+local function section(units, sections, name)
+	local unit = sections[name]
+	if unit == nil then
+		unit = blob(name)
+		sections[name] = unit
+		insert(units, unit)
+	end
+	return unit
 end
 
 local function place(types, unit, frame, cache, subprograms)
@@ -129,23 +139,25 @@ end
 
 local function write(declared, hook)
 	local object, types, cache = elf.new(), btf.new(), {}
-	local entries, text = blob(SECTION), blob(TEXT)
+	local text = blob(TEXT)
+	local units, sections = {text}, {}
 	local names, subprograms, order = {}, {}, {}
 	for _, program in ipairs(declared) do
 		program.drop = hook
 		program.names = names
+		local entries = section(units, sections, program.section)
 		for i, frame in ipairs(emit.program(program)) do
 			local unit = i == 1 and entries or text
 			local at = place(types, unit, frame, cache, subprograms)
 			if i == 1 then
-				insert(order, {name = frame.name, section = SECTION, value = at,
+				insert(order, {name = frame.name, section = program.section, value = at,
 					size = frame.code:len() * insn.SIZE, bind = elf.bind.GLOBAL})
 			end
 		end
 	end
 
 	local indexes = {}
-	for _, unit in ipairs({text, entries}) do
+	for _, unit in ipairs(units) do
 		if unit.at > 0 then
 			object:section{name = unit.name, type = elf.section.PROGBITS,
 				flags = elf.flags.ALLOC | elf.flags.EXEC, data = concat(unit.code), align = 8}
@@ -157,7 +169,7 @@ local function write(declared, hook)
 	for _, entry in ipairs(order) do
 		object:symbol(entry)
 	end
-	for _, unit in ipairs({text, entries}) do
+	for _, unit in ipairs(units) do
 		local records = {}
 		for _, call in ipairs(unit.relocations) do
 			insert(records, {at = call.at, symbol = indexes[call.name]})
@@ -169,14 +181,14 @@ local function write(declared, hook)
 
 	object:section{name = "license", type = elf.section.PROGBITS, flags = elf.flags.ALLOC |
 		elf.flags.WRITE, data = LICENSE .. "\0", align = 1}
-	local sections = {}
-	for _, unit in ipairs({entries, text}) do
+	local described = {}
+	for _, unit in ipairs(units) do
 		if unit.at > 0 then
-			insert(sections, {name = unit.name, funcs = unit.funcs,
+			insert(described, {name = unit.name, funcs = unit.funcs,
 				lines = hook ~= "lineinfo" and unit.lines or {}})
 		end
 	end
-	local ext = types:ext(sections) -- it interns the section names in .BTF's strings, so before pack
+	local ext = types:ext(described) -- it interns the section names in .BTF's strings, so before pack
 	btfsection(object, ".BTF", types:pack())
 	btfsection(object, ".BTF.ext", ext)
 	return object:pack()

@@ -3,12 +3,14 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Tests the packet proxy: ctx:packet() and the reads the kernel's own data object publishes.
+# Tests the packet proxy: ctx:packet() and skb:data(), and the reads the kernel's own data
+# object publishes.
 #   - every accessor of lib/luadata.c -- getbyte, getuint8, getint8, getuint16, getint16,
-#     getuint32, getint32 and getint64 -- over every packet of the corpus, against
-#     the interpreted twin reading the same bytes with string.unpack. A wrong width, offset or
-#     sign extension changes the number; the offset is the source address, whose first byte has
-#     its high bit set, so the signed rows have something to extend
+#     getuint32, getint32 and getint64 -- over every packet of the corpus, behind an XDP and a TC
+#     context, whose bounds sit at different offsets, against the interpreted twin reading the
+#     same bytes with string.unpack. A wrong width, offset or sign extension changes the number;
+#     the offset is the source address, whose first byte has its high bit set, so the signed rows
+#     have something to extend
 #   - '#' on the packet, which is the distance between the context's two bounds and must equal
 #     the bytes prog run was handed
 #   - an accessor at an offset an earlier read computed, so the bound on a computed offset is

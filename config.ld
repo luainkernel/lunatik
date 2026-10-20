@@ -21,6 +21,7 @@ sort_modules = true
 file = {
 	'./lib/luabpf.c',
 	'./lib/bpf/map.lua',
+	'./bin/luaebpf/lib/bpf/tc.lua',
 	'./bin/luaebpf/lib/bpf/xdp.lua',
 	'./lib/luabyteorder.c',
 	'./common/class.lua',

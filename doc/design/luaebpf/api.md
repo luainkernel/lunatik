@@ -119,8 +119,20 @@ register argument, and why a compiled function takes four of its own. This is th
 analogue of what the trampoline does today, where a raising callback makes the kfunc return `-1`
 and the stub falls back.
 
-TC programs get `skb`, a proxy over the `__sk_buff` fields (`hash`, `priority` writable,
-`ifindex`, `len`) and `skb:packet()`.
+TC programs get `skb`, a proxy spelled as the kernel's `skb` object a TC callback reaches through
+`ctx:skb()`: `#skb` is the packet's length, `skb:ifindex()` its device's index, `skb:hash()` the
+flow hash the skb carries as it stands, and `skb:priority()` its priority, which
+`skb:priority(v)` sets and answers, the one `__sk_buff` field of the four the kernel lets a
+program write. The kernel object takes a priority from 0 up to `U32_MAX` and raises outside them,
+so a value the compiler holds outside them is refused at its line and one the program computes
+takes the default verdict. The object has methods and no fields, so a field read or assigned is
+refused, and `__sk_buff`'s `ingress_ifindex`, which it does not carry, is refused too.
+`skb:data()` is the packet from `skb->data`, which in a TC program is the MAC header, and
+`skb:data("net")` and `skb:data("mac")`, the views the kernel object starts at a header, are
+refused until a compiled read reaches one. In a tc callback the kernel object raises on an skb
+that is not linear, one whose `len` runs past `data_end`, so a compiled `skb:data()` takes the
+default verdict on it. `tc.program(fn, {egress = true})` puts the entry in `tcx/egress` rather
+than `tcx/ingress`, which is how libbpf reads the attach point back.
 
 ## Maps
 
@@ -136,9 +148,9 @@ same names, and it produces BTF-defined maps in the object instead of opening pi
 a compiled function a map is a table proxy with `bpf.map`'s semantics: indexing looks up,
 assignment updates, assigning `nil` deletes.
 
-    local cached = flows[skb.hash]
+    local cached = flows[key]
     if cached then
-        skb.priority = cached
+        skb:priority(cached)
         return action.OK
     end
 
@@ -175,13 +187,14 @@ The escape hatch is a call the program writes, at the point it chooses:
     end
 
     return tc.program(function(skb)
-        local cached = flows[skb.hash]
+        local hash   = skb:hash()
+        local cached = flows[hash]
         if cached then
-            skb.priority = cached
+            skb:priority(cached)
             return action.OK
         end
 
-        local packet = skb:packet()
+        local packet = skb:data()
         local ihl    = (packet:getbyte(14) & 0x0f) * 4
         local tcp    = 14 + ihl
         if packet:getbyte(23) ~= 6 or u16(packet, tcp + 2) ~= HTTPS or packet:getbyte(tcp + 13) & 0x08 == 0 then
@@ -193,11 +206,12 @@ The escape hatch is a call the program writes, at the point it chooses:
         if verdict == nil then
             return action.OK
         end
-        flows[skb.hash] = skb.priority
+        flows[hash] = skb:priority()
         return verdict
     end)
 
-That is `examples/sniclassify/classify.c`, in Lua. `tc.runtime(name)` names a kernel runtime by
+That is `examples/sniclassify/classify.c` in Lua, its cache keyed per flow by `skb->hash` as the C
+is. `tc.runtime(name)` names a kernel runtime by
 the key the kfunc looks up, defaulting to the script this program file belongs to; the call
 lowers to `bpf_luatc_run(key, key__sz, skb, &args, sizeof(args))`, with each argument packed as
 a native 64-bit integer in order. The kernel side is what it is today: `tc.attach(callback)`,
@@ -244,7 +258,7 @@ deployment, and goes on the command line, as it does with `bpftool net attach` t
 | Module | Program type | Context | Verdicts | Default |
 |--------|-------------|---------|----------|---------|
 | `bpf.xdp` | `BPF_PROG_TYPE_XDP` | `ctx` with `ctx:packet()` | `linux.xdp.action` | `PASS` |
-| `bpf.tc` | `BPF_PROG_TYPE_SCHED_CLS`, tcx ingress or egress | `skb` with `skb:packet()` | `linux.tc.action` | `OK` |
+| `bpf.tc` | `BPF_PROG_TYPE_SCHED_CLS`, tcx ingress or egress | `skb` with `skb:data()` | `linux.tc.action` | `OK` |
 | `bpf.lsm` | `BPF_PROG_TYPE_LSM` on a named hook | the hook's arguments as struct views | `0` or `-linux.errno.*` | `0` |
 | `bpf.cgroup` | `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` | `sock_addr` view | as `lsm`, translated to 1/0 by the emitter | allow |
 
