@@ -32,7 +32,7 @@
 */
 
 #ifdef LUNATIK_RUNTIME
-lunatik_object_t *lunatik_env;
+lunatik_object_t __rcu *lunatik_env;
 EXPORT_SYMBOL(lunatik_env);
 struct task_struct *lunatik_rtnl;	/* one task holds RTNL at a time */
 EXPORT_SYMBOL(lunatik_rtnl);
@@ -347,6 +347,20 @@ static void lunatik_guardio(lua_State *L)
 	lua_pop(L, 1); /* preload table */
 }
 
+static void lunatik_setenv(lua_State *L)
+{
+	lunatik_value_t env = {.type = LUA_TUSERDATA};
+
+	rcu_read_lock();
+	if ((env.object = rcu_dereference(lunatik_env)) != NULL)
+		lunatik_getobject(env.object); /* lunatik_run drops its own a grace period after it clears the pointer */
+	rcu_read_unlock();
+	if (env.object != NULL) {
+		lunatik_pushvalue(L, &env);
+		lua_setfield(L, -2, "_ENV");
+	}
+}
+
 static int lunatik_runscript(lua_State *L)
 {
 	const char *script = lua_pushfstring(L, "%s%s.lua", LUA_ROOT, lua_touserdata(L, 1));
@@ -367,10 +381,7 @@ static int lunatik_runscript(lua_State *L)
 		luaL_requiref(L, "lunatik", luaopen_lunatik_stub, 0);
 	}
 
-	if (lunatik_env != NULL) {
-		lunatik_pushobject(L, lunatik_env);
-		lua_setfield(L, -2, "_ENV");
-	}
+	lunatik_setenv(L);
 	lua_pop(L, 1); /* lunatik library */
 
 	if (lunatik_loadfile(L, script, NULL) != LUA_OK)

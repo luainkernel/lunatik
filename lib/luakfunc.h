@@ -15,11 +15,14 @@ static inline lunatik_object_t *luakfunc_getruntimes(void)
 {
 	static const char runtimes_key[] = "runtimes";
 	lunatik_object_t *runtimes = READ_ONCE(luakfunc_runtimes);
-	lunatik_object_t *env = READ_ONCE(lunatik_env);
+	lunatik_object_t *env;
 
-	if (runtimes != NULL || env == NULL)
+	if (runtimes != NULL)
 		return runtimes;
-	runtimes = luarcu_getobject(env, runtimes_key, sizeof(runtimes_key) - 1);
+	rcu_read_lock();
+	if ((env = rcu_dereference(lunatik_env)) != NULL)
+		runtimes = luarcu_getobject(env, runtimes_key, sizeof(runtimes_key) - 1);
+	rcu_read_unlock();
 	if (runtimes != NULL && cmpxchg(&luakfunc_runtimes, NULL, runtimes) != NULL)
 		lunatik_putobject(runtimes); /* another CPU cached the table first */
 	return READ_ONCE(luakfunc_runtimes);
