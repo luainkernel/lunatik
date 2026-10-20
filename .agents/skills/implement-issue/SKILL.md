@@ -65,9 +65,11 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   opens an issue with its `severity:` label, or goes under an `Update:` line into the open issue it
   names as its home or reports again. It posts nothing on a pull request, and skips, `skipped` in
   `filed`, what the branch fixed after the entry was written, a review's commit or a fix's, and a host
-  failure a fix read as fixed by an open pull request. What it neither filed nor skipped comes
-  back as `unfiled`, beside the numbers of the issues that hold what it filed, and the hand-back carries
-  the three, since a wrong skip is a finding no issue holds.
+  failure a fix read as fixed by an open pull request. An entry is filed once the issue read back from
+  GitHub holds it, since #1450's run named #1937 updated where a guard had refused the edit. What it
+  neither filed nor skipped comes back as `unfiled`, with the refusal in the log, beside the numbers of
+  the issues that hold what it filed, and the hand-back carries the three, since a wrong skip is a
+  finding no issue holds.
 - A dead run is resumed as the review-pr card says, from `journal.jsonl` and `resumeFromRunId`; the
   implementer's checkpoint is `<scratch>/issue<N>/IMPLEMENT.md`, the filing stage's `FILED.md` beside
   it, which is what keeps a relaunch from filing an entry twice, and the review's its own.
