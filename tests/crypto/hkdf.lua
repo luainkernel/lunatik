@@ -5,8 +5,12 @@
 
 local new = require("crypto.hkdf").new
 local util = require("util")
-local test = require("tests.lib").test
+local lib = require("tests.lib")
+local test = lib.test
 local hex2bin = util.hex2bin
+
+-- the hmac(sha256) the cases allocate, before they run, so run.sh skips the test where the kernel lacks it
+lib.alloc(new, "sha256")
 
 test("HKDF test vectors from RFC 5869, Appendix A", function()
 	local h = new"sha256"

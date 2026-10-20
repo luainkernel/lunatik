@@ -6,8 +6,13 @@
 local shash = require("crypto").shash
 local util = require("util")
 local closing = require("tests.crypto.closing")
-local test = require("tests.lib").test
+local lib = require("tests.lib")
+local test = lib.test
 local hex2bin = util.hex2bin
+
+-- the algorithms the cases allocate, before they run, so run.sh skips the test where the kernel lacks one
+lib.alloc(shash, "sha256")
+lib.alloc(shash, "hmac(sha256)")
 
 test("crypto.shash and digestsize", function()
 	local hasher = shash("sha256")

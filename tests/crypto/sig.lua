@@ -40,7 +40,7 @@ local RSASIGNATURE <const> = hex2bin(
 	"3bb96095125f227e6237672e3cb8206c292203ebc63a0d631a289499ce948b38a52658e60ed5242ab782a4cd9faa0be9" ..
 	"d830da68ef7f234d93ee6c6e72afd036")
 local MESSAGE <const> = "The quick brown fox jumps over the lazy dog"
-local RSADIGEST <const> = crypto.shash("sha256"):digest(MESSAGE)
+local RSADIGEST <const> = lib.alloc(crypto.shash, "sha256"):digest(MESSAGE)
 
 local MAXLEN <const> = 65535 -- the length verify bounds each string to
 local RSAMAXSIZE <const> = 256 -- the key's size, as the kernel gives it for RSA

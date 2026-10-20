@@ -9,7 +9,8 @@ local fifo    = require("fifo")
 local crypto  = require("crypto")
 local device  = require("device")
 local stat    = require("linux.stat")
-local test    = require("tests.lib").test
+local lib     = require("tests.lib")
+local test    = lib.test
 
 local RUNTIME <const> = "tests/runtime/resume_shared_recv"
 local BODY    <const> = "tests/runtime/my_body"
@@ -19,6 +20,8 @@ local function empty()
 	return ""
 end
 
+-- allocated before the objects the closes take, so foreign_checker.sh skips the case where the kernel lacks it
+local digest = lib.alloc(crypto.shash, "sha256")
 local spawned = lunatik._ENV.threads[BODY]
 local driver = {name = DEVICE, mode = stat.IRUGO, read = empty}
 local dev = device.new(driver)
@@ -41,7 +44,6 @@ for _, close in ipairs(closes) do
 	end
 end
 
-local digest = crypto.shash("sha256")
 do
 	local scoped <close> = digest
 end
