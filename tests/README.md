@@ -979,8 +979,8 @@ the `util` module to its documentation on that Lua's stack.
 Tests for the Lua to eBPF compiler. Each case compiles a program file with
 `lunatik bpf`, loads what it emits on the running kernel and runs it with
 `bpftool prog run`; the object and the pins are removed in a `trap` that also
-runs once up front. Skips when `lunatic` or `bpftool` is missing, or when
-`/sys/fs/bpf` is not mounted.
+runs once up front. Skips when `lunatic` or `bpftool` is missing, when
+`/sys/fs/bpf` is not mounted, or when the kernel publishes no BTF.
 
 Every corpus case is differential: the program file's body calls the same
 functions it hands to `xdp.program` on the host and writes what each returned
@@ -1056,6 +1056,12 @@ interpreter raises, the compiled program owes its default verdict instead.
   `FUNC` per subprogram; five arguments, since the fifth register carries the
   abort pointer, a call short of an argument the callee declares, and
   recursion refused with their lines.
+- **btfview**: `luaebpf.vmlinux` against `bpftool btf dump file
+  /sys/kernel/btf/vmlinux format raw`: the size of `xdp_md` and `__sk_buff` and
+  the byte offset and four-byte width of every field the context proxies
+  expose, `iphdr`'s whole-byte members, its bitfields and its anonymous union
+  absent from the layout though the dump names them, and a struct the kernel
+  does not publish raising a message that names it.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind; a verdict that may be nil, which a register

@@ -44,6 +44,7 @@ file = {
 	'./lib/lualinux.c',
 	'./lib/linux',
 	'./bin/luaebpf/init.lua',
+	'./bin/luaebpf/vmlinux.lua',
 	'./lunatik_core.c',
 	'./lunatik_percpu.c',
 	'./lib/lunatik/runner.lua',
