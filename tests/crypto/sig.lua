@@ -7,9 +7,10 @@
 local crypto  = require("crypto")
 local util    = require("util")
 local closing = require("tests.crypto.closing")
-local test    = require("tests.lib").test
+local lib     = require("tests.lib")
 
 local sig     = crypto.sig
+local test    = lib.test
 local hex2bin = util.hex2bin
 local char    = string.char
 local rep     = string.rep
@@ -57,7 +58,7 @@ local function new(name, older)
 		return verifier, name
 	end
 	assert(verifier == "ENOENT", name .. " raised " .. tostring(verifier))
-	return sig(older), older
+	return lib.alloc(sig, older), older
 end
 
 local function ecdsa()
@@ -67,6 +68,10 @@ end
 local function rsa()
 	return new("pkcs1(rsa,sha256)", "pkcs1pad(rsa,sha256)")
 end
+
+-- the verifiers the cases allocate, before they run, so run.sh skips the test where the kernel lacks one
+ecdsa()
+rsa()
 
 local function flip(s, i)
 	return s:sub(1, i - 1) .. char(s:byte(i) ~ 1) .. s:sub(i + 1)

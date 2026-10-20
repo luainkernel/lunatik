@@ -142,8 +142,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   `ENOKEY` from `maxsize` and `verify` before its key and after a truncated one,
   where `rsa_max_size` would dereference a NULL modulus, takes the key, reports 256
   and raises `ENOSYS` from `verify`; where the verifier is `pkcs1` it is `ENOENT`.
-  An unknown name is `ENOENT`. Skipped where the kernel builds no
-  `CONFIG_CRYPTO_ECDSA` or no `CONFIG_CRYPTO_RSA`.
+  An unknown name is `ENOENT`. Skipped where the kernel serves neither name of
+  the ECDSA or of the RSA verifier, which the script allocates before its cases.
 - **hkdf**: `hkdf` matches the SHA-256 vectors of RFC 5869, `extract` without
   a salt matches it with an empty one, and `extract` and `expand` match the
   client initial secret, key and IV of the QUIC worked example at
