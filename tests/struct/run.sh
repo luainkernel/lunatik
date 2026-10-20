@@ -5,7 +5,8 @@
 #
 # Tests for the struct library: format derivation from a layout descriptor
 # (inter-field padding, signed fields, trailing pad, out-of-order fields),
-# the pack/unpack round-trip, and the overlapping-fields (union) guard.
+# the codec's fields in offset order, the pack/unpack round-trip, and the
+# overlapping-fields (union) guard.
 #
 # Usage: sudo bash tests/struct/test.sh
 
