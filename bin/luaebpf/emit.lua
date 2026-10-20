@@ -45,11 +45,12 @@ local MAYGOTO  <const> = 6 << 16 | 9 << 8 -- KERNEL_VERSION(6, 9, 0): v6.9 and l
 
 -- the words every frame reserves: the flag a callee raises through the pointer its caller
 -- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
--- the key a map helper is handed by address
-local RESERVED <const> = 3
+-- the key and the value a map helper is handed by address
+local RESERVED <const> = 4
 local ABORTED  <const> = -SLOT
 local CALLER   <const> = -SLOT * 2
 local KEY      <const> = -SLOT * 3
+local VALUE    <const> = -SLOT * 4
 
 -- what a Lua register may hold; OTHER is a value the compiler knows and the kernel never sees
 local INT     <const> = 1
@@ -529,13 +530,18 @@ end
 --- @section maps
 
 local LOOKUP <const> = 1 -- BPF_FUNC_map_lookup_elem
+local UPDATE <const> = 2 -- BPF_FUNC_map_update_elem
+local DELETE <const> = 3 -- BPF_FUNC_map_delete_elem
+local ANY    <const> = 0 -- BPF_ANY, the flags an unconditional update takes
+local ENOENT <const> = -2 -- what a delete of a key the map does not hold answers
 
 -- a map holds what its spec packs, and a compiled function has only numbers to pack
 local function mapnumber(f, pc, what)
 	refuse(f, pc, "a map %s is a number here", what)
 end
 
--- the kernel's bpf.map packs a key with string.pack, which raises on one outside its spec
+-- the kernel's bpf.map packs a key and a value with string.pack, which raises on one outside
+-- its spec
 local function packable(f, pc, spec, what, value)
 	if not pcall(pack, spec.format, value) then
 		refuse(f, pc, "the map %s %d does not fit '%s'", what, value, spec.format)
@@ -557,7 +563,8 @@ local function fits(f, src, spec)
 	code:branch(jump.JNE, reg.R5, src, abort(f))
 end
 
--- the register a key is in, held to its spec: at compile time when the compiler holds the value
+-- the register a key or a value is in, held to its spec: at compile time when the compiler
+-- holds it
 local function packed(f, pc, state, i, spec, what, scratch)
 	local value = state[i]
 	if not isinteger(value) then
@@ -572,23 +579,76 @@ local function packed(f, pc, state, i, spec, what, scratch)
 	return src
 end
 
--- The helper takes the key by address, so it goes to the slot the frame reserves for it, zeroed
--- first because a key narrower than a word leaves the rest of the slot to whatever was there.
--- Lua registers live in R6-R9 and the frame, so the call clobbers nothing live.
-local function maplookup(f, ins, state, map, key)
+-- a helper takes the key and the value by address, so each goes to the slot its frame reserves,
+-- zeroed first because one narrower than a word leaves the rest of the slot to what was there
+local function mapslot(f, at, src, size)
+	f.code:storei(reg.FP, at, 0)
+	f.code:store(reg.FP, at, src, size)
+end
+
+-- the map in R1 and the key's address in R2, where every map helper wants them. Lua registers
+-- live in R6-R9 and the frame, so the call clobbers nothing live.
+local function maphelper(f, map)
 	local code = f.code
-	code:storei(reg.FP, KEY, 0)
-	code:store(reg.FP, KEY, key, map.key.size)
+	code:map(reg.R1, map.name)
 	code:alu(alu.MOV, reg.R2, reg.FP)
 	code:alui(alu.ADD, reg.R2, KEY)
-	code:map(reg.R1, map.name)
-	code:helper(LOOKUP)
+end
+
+local function maplookup(f, ins, state, map, key)
+	mapslot(f, KEY, key, map.key.size)
+	maphelper(f, map)
+	f.code:helper(LOOKUP)
 	setreg(f, ins.a, reg.R0)
 	state[ins.a] = {t = MAYBE, map = map, name = map.name}
 end
 
 local function mapread(f, pc, ins, state, map)
 	maplookup(f, ins, state, map, packed(f, pc, state, ins.c, map.key, "key", reg.R3))
+end
+
+-- the value a store writes, held to the map's spec, or nil for the assignment that deletes the entry
+local function stored(f, pc, ins, state, map)
+	if ins.k then
+		local held = constant(f, pc, ins.c)
+		if held == nil then
+			return nil
+		end
+		if mathtype(held) ~= "integer" then
+			mapnumber(f, pc, "value")
+		end
+		packable(f, pc, map.value, "value", held)
+		f.code:set(reg.R4, held)
+		return reg.R4
+	end
+	local held = state[ins.c]
+	if held ~= nil and held.t == NIL then
+		return nil
+	end
+	return packed(f, pc, state, ins.c, map.value, "value", reg.R4)
+end
+
+local function mapstore(f, pc, ins, state, map, key)
+	local code = f.code
+	local value = stored(f, pc, ins, state, map)
+	mapslot(f, KEY, key, map.key.size)
+	if value == nil then
+		local absent = code:label()
+		maphelper(f, map)
+		code:helper(DELETE)
+		-- the kernel's bpf.map raises on any delete the map refuses but an absent key's (luabpf_map_checkret)
+		code:branchi(jump.JEQ, reg.R0, ENOENT, absent)
+		code:branchi(jump.JNE, reg.R0, 0, abort(f))
+		code:place(absent)
+		return
+	end
+	mapslot(f, VALUE, value, map.value.size)
+	maphelper(f, map)
+	code:alu(alu.MOV, reg.R3, reg.FP)
+	code:alui(alu.ADD, reg.R3, VALUE)
+	code:set(reg.R4, ANY)
+	code:helper(UPDATE)
+	code:branchi(jump.JNE, reg.R0, 0, abort(f)) -- the kernel's bpf.map raises on an update the map refuses
 end
 
 -- the map a lookup came from, or the refusal for a register two lookups merged into: a join
@@ -598,6 +658,15 @@ local function mapfrom(f, pc, value)
 		refuse(f, pc, "a map value here comes from more than one map")
 	end
 	return value.map
+end
+
+-- the map a write names, or the refusal for a table that is not one
+local function mapof(f, pc, state, i)
+	local container = state[i]
+	if container == nil or not maps.declares(container.k) then
+		refuse(f, pc, "a table cannot be written in a compiled function")
+	end
+	return container.k
 end
 
 -- the value behind a pointer the program has just found non-null, which is the only place the
@@ -729,10 +798,31 @@ end
 
 function ops.SETFIELD(f, pc, ins, state)
 	local container = state[ins.a]
-	if container == nil or container.t ~= CTX then
-		refuse(f, pc, "a table cannot be written in a compiled function")
+	if container ~= nil and container.t == CTX then
+		return contextfield(f, pc, tostring(constant(f, pc, ins.b)))
 	end
-	contextfield(f, pc, tostring(constant(f, pc, ins.b)))
+	mapof(f, pc, state, ins.a)
+	mapnumber(f, pc, "key")
+end
+
+-- a global is a field of the _ENV upvalue, and so is any other upvalue table's
+function ops.SETTABUP(f, pc, ins, _)
+	if maps.declares((upvalue(f, pc, ins.a))) then
+		mapnumber(f, pc, "key")
+	end
+	refuse(f, pc, "a global cannot be assigned in a compiled function")
+end
+
+function ops.SETTABLE(f, pc, ins, state)
+	local map = mapof(f, pc, state, ins.a)
+	mapstore(f, pc, ins, state, map, packed(f, pc, state, ins.b, map.key, "key", reg.R3))
+end
+
+function ops.SETI(f, pc, ins, state)
+	local map = mapof(f, pc, state, ins.a)
+	packable(f, pc, map.key, "key", ins.b)
+	f.code:set(reg.R3, ins.b)
+	mapstore(f, pc, ins, state, map, reg.R3)
 end
 
 function ops.GETI(f, pc, ins, state)
@@ -1425,9 +1515,6 @@ end
 
 local refusals = {
 	SETUPVAL = "an upvalue cannot be assigned in a compiled function",
-	SETTABUP = "a global cannot be assigned in a compiled function",
-	SETTABLE = "a table cannot be written in a compiled function",
-	SETI = "a table cannot be written in a compiled function",
 	NEWTABLE = "a table constructor cannot run in the kernel; build it in the file body",
 	SETLIST = "a table constructor cannot run in the kernel; build it in the file body",
 	CONCAT = "'..' cannot be applied in a compiled function",

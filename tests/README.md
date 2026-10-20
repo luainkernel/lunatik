@@ -1157,14 +1157,27 @@ interpreter raises, the compiled program owes its default verdict instead.
   value spec Lua cannot read back or reads as a float, a width no load covers,
   no entries, a name BTF cannot spell, an array keyed by eight bytes, a foreign
   byte order, a name declared twice and a constructor without a name.
+- **mapset**: the programs run first and the shell reads the pinned maps
+  afterwards, so what is asserted is what the kernel kept: an update under a key
+  the compiler folded in and one the program computed from the packet, a delete
+  of a seeded entry, a delete of a key that was never there, and an update of an
+  array entry, all against the bytes the program file's body wrote from the
+  constants and specs the programs were compiled with. A value the program
+  computes past its unsigned or its signed spec, and a key past its spec in an
+  update and in a delete, take the default verdict, and the entries their low
+  bytes name are found untouched; a negative value a signed spec packs is kept.
+  A write the map refuses, an index past an array's entries, a second key in a
+  hash of one entry and a delete from an array, takes the default verdict, and
+  what the map held is kept. A value that is not a number is refused.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind; a verdict that may be nil, which a register
   cannot tell from `0`, a float the CLI's `math` returns, as a value, as a
   table's field and as the default verdict, a float literal `lunatic` refuses
   to parse, a C function handed to `xdp.program`, a function the CLI's Lua
-  compiled from a string, and a map key the compiler holds that its spec does
-  not pack, in a register and as a `GETI` index, among them.
+  compiled from a string, a map key the compiler holds that its spec does not
+  pack, in a register and as a `GETI` index, and a value it does not pack,
+  among them.
 - **budget**: the "processed N insns" figure the verifier prints for the
   worst program of each corpus, reported as a comment and asserted under a
   ceiling; the loops under a `may_goto` header are counted on a kernel that

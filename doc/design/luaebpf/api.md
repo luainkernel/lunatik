@@ -155,10 +155,13 @@ the twin takes and the object cannot carry is refused at the declaration: a name
 an array keyed by anything but the four bytes the kernel creates one with, a width no eBPF load
 covers, and a spec naming a byte order other than the host's, which is the only one an eBPF load
 and store take. Inside a compiled function a map is a table proxy with `bpf.map`'s semantics:
-indexing looks up, assignment updates, assigning `nil` deletes. A key is a number, as the spec
-packs it, and one the spec does not pack is where the kernel's `bpf.map` raises in
-`string.pack`: a key the compiler holds is refused at its line, and one the program computes is
-tested where it is stored and takes the default verdict outside the spec's range.
+indexing looks up, assignment updates, assigning `nil` deletes. A key and a value are numbers, as
+the spec packs them, and one the spec does not pack is where the kernel's `bpf.map` raises in
+`string.pack`: one the compiler holds is refused at its line, and one the program computes is
+tested where it is stored and takes the default verdict outside the spec's range. A write the map
+refuses, an update of a full hash or at an index past an array's entries and every delete from an
+array, takes the default verdict too, where the kernel's `bpf.map` raises; a delete of a key the
+map does not hold does nothing, as there.
 
     local cached = flows[key]
     if cached then
