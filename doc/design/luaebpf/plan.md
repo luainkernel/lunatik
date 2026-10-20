@@ -227,11 +227,19 @@ magnitude above what the emitted shapes cost today and two below the limit.
 
 ### Phase 2: proxies, context, packet and maps
 
-The context proxy (`ctx.data`, `ctx.data_end`, `ctx.ingress_ifindex` for XDP; `skb` fields for
-TC), the packet proxy with the `data` object's method names (`getbyte`, `getuint16`, ...) and the
-bounds check every access carries, BTF struct views over kernel types read from
-`/sys/kernel/btf/vmlinux`, and map proxies declared with the `bpf.map` specs and emitted as
-BTF-defined maps. `nil` from a lookup is a type the translator forces the program to test.
+The context proxy (`ctx:ingress()` and `ctx:queue()` for XDP, `#skb`,
+`skb:ifindex()`, `skb:hash()` and `skb:priority()` for TC, each as the kernel's own object spells
+it, with `data` and `data_end` refused as the packet bounds they are), the packet proxy,
+`ctx:packet()` and `skb:data()`, with the `data` object's
+method names (`getbyte`, `getuint16`, ...) and the bounds check every access carries, kernel
+struct layouts read from `/sys/kernel/btf/vmlinux`, and map proxies declared with the `bpf.map`
+specs and emitted as BTF-defined maps, a `struct` value read by field name. `nil` from a lookup is
+a type the translator forces the program to test, and a key or a value outside its spec, like a
+priority outside its field, is refused when the compiler holds it and takes the default verdict
+when the program computes it, where the kernel's `bpf.map` and `skb:priority` raise. A check that
+fails inside a called function reaches the program's default verdict through a flag the callee
+raises in its caller's frame, which costs the fifth argument register and leaves a compiled
+function four of its own.
 
 Tests: packet fields read through the proxy match the bytes handed to `bpftool prog run`; an
 access past `data_end` takes the failure path and returns the default verdict; a map seeded by

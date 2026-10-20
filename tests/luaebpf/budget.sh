@@ -23,7 +23,7 @@ trap cleanup EXIT
 
 CEILING=20000
 
-CORPORA="pass arith divzero branch forconst call"
+CORPORA="pass arith divzero branch forconst call ctx packet bounds mapget mapset struct"
 luaebpf_maygoto && CORPORA="$CORPORA forvar"
 
 luaebpf_start 1
