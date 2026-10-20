@@ -10,8 +10,16 @@ local device    = "/dev/lunatik"
 local copyright = "Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA."
 local modules   = config.modules
 
+local function quote(word)
+	return "'" .. word:gsub("'", "'\\''") .. "'"
+end
+
+local function exists(path)
+	return os.execute("[ -e " .. quote(path) .. " ]")
+end
+
 local function probe()
-	return os.execute("[ -e " .. device .. " ]")
+	return exists(device)
 end
 
 local function open(path, mode)
@@ -88,7 +96,40 @@ local function unload_unused()
 	return removed
 end
 
+local pins_path = "/sys/fs/bpf/lunatik/"
+
+-- a directory under a root is another script's root, as tests/xdp/pass's is under tests
+local function pins(root)
+	local found = {}
+	for name in readall(io.popen("ls -p " .. quote(root) .. " 2>/dev/null")):gmatch("[^\n]+") do
+		if name:sub(-1) ~= "/" then table.insert(found, root .. "/" .. name) end
+	end
+	return found
+end
+
+-- removing a link's pin alone leaves its detach to a work item, after the command has returned
+local function detach(root)
+	for _, pin in ipairs(pins(root)) do
+		if pin:match("%-link$") then
+			local loader = require("luaebpf.loader")
+			local detached, err = loader.detach(pin)
+			if not detached then return err end
+		end
+	end
+end
+
+-- a compiled program outlives its runtime, so a shutdown alone leaves it on the device
+local function unload_programs()
+	local failure
+	for root in readall(io.popen("find " .. quote(pins_path) .. " -type d 2>/dev/null")):gmatch("[^\n]+") do
+		failure = detach(root) or failure
+	end
+	os.execute("rm -rf " .. quote(pins_path) .. " 2>/dev/null")
+	if failure then error(failure, 0) end
+end
+
 local function unload_modules()
+	unload_programs()
 	if probe() then
 		local ok, result = dostring("lunatik.runner.shutdown()")
 		if not ok then error(result, 0) end
@@ -127,6 +168,7 @@ local function ensure_loaded()
 end
 
 local tests_path = "/usr/local/share/lunatik/tests"
+local scripts_path = "/lib/modules/lua/"
 
 local function test_modules(suite)
 	local target = suite and (tests_path .. "/" .. suite .. "/run.sh")
@@ -144,7 +186,7 @@ end
 local function compile_scripts(...)
 	local args = {}
 	for _, word in ipairs({...}) do
-		table.insert(args, "'" .. word:gsub("'", "'\\''") .. "'")
+		table.insert(args, quote(word))
 	end
 	local ok, _, code = os.execute("lunatic " .. table.concat(args, " "))
 	os.exit(ok or code)
@@ -188,7 +230,7 @@ local usage = [=[
 usage: lunatik [-h | -V]
        lunatik [-i] [-e <chunk>]
        lunatik load | unload | reload | status
-       lunatik run [-c process | softirq | hardirq] [-p] <script>
+       lunatik run [-c process | softirq | hardirq] [-p] [--dev=<ifname>] <script>
        lunatik spawn <script>
        lunatik stop <script>...
        lunatik list
@@ -317,8 +359,10 @@ local general = accepting(
 local modifying = accepting("--",
 	option("context", "c", true, set_context),
 	option("percpu", "p"))
+-- run takes what modifying does, and the device its compiled program attaches to
+local deploying = setmetatable(accepting(option("dev", nil, true)), {__index = modifying})
 local compiling = accepting("--", option("output", "o", true))
-local takes = {bpf = compiling}
+local takes = {run = deploying, bpf = compiling}
 
 local function parse(i, accepted, parsed)
 	while arg[i] ~= nil and arg[i]:sub(1, 1) == "-" do
@@ -348,13 +392,121 @@ local function unmodified(verb, parsed, ...)
 	end
 end
 
+local function start(script, parsed)
+	local chunk = "lunatik.runner.run(%q, {context = %q, percpu = %q})"
+	return dostring(string.format(chunk, script, parsed.context, parsed.percpu))
+end
+
+local function halt(script)
+	return request("return lunatik.runner.stop(%q)", script) == "true"
+end
+
+local function running()
+	return request("return table.concat(lunatik.runner.list(), '\\n')")
+end
+
+local function isrunning(script)
+	for name in running():gmatch("[^\n]+") do
+		if name == script then return true end
+	end
+	return false
+end
+
+-- the runner registers a script with ".lua" dropped, and every path here comes from that name
+local function trim(script)
+	return (script:gsub("%.lua$", ""))
+end
+
+-- bpffs refuses a dot, so no name climbs out of the pins path, and an empty component respells another run's root
+local function rootof(script)
+	return script:match("^[^.]+$") and not ("/" .. script .. "/"):find("//", 1, true) and pins_path .. script
+end
+
+local function unpin(root)
+	local found = pins(root)
+	for _, pin in ipairs(found) do
+		os.remove(pin)
+	end
+	-- a nested script's root has parents of its own, and one that holds another script's root is not empty
+	while #root > #pins_path and os.remove(root) do
+		root = root:match("^(.*)/")
+	end
+	return #found > 0
+end
+
+local function undo(root, script, message)
+	detach(root)
+	if script then halt(script) end
+	unpin(root)
+	fail(message)
+end
+
+-- a step that failed takes back what the steps before it pinned, started and attached
+local function step(root, script, done, message)
+	if not done then undo(root, script, message) end
+end
+
+-- a compiled program's run takes a device, and a context or percpu only where a kernel script takes them
+local function deployable(parsed, script)
+	local scripted = exists(scripts_path .. script .. ".lua")
+	if parsed.dev == nil then
+		misuse(script .. " needs --dev")
+	elseif not scripted and (parsed.context or parsed.percpu) then
+		misuse(script .. " has no kernel script to take a context or percpu")
+	end
+	local root = rootof(script) or fail("couldn't pin " .. script .. ": a root takes no dot and no empty component")
+	return root, scripted
+end
+
+-- a load adopts the maps a previous run left pinned, and its links still hold the device
+local function clear(root)
+	local stale = detach(root)
+	unpin(root)
+	if stale then fail(stale) end
+	os.execute("mkdir -p " .. quote(root))
+end
+
+-- the maps are pinned before the runtime starts, since its script opens them, and the programs attach after it
+local function deploy(parsed, script, object)
+	local root, scripted = deployable(parsed, script)
+	local program, err = require("luaebpf.loader").open(object)
+	if program == nil then fail(err) end
+	ensure_loaded()
+	-- the runtime would refuse the run anyway, and the root below is the live run's
+	if isrunning(script) then fail(script .. " is already running") end
+	clear(root)
+	step(root, nil, program:load(root))
+	if scripted then step(root, nil, start(script, parsed)) end
+	step(root, scripted and script, program:attach(root, parsed.dev))
+end
+
+-- the links detach first and the maps go last, the reverse of deploy
+local function teardown(script)
+	local root = rootof(trim(script))
+	local failure = root and detach(root)
+	local halted = halt(script)
+	local deployed = root and unpin(root)
+	if failure then
+		return failure
+	elseif not (halted or deployed) then
+		return script .. " is not running"
+	end
+end
+
 local runners = {}
 
 function runners.run(parsed, script, ...)
 	if script == nil then misuse("run takes a script") end
 	if select("#", ...) > 0 then misuse("run takes nothing after the script") end
+	local name = trim(script)
+	local object = scripts_path .. name .. ".bpf.o"
+	if exists(object) then
+		return deploy(parsed, name, object)
+	end
+	if parsed.dev then misuse(script .. " has no compiled program for --dev") end
 	ensure_loaded()
-	request("lunatik.runner.run(%q, {context = %q, percpu = %q})", script, parsed.context, parsed.percpu)
+	local started, err = start(script, parsed)
+	if not started then fail(err) end
 end
 
 function runners.spawn(parsed, script, ...)
@@ -370,8 +522,9 @@ function runners.stop(parsed, ...)
 	ensure_loaded()
 	local stopped = true
 	for _, script in ipairs({...}) do
-		if request("return lunatik.runner.stop(%q)", script) == "false" then
-			report(script .. " is not running")
+		local failure = teardown(script)
+		if failure then
+			report(failure)
 			stopped = false
 		end
 	end
@@ -382,7 +535,7 @@ function runners.list(parsed, script)
 	unmodified("list", parsed)
 	if script ~= nil then misuse("list takes no script") end
 	ensure_loaded()
-	local scripts = request("return table.concat(lunatik.runner.list(), '\\n')")
+	local scripts = running()
 	if scripts ~= "" then print(scripts) end
 end
 

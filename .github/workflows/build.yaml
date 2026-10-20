@@ -27,7 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -yq build-essential bc bison flex libssl-dev dwarves libelf-dev libncurses-dev clang llvm pkg-config libpcap-dev m4
+        sudo apt-get install -yq build-essential bc bison flex libssl-dev dwarves libelf-dev libbpf-dev libncurses-dev clang llvm pkg-config libpcap-dev m4
     - name: Setup Lua 5.5
       run: |
         # the runner image predates the first distribution release carrying lua5.5
@@ -84,13 +84,13 @@ jobs:
     - name: Verify install
       run: |
         dest="$RUNNER_TEMP/install"
-        prefix=(INSTALL=install MODULES_INSTALL_PATH="$dest/kernel" SCRIPTS_INSTALL_PATH="$dest/lua" LUA_PATH="$dest/share" LUNATIK_INSTALL_PATH="$dest/bin")
+        prefix=(INSTALL=install MODULES_INSTALL_PATH="$dest/kernel" SCRIPTS_INSTALL_PATH="$dest/lua" LUA_PATH="$dest/share" LUA_CPATH="$dest/lib" LUNATIK_INSTALL_PATH="$dest/bin")
         # what an earlier build and install leave: a module the tree dropped and a file in each directory it owns
         mkdir -p "$dest/kernel/lunatik"
         touch "$dest/kernel/lunatik/stale.ko" lib/stale.ko
         for d in lunatik socket netlink syscall crypto bpf skb linux; do mkdir -p "$dest/lua/$d"; touch "$dest/lua/$d/stale.lua"; done
         # what other installs put in each prefix, which make keeps: a file beside the tree's and a directory it does not own
-        kept=("$dest/lua/kept.lua" "$dest/lua/kept/kept.lua" "$dest/kernel/kept/kept.ko" "$dest/share/kept.lua" "$dest/bin/kept")
+        kept=("$dest/lua/kept.lua" "$dest/lua/kept/kept.lua" "$dest/kernel/kept/kept.ko" "$dest/share/kept.lua" "$dest/lib/kept.so" "$dest/bin/kept")
         mkdir -p "${kept[@]%/*}"; touch "${kept[@]}"
         make modules_install scripts_install "${prefix[@]}"
         # the modules the CLI loads, which autogen lists from the Makefile's configuration

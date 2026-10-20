@@ -13,6 +13,7 @@ FAILED=0
 SEP=""
 CASES="host object pass lineinfo arith divzero branch forconst forvar call"
 CASES="$CASES btfview ctx packet bounds nonlinear mapget mapset struct refuse budget"
+CASES="$CASES load stop unload undo notarget verifierlog"
 
 for t in $CASES; do
 	echo "${SEP}# --- $t.sh ---"

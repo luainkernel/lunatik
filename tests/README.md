@@ -375,8 +375,10 @@ REPL and the builds `status` and `reload` compare.
   with a command, an option on the wrong side of the verb, `-c` without a
   context, a value given to `--percpu`, a context or percpu given to `stop` or
   `list`, `bpf` without its program file or with a word after it, `-c` given
-  to `bpf`, `-o` without an object, and `-o` given to `run` each exit 2 with a
-  line naming it and the usage on stderr; `-V`
+  to `bpf`, `-o` without an object, `-o` given to `run`, `--dev` without a
+  device, `--dev` given to `stop`, and `--dev` given to `run` for a script with
+  no compiled program each exit 2 with a line naming it and the usage on
+  stderr; `-V`
   and `--version` print the loaded version, `Lunatik <major>.<minor>`, and with the modules unloaded `-V`
   exits 1, not loaded; each module `status` reports as loaded carries as its
   version the release `-V` prints, which gives it the srcversion `reload`
@@ -1196,6 +1198,60 @@ interpreter raises, the compiled program owes its default verdict instead.
   worst program of each corpus, reported as a comment and asserted under a
   ceiling; the loops under a `may_goto` header are counted on a kernel that
   has it.
+
+The loader cases run `lunatik run --dev=` and `lunatik stop` over a program
+file the case compiles and puts beside the installed script, since
+`make install` compiles none of this suite's, and attach to a veth pair of the
+suite's own; each tears down before it reads its verdict.
+
+- **load**: the run pins the map the program file declares under
+  `/sys/fs/bpf/lunatik/<script>/`, registers the runtime, and pins the link
+  whose program the device then carries. The kernel script opens the map by
+  its pin path, which it can only do if the map was pinned before the runtime
+  started, so its line is the order. A script with an object and no `.lua`
+  runs the program alone, with no runtime, and its stop exits 0 and takes the
+  program and the root down.
+- **stop**: a stop leaves no root, no directory above it that held only the
+  root, no runtime, and nothing on the device even while another pin holds the
+  link, which only a detach takes off; a run after it attaches again. A run
+  over the root a crashed run left removes it rather than adopting its maps,
+  which the case stages as a map of the declared name with a capacity the
+  program file does not declare. A run of
+  a script still running is refused with its root and its program untouched,
+  and so are a run spelled with a doubled slash and a stop spelled with a
+  leading one, which name the live root under a spelling the runner does not
+  find running; where no runtime holds the root, a program with no kernel
+  script, the run redeploys, and the new program id on the device proves it. A
+  stop of a name that only parents a live root exits 1, not running, and leaves
+  that root alone; a stop spelled with the `.lua` the runner drops takes the
+  deployment down; a stop of a name that climbs out of the pins path removes
+  nothing where it lands.
+- **unload**: an unload, which `reload` and `lunatik test` run through, takes
+  down every compiled program a run attached, the one beside a kernel script
+  and the one with none, which has no runtime for the shutdown to stop: neither
+  device carries a program and nothing is left under `/sys/fs/bpf/lunatik`, even
+  while another pin holds a link, which only a detach takes off. An unload that
+  cannot detach a pin under a link's name, a map the case pins there, still
+  detaches the other roots and removes the tree, then exits 1 with the detach's
+  message; one by a user other than root exits 1 with only the device's
+  refusal on stderr.
+- **undo**: a run that fails at any step exits 1 with that step's message and
+  leaves no pin root, no runtime and nothing on the device: a program the
+  verifier rejects after libbpf pinned the maps, a kernel script that raises, a
+  device that does not exist with the runtime started, two XDP programs for
+  one device, where the second attach fails with the first attached and pinned,
+  a pin root on a tmpfs, where the load fails pinning a map with libbpf's
+  reason and a program with no map fails pinning its link once attached, and a
+  map a previous run left pinned under a link's name, whose detach fails.
+- **notarget**: what the command line owes a compiled program, refused before
+  anything is created: an XDP program with no `--dev` and an execution context
+  for a script with no kernel side exit 2 naming the option, and a name with a
+  dot, which bpffs refuses and which could climb out of the pins path, exits 1.
+  A script with no object runs as it did before, with a runtime and no root.
+- **verifierlog**: a rejected program makes `lunatik run` exit 1 printing the
+  verifier's own log, which quotes the Lua line from the object's
+  `line_info`; **load** loads the same program file compiled without the test
+  hook, so the quote is the rejection's.
 
 ### monitor
 
