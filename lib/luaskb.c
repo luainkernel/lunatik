@@ -115,6 +115,20 @@ static int luaskb_vlan(lua_State *L)
 	return 1;
 }
 
+/***
+* Reads the flow hash the skb carries (`skb->hash`), the value an eBPF program reads as
+* `__sk_buff.hash`. It is read as it stands and never computed: a packet nothing hashed yet
+* reads 0.
+* @function hash
+* @treturn integer 32-bit flow hash, or 0 if none is set
+*/
+static int luaskb_hash(lua_State *L)
+{
+	luaskb_t *lskb = luaskb_check(L, 1);
+	lua_pushinteger(L, lskb->skb->hash);
+	return 1;
+}
+
 #define luaskb_checklinear(L, lskb, ix)								\
 	luaL_argcheck((L), (lskb)->kfunc ? !skb_is_nonlinear((lskb)->skb) : !skb_linearize((lskb)->skb),	\
 		(ix), "skb is not linear")
@@ -381,6 +395,7 @@ static const luaL_Reg luaskb_mt[] = {
 	{"__len",    luaskb_len},
 	{"ifindex",  luaskb_ifindex},
 	{"vlan",     luaskb_vlan},
+	{"hash",     luaskb_hash},
 	{"data",     luaskb_data},
 	{"resize",   luaskb_resize},
 	{"checksum", luaskb_checksum},

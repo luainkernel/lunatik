@@ -1842,6 +1842,12 @@ pid, what a valid call does, and where it refuses to run.
   no argument, and asks each for -1, 2^32 and 2^32 plus
   the value it holds, which raise `out of bounds` and leave the field as it was,
   where a build that keeps the low bits takes the last one without an error.
+- **hash**: a `LOCAL_OUT` netfilter hook prints `skb:hash` for two UDP datagrams of
+  each of three flows, told apart by their priority: an unconnected socket's read 0,
+  since nothing hashed them, where a build that computes the hash as `skb_get_hash`
+  does answers a nonzero one; each connected socket's read the one nonzero hash
+  `connect()` drew for it, and the two connected sockets read two different ones.
+  Skips without `socat`.
 - **resize**: a `LOCAL_OUT` netfilter hook resizes non-linear skbs, the TCP
   segments over loopback whose payload sits in page fragments, one case per
   sender picked by its `SO_PRIORITY`: a shrink inside the payload, a shrink
