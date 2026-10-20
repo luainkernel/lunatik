@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run in the directory message-guard.fixture.sh writes
+block	GIT_EDITOR="cp hash.msg" git commit -q --fixup=amend:HEAD
+block	cd . && GIT_EDITOR='cp hash.msg' git commit --fixup=amend:HEAD
+block	git commit -e -F hash.msg
+block	git commit --edit --file=hash.msg
+pass	GIT_EDITOR="cp plain.msg" git commit -q --fixup=amend:HEAD
+pass	GIT_EDITOR="cp hash.msg" git commit -q --cleanup=whitespace --fixup=amend:HEAD
+pass	git commit -F hash.msg
+pass	git commit -e -F plain.msg
+pass	GIT_EDITOR="cp missing.msg" git commit --fixup=amend:HEAD
+pass	MESSAGE_OK=1 GIT_EDITOR="cp hash.msg" git commit --fixup=amend:HEAD
+pass	git log --grep '#1905' -F hash.msg

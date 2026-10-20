@@ -248,6 +248,12 @@ known to hold nothing to keep.
 several changes in it otherwise fuses them under a message that explains one. `STAGE_OK=1` stages a tree
 that holds one change only.
 
+`message-guard.sh`, wired before a shell call, refuses a `git commit` whose editor copies a message in,
+`GIT_EDITOR="cp <file>"`, or edits the file `-F` reads, when that file holds a line that opens with `#`:
+git cleans a message an editor gave in strip mode, which drops such a line without a word, and an amend!
+for #1917's design note lost "#1905 settles..." that way. `-F` alone keeps it, and so does
+`--cleanup=whitespace`; `MESSAGE_OK=1` commits the message as git cleans it.
+
 `implement-guard.sh`, wired before a shell call, refuses a commit in the session's own thread that
 carries code, a path under `lib/`, `tests/`, `examples/`, `autogen/` or `bin/` or a `lunatik*` file at
 the root, staged before the call or by a `git add` in it: an implementation is written by
