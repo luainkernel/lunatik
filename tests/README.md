@@ -2523,6 +2523,14 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   kfunc let through would drop the reply or go unlogged. The five that are not
   an action log "invalid action" and the raise logs its message.
 
+- **tc compiled pass**, **tc compiled drop**: the same two verdicts from a
+  program `make install` compiled out of `compiled_pass.bpf.lua` and
+  `compiled_drop.bpf.lua`, with no C program, no kernel script and no callback:
+  `lunatik run --dev=` attaches it on tcx egress, `bpftool net show` names it
+  there, the ping decides the verdict and `lunatik stop` takes it down. Both read
+  the packet through `packet.isping`, compiled as a subprogram. Skipped where
+  the CLI's loader names a libbpf older than 1.3.0, which has no tcx attach.
+
 - **tc reload**: the pass program stays attached across `lunatik reload`, which
   replaces `lunatik_run` and its `_ENV` while the program holds `luatc` loaded. A
   ping before the reload has the kfunc find the pass script; after it, the script
@@ -2706,6 +2714,13 @@ bound before, and a first attach, which finds nothing, logs nothing.
   passes the ping; it returns anything else as it came, so a value the kfunc
   let through would drop the ping or go unlogged. The five that are not an
   action log "invalid action" and the raise logs its message.
+
+- **xdp compiled pass**, **xdp compiled drop**: the same two verdicts from a
+  program `make install` compiled out of `compiled_pass.bpf.lua` and
+  `compiled_drop.bpf.lua`, with no C program, no kernel script and no callback:
+  `lunatik run --dev=` attaches it, `bpftool prog show` names the program the
+  device carries, the ping decides the verdict and `lunatik stop` takes it
+  down. Both read the packet through `packet.isping`, compiled as a subprogram.
 
 - **xdp reload**: the pass program stays attached across `lunatik reload`, which
   replaces `lunatik_run` and its `_ENV` while the program holds `luaxdp` loaded. A

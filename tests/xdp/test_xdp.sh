@@ -15,6 +15,10 @@
 # reaches the kernel; the five that are not an action log "invalid action", which
 # no other case logs, and each case reads back the line its callback printed.
 #
+# The compiled cases attach no C program: `lunatik run --dev=` loads the object `make install`
+# compiled from compiled_pass.bpf.lua or compiled_drop.bpf.lua, with no kernel script and no
+# callback, so the verdict is read off the ping and the program off the device.
+#
 # The reload case keeps the pass program attached across `lunatik reload`: the
 # program holds luaxdp loaded while lunatik_run unloads and loads again with a new
 # _ENV. A ping before the reload has the kfunc find the pass script, and the one
@@ -55,7 +59,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 16
+ktap_plan 18
 
 skip_all()
 {
@@ -68,6 +72,8 @@ skip_all()
 	ktap_skip "xdp zero-key: a zero-sized key is rejected without a crash"
 	ktap_skip "xdp process: a process-context runtime under the key is not dispatched"
 	ktap_skip "xdp percpu: the callback runs on the instance of the receiving CPU"
+	ktap_skip "xdp compiled pass: a compiled program lets the ping through"
+	ktap_skip "xdp compiled drop: a compiled program blocks the ping"
 	for title in "${VERDICT_TITLES[@]}"; do
 		ktap_skip "$title"
 	done
@@ -94,6 +100,8 @@ cleanup()
 	lunatik stop tests/xdp/process > /dev/null 2>&1
 	lunatik stop tests/xdp/percpu > /dev/null 2>&1
 	lunatik stop tests/xdp/verdict > /dev/null 2>&1
+	lunatik stop tests/xdp/compiled_pass > /dev/null 2>&1
+	lunatik stop tests/xdp/compiled_drop > /dev/null 2>&1
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
 }
@@ -301,6 +309,31 @@ verdict_case()
 	done
 }
 
+# the program the device carries is named for the script, and the ping alone decides: both programs
+# read it through packet.lua's isping, the predicate the callbacks use, compiled as a subprogram
+compiled_case()
+{
+	local script="$1" expect_reachable="$2" title="$3"
+	local output attached named reached
+
+	output=$(lunatik run --dev="$IFACE" "tests/xdp/$script" 2>&1)
+	attached=$(bpftool net show dev "$IFACE" | grep -oP 'driver id \K[0-9]+')
+	named=$(bpftool prog show id "$attached" 2>/dev/null | grep -oP 'name \K\S+')
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
+	reached=$?
+	lunatik stop "tests/xdp/$script" > /dev/null 2>&1
+
+	[ -z "$output" ] || { comment "$output"; ktap_fail "$title"; return 1; }
+	[ "$named" = "$script" ] || { ktap_fail "$title: $IFACE carries '$named'"; return 1; }
+	if [ "$expect_reachable" = "yes" ] && [ "$reached" -ne 0 ]; then
+		ktap_fail "$title: expected PASS but ping was blocked"; return 1
+	fi
+	if [ "$expect_reachable" = "no" ] && [ "$reached" -eq 0 ]; then
+		ktap_fail "$title: expected DROP but ping got through"; return 1
+	fi
+	ktap_pass "$title"
+}
+
 reload_case()
 {
 	local before reloaded
@@ -350,6 +383,8 @@ zerokey_case
 process_case
 percpu_case
 verdict_case
+compiled_case compiled_pass yes "xdp compiled pass: a compiled program lets the ping through"
+compiled_case compiled_drop no "xdp compiled drop: a compiled program blocks the ping"
 reload_case
 
 ktap_totals

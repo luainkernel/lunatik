@@ -196,3 +196,8 @@ sudo lunatik run --dev=eth0 filter
 sudo lunatik stop filter
 ```
 
+`sudo make install` compiles every program file of `examples/` and `tests/`, but the `luaebpf`
+suite's, whose cases compile their own, and puts the object beside the script it belongs to, where
+the kernel publishes the BTF the compiler reads. The program file itself stays out of
+`/lib/modules/lua/`: its body runs on the host, and the kernel's `require` never loads it.
+
