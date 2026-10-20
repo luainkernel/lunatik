@@ -364,7 +364,9 @@ named, not one discovered at that consumer's build.
   permissions refuse or his own terminal must run, reaches him as a script the session writes under
   `/tmp` and the one short line that runs it, `! bash /tmp/<name>.sh` in Claude Code: a command spelled
   out in the reply is one he copies by hand, and the terminal wraps it where the copy breaks.
-  `tools/checks/handoff.sh` names a reply that hands him one.
+  `tools/checks/handoff.sh` names a reply that hands him one. A write to GitHub is not such a step: the
+  auto mode classifier reads the conversation for his go, so a post it refuses is shown again with
+  the question whether to post, and posted on his answer.
 * A question from the maintainer is answered, and the turn changes nothing: what the answer
   recommends is proposed with its decision, not done. "What is left?" asks for the list, not for the
   work on it; `.claude/hooks/on-prompt.sh` reminds a turn that reads a question. A message that ends

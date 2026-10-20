@@ -360,13 +360,16 @@ What a release still lacks is read from the same report, the epic's task list in
 
 `review-post-guard.sh` reads the tool command on stdin instead of a file, for an assistant wired
 to run it before a shell call (`PreToolUse`): it blocks a `gh` write to reviews or comments on a
-pull request the posting account did not open unless the command carries the `REVIEW_POST_OK`
+pull request or an issue the posting account did not open unless the command carries the `REVIEW_POST_OK`
 marker, set once the exact text has been shown to the maintainer and approved, or when the text
 gives a fixup reference as a backtick'd SHA, which renders as code and does not link. The marker
 forces the show-then-post step; it cannot check that the text was shown, only that it was set on
-purpose. A pull request the posting account opened is the maintainer's own, and its review needs no
-marker: the guard asks GitHub who opened it, with the credential the command carries, and asks for
-the marker whenever it cannot tell. The text goes through `machine-leak.sh` before
+purpose. A pull request or an issue the posting account opened is the maintainer's own, the issues
+the implement-issue workflow files under his account among them, and a post on it needs no marker:
+the guard asks GitHub who opened it, with the credential the command carries, and asks for the
+marker whenever it cannot tell. On 2026-10-20 two comments the maintainer approved, closing issues a
+workflow had filed, were held for the marker as if those issues were a stranger's, and the auto mode
+classifier read the marker as a guard bypassed and refused them. The text goes through `machine-leak.sh` before
 the marker is read, since the marker approves the wording and not what the wording carries, and text
 the guard cannot read, passed inline or on stdin, is refused rather than skipped. Every text it lets
 through opens with `(posted by an agent, not by @<handle>)`, the review body and each inline comment
@@ -402,7 +405,9 @@ line opening with `! `, Claude Code's prefix for a command he runs in the sessio
 characters or continued on the next. A step only he can take reaches him as a script under `/tmp` and
 the one line that runs it (AGENTS.md, *Deciding what to change*); on 2026-10-11 a reply handed him the
 delete of the 21 branches a merge left as one line of 600 characters. A command handed without the
-prefix is not read.
+prefix is not read. It also opens the script a `! bash /tmp/<name>.sh` line names, and names one that
+writes to GitHub with `gh` and runs nothing under `sudo`: a post is the session's once the maintainer
+says to post, since the auto mode classifier reads his go in the conversation.
 
 `citation.sh`, `tldr.sh` and `settled.sh` read the same reply in the same hook. `citation.sh` names a
 line that says what AGENTS.md, a rule or a skill asks without the passage in double quotes, or with
