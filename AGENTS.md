@@ -360,6 +360,13 @@ named, not one discovered at that consumer's build.
   with what it changes, and `Recommendation:` with the option and its reason; "the maintainer's call"
   names who decides and not what. The options include the smallest change that makes the defect
   unreachable, and each larger one says what it buys over it.
+* A recommendation's reason is what the option buys. That an option leaves an API as it stands is
+  not one: the break is a cost of the option that makes it, weighed with the API's users counted, in
+  the tree and in the known consumers, against what that option buys. A reason that holds for every
+  option, "nothing uses it yet", decides between none. #1965 recommended reading a map's struct value
+  by position because the kernel's array was "the existing contract", where a read by name holds when
+  a field moves and one test was all the array had; `tools/checks/decision.sh` names a recommendation
+  that rests on keeping an API.
 * A step the session can take it takes. One only the maintainer can, a command the session's
   permissions refuse or his own terminal must run, reaches him as a script the session writes under
   `/tmp` and the one short line that runs it, `! bash /tmp/<name>.sh` in Claude Code: a command spelled

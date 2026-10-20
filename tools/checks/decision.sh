@@ -5,9 +5,13 @@
 #
 # A decision handed to the maintainer is one he takes in one read: what is to be decided, the
 # options, and the recommendation with its reason. "Its rewording is the maintainer's" named who
-# decides and not what, on #1205, and the maintainer had to ask what his decision was.
+# decides and not what, on #1205, and the maintainer had to ask what his decision was. A
+# recommendation's reason is what the option buys: keeping an API is a cost the other options pay,
+# and #1965 recommended a positional read of a struct value because the array was "the existing
+# contract", where a read by name holds when a field moves and one test used the array.
 # Takes text files, a review body, a comment, a pull request or issue body or a reply; when one
-# hands a decision over without the three, prints the lines that hand it over and exits 1.
+# hands a decision over without the three, or recommends an option for keeping an API, prints the
+# lines that do and exits 1.
 #
 # Usage: bash tools/checks/decision.sh <file>...
 
@@ -15,11 +19,19 @@ handoff='decis(a|ã)o (e |é )?(sua|dele|do maintainer)|fica (para|com) (voc(e|�
 question='o que decidir|a decidir:|decis(a|ã)o:|to decide:|decision:'
 option='^[[:space:]>*-]*(\*\*)?(\(?[a-e]\)|op(c|ç)(a|ã)o [a-e1-9]|option [a-e1-9])'
 recommend='recomend|recommend'
+kept='existing (api|contract)|(api|contract) (that )?already exists|keeps? the (existing |current |documented )?(api|contract)|without (changing|breaking) the (api|contract)|does(n.t| not) (change|break) the (api|contract)|contrato (que )?j(á|a) existe|contrato existente|api (que )?j(á|a) existe|api existente|mant(é|e)m (a api|o contrato)|n(ã|a)o (muda|quebra) (a api|o contrato)|sem (mudar|quebrar) (a api|o contrato)'
 
 status=0
 for file in "$@"; do
 	[ -f "$file" ] || continue
 	said=$(sed -E 's/"[^"]*"//g; s/`[^`]*`//g' "$file") # a phrase quoted is one talked about, not one said
+	# a recommendation runs from its opening line to the blank line that ends its paragraph
+	reasons=$(printf '%s\n' "$said" | awk 'tolower($0) ~ /^[[:space:]>*-]*(\*\*)?(recommendation|recomenda)/ { on = 1 } /^[[:space:]]*$/ { on = 0 } on { print NR ":" $0 }' | grep -iE "$kept")
+	if [ -n "$reasons" ]; then
+		printf '%s\n' "$reasons" | sed "s|^|$file:|"
+		echo "$file: the recommendation rests on keeping an API, which is a cost the other options pay; give its reason in what the recommended option buys, and the break as the cost of the option that makes it, with the API's users counted"
+		status=1
+	fi
 	# a decision reported as taken, or said to be none, hands nothing over
 	said=$(printf '%s\n' "$said" | sed -E "s/\b(foi|por|was|n(ã|a)o (pede|precisa de|exige)|needs no|is not)( a| the)? ($handoff)//gI")
 	printf '%s\n' "$said" | grep -qiE "$handoff" || continue
