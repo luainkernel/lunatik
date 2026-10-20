@@ -153,3 +153,20 @@ fail() {
 	exit 1
 }
 
+# errname gives "unknown" for every errno without CONFIG_SYMBOLIC_ERRNAME, and the suites assert the names it gives
+errnames() {
+	local config
+	config=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null)
+	[ -z "$config" ] || grep -q '^CONFIG_SYMBOLIC_ERRNAME=y' <<< "$config"
+}
+
+if ! errnames; then
+	suite=${0#*tests/}
+	suite=${suite%.sh}
+	ktap_header
+	ktap_plan 1
+	ktap_skip "${suite%/run}: errno names need CONFIG_SYMBOLIC_ERRNAME"
+	ktap_totals
+	exit 0
+fi
+
