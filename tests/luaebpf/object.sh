@@ -78,7 +78,8 @@ code:exit()
 local object, types = elf.new(), btf.new()
 object:section{name = "xdp", type = elf.section.PROGBITS, flags = elf.flags.ALLOC | elf.flags.EXEC,
 	data = code:pack(), align = 8}
-object:symbol{name = "prog", section = "xdp", value = 0, size = code:len() * insn.SIZE, bind = elf.bind.GLOBAL}
+object:symbol{name = "prog", section = "xdp", value = 0, size = code:len() * insn.SIZE, bind = elf.bind.GLOBAL,
+	type = elf.type.FUNC}
 object:section{name = "license", type = elf.section.PROGBITS, flags = elf.flags.ALLOC | elf.flags.WRITE,
 	data = "Dual MIT/GPL\0", align = 1}
 

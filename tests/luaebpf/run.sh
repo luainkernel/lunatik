@@ -11,7 +11,10 @@ DIR="$(dirname "$(readlink -f "$0")")"
 FAILED=0
 
 SEP=""
-for t in host object pass lineinfo arith divzero branch forconst forvar call btfview ctx packet bounds nonlinear refuse budget; do
+CASES="host object pass lineinfo arith divzero branch forconst forvar call"
+CASES="$CASES btfview ctx packet bounds nonlinear mapget refuse budget"
+
+for t in $CASES; do
 	echo "${SEP}# --- $t.sh ---"
 	SEP=$'\n'
 	bash "$DIR/$t.sh" || FAILED=$((FAILED+1))

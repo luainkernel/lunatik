@@ -21,7 +21,9 @@
 # for none of them, and for that reason a verdict that may be nil; and what the host adds, since
 # the body runs in the CLI's Lua: a float its libraries return, as a value, as a field of a table
 # and as the default verdict, a float literal, which lunatic refuses to parse, a C function, which
-# has no bytecode, and a function the CLI's Lua compiled from a string, which lunatic never saw.
+# has no bytecode, and a function the CLI's Lua compiled from a string, which lunatic never saw;
+# and a map key the compiler holds that its spec does not pack, where the kernel's bpf.map raises
+# in string.pack, once in a register and once as the small index a GETI carries.
 #
 # Usage: sudo bash tests/luaebpf/refuse.sh
 
@@ -32,7 +34,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-ROWS=36
+ROWS=38
 
 luaebpf_start $ROWS
 
@@ -127,6 +129,12 @@ row float "float.bpf.lua:5: 'half' is a float, which a compiled function cannot 
 row literal "literal.bpf.lua:3: malformed number near '.5'" $'\treturn half' 'local half = 2.5'
 row floatfield "floatfield.bpf.lua:5: 'half' is a float, which a compiled function cannot hold" \
 	$'\treturn sizes.half' 'local sizes = {half = math.sqrt(4)}'
+row outsidekey "outsidekey.bpf.lua:6: the map key -1 does not fit 'I4'" \
+	$'\tlocal v = flows[-1]\n\tif v then return v end\n\treturn 0' \
+	$'local map = require("bpf.map")\nlocal flows = map.hash("flows", {key = "I4", value = "I4", entries = 8})'
+row outsideindex "outsideindex.bpf.lua:6: the map key 200 does not fit 'i1'" \
+	$'\tlocal v = small[200]\n\tif v then return v end\n\treturn 0' \
+	$'local map = require("bpf.map")\nlocal small = map.hash("small", {key = "i1", value = "I4", entries = 8})'
 
 cat > "$LUAEBPF_WORK/floatdefault.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")

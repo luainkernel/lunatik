@@ -21,6 +21,7 @@
 --
 -- local object = luaebpf.compile("filter.bpf.lua")
 
+local maps     = require("luaebpf.maps")
 local programs = require("luaebpf.programs")
 local proto    = require("luaebpf.proto")
 local emit     = require("luaebpf.emit")
@@ -34,6 +35,7 @@ local format = string.format
 local getenv = os.getenv
 
 local TEXT    <const> = ".text"
+local MAPS    <const> = ".maps"
 local LICENSE <const> = "Dual MIT/GPL"
 local DROP    <const> = "LUAEBPF_DROP"
 
@@ -122,13 +124,18 @@ local function place(types, unit, frame, cache, subprograms)
 	for _, record in ipairs(lineinfo(types, frame, at, cache)) do
 		insert(unit.lines, record)
 	end
-	for _, call in ipairs(frame.code:relocations()) do
-		insert(unit.relocations, {at = at + (call.at - 1) * insn.SIZE, name = call.name})
+	for _, call in ipairs(frame.code:relocations("call")) do
+		insert(unit.relocations, {at = at + (call.at - 1) * insn.SIZE, name = call.name,
+			type = elf.relocation.IMM32})
+	end
+	for _, use in ipairs(frame.code:relocations("map")) do
+		insert(unit.relocations, {at = at + (use.at - 1) * insn.SIZE, name = use.name,
+			type = elf.relocation.IMM64})
 	end
 	unit.at = at + frame.code:len() * insn.SIZE
 	if not frame.isprogram then
 		insert(subprograms, {name = frame.name, section = TEXT, value = at,
-			size = frame.code:len() * insn.SIZE, bind = elf.bind.LOCAL})
+			size = frame.code:len() * insn.SIZE, bind = elf.bind.LOCAL, type = elf.type.FUNC})
 	end
 	return at
 end
@@ -137,11 +144,47 @@ local function btfsection(object, name, data)
 	object:section{name = name, type = elf.section.PROGBITS, flags = 0, data = data, align = 4}
 end
 
+-- A BTF-defined map is a struct of pointer-to-array members whose element counts libbpf reads
+-- as the map's attributes, a VAR of that struct allocated in ".maps", and one var_secinfo per
+-- map in a DATASEC of that name (tools/lib/bpf/libbpf.c). The section's bytes are read only for
+-- their length, so zeros of the right size are enough.
+local function attributes(map)
+	return {{name = "type", value = map.type}, {name = "max_entries", value = map.entries},
+		{name = "key_size", value = map.key.size}, {name = "value_size", value = map.value.size}}
+end
+
+local function maplayout(object, types, declared)
+	if #declared == 0 then
+		return {}
+	end
+	local entries, symbols, at = {}, {}, 0
+	for _, map in ipairs(declared) do
+		local members = {}
+		for _, attribute in ipairs(attributes(map)) do
+			insert(members, {name = attribute.name,
+				type = types:pointer(types:array(types.int, attribute.value))})
+		end
+		local id, size = types:struct(map.name, members)
+		insert(entries, {type = types:var(map.name, id), offset = at, size = size})
+		insert(symbols, {name = map.name, section = MAPS, value = at, size = size,
+			bind = elf.bind.GLOBAL, type = elf.type.OBJECT})
+		at = at + size
+	end
+	object:section{name = MAPS, type = elf.section.PROGBITS, flags = elf.flags.ALLOC |
+		elf.flags.WRITE, data = ("\0"):rep(at), align = 8}
+	types:datasec(MAPS, entries)
+	return symbols
+end
+
 local function write(declared, hook)
 	local object, types, cache = elf.new(), btf.new(), {}
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
 	local names, subprograms, order = {}, {}, {}
+	-- a map's name is taken before any function is named, so a relocation names exactly one symbol
+	for _, map in ipairs(maps.declared()) do
+		names[map.name] = true
+	end
 	for _, program in ipairs(declared) do
 		program.drop = hook
 		program.names = names
@@ -151,7 +194,8 @@ local function write(declared, hook)
 			local at = place(types, unit, frame, cache, subprograms)
 			if i == 1 then
 				insert(order, {name = frame.name, section = program.section, value = at,
-					size = frame.code:len() * insn.SIZE, bind = elf.bind.GLOBAL})
+					size = frame.code:len() * insn.SIZE, bind = elf.bind.GLOBAL,
+					type = elf.type.FUNC})
 			end
 		end
 	end
@@ -163,16 +207,20 @@ local function write(declared, hook)
 				flags = elf.flags.ALLOC | elf.flags.EXEC, data = concat(unit.code), align = 8}
 		end
 	end
+	local mapsymbols = maplayout(object, types, maps.declared())
 	for _, subprogram in ipairs(subprograms) do
 		indexes[subprogram.name] = object:symbol(subprogram)
 	end
 	for _, entry in ipairs(order) do
 		object:symbol(entry)
 	end
+	for _, symbol in ipairs(mapsymbols) do
+		indexes[symbol.name] = object:symbol(symbol)
+	end
 	for _, unit in ipairs(units) do
 		local records = {}
 		for _, call in ipairs(unit.relocations) do
-			insert(records, {at = call.at, symbol = indexes[call.name]})
+			insert(records, {at = call.at, symbol = indexes[call.name], type = call.type})
 		end
 		if #records > 0 then
 			object:relocations(unit.name, records)
@@ -208,6 +256,7 @@ end
 function luaebpf.compile(path)
 	local chunk = proto.load(path)
 	programs.reset()
+	maps.reset()
 	local host, cpath = package.path, package.cpath
 	package.path, package.cpath = LIBPATH, "" -- no host module, Lua or C, stands in for a kernel script
 	local ok, message = pcall(chunk)
