@@ -9,7 +9,7 @@
 local crypto = require("crypto")
 local insert = table.insert
 
-HELD = {crypto.shash("sha256")} -- global: the references are what raise the modules' refcounts
+HELD = {} -- global: the references are what raise the modules' refcounts
 
 local function hold(new, algname)
 	local ok, object = pcall(new, algname)
@@ -18,6 +18,7 @@ local function hold(new, algname)
 	end
 end
 
+hold(crypto.shash, "sha256") -- the kernel may serve no sha256
 hold(crypto.comp, "lz4") -- the binding has no comp from 6.15 on, and lz4 may not be built
 hold(crypto.sig, "ecdsa-nist-p256") -- ECDSA may not be built
 

@@ -5,7 +5,7 @@
 #
 # Runs all crypto tests and reports aggregated KTAP results.
 #
-# skcipher, aead, rng and sig allocate each algorithm their cases use before the first of them, through
+# shash, skcipher, aead, rng, sig and hkdf allocate each algorithm their cases use before the first of them, through
 # tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script names.
 #
 # context: a crypto object refused for its execution context leaves nothing

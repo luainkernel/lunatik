@@ -104,7 +104,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
 - **shash**: `sha256` and `hmac(sha256)` report a 32-byte digest and match
   known digests in one shot, in `init`/`update`/`final` parts and through
   `finup`, and a state exported from one hasher and imported into another
-  finishes to the same digest.
+  finishes to the same digest. Skipped where the kernel serves no `sha256` or no
+  `hmac(sha256)`, which the script allocates before its cases.
 - **skcipher**: `cbc(aes)` encrypts and decrypts a known vector and reports a
   16-byte IV and block, refuses a short key, a short IV and data that is not a
   whole number of blocks with `EINVAL`, survives 5000 round trips, and
@@ -148,7 +149,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   a salt matches it with an empty one, and `extract` and `expand` match the
   client initial secret, key and IV of the QUIC worked example at
   quic.xargs.org; an instance closed twice raises "closed object" from
-  `extract`, its HMAC transform released.
+  `extract`, its HMAC transform released. Skipped where the kernel serves no
+  `hmac(sha256)`, which the script allocates before its cases.
 - **comp**: `lz4` names itself through `algname`, compresses to fewer bytes
   and decompresses back into an exact or a larger buffer; an empty string with
   a size of 0 is refused as out of bounds, and a buffer one byte short of the
@@ -1477,15 +1479,16 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   of another class naming both classes, refuses `nil` and refuses a userdata
   of another library; `rcu.foreach` refuses `nil`; and a method on a closed
   runtime or fifo is refused instead of dereferencing its NULL private;
-  this case skips where the kernel serves no algorithm the `crypto.skcipher`,
-  `crypto.aead`, `crypto.rng` or `crypto.sig` row allocates, `ecdsa-nist-p256`
-  without `CONFIG_CRYPTO_ECDSA` among them.
+  this case skips where the kernel serves no algorithm the `crypto.shash`,
+  `crypto.skcipher`, `crypto.aead`, `crypto.rng` or `crypto.sig` row allocates,
+  `ecdsa-nist-p256` without `CONFIG_CRYPTO_ECDSA` among them.
   A close of another class, `fifo`'s `close` on a thread, a device and a
   runtime, and the runtime's `stop` on a thread, a device and a fifo, is
   refused, and each object then answers its own methods; a `crypto.shash`
   closes through its `__close`. The close case skips unless the loaded core is
   the installed `lunatik.ko` and that file carries the refusal, since a build
-  without it closes the thread under a stop that dereferences NULL.
+  without it closes the thread under a stop that dereferences NULL, and where
+  the kernel serves no `sha256`.
 
 - **resume_percpu**: `percpu:resume()` delivers the objects it is given to
   every runtime of a process set and of a softirq one, each marking its own
@@ -1521,7 +1524,8 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   `set`, the crypto classes and the `bpf` maps into a process
   one. The `crypto.comp` case skips where the kernel has no crypto_comp
   API (6.15 and later), the `bpf` one where bpftool cannot pin a map, and
-  the first where the kernel serves no `cbc(aes)`, `gcm(aes)` or `stdrng`.
+  the first where the kernel serves no `sha256`, `cbc(aes)`, `gcm(aes)` or
+  `stdrng`.
 
 - **require_reopen**: a library opened in a state that already has its
   classes (the `_ENV` object's clone creates the `rcu.table` metatables,

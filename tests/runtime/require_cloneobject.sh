@@ -16,7 +16,7 @@
 # need. crypto_comp exists on 6.14 and earlier, so its case skips where
 # luacrypto carries no luacrypto_comp_new; the bpf maps are pinned with bpftool,
 # and their case skips where it cannot pin them. The first case skips where the
-# kernel serves no cbc(aes), gcm(aes) or stdrng, which the script names.
+# kernel serves no sha256, cbc(aes), gcm(aes) or stdrng, which the script names.
 #
 # Usage: sudo bash tests/runtime/require_cloneobject.sh
 

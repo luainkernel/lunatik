@@ -31,7 +31,7 @@ local cases = {
 	{name = "fifo",         object = fifo.new(16),                foreign = data.new(8),  method = "push",       args = {"x"}},
 	{name = "completion",   object = completion.new(),            foreign = data.new(8),  method = "complete",   args = {}},
 	{name = "set",          object = set.new{"a"},                foreign = data.new(8),  method = "has",        args = {"a"}},
-	{name = "crypto.shash", object = crypto.shash("sha256"),  foreign = data.new(8),  method = "digestsize", args = {}},
+	{name = "crypto.shash", object = alloc(crypto.shash, "sha256"), foreign = data.new(8), method = "digestsize", args = {}},
 	{name = "crypto.skcipher", object = alloc(crypto.skcipher, "cbc(aes)"), foreign = data.new(8), method = "ivsize", args = {}},
 	{name = "crypto.aead",  object = alloc(crypto.aead, "gcm(aes)"), foreign = data.new(8),  method = "ivsize",     args = {}},
 	{name = "crypto.rng",   object = alloc(crypto.rng, "stdrng"), foreign = data.new(8),  method = "seedsize",   args = {}},

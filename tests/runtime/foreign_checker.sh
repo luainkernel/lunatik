@@ -13,9 +13,9 @@
 # rcu.foreach refuses nil the same way; and a method on a closed runtime or fifo,
 # whose private is gone, is refused instead of dereferencing NULL. The thread
 # object is a spawned body's, since thread.run is refused from a script body.
-# The matrix skips where the kernel serves no algorithm its skcipher, aead, rng or
-# sig row allocates, ecdsa-nist-p256 without CONFIG_CRYPTO_ECDSA among them, which
-# the script names.
+# The matrix skips where the kernel serves no algorithm its shash, skcipher, aead,
+# rng or sig row allocates, ecdsa-nist-p256 without CONFIG_CRYPTO_ECDSA among them,
+# which the script names.
 #
 # The close case, foreign_checker_close, closes a thread, a device and a
 # runtime through fifo's close, lunatik_closeobject, which refuses each as an
@@ -28,7 +28,8 @@
 # private without a check, and the CLI's stop of the thread dereferences NULL,
 # so the case skips unless the loaded core is the installed one and that file
 # carries the refusal: the check is inline, so no symbol of its own is in
-# /proc/kallsyms, and the message is what the installed lunatik.ko has.
+# /proc/kallsyms, and the message is what the installed lunatik.ko has. It
+# skips as well where the kernel serves no sha256, which the script names.
 #
 # Usage: sudo bash tests/runtime/foreign_checker.sh
 
@@ -68,12 +69,17 @@ fi
 
 if [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] &&
 	grep -qaF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
-	run_script "$CLOSE"
-	cli stop "$BODY"
-	lunatik stop "$CLOSE" > /dev/null 2>&1
-	[ "$status" = 0 ] || fail "the thread's stop failed after the refused closes: $err"
-	check_dmesg || { ktap_totals; exit 1; }
-	ktap_pass "a close of another class refuses a thread, a device and a runtime, which keep their own stop"
+	output=$(lunatik run "$CLOSE" 2>&1)
+	if [[ "$output" == *"the kernel serves no "* ]]; then
+		ktap_skip "the close case: ${output#lunatik: }"
+	else
+		[ -n "$output" ] && fail "the close case failed: $output"
+		cli stop "$BODY"
+		lunatik stop "$CLOSE" > /dev/null 2>&1
+		[ "$status" = 0 ] || fail "the thread's stop failed after the refused closes: $err"
+		check_dmesg || { ktap_totals; exit 1; }
+		ktap_pass "a close of another class refuses a thread, a device and a runtime, which keep their own stop"
+	fi
 else
 	ktap_skip "the installed $MODULE is not loaded or does not carry the refusal: a foreign close would dereference NULL"
 fi
