@@ -111,6 +111,8 @@ scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/crypto
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/bpf
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/bpf
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/set
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/set
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/linux
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/linux
 	${MKDIR} ${LUA_PATH}/lunatik
@@ -129,6 +131,7 @@ scripts_install:
 	$(call INSTALL_LUA,lib/syscall/*.lua,${SCRIPTS_INSTALL_PATH}/syscall)
 	$(call INSTALL_LUA,lib/crypto/*.lua,${SCRIPTS_INSTALL_PATH}/crypto)
 	$(call INSTALL_LUA,lib/bpf/*.lua,${SCRIPTS_INSTALL_PATH}/bpf)
+	$(call INSTALL_LUA,lib/set/*.lua,${SCRIPTS_INSTALL_PATH}/set)
 	# NOTE: `lib/linux/` exists only as LDoc stubs (see doc-stubs); never install it.
 	$(call INSTALL_LUA,autogen/linux/*.lua,${SCRIPTS_INSTALL_PATH}/linux)
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/lunatik # last, so an install that stops earlier keeps the CLI's library
@@ -156,6 +159,7 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/syscall
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/crypto
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/bpf
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/set
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/linux
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik ${LUNATIK_INSTALL_PATH}/lunatic
 	${RM} -r ${LUA_PATH}/lunatik
