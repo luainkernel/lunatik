@@ -9,6 +9,10 @@
 -- The file body runs on the host under `lunatik bpf`; the function it hands here is the
 -- program, compiled to eBPF and held to the subset the verifier can check. The verdicts are
 -- `linux.xdp.action`, the table the kernel scripts already use.
+--
+-- The program's argument is spelled as the kernel's XDP `ctx` object: `ctx:ingress()` is the
+-- index of the device the packet arrived on and `ctx:queue()` the receive queue it arrived in,
+-- neither writable; `ctx.data`/`ctx.data_end` are the packet's bounds rather than numbers.
 -- @module bpf.xdp
 -- @usage
 -- local xdp    = require("bpf.xdp")
@@ -24,6 +28,16 @@ local action   = require("linux.xdp").action
 local mathtype = math.type
 local format   = string.format
 local getinfo  = debug.getinfo
+
+-- what a program reaches on its context, spelled as the kernel's XDP ctx object spells it
+-- (lib/luaxdp.c): each method maps to the xdp_md field it reads. Nothing is writable:
+-- xdp_is_valid_access refuses a write unless the program is offloaded, and __is_valid_xdp_access
+-- takes only a four-byte read (net/core/filter.c).
+local context = {
+	struct = "xdp_md",
+	methods = {ingress = "ingress_ifindex", queue = "rx_queue_index"},
+	packet = {base = "data", limit = "data_end"},
+}
 
 local xdp = {}
 
@@ -47,7 +61,8 @@ function xdp.program(fn, opts)
 		local info = getinfo(fn, "S") -- a caller that returns xdp.program(...) leaves no line of its own
 		error(format("%s:%d: xdp.program's default verdict is not an integer", info.short_src, info.linedefined), 0)
 	end
-	return programs.declare{kind = "xdp", fn = fn, default = default, name = opts.name}
+	return programs.declare{kind = "xdp", fn = fn, default = default, name = opts.name,
+		context = context}
 end
 
 return xdp

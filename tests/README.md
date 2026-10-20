@@ -1062,6 +1062,13 @@ interpreter raises, the compiled program owes its default verdict instead.
   expose, `iphdr`'s whole-byte members, its bitfields and its anonymous union
   absent from the layout though the dump names them, and a struct the kernel
   does not publish raising a message that names it.
+- **ctx**: an XDP program reads `ctx:ingress()` and `ctx:queue()`, the
+  kernel's XDP ctx object's spelling, and answers
+  what `prog run` was told to build the context from, the body having written
+  those bytes at the offsets `luaebpf.vmlinux` reports; a field read or
+  assigned, `ctx.ingress_ifindex` and `ctx.rx_queue_index` among them, a field
+  the struct does not carry, and `ctx.data` are refused with their messages and
+  lines.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind; a verdict that may be nil, which a register
