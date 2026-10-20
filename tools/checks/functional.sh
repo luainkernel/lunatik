@@ -6,9 +6,10 @@
 # Names the files a change touches in what the host cycle reads, the build, the install and the suite.
 # A change to comments and spacing alone, or to a document or the harness, alters no module and no script,
 # and the suite would measure what it measured already. A C file counts when its tokens differ once the
-# comments are gone, a Lua file when its bytecode stripped of debug information does, a shell script when
-# a line other than a comment does, a submodule when the commit it points at does, and any other file when
-# its bytes or its mode do; one the compiler cannot read counts too. Exits 1 when it names one.
+# comments are gone, a Lua file when the listing of its stripped bytecode does, read without the lines its
+# functions span and the addresses it was loaded at, a shell script when a line other than a comment does,
+# a submodule when the commit it points at does, and any other file when its bytes or its mode do; one the
+# compiler cannot read counts too. Exits 1 when it names one.
 #
 # Usage: bash tools/checks/functional.sh <base> [<head>]   (default head HEAD)
 
@@ -31,7 +32,10 @@ code() {
 		# -fpreprocessed joins no continuation, and reads a "#name" that opens one as a directive
 		*.c|*.h) sed -e ':a' -e '/\\$/N; s/\\\n//; ta' "$tmp/file" | gcc -fpreprocessed -dD -E -P -x c - 2> /dev/null |
 			tr -s ' \t\n' ' ' > "$tmp/code" ;;
-		*.lua) luac5.5 -s -o "$tmp/code" "$tmp/file" 2> /dev/null ;;
+		# a stripped chunk keeps the lines each function spans, which its listing's header carries
+		*.lua) luac5.5 -s -o - "$tmp/file" 2> /dev/null | luac5.5 -p -l -l - | sed -E \
+			-e 's/^(main|function) <[^>]*> \((.*) at 0x[0-9a-f]+\)$/\1 (\2)/' \
+			-e 's/ for 0x[0-9a-f]+:$/:/' -e 's/(CLOSURE.*; )0x[0-9a-f]+$/\1/' > "$tmp/code" ;;
 		*.sh) sed '1!{/^[[:space:]]*#/d;}' "$tmp/file" | tr -s ' \t\n' ' ' > "$tmp/code" ;;
 		*) cp "$tmp/file" "$tmp/code" ;;
 	esac || { echo "$rev: unreadable"; return; }
