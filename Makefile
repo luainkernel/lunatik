@@ -17,6 +17,7 @@ INCLUDE_PATH := ${MODULES_BUILD_PATH}/include
 
 LUA ?= lua5.5
 LUA_PATH = $(shell $(LUA) -E -e 'print(package.path:match("([^;]*)/%?%.lua;"))')
+LUA_CPATH = $(shell $(LUA) -E -e 'print(package.cpath:match("([^;]*)/%?%.so;"))')
 LUAEBPF_INSTALL_PATH = ${LUA_PATH}/luaebpf
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
@@ -43,6 +44,10 @@ LUNATIC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
 LUAEBPF_BYTECODE := bin/luaebpf/bytecode
 LUAEBPF_TABLES := ${LUAEBPF_BYTECODE}/kernel.lua ${LUAEBPF_BYTECODE}/host.lua
 LUAEBPF_TABLES_SRCS := bin/luaebpf/bytecode.c lua/lopcodes.c
+
+# luaebpf.loader: a C module of the CLI's Lua, built against lua/ as that Lua is, over libbpf
+LOADER := bin/luaebpf/loader.so
+LOADER_CFLAGS := -std=gnu99 -O2 -Wall -fPIC -shared -DLUA_USE_LINUX -Ilua
 
 # a directory's kernel scripts, not its program files: a program file's body runs on the host, never under the kernel's require
 LUA_SCRIPTS = $$(ls $(1)/*.lua 2>/dev/null | grep -v '\.bpf\.lua$$')
@@ -89,7 +94,7 @@ AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
 	tests_install tests_uninstall \
 	ebpf ebpf_install ebpf_uninstall
 
-all: lunatik_sym.h autogen ${LUNATIC} ${LUAEBPF_TABLES}
+all: lunatik_sym.h autogen ${LUNATIC} ${LUAEBPF_TABLES} ${LOADER}
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} $(LUNATIK_CONFIG_FLAGS)
 
 ${LUNATIC}: ${LUNATIC_SRCS} $(wildcard lua/*.h) lunatik_conf.h
@@ -103,11 +108,14 @@ ${LUAEBPF_TABLES}: ${LUAEBPF_TABLES_SRCS} $(wildcard lua/*.h) lunatik_conf.h
 	./$@.bin > $@
 	${RM} $@.bin
 
+${LOADER}: bin/luaebpf/loader.c $(wildcard lua/*.h)
+	${HOSTCC} ${LOADER_CFLAGS} -o $@ $< -lbpf
+
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD}/autogen clean
 	${MAKE} -C examples/filter clean
-	${RM} lunatik_sym.h ${LUNATIC}
+	${RM} lunatik_sym.h ${LUNATIC} ${LOADER}
 	${RM} -r ${LUAEBPF_BYTECODE}
 	${RM} -r lib/linux
 	${RM} autogen/lunatik/*.lua autogen/linux/*.lua \
@@ -163,6 +171,7 @@ scripts_install:
 	${LN} ${SCRIPTS_INSTALL_PATH}/class.lua ${LUA_PATH}/lunatik/class.lua
 	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
 	${INSTALL} -D -m 0755 ${LUNATIC} ${LUNATIK_INSTALL_PATH}/lunatic
+	${INSTALL} -D -m 0755 ${LOADER} ${LUA_CPATH}/luaebpf/loader.so
 	${RM} -r ${LUAEBPF_INSTALL_PATH}
 	${MKDIR} ${LUAEBPF_INSTALL_PATH}/bytecode ${LUAEBPF_INSTALL_PATH}/lib/bpf
 	${INSTALL} -m 0644 bin/luaebpf/*.lua ${LUAEBPF_INSTALL_PATH}
@@ -189,7 +198,7 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/linux
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik ${LUNATIK_INSTALL_PATH}/lunatic
 	${RM} -r ${LUAEBPF_INSTALL_PATH}
-	${RM} -r ${LUA_PATH}/lunatik
+	${RM} -r ${LUA_PATH}/lunatik ${LUA_CPATH}/luaebpf
 
 ebpf:
 	${MAKE} -C examples/filter

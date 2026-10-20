@@ -4,8 +4,9 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Helpers the luaebpf cases share: the toolchain check that turns a missing tool into a skip,
-# the compile into a scratch directory, the load into a pin root, and the differential run
-# against the oracle a program file's own body wrote while it compiled.
+# the compile into a scratch directory, the load into a pin root, the differential run
+# against the oracle a program file's own body wrote while it compiled, and, for the loader
+# cases, the device they attach to and what a refused `lunatik run` may not leave behind.
 # Source this file, and tests/lib.sh, from each case.
 
 # the program files install beside the cases, out of the tree the kernel's require reads
@@ -14,11 +15,21 @@ LUAEBPF_SCRIPTS=/lib/modules/lua/tests/luaebpf
 LUAEBPF_PINS=/sys/fs/bpf/luaebpf
 LUAEBPF_KERNELCHUNK=$LUAEBPF_SCRIPTS/kernelchunk.lua
 LUAEBPF_MAPS=/sys/fs/bpf/luaebpf/maps
+LUAEBPF_ROOT=/sys/fs/bpf/lunatik/tests/luaebpf
+LUAEBPF_DEV=luaebpf0
+LUAEBPF_PEER=luaebpf1
 LUAEBPF_WORK=
+# the scripts a loader case runs, which the cleanup stops; set before luaebpf_start
+LUAEBPF_RUNS=
 
 cleanup() {
-	rm -rf "$LUAEBPF_PINS"
-	rm -f "$LUAEBPF_KERNELCHUNK"
+	local name
+	for name in $LUAEBPF_RUNS; do
+		lunatik stop "tests/luaebpf/$name" > /dev/null 2>&1
+	done
+	rm -rf "$LUAEBPF_PINS" "$LUAEBPF_ROOT"
+	rm -f "$LUAEBPF_KERNELCHUNK" "$LUAEBPF_SCRIPTS"/*.bpf.o
+	ip link del "$LUAEBPF_DEV" 2>/dev/null
 	[ -n "$LUAEBPF_WORK" ] && rm -rf "$LUAEBPF_WORK"
 	return 0
 }
@@ -127,5 +138,56 @@ luaebpf_refuses() {
 		return 1
 	fi
 	return 0
+}
+
+# `make install` compiles no program file of this suite, so a loader case puts its own object
+# where `lunatik run` looks for it, beside the installed script
+luaebpf_stage() {
+	luaebpf_compile "$@" && cp "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_SCRIPTS/"
+}
+
+# a veth pair of the suite's own, so a loader case never races tests/xdp on lunatik0
+luaebpf_device() {
+	ip link add "$LUAEBPF_DEV" type veth peer name "$LUAEBPF_PEER" || return 1
+	ip link set "$LUAEBPF_DEV" up && ip link set "$LUAEBPF_PEER" up
+}
+
+# the id of the XDP program a device carries, $LUAEBPF_DEV unless one is named, or nothing
+luaebpf_attached() {
+	bpftool net show dev "${1:-$LUAEBPF_DEV}" | grep -oP 'driver id \K[0-9]+'
+}
+
+# what a refused run may not leave behind
+luaebpf_residue() {
+	local left=
+	[ -d "$LUAEBPF_ROOT/$1" ] && left="$left a pin root"
+	lunatik list | grep -qxF "tests/luaebpf/$1" && left="$left a runtime"
+	[ -n "$(luaebpf_attached)" ] && left="$left a program on $LUAEBPF_DEV"
+	echo "$left"
+}
+
+# luaebpf_undone <title> <name> <status> <pattern> [<option>...]: the run of tests/luaebpf/<name>
+# exits <status> with a message matching <pattern> and leaves nothing behind. The teardown runs
+# before the checks, so a failing row leaves the next one a clean device.
+luaebpf_undone() {
+	local title="$1" name="$2" expected="$3" pattern="$4" output status left
+	shift 4
+	output=$(lunatik run "$@" "tests/luaebpf/$name" 2>&1)
+	status=$?
+	left=$(luaebpf_residue "$name")
+	lunatik stop "tests/luaebpf/$name" > /dev/null 2>&1
+	if [ "$status" -ne "$expected" ]; then
+		comment "the run exited $status, not $expected"
+	elif ! grep -qE "$pattern" <<< "$output"; then
+		comment "the message does not match '$pattern'"
+	elif [ -n "$left" ]; then
+		comment "the run left$left"
+	else
+		ktap_pass "luaebpf: $title"
+		return 0
+	fi
+	comment "$output"
+	ktap_fail "luaebpf: $title"
+	return 1
 }
 

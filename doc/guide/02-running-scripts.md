@@ -6,7 +6,7 @@
 usage: lunatik [-h | -V]
        lunatik [-i] [-e <chunk>]
        lunatik load | unload | reload | status
-       lunatik run [-c process | softirq | hardirq] [-p] <script>
+       lunatik run [-c process | softirq | hardirq] [-p] [--dev=<ifname>] <script>
        lunatik spawn <script>
        lunatik stop <script>...
        lunatik list
@@ -22,12 +22,16 @@ usage: lunatik [-h | -V]
 * `-i`, `--interactive`: enter the REPL after `-e`
 * `-c <context>`, `--context=<context>`: the context `run` creates the runtime in
 * `-p`, `--percpu`: `run` creates one runtime per CPU id
+* `--dev=<ifname>`: the device `run` attaches the script's compiled program to (see
+  [Compiled programs](#compiled-programs))
 * `-o <object>`, `--output=<object>`: the object `bpf` writes
 
 * <code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
   `modprobe` prints its error on stderr and the load goes on, so read `lunatik status` and the kernel log
-* `unload`: stop every running script, then unload Lunatik kernel modules
-* `reload`: stop every running script and reload Lunatik kernel modules, failing with
+* `unload`: take down every compiled program a `run` attached, stop every running script, then
+  unload Lunatik kernel modules
+* `reload`: take down every compiled program, stop every running script and reload Lunatik kernel
+  modules, failing with
   `couldn't replace <modules>: loaded from another build` when a module that could not be unloaded
   is not the installed file
 * `status`: show which Lunatik kernel modules are currently loaded, and name a loaded module that
@@ -37,11 +41,12 @@ usage: lunatik [-h | -V]
 * `bpf [-o <object>] <program>`: compile a program file into a BPF object (see
   [Program files](#program-files))
 * `list`: show which runtime environments are currently running, one script a line, in order of name
-* `run [-c softirq | hardirq] [-p] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md)
+* `run [-c softirq | hardirq] [-p] [--dev=<ifname>] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md). Where `/lib/modules/lua/<script>.bpf.o` exists, `run` also loads and attaches that program: see [Compiled programs](#compiled-programs)
 * `spawn <script>`: create a new runtime environment for the script `/lib/modules/lua/<script>.lua`,
   always in process context, and run the function it returns in a kernel thread; it takes no
   context and no percpu, and the function follows the rules of *Kernel threads* below
-* `stop <script>...`: stop the runtime environment created to run each script, failing on a script nothing runs
+* `stop <script>...`: stop the runtime environment created to run each script and take down the
+  compiled program its run attached, failing on a script nothing runs
 * no command, `sudo lunatik`: start a _REPL (Read–Eval–Print Loop)_, with its banner and prompts on
   a terminal; on a pipe it runs each line it reads and prints only what the lines return. Each
   entry is a chunk of its own, so a `local` is gone on the next line while a global stays; an entry
@@ -139,8 +144,9 @@ written.
 
 ```Shell
 lunatik bpf filter.bpf.lua
-sudo bpftool prog load filter.bpf.o /sys/fs/bpf/filter type xdp
 ```
+
+`lunatik run` is what loads and attaches the object: see [Compiled programs](#compiled-programs).
 
 `require` in the body finds the compile-time modules first, `bpf.xdp`, `bpf.tc` and `bpf.map`,
 which declares a map rather than opening the kernel's, then the compiler's own `luaebpf` modules,
@@ -149,4 +155,44 @@ as source or, with `BYTECODE=1`, as chunks. It finds nothing else the CLI's Lua 
 C module the host installs never stands in for a kernel script. `10 / 4` is `2` in the body as in
 the kernel; the CLI's libraries can still return a float, as `math.sqrt` does, and one reaching a
 compiled function is refused at the line that reaches it.
+
+## Compiled programs
+
+When `/lib/modules/lua/<script>.bpf.o` exists, the object compiled from `<script>.bpf.lua`,
+`lunatik run --dev=<ifname> <script>`:
+
+1. takes down what a previous run of the script left under `/sys/fs/bpf/lunatik/<script>/`, then
+   creates the maps the program file declares and pins each there under its name;
+2. starts the runtime for `<script>.lua`, when there is one, whose script opens those maps by that
+   path;
+3. attaches every program the object declares to `<ifname>`, an XDP program to the device and a TC
+   one to its tcx ingress or egress, and pins each link at
+   `/sys/fs/bpf/lunatik/<script>/<program>-link`, which keeps the program attached once the command
+   has exited. bpffs refuses a dot in a name, so the suffix takes a hyphen, which no map name
+   carries.
+
+The maps exist before the script opens them, and the programs attach once the runtime is up. A
+failure at any step undoes the steps before it and exits 1 with that step's message, the verifier's
+own log when the kernel rejects a program, which quotes the Lua line; libbpf's own warnings, which
+name what failed where the kernel logs nothing, print on stderr before it. `lunatik stop <script>`
+runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each
+directory above it the root leaves empty. A root holds pins and nothing else, so a stop of a name
+that only parents other scripts' roots leaves them alone. `lunatik unload`, and `reload` and `test`
+with it, detaches every link under `/sys/fs/bpf/lunatik/` and removes the tree before it stops the
+runtimes, so no program outlives it, not even one with no runtime to stop.
+
+A run of a script that is already running is refused before anything is touched. A script with an
+object and no `<script>.lua` runs the program alone, with no runtime: it takes no `--context` and no
+`--percpu`, and with no runtime to refuse it, a second run redeploys it. `--dev` is required where
+there is an object and refused where there is none, both exiting 2 with the usage. A name with a
+dot has no root, since bpffs refuses the dot, and neither has one with an empty component, a leading
+or a doubled `/`, which would spell the root of a run registered under the other spelling: its run
+is refused, and its stop reaches no root. A TC program needs a libbpf
+of 1.3.0 or later, where tcx begins; below it `run` refuses with `tcx needs libbpf 1.3.0`.
+
+```Shell
+sudo lunatik bpf -o /lib/modules/lua/filter.bpf.o filter.bpf.lua
+sudo lunatik run --dev=eth0 filter
+sudo lunatik stop filter
+```
 

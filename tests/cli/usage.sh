@@ -13,8 +13,9 @@
 #   a command, an option on the wrong side of the verb, -c without a context, a
 #   value given to --percpu, a context or percpu given to stop or list, bpf
 #   without its program file or with a word after it, -c given to bpf, -o
-#   without an object, and -o given to run each exit 2 with a line naming it and
-#   the usage on stderr, and nothing on stdout;
+#   without an object, -o given to run, --dev without a device, --dev given to
+#   stop, and --dev given to run for a script with no compiled program each exit
+#   2 with a line naming it and the usage on stderr, and nothing on stdout;
 # - -V and --version print the loaded version, "Lunatik <major>.<minor>", exit 0,
 #   and with the modules unloaded -V exits 1, not loaded; the modules are loaded
 #   again after it;
@@ -84,6 +85,9 @@ misused "bpf takes nothing after the program file" bpf a.bpf.lua b.bpf.lua
 misused "unknown option -c" bpf -c softirq a.bpf.lua
 misused "-o takes a value" bpf -o
 misused "unknown option -o" run -o x.o tests/cli/idle
+misused "--dev takes a value" run --dev
+misused "unknown option --dev" stop --dev=x tests/cli/idle
+misused "tests/cli/idle has no compiled program for --dev" run --dev=x tests/cli/idle
 ktap_pass "what the CLI cannot read exits 2 with a line naming it and the usage on stderr"
 
 version=$(lunatik -e "return _LUNATIK_VERSION")
