@@ -34,6 +34,7 @@ local unordered = struct{ size = 4, fields = {
 	{ name = "lo", offset = 0, size = 2, signed = false },
 } }
 assert(unordered.format == "=I2I2", "out-of-order: " .. unordered.format)
+assert(unordered.fields[1].name == "lo" and unordered.fields[2].name == "hi", "fields in offset order")
 
 -- overlapping fields (a union) are rejected
 local ok = pcall(struct, { size = 4, fields = {

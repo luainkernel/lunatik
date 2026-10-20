@@ -24,7 +24,8 @@ struct.__index = struct
 
 -- Derive the `string.pack` format from a layout: each field as `I<size>` (or
 -- `i<size>` when signed), with `x` filling inter-field padding and the tail
--- up to `size`. Native byte order (`=`) for the host-endian struct.
+-- up to `size`. Native byte order (`=`) for the host-endian struct. Returns
+-- the format and the fields in the offset order it packs them.
 local function build_format(layout)
 	local fields = move(layout.fields, 1, #layout.fields, 1, {})
 	sort(fields, function(a, b) return a.offset < b.offset end)
@@ -35,12 +36,13 @@ local function build_format(layout)
 		pos = f.offset + f.size
 	end
 	if layout.size > pos then insert(out, ("x"):rep(layout.size - pos)) end
-	return concat(out)
+	return concat(out), fields
 end
 
 ---
 -- Codec a layout builds, packing its fields in native byte order. Its `size` field holds the
--- struct's size in bytes.
+-- struct's size in bytes, and its `fields` field the layout's fields in offset order, the order
+-- `pack` takes and `unpack` returns their values.
 -- @type codec
 
 ---
@@ -77,13 +79,13 @@ end
 -- Builds a codec from a layout descriptor.
 -- @function struct
 -- @tparam table layout `{ size = bytes, fields = { {name, offset, size, signed}, ... } }`
--- @treturn codec a codec exposing `:pack`, `:unpack`, `:fieldsize` and a `size` field.
+-- @treturn codec a codec exposing `:pack`, `:unpack`, `:fieldsize` and the `size` and `fields` fields.
 -- @raise "struct: derived format does not match the layout size (overlapping fields?)"
 -- @within struct
 return function(layout)
-	local format = build_format(layout)
+	local format, fields = build_format(layout)
 	assert(packsize(format) == layout.size,
 		"struct: derived format does not match the layout size (overlapping fields?)")
-	return setmetatable({ format = format, size = layout.size, layout = layout }, struct)
+	return setmetatable({ format = format, size = layout.size, layout = layout, fields = fields }, struct)
 end
 

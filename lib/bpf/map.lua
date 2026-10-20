@@ -14,8 +14,9 @@
 -- `string.pack` format (e.g. `"I4"`, `"c6"`) or a `struct` codec, and says both
 -- how many bytes it takes, validated against the map on open, and how to read
 -- them. Specs that pack a single value take and return it as a scalar;
--- multi-value formats and `struct` codecs take and return an array of values,
--- in field order.
+-- multi-value formats take and return an array of values, in field order, and
+-- `struct` codecs a table keyed by the layout's field names. Encoding a table
+-- that lacks one of the fields raises, as `string.pack` does on `nil`.
 --
 -- Operations on a table proxy come from outside it (`close` and `info` are
 -- module functions, as in Lua's `table` library or `rcu.foreach`), so any key the
@@ -75,12 +76,22 @@ end
 
 local record = class{}
 
-function record:encode(values)
-	return self.struct:pack(tabunpack(values))
+function record:encode(value)
+	local fields = self.struct.fields
+	local values = {}
+	for i, field in ipairs(fields) do
+		values[i] = value[field.name]
+	end
+	return self.struct:pack(tabunpack(values, 1, #fields))
 end
 
 function record:decode(buffer)
-	return collect(self.struct:unpack(buffer))
+	local values = {self.struct:unpack(buffer)}
+	local value = {}
+	for i, field in ipairs(self.struct.fields) do
+		value[field.name] = values[i]
+	end
+	return value
 end
 
 local function isscalar(format, size)
@@ -96,7 +107,7 @@ function codecs.string(format)
 end
 
 function codecs.table(struct)
-	if struct.pack == nil or struct.size == nil then
+	if struct.pack == nil or struct.size == nil or struct.fields == nil then
 		return nil
 	end
 	return record:new{struct = struct, size = struct.size}

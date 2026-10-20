@@ -82,12 +82,14 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
   `key_size` 0.
 - **stack**: the same for LIFO stack maps.
 - **map**: the `bpf.map` layer — scalar, multi-value and `struct` codec
-  specs, the table proxy (assignment, `E2BIG` for a new key assigned to a
+  specs, a `struct` value and key read and written as a table keyed by field
+  name, with the bytes at each field's offset, and a value lacking a field
+  raising and storing nothing, the table proxy (assignment, `E2BIG` for a new key assigned to a
   full hash, `nil` delete, `pairs`, `<close>`
   and function-named keys as plain map keys) over hash, array and
   lru_hash, the queue and stack objects (`push`/`pop`/`peek`, FIFO and
-  LIFO order, empty `nil`, full `false`, `info`), spec size validation
-  and the cross-type rejection.
+  LIFO order, empty `nil`, full `false`, `info`), spec size validation,
+  the refusal of a table spec with no `fields` and the cross-type rejection.
 - **map_softirq**: opens and exercises the hash map while loading a
   softirq runtime (atomic-context allocator path).
 - **probe**: a hardirq runtime's body, which runs with IRQs on, closes a
@@ -2097,7 +2099,8 @@ pid, what a valid call does, and where it refuses to run.
 
 - **test**: the `struct` codec derives a `string.pack` format from a layout
   descriptor — inter-field padding, signed fields, trailing pad, and
-  out-of-order fields — with a pack/unpack round-trip, `fieldsize` reporting
+  out-of-order fields, which the codec's `fields` lists in offset order — with a
+  pack/unpack round-trip, `fieldsize` reporting
   a named field's width, and the overlapping-fields (union) guard.
 
 ### task

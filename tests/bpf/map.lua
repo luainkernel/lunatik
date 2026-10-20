@@ -71,13 +71,46 @@ test("bpf.map multi-value format uses arrays", function()
 	t[2] = nil
 end)
 
-test("bpf.map struct codec value", function()
-	local codec = struct({size = 4, fields = {{name = "v", offset = 0, size = 4}}})
-	local t <close> = map.hash(tbl_path, "I4", codec)
-	t[3] = {42}
+-- listed out of offset order, so a codec that pairs names with values by list position swaps them
+local halves = struct({size = 4, fields = {
+	{name = "hi", offset = 2, size = 2},
+	{name = "lo", offset = 0, size = 2},
+}})
+
+test("bpf.map struct codec value is a table keyed by field name", function()
+	local t <close> = map.hash(tbl_path, "I4", halves)
+	local raw <close> = map.hash(tbl_path, "I4", "=I2I2")
+	t[3] = {lo = 258, hi = 772}
+	local bytes = raw[3]
 	local v = t[3]
-	assert(v[1] == 42, "expected {42}")
 	t[3] = nil
+	assert(bytes[1] == 258 and bytes[2] == 772, "expected lo at offset 0 and hi at offset 2")
+	assert(v.lo == 258 and v.hi == 772, "expected {lo = 258, hi = 772}")
+	assert(v[1] == nil, "expected no positional values")
+end)
+
+test("bpf.map struct codec value lacking a field raises", function()
+	local t <close> = map.hash(tbl_path, "I4", halves)
+	local ok = pcall(getmetatable(t).__newindex, t, 4, {lo = 1})
+	local v = t[4]
+	t[4] = nil
+	assert(not ok, "expected an error for a missing field")
+	assert(v == nil, "expected nothing stored")
+end)
+
+test("bpf.map struct codec key is a table keyed by field name", function()
+	local t <close> = map.hash(tbl_path, halves, "I4")
+	t[{lo = 5, hi = 6}] = 7
+	local value = t[{lo = 5, hi = 6}]
+	local found
+	for k, v in pairs(t) do
+		if v == 7 then
+			found = k
+		end
+	end
+	t[{lo = 5, hi = 6}] = nil
+	assert(value == 7, "expected 7, got: " .. tostring(value))
+	assert(found and found.lo == 5 and found.hi == 6, "expected pairs to yield {lo = 5, hi = 6}")
 end)
 
 test("bpf.map pairs iterates decoded entries", function()
@@ -113,6 +146,8 @@ test("bpf.map rejects mismatched specs", function()
 	assert(not pcall(map.hash, tbl_path, "I4", "I8"), "expected value size mismatch error")
 	assert(not pcall(map.hash, tbl_path, "I4"), "expected invalid value spec error")
 	assert(not pcall(map.hash, tbl_path, "I4", {}), "expected invalid table spec error")
+	assert(not pcall(map.hash, tbl_path, "I4", {pack = string.pack, unpack = string.unpack, size = 4}),
+		"expected invalid table spec error for a codec without fields")
 	assert(not pcall(map.queue, queue_path, "I4"), "expected value size mismatch error")
 end)
 
