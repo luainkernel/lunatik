@@ -2030,6 +2030,13 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   kfunc let through would drop the reply or go unlogged. The five that are not
   an action log "invalid action" and the raise logs its message.
 
+- **tc reload**: the pass program stays attached across `lunatik reload`, which
+  replaces `lunatik_run` and its `_ENV` while the program holds `luatc` loaded. A
+  ping before the reload has the kfunc find the pass script; after it, the script
+  run again gets the ping only if the kfunc looks it up in the new
+  `_ENV.runtimes`, and not in the table it found first, which the runner emptied.
+  The case runs last, since the reload replaces every module nothing holds.
+
 ### thread
 
 Regression tests for `luathread`.
@@ -2204,4 +2211,11 @@ bound before, and a first attach, which finds nothing, logs nothing.
   passes the ping; it returns anything else as it came, so a value the kfunc
   let through would drop the ping or go unlogged. The five that are not an
   action log "invalid action" and the raise logs its message.
+
+- **xdp reload**: the pass program stays attached across `lunatik reload`, which
+  replaces `lunatik_run` and its `_ENV` while the program holds `luaxdp` loaded. A
+  ping before the reload has the kfunc find the pass script; after it, the script
+  run again gets the ping only if the kfunc looks it up in the new
+  `_ENV.runtimes`, and not in the table it found first, which the runner emptied.
+  The case runs last, since the reload replaces every module nothing holds.
 
