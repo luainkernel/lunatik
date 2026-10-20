@@ -7,8 +7,8 @@
 # A change to comments and spacing alone, or to a document or the harness, alters no module and no script,
 # and the suite would measure what it measured already. A C file counts when its tokens differ once the
 # comments are gone, a Lua file when its bytecode stripped of debug information does, a shell script when
-# a line other than a comment does, and any other file when its bytes or its mode do; one the compiler
-# cannot read counts too. Exits 1 when it names one.
+# a line other than a comment does, a submodule when the commit it points at does, and any other file when
+# its bytes or its mode do; one the compiler cannot read counts too. Exits 1 when it names one.
 #
 # Usage: bash tools/checks/functional.sh <base> [<head>]   (default head HEAD)
 
@@ -24,7 +24,8 @@ trap 'rm -rf "$tmp"' EXIT
 code() {
 	local rev=$1 path=$2
 
-	git show "$rev:$path" > "$tmp/file" 2> /dev/null || return 0
+	# a submodule's commit is in its own objects, not here: the commit it points at stands for it
+	git show "$rev:$path" > "$tmp/file" 2> /dev/null || { git rev-parse --verify -q "$rev:$path"; return 0; }
 	git ls-tree "$rev" -- "$path" | cut -c1-6
 	case "$path" in
 		*.c|*.h) gcc -fpreprocessed -dD -E -P -x c "$tmp/file" 2> /dev/null | tr -s ' \t\n' ' ' > "$tmp/code" ;;
