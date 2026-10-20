@@ -225,7 +225,9 @@ are one: file the fullest once and name every index against the issue that holds
   home;
 - an entry whose home is an open issue goes to that issue: its body is appended to the issue's own under a
   line \`Update: <title> (#${source})\`, with that number as it stands, and the issue carries one severity
-  label, the higher of its own and the entry's;
+  label, the higher of its own and the entry's; the whole body is written with your Write tool to exactly
+  ${a.scratch}/issue${a.issue}/issue<n>.md before the command that posts it, since the guards refuse a file
+  the same command writes;
 - an entry that reports what an open issue already reports, read in that issue and not guessed from its
   title, goes to it the same way;
 - any other entry opens an issue with its title, its body as it stands and the label
@@ -233,7 +235,8 @@ are one: file the fullest once and name every index against the issue that holds
 - the body carries the entry's contract on a line of its own, \`Contract: <contract>\`, the promise its
   severity was read against.
 
-Your answer names, for every entry by its index, the issue or the pull request that now holds it.
+Your answer names, for every entry by its index, the issue or the pull request that holds it when you read it
+back from GitHub; an entry no write reached stays out of filed, and notes carry the refusal word for word.
 
 THE REVIEW'S FINDINGS, each with its disposition:
 ${JSON.stringify(findings, null, 2)}
@@ -310,6 +313,7 @@ const FILED = { type: 'object', properties: {
   filed: { type: 'array', items: { type: 'object', properties: {
     index: { type: 'integer' }, number: { type: 'integer' }, action: { type: 'string', enum: ['created', 'updated', 'skipped'] },
   }, required: ['index', 'number', 'action'] } },
+  notes: { type: 'string' },
 }, required: ['filed'] }
 
 const reviewArgs = (impl, extra) => ({
@@ -387,19 +391,19 @@ if (implemented?.branch && a.push !== false) {
 }
 
 const findings_left = [implemented, review, ...reruns, ...fixes].flatMap(r => r?.findings_left || [])
-let filed = []
+let filing = null
 if (a.gh === false && findings_left.length)
   log('gh is absent: the session files what the agents left')
 else if (findings_left.length) {
   phase('File')
-  const filing = await agent(FILE(findings_left, pr || a.issue, review?.reviewer?.findings || [], fixes), {
+  filing = await agent(FILE(findings_left, pr || a.issue, review?.reviewer?.findings || [], fixes), {
     label: `file:${a.issue}`, phase: 'File', agentType: 'lunatik-github', schema: FILED, ...githubber,
   })
-  filed = filing?.filed || []
 }
+const filed = filing?.filed || []
 const unfiled = findings_left.filter((_, index) => !filed.some(f => f.index === index))
 if (unfiled.length) {
-  log(`${unfiled.length} of ${findings_left.length} left unfiled: ${unfiled.map(f => f.title).join('; ')}`)
+  log(`${unfiled.length} of ${findings_left.length} left unfiled: ${unfiled.map(f => f.title).join('; ')}${filing?.notes ? `; ${filing.notes}` : ''}`)
 }
 const issues = [...new Set(filed.filter(f => f.action !== 'skipped').map(f => f.number))]
 return { issue: a.issue, groomed, pr, labelled, implemented, review, build, fixes, findings_left, filed, issues, unfiled }
