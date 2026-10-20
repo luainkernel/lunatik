@@ -194,9 +194,9 @@ declared widekey 4 "a map key spec packs one value" \
 	'local wide = map.hash("wide", {key = "I4I4", value = "I4", entries = 4})'
 declared paddedkey 4 "a map key spec packs one value" \
 	'local padded = map.hash("padded", {key = "I2xx", value = "I4", entries = 4})'
-declared widevalue 4 "a map value spec packs one value" \
+declared widevalue 4 "a map value spec packs one value or is a struct codec" \
 	'local wide = map.hash("wide", {key = "I4", value = "I16", entries = 4})'
-declared floatvalue 4 "a map value spec packs one value" \
+declared floatvalue 4 "a map value spec packs one value or is a struct codec" \
 	'local real = map.hash("real", {key = "I4", value = "d", entries = 4})'
 declared narrow 4 "a map reads 1, 2, 4 or 8 bytes at a time, not 3" \
 	'local odd = map.hash("odd", {key = "I4", value = "I3", entries = 4})'
