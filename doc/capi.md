@@ -387,12 +387,16 @@ checks it with `lunatik_checkobjectclass(L, ix, &lunatik_runtime_class)`.
 
 ### lunatik\_env
 ```C
-extern lunatik_object_t *lunatik_env;
+extern lunatik_object_t __rcu *lunatik_env;
 ```
 The `rcu.table` every runtime shares as `lunatik._ENV`, through which scripts exchange objects.
 `lunatik_run.ko`, the module that runs the `/dev/lunatik` driver, creates it when it loads and
-clears it when it unloads; it is `NULL` while that module is not loaded, and a runtime created then
-has no `lunatik._ENV`.
+publishes it with `rcu_assign_pointer()` once it is built; when it unloads it clears it and drops
+its reference a grace period later. It is `NULL` while that module is not loaded, and a runtime
+created then has no `lunatik._ENV`. A reader dereferences it with `rcu_dereference()` under
+`rcu_read_lock()`, and the table stays valid until that section ends; to keep the table past the
+section, the reader takes a reference inside it with [`lunatik_getobject`](#lunatik_getobject),
+which the pointer's own reference makes safe there.
 
 ### lunatik\_isready
 ```C

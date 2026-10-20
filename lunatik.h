@@ -142,7 +142,7 @@ typedef struct lunatik_runtime_s {
 #define lunatik_runtimeof(runtime)	container_of(runtime, lunatik_runtime_t, object)
 #define lunatik_cstack(runtime)		(lunatik_runtimeof(runtime)->cstack)
 
-extern lunatik_object_t *lunatik_env;
+extern lunatik_object_t __rcu *lunatik_env;
 extern struct task_struct *lunatik_rtnl;
 extern const lunatik_class_t lunatik_runtime_class;
 

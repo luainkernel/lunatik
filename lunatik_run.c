@@ -14,16 +14,26 @@
 
 static lunatik_object_t *runtime;
 
+static void lunatik_run_putenv(void)
+{
+	lunatik_object_t *env = rcu_replace_pointer(lunatik_env, NULL, true);
+
+	synchronize_rcu();
+	lunatik_putobject(env);
+}
+
 static int __init lunatik_run_init(void)
 {
+	lunatik_object_t *env = luarcu_newtable(LUARCU_DEFAULT_SIZE, LUNATIK_OPT_NONE);
 	int ret = 0;
 
-	if ((lunatik_env = luarcu_newtable(LUARCU_DEFAULT_SIZE, LUNATIK_OPT_NONE)) == NULL)
+	if (env == NULL)
 		return -ENOMEM;
+	rcu_assign_pointer(lunatik_env, env);
 
 	if ((ret = lunatik_runtime(&runtime, "lunatik/driver", LUNATIK_OPT_NONE)) < 0) {
 		pr_err("couldn't create driver runtime\n");
-		lunatik_putobject(xchg(&lunatik_env, NULL));
+		lunatik_run_putenv();
 	}
 
 	return ret;
@@ -31,7 +41,7 @@ static int __init lunatik_run_init(void)
 
 static void __exit lunatik_run_exit(void)
 {
-	lunatik_putobject(xchg(&lunatik_env, NULL));
+	lunatik_run_putenv();
 	lunatik_stop(runtime);
 }
 
