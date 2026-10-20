@@ -134,6 +134,7 @@
   <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
   <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
   <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_sig.html">crypto_sig</a></li>
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
 </ul>
 <h3>System</h3>
@@ -187,10 +188,12 @@
  constructor raises &ldquo;&lsquo;crypto.shash&rsquo;: process-context class in interrupt-context runtime&rdquo;, naming
  its class. Errors are raised as errno names: &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;EINVAL&rdquo; for a
  wrong IV, key or state length or a block cipher input that is not a multiple of <code>blocksize()</code>,
- &ldquo;ENOMEM&rdquo; when the kernel cannot allocate the transform, and
+ &ldquo;ENOMEM&rdquo; when the kernel cannot allocate the transform, &ldquo;ENOKEY&rdquo; for a signature verifier used
+ before its key is set, and
  &ldquo;not enough memory&rdquo; when the binding cannot allocate its own state, its output or the copy of its
  input. An AEAD message that does not authenticate is no error: <code>decrypt</code> answers nil and
- &ldquo;EBADMSG&rdquo; for it.
+ &ldquo;EBADMSG&rdquo; for it, and a signature that does not verify is none either: <code>verify</code> answers false and
+ the errno&rsquo;s name.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -209,6 +212,10 @@
 	<tr>
 	<td class="name"><a href="#shash">shash (algname)</a></td>
 	<td class="summary">Creates a synchronous hash transform.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#sig">sig (algname)</a></td>
+	<td class="summary">Creates a signature verifier.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#skcipher">skcipher (algname)</a></td>
@@ -344,6 +351,56 @@
 <span class="keyword">local</span> h = <span class="function-name">shash</span>(<span class="string">"sha256"</span>)</pre>
 
 </dd>
+    <dt id="sig"><a name="sig"></a><strong>sig (algname)</strong></dt>
+    <dd>
+    Creates a signature verifier.
+ The name is the kernel&rsquo;s, which differs by release for a DER or a PKCS#1 v1.5 signature: ECDSA
+ over an X9.62 DER signature is <code>x962(ecdsa-nist-p256)</code> on 6.13 and later and <code>ecdsa-nist-p256</code> on
+ 6.12 and earlier, the curve one of <code>p192</code>, <code>p256</code>, <code>p384</code>, and <code>p521</code> from 6.10; RSA PKCS#1 v1.5
+ is <code>pkcs1(rsa,sha256)</code> on 6.13 and later and <code>pkcs1pad(rsa,sha256)</code> on 6.12 and earlier. On 6.13
+ and later <code>p1363(ecdsa-nist-p256)</code> takes r and s concatenated big-endian, each of the key&rsquo;s size,
+ and the bare <code>ecdsa-nist-p256</code> is the kernel&rsquo;s raw form, which takes r and s in the kernel&rsquo;s own
+ digits and answers false and &ldquo;EINVAL&rdquo; to a DER or a P1363 signature. A script that runs on both
+ sides tries the newer name first and takes &ldquo;ENOENT&rdquo; as the cue for the older one.
+ The module links <code>crypto_alloc_sig</code>, which <code>CONFIG_CRYPTO_SIG2</code> builds on every kernel that has
+ a signature algorithm.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">algname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         algorithm name (e.g., &ldquo;x962(ecdsa-nist-p256)&rdquo;, &ldquo;pkcs1(rsa,sha256)&rdquo;)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">crypto_sig</span></span>
+
+    </ol>
+
+    <h3>Raises</h3>
+    &ldquo;ENOENT&rdquo; for an unknown algorithm, or one the kernel serves only for encryption, such as
+   <code>rsa</code> on 6.13 and later, &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation failure
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">local</span> sig = <span class="global">require</span>(<span class="string">"crypto"</span>).sig
+<span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">verifier</span>(name, older)
+  <span class="keyword">local</span> ok, v = <span class="global">pcall</span>(sig, name)
+  <span class="keyword">if</span> ok <span class="keyword">then</span>
+    <span class="keyword">return</span> v
+  <span class="keyword">end</span>
+  <span class="global">assert</span>(v == <span class="string">"ENOENT"</span>, v)
+  <span class="keyword">return</span> <span class="function-name">sig</span>(older)
+<span class="keyword">end</span>
+<span class="keyword">local</span> v = <span class="function-name">verifier</span>(<span class="string">"x962(ecdsa-nist-p256)"</span>, <span class="string">"ecdsa-nist-p256"</span>)
+v:<span class="function-name">setpubkey</span>(point)
+<span class="keyword">local</span> ok, err = v:<span class="function-name">verify</span>(signature, digest)</pre>
+
+</dd>
     <dt id="skcipher"><a name="skcipher"></a><strong>skcipher (algname)</strong></dt>
     <dd>
     Creates a symmetric-key cipher transform.
@@ -394,7 +451,7 @@
 <a href="../../modules/crypto.html">5.1 docs</a> ·
 <a href="../../5.0/modules/crypto.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 13:39:56</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 13:42:00</span>
 </div>
 </footer>
 </body>
