@@ -1030,7 +1030,7 @@ objects do not need them.</li>
 <p>It allocates <code>size</code> bytes for the object&rsquo;s private data, unless <code>LUNATIK_OPT_EXTERNAL</code> is set in
 <code>class-&gt;opt</code>, in which case <code>object-&gt;private</code> is expected to be set by the caller. The private is
 zeroed and comes from the runtime&rsquo;s allocator, <code>GFP_ATOMIC</code> in a softirq or hardirq runtime once
-it is armed; it is freed with <code>kvfree</code> after <code>release</code>.</p>
+it is armed; it is freed with <a href="#lunatik_free"><code>lunatik_free</code></a> after <code>release</code>.</p>
 
 <p>The userdata&rsquo;s <code>__gc</code> drops the reference the object is created with. In a state that is closing,
 where Lua arms no <code>__gc</code> (see <a href="#lunatik_isclosing"><code>lunatik_isclosing</code></a>), the state holds that
@@ -1174,6 +1174,7 @@ the release has run.</p>
 
 <span class="keyword">void</span> <span class="function-name">lunatik_initdefer</span>(lunatik_defer_t *defer, work_func_t func);
 <span class="keyword">bool</span> <span class="function-name">lunatik_defer</span>(lunatik_defer_t *defer);
+lunatik_defer_t *<span class="function-name">lunatik_syncdefer</span>(<span class="keyword">struct</span> work_struct *work);
 </pre>
 
 
@@ -1187,11 +1188,12 @@ runqueue lock. It may be called from any context and returns <code>false</code> 
 queued.</p>
 
 <p>The item lives in what defers, so deferring allocates nothing: <code>lunatik_initdefer</code> sets it up before
-the first <code>lunatik_defer</code>, and <code>func</code> finds what defers through <code>container_of</code> on <code>work</code>. Calls made
-before <code>func</code> starts run it once, and one made while it runs runs it again after it returns, so what
-each call hands <code>func</code> goes on a list <code>func</code> drains. A <code>func</code> that frees the item calls
-<code>irq_work_sync</code> on <code>irq</code> first, since the first hop still writes it after queuing <code>work</code>. Both are
-macros, and <code>lunatik_initdefer</code> gives each call site a lockdep class of its own, as <code>INIT_WORK</code> does.</p>
+the first <code>lunatik_defer</code>, and <code>func</code> takes it from <code>work</code> through <code>lunatik_syncdefer</code>, which waits
+for the first hop, since it still writes the item after queuing <code>work</code>, and reaches what defers
+through <code>container_of</code> on it. Calls made before <code>func</code> starts run it once, and one made while it runs
+runs it again after it returns, so what each call hands <code>func</code> goes on a list <code>func</code> drains.
+<code>lunatik_initdefer</code> and <code>lunatik_defer</code> are macros, and the first gives each call site a lockdep
+class of its own, as <code>INIT_WORK</code> does.</p>
 
 <h3 id="lunatik_isatomic">lunatik_isatomic</h3>
 
@@ -2087,11 +2089,15 @@ accepted.</p>
 <h3 id="lunatik_free">lunatik_free</h3>
 
 <pre>
-<span class="keyword">void</span> <span class="function-name">lunatik_free</span>(<span class="keyword">void</span> *ptr);
+<span class="keyword">void</span> <span class="function-name">lunatik_free</span>(<span class="keyword">const</span> <span class="keyword">void</span> *ptr);
 </pre>
 
 
-<p>Frees memory allocated by <code>lunatik_malloc</code> or <code>lunatik_realloc</code>. Equivalent to <code>kvfree</code>.</p>
+<p>Frees memory allocated by <code>lunatik_malloc</code> or <code>lunatik_realloc</code>, at once, as <code>kvfree</code> does, unless
+the block came from <code>vmalloc</code> and <a href="#lunatik_isatomic"><code>lunatik_isatomic</code></a> holds, where <code>vfree</code> may
+sleep and, in NMI, BUGs: the block then goes back on a kernel worker, through
+<a href="#lunatik_defer"><code>lunatik_defer</code></a>, its first bytes holding the item, which a block past a page has
+room for. <code>lunatik_realloc</code> frees the same way, at size zero and when it moves a block.</p>
 
 <h3 id="lunatik_checkalloc">lunatik_checkalloc</h3>
 
@@ -2158,7 +2164,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 11:35:15</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 11:36:41</span>
 </div>
 </footer>
 </body>
