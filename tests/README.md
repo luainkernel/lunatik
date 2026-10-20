@@ -2327,7 +2327,9 @@ bound before, and a first attach, which finds nothing, logs nothing.
 
 - **xdp pass**: the callback inspects `ctx:packet()` (IPv4 ethertype and the
   ICMP protocol byte of the ping) and `ctx:argument()` (a magic passed by the
-  eBPF program), and the `action.PASS` it returns lets the packet reach its
+  eBPF program, then the `ingress_ifindex` and `rx_queue_index` it read from
+  `struct xdp_md`, which `ctx:ingress()` and `ctx:queue()`
+  must answer alike), and the `action.PASS` it returns lets the packet reach its
   destination; the runtime is plain, covering the plain-name kfunc lookup.
 
 - **xdp drop**: a returned `action.DROP` blocks the ping; the runtime is percpu,

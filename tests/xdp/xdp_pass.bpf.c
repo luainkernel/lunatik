@@ -14,8 +14,9 @@ static char runtime[] = "tests/xdp/pass";
 SEC("xdp")
 int test_xdp_pass(struct xdp_md *ctx)
 {
-	__u32 magic = 0x4C554E41; /* "LUNA", asserted by pass.lua */
-	int ret = bpf_luaxdp_run(runtime, sizeof(runtime), ctx, &magic, sizeof(magic));
+	/* "LUNA" and the receive queue as this program reads it, asserted by pass.lua */
+	__u32 arg[] = {0x4C554E41, ctx->ingress_ifindex, ctx->rx_queue_index};
+	int ret = bpf_luaxdp_run(runtime, sizeof(runtime), ctx, arg, sizeof(arg));
 	return ret < 0 ? XDP_PASS : ret;
 }
 
