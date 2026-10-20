@@ -297,10 +297,11 @@ take it too.
 `functional.sh` takes a base and a head and names the files of the change that the host cycle reads: a C
 file whose tokens differ once the comments are gone, a Lua file whose stripped bytecode's listing does, read
 without the lines its functions span, a shell script with a line other than a comment changed, a submodule
-whose commit moved, and any other file whose bytes or mode moved, past the documents, the harness and the
-`.gitignore` files, which nothing the host runs reads. When it names none the change is not run, and the
-review's build phase skips a head that moved only that way: a comment shortened on #1903 went through
-install, reload and two suites, which measured the module they had measured before.
+whose commit moved, and any other file whose bytes or mode moved, past the documents, the harness, the
+`.gitignore` files and the binding template `lib/luaskel.c`, which nothing the host runs reads. When it
+names none the change is not run, and the review's build phase skips a head that moved only that way: a
+comment shortened on #1903 went through install, reload and two suites, which measured the module they had
+measured before.
 
 `tools/watchdog.sh` runs a script and stops it when the host loses the connectivity it had before the
 run, comparing against the loopback and the default route's gateway and holding nothing against the
