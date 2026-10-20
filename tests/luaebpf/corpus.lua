@@ -10,24 +10,52 @@
 
 local class   = require("class")
 local vmlinux = require("luaebpf.vmlinux")
+local packets = require("tests.luaebpf.packets")
 local xdp     = require("bpf.xdp")
 
-local pack   = string.pack
-local unpack = table.unpack
+local pack, unpack = string.pack, string.unpack
+local tabunpack    = table.unpack
 
-local VERDICT <const> = 0xffffffff -- the 32 bits bpf_prog_run returns
-local ORACLE  <const> = "oracle.txt"
+local VERDICT  <const> = 0xffffffff -- the 32 bits bpf_prog_run returns
+local ORACLE   <const> = "oracle.txt"
+local LOOPBACK <const> = 1
+local QUEUE    <const> = 0
 
 local corpus = {}
 
 local rows = class{}
 
+-- the packet as the kernel's data object reads it: string.unpack with a native-order format of
+-- the exact width, which is the load the emitter lowers each accessor to, rather than a second
+-- implementation of its shifts
+local packet = class{}
+
 -- what a twin is called and what it carries, kept outside it so that a kernel context struct may
 -- have a member of any name
 local states = setmetatable({}, {__mode = "k"})
 
+local function read(self, format, at)
+	if at < 0 then
+		error("offset out of bounds", 0)
+	end
+	return (unpack(format, self.bytes, at + 1))
+end
+
+function packet:getbyte(at) return read(self, "=I1", at) end
+function packet:getuint8(at) return read(self, "=I1", at) end
+function packet:getint8(at) return read(self, "=i1", at) end
+function packet:getuint16(at) return read(self, "=I2", at) end
+function packet:getint16(at) return read(self, "=i2", at) end
+function packet:getuint32(at) return read(self, "=I4", at) end
+function packet:getint32(at) return read(self, "=i4", at) end
+function packet:getint64(at) return read(self, "=i8", at) end
+
+function packet.__len(self)
+	return #self.bytes
+end
+
 -- the XDP context the interpreted side is handed, spelled as the kernel's XDP ctx object
--- (lib/luaxdp.c), over the fields prog run was given
+-- (lib/luaxdp.c), over the fields prog run was given, and the packet behind :packet()
 local context = class{}
 
 function context:ingress()
@@ -36,6 +64,10 @@ end
 
 function context:queue()
 	return states[self].fields.rx_queue_index
+end
+
+function context:packet()
+	return states[self].packet
 end
 
 local function write(path, bytes)
@@ -64,11 +96,31 @@ end
 -- packet, written beside the object as <name>.ctx and <name>.bin, and the twin the body runs the
 -- interpreted function against
 function corpus.context(name, what, fields, bytes)
+	if what == "xdp_md" then
+		-- bpf_prog_test_run_xdp sizes the packet from ctx_in.data_end, empty when it is zero (test_run.c)
+		fields.data_end = #bytes
+	end
 	write(name .. ".ctx", contextbytes(what, fields))
 	write(name .. ".bin", bytes)
 	local twin = context:new()
-	states[twin] = {name = name, fields = fields}
+	states[twin] = {name = name, packet = packet:new{bytes = bytes}, fields = fields}
 	return twin
+end
+
+-- an XDP context on loopback, whose generic rx queue 0 has its xdp_rxq registered on every
+-- device, which is what xdp_convert_md_to_buff requires of a non-zero ingress_ifindex
+-- (net/bpf/test_run.c)
+local function loopback(name, bytes)
+	return corpus.context(name, "xdp_md", {ingress_ifindex = LOOPBACK, rx_queue_index = QUEUE}, bytes)
+end
+
+-- every packet of packets.lua behind an XDP context of its own, by the packet's name
+function corpus.packets()
+	local contexts = {}
+	for _, name in ipairs(packets.order) do
+		contexts[name] = loopback(name, packets[name])
+	end
+	return contexts
 end
 
 local function answer(ok, value)
@@ -100,7 +152,7 @@ function corpus.declare(makers, order, operands, default)
 	local declared = corpus.new()
 	for _, op in ipairs(order) do
 		for i, args in ipairs(operands) do
-			declared:declare(op .. i, makers[op](unpack(args)), default)
+			declared:declare(op .. i, makers[op](tabunpack(args)), default)
 		end
 	end
 	declared:close()

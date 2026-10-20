@@ -444,11 +444,14 @@ end
 function emit.config()
 	local version = util.slurp(KBUILD .. "/include/generated/uapi/linux/version.h")
 		:match("#define LINUX_VERSION_CODE (%d+)")
+	local unaligned = util.slurp(KBUILD .. "/include/generated/autoconf.h")
+		:find("\n#define CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS 1\n", 1, true) ~= nil
 	local out <close> = assert(io.open(BASE .. "/lunatik/config.lua", "w"))
 	out:write("-- auto-generated, do not edit\n")
 	out:write("-- kernel: ", KERNEL, "\n\n")
 	out:write("local config = {}\n\n")
 	out:write("config.kernel_version = ", version, "\n")
+	out:write("config.efficient_unaligned_access = ", tostring(unaligned), "\n")
 	out:write('config.modules = {\n\t"lunatik",\n')
 	for m in LUNATIK_MODULES:gmatch("%S+") do
 		out:write('\t"lua', m:lower(), '",\n')

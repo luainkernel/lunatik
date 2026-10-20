@@ -250,6 +250,50 @@ under `sudo`.
   ([net/core/filter.c#L10467-L10484](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L10467-L10484)).
   The proxy spells the two as those methods and reads those fields.
 
+## The packet a network program reads
+
+* **The reads a kernel script already has.** `LUADATA_NEWINT_GETTER` is
+  `*(T##_t *)luadata_checkbounds(...)` ([lib/luadata.c#L41-L49](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luadata.c#L41-L49)):
+  a host-byte-order load of the exact width, zero-extended for the unsigned names and
+  sign-extended for the signed ones. The method table
+  ([#L226-L363](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luadata.c#L226-L363)) publishes `getbyte` (an alias of `getuint8`),
+  `getint8`, `getuint8`, `getint16`, `getuint16`, `getint32`, `getuint32`, `getint64` and
+  `getstring`, plus `__len`. `LUADATA_NEWINT` is instantiated for `int64` and not for `uint64`
+  ([#L66-L72](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luadata.c#L66-L72)), so there is no `getuint64`: a Lua integer is 64-bit
+  signed, and an unsigned 64-bit value has no distinct representation. A compiled function the
+  interpreter cannot run has no oracle, so the packet proxy publishes those names and no others.
+* **A signed read extends by hand.** eBPF's sign-extending load, `BPF_MEMSX` 0x80
+  ([include/uapi/linux/bpf.h#L22](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L22)),
+  exists from v6.6, the start of the supported range, but not in every JIT of v6.6: the s390 one
+  has no `BPF_MEMSX` case until v6.7 and gives up on the program
+  ([arch/s390/net/bpf_jit_comp.c](https://github.com/torvalds/linux/blob/v6.6/arch/s390/net/bpf_jit_comp.c)).
+  A shift left followed by an arithmetic shift right is two instructions and one shape every
+  JIT takes.
+* **An offset is bounded before the arithmetic.** The verifier refuses arithmetic between a
+  packet pointer and a register whose range it does not know, and `find_good_pkt_pointers`
+  gives the pointer no range at all once the offset the comparison carries runs past
+  `MAX_PACKET_OFF`
+  ([kernel/bpf/verifier.c#L15106-L15126](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L15106-L15126)),
+  which is 0xffff
+  ([include/linux/bpf_verifier.h#L1556](https://github.com/torvalds/linux/blob/v7.2/include/linux/bpf_verifier.h#L1556)).
+  The register the check compares is the access's own end, the pointer plus its width, so the
+  offset is tested unsigned against the last one that width can start at and only then added.
+  An offset above it is out of bounds on every packet a NIC or `BPF_PROG_TEST_RUN` can build,
+  and the interpreter raises there too, so the pairing the differential test asserts is
+  unchanged.
+* **A read wider than a byte needs efficient unaligned access.** `bpf_check` turns strict
+  alignment on wherever `CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS` is unset
+  ([kernel/bpf/verifier.c#L19840-L19842](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L19840-L19842),
+  and in v6.6), and `check_pkt_ptr_alignment` then refuses a packet access wider than
+  a byte unless the offset plus `NET_IP_ALIGN`, taken as 2, is provably a multiple of its size
+  ([#L4910-L4943](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L4910-L4943)):
+  "misaligned packet access". `config X86` and `config ARM64` select the symbol unconditionally
+  ([arch/x86/Kconfig#L236](https://github.com/torvalds/linux/blob/v7.2/arch/x86/Kconfig#L236),
+  [arch/arm64/Kconfig#L199](https://github.com/torvalds/linux/blob/v7.2/arch/arm64/Kconfig#L199)),
+  and the compiler reads it from `lunatik.config`, which `make` writes from the build tree's
+  `include/generated/autoconf.h`, the config the modules are built with, and refuses every read
+  wider than a byte where it is unset.
+
 ## BTF: what the object carries and what the log prints
 
 * `func_info` and `line_info` ride on `BPF_PROG_LOAD`; the requirements are that
