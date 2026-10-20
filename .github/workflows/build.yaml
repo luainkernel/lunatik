@@ -71,6 +71,16 @@ jobs:
         # a table an earlier build left and no spec generates, which make must not install
         touch autogen/linux/stale.lua
         make -j$(nproc) MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
+    - name: Check lock contexts
+      # sparse reads lock contexts through 6.19; doc/capi.md says why lunatik_lockkillable's callers stay
+      if: matrix.kernel-version == '6.6'
+      run: |
+        sudo apt-get install -yq sparse
+        log="$RUNNER_TEMP/sparse.log"
+        make C=2 MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}" > "$log" 2>&1 || { tail -50 "$log"; exit 1; }
+        grep -q 'CHECK .*lunatik_core\.c' "$log" || { echo "sparse checked no file"; exit 1; }
+        left=$(grep 'context imbalance' "$log" | grep -vE "in '(lunatik_closekillable|lunatik_pcallobject|lunatik_resumeruntime|luathread_pushargs|luathread_claim)'" || true)
+        test -z "$left" || { echo "$left"; exit 1; }
     - name: Verify install
       run: |
         dest="$RUNNER_TEMP/install"
