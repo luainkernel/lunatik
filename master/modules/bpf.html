@@ -285,6 +285,11 @@
 
 
 
+    <h3>Raises</h3>
+     &ldquo;not allowed with IRQs disabled&rdquo; when called with IRQs disabled, as in every callback of a
+   hardirq runtime, a probe&rsquo;s handlers among them, where the CPU may already hold a lock the release
+   takes. The end of the scope of a <code>&lt;close&gt;</code> variable holding the map raises there too, and the map
+   is then released with its last reference.
 
 
 
@@ -723,7 +728,7 @@ counter:<span class="function-name">close</span>()</pre>
 <a href="../../modules/bpf.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 11:36:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 11:44:54</span>
 </div>
 </footer>
 </body>

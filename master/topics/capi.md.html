@@ -1220,7 +1220,13 @@ the object at index <code>1</code> through <a href="#lunatik_closeprivate"><code
 stays, holding its reference. <code>lunatik_deleteobject</code>, for <code>__gc</code>, drops the reference the
 userdata holds and releases the object when it was the last. Both raise <code>invalid object</code> when
 index <code>1</code> holds no Lunatik object, and <code>lunatik_closeobject</code> raises <code>object of another class</code> when
-the object&rsquo;s own <code>__close</code> is not <code>lunatik_closeobject</code>.</p>
+the object&rsquo;s own <code>__close</code> is not <code>lunatik_closeobject</code>. <code>lunatik_closeobject</code> also raises
+<code>not allowed with IRQs disabled</code>, through <a href="#lunatik_checkirqs"><code>lunatik_checkirqs</code></a>, when called
+with interrupts off, as in a probe&rsquo;s handler: the class&rsquo;s <code>release</code> runs in the caller&rsquo;s context,
+where the CPU may hold a lock it takes, <code>bpf_map_put</code>&rsquo;s <code>map_idr_lock</code> among them, and only the
+drop of the object&rsquo;s last reference is deferred to a worker. Only an object of an
+interrupt-context class reaches it there, since <code>lunatik_newobject</code> and <code>lunatik_cloneobject</code> refuse
+a process-context class in an interrupt-context runtime.</p>
 
 <hr />
 
@@ -2164,7 +2170,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 11:36:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 11:44:54</span>
 </div>
 </footer>
 </body>
