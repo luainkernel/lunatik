@@ -67,6 +67,7 @@ file = {
 	'./lib/luarcu.c',
 	'./lib/luascx.c',
 	'./lib/luaset.c',
+	'./lib/set/image.lua',
 	'./lib/luasignal.c',
 	'./lib/luaskb.c',
 	'./lib/luasocket.c',

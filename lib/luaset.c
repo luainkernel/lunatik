@@ -104,7 +104,8 @@ static void luaset_release(void *private)
 }
 
 /***
-* A built `set`, returned by `set.new`; `#s` is its number of members.
+* A built `set`, returned by `set.new`, `set.fromdata` or `set.image.load`; `#s` is its number of
+* members.
 * @type set
 */
 
@@ -343,7 +344,7 @@ static void luaset_checklayout(lua_State *L, luaset_t *set, const char *ptr, siz
 * the bytes. `d` must own its memory: the set makes it
 * read only for good, a refused layout included, and holds it for as long as the set lives, so
 * the bytes a set reads neither move nor change, and the set is read without a lock from any
-* runtime it is passed to.
+* runtime it is passed to. `set.image` builds this form from a set image.
 * @function fromdata
 * @tparam data d the data that holds the members.
 * @tparam table layout where the set's arrays sit in `d`.

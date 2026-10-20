@@ -1700,6 +1700,17 @@ pid, what a valid call does, and where it refuses to run.
   a table or an object `invalid object`; and `set.new` refuses a data at its
   first argument. A set whose data no handle of the script holds, once
   collected, answers from a softirq runtime it is passed to.
+- **image**: `set.image` over the images `write.lua` writes in userspace, a
+  list's and a map's, whose `#`, `has` and `match` answer what `set.new`
+  answers over the same members and labels, the label 2^32 - 1 among them,
+  and an empty list's and an empty map's, the empty set. `set.image.load`
+  raises what `data.load` raises, `EFBIG` one byte under the file and
+  `ENOENT`. Copies of a valid file broken at one rule each raise the rule,
+  after the path: a magic other than `LSET` or a file shorter than the header,
+  not a set image; version 2, unsupported; a flag past bit 0, unknown; a byte
+  short, a byte past, a count of 2^32 - 1 and a length past the members, a
+  size mismatch; and an offset above the next or past the file, whose member a
+  lookup answers as none.
 - **set**: `set.new` from a list, sorting unsorted input without reordering the
   table, and binary-search membership (`has`); size (`#`), a duplicate counted
   once; the empty-set and empty-string-member edges; `match` on a list answering
