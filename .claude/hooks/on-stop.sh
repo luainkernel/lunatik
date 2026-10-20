@@ -6,7 +6,8 @@
 # Stop adapter: reads the reply a turn ends on through tools/checks/decision.sh,
 # tools/checks/reboot-capture.sh, tools/checks/handoff.sh, tools/checks/citation.sh,
 # tools/checks/tldr.sh and tools/checks/settled.sh and sends it back once when it hands the
-# maintainer a decision without the question, the options and a recommendation, asks for a reboot
+# maintainer a decision without the question, the options and a recommendation, or recommends an
+# option for keeping an API, asks for a reboot
 # nothing captured for, hands him a long command to copy, cites a rule it does not quote from the
 # tree, runs long without a TL;DR, or asks him whether to file a finding; the checks are plain
 # path-taking scripts (.agents/rules/checks.md), this only translates.
