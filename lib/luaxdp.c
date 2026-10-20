@@ -82,10 +82,26 @@ static int luaxdp_argument(lua_State *L)
 	return 1;
 }
 
+/***
+* Returns the index of the device the packet arrived on, the `ingress_ifindex` of `struct xdp_md`.
+* @function xdp_ctx:ingress
+* @treturn integer network interface index
+*/
+LUNATIK_INTEGERGETTER(luaxdp_ingress, luaxdp_ctx_check, private->xdp->rxq->dev->ifindex);
+
+/***
+* Returns the index of the receive queue the packet arrived on, the `rx_queue_index` of `struct xdp_md`.
+* @function xdp_ctx:queue
+* @treturn integer receive queue index
+*/
+LUNATIK_INTEGERGETTER(luaxdp_queue, luaxdp_ctx_check, private->xdp->rxq->queue_index);
+
 static const luaL_Reg luaxdp_mt[] = {
 	{"__gc", lunatik_deleteobject},
 	{"packet", luaxdp_packet},
 	{"argument", luaxdp_argument},
+	{"ingress", luaxdp_ingress},
+	{"queue", luaxdp_queue},
 	{NULL, NULL}
 };
 

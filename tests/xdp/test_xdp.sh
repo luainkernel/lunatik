@@ -60,7 +60,7 @@ ktap_plan 16
 skip_all()
 {
 	echo "# SKIP: $1"
-	ktap_skip "xdp pass: verdict enforced, packet and argument content verified"
+	ktap_skip "xdp pass: verdict enforced, packet, argument and receive queue verified"
 	ktap_skip "xdp drop: verdict enforced correctly"
 	ktap_skip "xdp reattach: only the last attached callback runs"
 	ktap_skip "xdp detach: callback stops firing and traffic resumes"
@@ -333,7 +333,7 @@ reload_case()
 }
 
 run_case xdp_pass.bpf.o "${PIN}_pass" pass.lua yes "xdp pass" \
-	"xdp pass: verdict enforced, packet and argument content verified" --context=softirq
+	"xdp pass: verdict enforced, packet, argument and receive queue verified" --context=softirq
 run_case xdp_drop.bpf.o "${PIN}_drop" drop.lua no "xdp drop" \
 	"xdp drop: verdict enforced correctly" --context=softirq --percpu
 run_case xdp_reattach.bpf.o "${PIN}_reattach" reattach.lua yes "xdp reattach" \
