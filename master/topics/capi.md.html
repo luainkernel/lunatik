@@ -1962,7 +1962,8 @@ string a script reads as <code>_LUNATIK_VERSION</code> and <code>lunatik -V</cod
 
 <p>A kernel module exposing a Lua library <code>foo</code> whose objects count: the private structure, its
 checker, a method table carrying <code>__gc</code> and <code>__close</code>, the class, a constructor, and the module&rsquo;s
-entry points.</p>
+entry points. <code>lib/luaskel.c</code>, the template to copy to <code>lib/lua&lt;name&gt;.c</code>, carries the same shape
+with a <code>release</code>.</p>
 
 <pre>
 #include &lt;linux/module.h&gt;
@@ -2172,7 +2173,7 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 14:52:10</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 14:52:55</span>
 </div>
 </footer>
 </body>
