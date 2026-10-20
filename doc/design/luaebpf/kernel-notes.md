@@ -130,6 +130,49 @@ Capabilities are `current`'s: `bpf_prog_load` checks `CAP_BPF` at
 [#L3043](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/syscall.c#L3043). The CLI runs
 under `sudo`.
 
+### What the loader rests on
+
+`luaebpf.loader` (`bin/luaebpf/loader.c`) is the libbpf half of `lunatik run`, a C module of the CLI's Lua.
+
+* **The verifier's log comes through the open options.** With `kernel_log_buf` set and
+  `kernel_log_level` left at 0
+  ([libbpf.h#L192-L207](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.h#L192-L207)),
+  libbpf loads quietly and retries a failed load verbosely into that buffer, which `run` prints.
+* **`pin_root_path` reaches no map the emitter writes.** It applies to a map whose definition
+  declares `pinning`, which the emitter's never do, so the loader sets each map's path with
+  `bpf_map__set_pin_path`
+  ([libbpf.h#L1203](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.h#L1203)).
+* **A stale pin is adopted, not replaced.** `bpf_object__create_maps` reuses what is pinned at a
+  map's path ([libbpf.c#L5645-L5658](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L5645-L5658)),
+  and `make_parent_dir` creates one level
+  ([#L9142](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L9142)), so `run`
+  removes a previous run's root and makes the new one with `mkdir -p`.
+* **bpffs refuses a dot in a name.** `bpf_lookup` answers `-EPERM` for any name holding one
+  ([kernel/bpf/inode.c#L415-L422](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/inode.c#L415-L422)),
+  so a link pins as `<program>-link`, which no map name, a C identifier, can spell, and a script
+  name with a dot has no root.
+* **Removing a link's pin detaches it later; `BPF_LINK_DETACH` detaches it now.** The pin's put
+  ([inode.c#L73-L83](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/inode.c#L73-L83))
+  reaches `bpf_link_put`, which frees the link from a work item
+  ([syscall.c#L3434-L3441](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/syscall.c#L3434-L3441)),
+  where `link_detach` calls the link's `detach` in the syscall
+  ([#L6039-L6055](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/syscall.c#L6039-L6055)),
+  which XDP ([net/core/dev.c#L10577](https://github.com/torvalds/linux/blob/v7.2/net/core/dev.c#L10577))
+  and tcx ([kernel/bpf/tcx.c#L283](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/tcx.c#L283))
+  implement. The CLI detaches every link it takes down, so a `stop` returns with the device clear
+  and a link another pin still holds is off the device too. Closing a link's last descriptor frees
+  it in the call (`bpf_link_release`, [#L3451](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/syscall.c#L3451)),
+  so an attach whose pin failed leaves nothing attached once its handle closes.
+* **tcx is libbpf 1.3.0.** `bpf_program__attach_tcx` and the `tcx/ingress` and `tcx/egress`
+  sections arrive there
+  ([libbpf.map#L393-L400](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.map#L393-L400),
+  [libbpf.c#L10101](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L10101)).
+  Below it libbpf reads no program type from such a section
+  ([v1.1.0 libbpf.c#L7188-L7194](https://github.com/libbpf/libbpf/blob/v1.1.0/src/libbpf.c#L7188-L7194))
+  and the load fails with `EINVAL` and no log
+  ([#L6785-L6793](https://github.com/libbpf/libbpf/blob/v1.1.0/src/libbpf.c#L6785-L6793)), so the
+  loader refuses the object when it opens it, with `tcx needs libbpf 1.3.0`.
+
 ## The verifier the emitter designs against
 
 ### Limits
@@ -652,14 +695,15 @@ it may not (`kern_sys_bpf`).
   headers. Measured in phase 1 on the running kernel, not predicted here.
 * `register_bpf_struct_ops` at v6.8: present at v6.9 and absent at v6.7 by tag; v6.8 not checked.
   Not ranking-deciding, since struct_ops is a non goal.
-* Which distributions ship a libbpf with `bpf_program__attach_tcx` (1.3.0). The loader reports a
-  missing symbol as a skip in the suite and an error in the CLI.
+* Which distributions ship a libbpf with `bpf_program__attach_tcx` (1.3.0). The loader refuses a
+  TC program below it, and the `tc` suite skips its compiled cases on that refusal.
 
 ## Sources
 
 * `kernel/bpf/syscall.c`, `verifier.c`, `log.c`, `check_btf.c`, `btf.c`, `helpers.c`, `bpf_lsm.c`,
   `inode.c`, `preload/bpf_preload_kern.c`; `include/linux/bpf.h`, `bpf_verifier.h`, `bpfptr.h`,
-  `filter.h`; `include/uapi/linux/bpf.h`, `bpf_common.h`; `net/core/filter.c`, `net/bpf/test_run.c`;
+  `filter.h`; `include/uapi/linux/bpf.h`, `bpf_common.h`; `net/core/filter.c`, `net/core/dev.c`,
+  `net/bpf/test_run.c`, `kernel/bpf/tcx.c`;
   `Documentation/bpf/btf.rst`, `kfuncs.rst`, `standardization/instruction-set.rst`;
   `tools/lib/bpf/libbpf.c`, `libbpf.h`, `bpf.h`, `libbpf.map`, `linker.c`, `skel_internal.h`;
   `tools/bpf/bpftool/gen.c`, `prog.c`, `net.c`, all at Linux `v7.2`
@@ -670,6 +714,7 @@ it may not (`kern_sys_bpf`).
 * `lopcodes.h`, `ltm.h`, `lvm.c`, `lparser.c`, `lundump.c`, `lundump.h` in `luainkernel/lua` at
   `74f1f100`
 * `Makefile`, `lunatik_conf.h`, `bin/lunatik` at `b566eecc`
+* `src/libbpf.c` in `libbpf/libbpf` at `v1.1.0`, for a section libbpf does not know
 * `llvm/lib/Target/BPF/BPFInstrInfo.td`, `clang/lib/Basic/Targets/BPF.cpp` at `llvmorg-23.1.1`
 * `src/lua/bpf/` in `iovisor/bcc` at `8a46070f`; `bpf/Build`, `README.md`, `libdtrace/dt_cg.c` in
   `oracle/dtrace` at `61fea621`

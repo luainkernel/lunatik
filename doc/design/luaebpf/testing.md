@@ -104,11 +104,13 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 
 | Test | Proves |
 |------|--------|
-| `run.sh` | `lunatik run` on a script with a program file pins the maps, starts the runtime, attaches and pins the link, in that order (checked by what exists after a failure injected at each step) |
-| `stop.sh` | `lunatik stop` leaves nothing under the script's pin root, and a second `run` after a killed one succeeds |
-| `notarget.sh` | a run without `--dev=` for an XDP program fails before the runtime starts, with a message naming the option |
-| `xdp_compiled.sh`, `tc_compiled.sh` | the `xdp` and `tc` suites' pass and drop cases with a compiled program in place of the C stub |
+| `load.sh` | `lunatik run` on a script with a program file pins the maps, starts the runtime, attaches and pins the link, in that order: the kernel script opens the map by its pin path, which it could only do if the map was pinned before the runtime started. A script with an object and no `.lua` runs the program alone |
+| `stop.sh` | `lunatik stop` leaves no pin root and no directory above it that held only the root, nothing on the device even while another pin holds the link, and no runtime; a `run` after it attaches again, and a `run` over the root a crashed one left removes it rather than adopting its maps. A `run` of a script already running is refused with the live one untouched, and where no runtime holds the root the `run` redeploys; a `stop` of a name that only parents a live root, or that climbs out of the pins path, removes nothing, and a `stop` spelled with the `.lua` the runner drops takes the deployment down |
+| `unload.sh` | `lunatik unload` leaves nothing under `/sys/fs/bpf/lunatik/` and no program on either device, for a program beside a kernel script and one with none, even while another pin holds a link; one that cannot detach a pin still removes the tree and exits 1, and one by a user other than root prints only the device's refusal |
+| `undo.sh` | a run that fails at any step leaves no pin root, no runtime and nothing attached: one row per step, with the stimulus that fails it |
+| `notarget.sh` | a run without `--dev=` for an XDP program fails before the runtime starts, with a message naming the option; so does a context for a script with no kernel side, and a name with a dot. A script with no object runs as it did before |
 | `verifierlog.sh` | a program the verifier rejects makes `run` print the log with the Lua line and exit non-zero |
+| `xdp compiled pass`/`drop`, `tc compiled pass`/`drop` | the `xdp` and `tc` suites' pass and drop cases from a compiled program, beside the C stubs rather than in place of them: the stubs are what exercises the kfunc, which no compiled program calls until phase 4 |
 
 ### Phase 4: the escape hatch
 
