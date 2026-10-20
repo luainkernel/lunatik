@@ -22,6 +22,15 @@ local spawned = lunatik._ENV.threads[BODY]
 local receiver <close> = lunatik.runtime(SCRIPT)
 local watch = fsnotify.watch(function() end)
 
+-- ENOENT is how the crypto API answers for an algorithm no provider serves; foreign_checker.sh skips on the message
+local function alloc(new, name)
+	local ok, object = pcall(new, name)
+	if not ok then
+		error(object == "ENOENT" and "the kernel serves no " .. name or object, 0)
+	end
+	return object
+end
+
 local cases = {
 	{name = "data",         object = data.new(8),                 foreign = fifo.new(16), method = "getuint8",   args = {0},
 		got = "fifo"},
@@ -29,10 +38,10 @@ local cases = {
 	{name = "completion",   object = completion.new(),            foreign = data.new(8),  method = "complete",   args = {}},
 	{name = "set",          object = set.new{"a"},                foreign = data.new(8),  method = "has",        args = {"a"}},
 	{name = "crypto.shash", object = crypto.shash("sha256"),  foreign = data.new(8),  method = "digestsize", args = {}},
-	{name = "crypto.skcipher", object = crypto.skcipher("cbc(aes)"), foreign = data.new(8), method = "ivsize", args = {}},
-	{name = "crypto.aead",  object = crypto.aead("gcm(aes)"), foreign = data.new(8),  method = "ivsize",     args = {}},
-	{name = "crypto.rng",   object = crypto.rng("stdrng"),    foreign = data.new(8),  method = "seedsize",   args = {}},
-	{name = "crypto.sig",   object = crypto.sig("ecdsa-nist-p256"), foreign = data.new(8), method = "algname", args = {}},
+	{name = "crypto.skcipher", object = alloc(crypto.skcipher, "cbc(aes)"), foreign = data.new(8), method = "ivsize", args = {}},
+	{name = "crypto.aead",  object = alloc(crypto.aead, "gcm(aes)"), foreign = data.new(8),  method = "ivsize",     args = {}},
+	{name = "crypto.rng",   object = alloc(crypto.rng, "stdrng"), foreign = data.new(8),  method = "seedsize",   args = {}},
+	{name = "crypto.sig",   object = alloc(crypto.sig, "ecdsa-nist-p256"), foreign = data.new(8), method = "algname", args = {}},
 	{name = "task",         object = task.current(),              foreign = data.new(8),  method = "pid",        args = {}},
 	{name = "thread",       object = spawned,                     foreign = data.new(8),  method = "stop",       args = {}},
 	{name = "thread",       object = spawned,                     foreign = data.new(8),  method = "task",       args = {}},

@@ -13,6 +13,9 @@
 # rcu.foreach refuses nil the same way; and a method on a closed runtime or fifo,
 # whose private is gone, is refused instead of dereferencing NULL. The thread
 # object is a spawned body's, since thread.run is refused from a script body.
+# The matrix skips where the kernel serves no algorithm its skcipher, aead, rng or
+# sig row allocates, ecdsa-nist-p256 without CONFIG_CRYPTO_ECDSA among them, which
+# the script names.
 #
 # The close case, foreign_checker_close, closes a thread, a device and a
 # runtime through fifo's close, lunatik_closeobject, which refuses each as an
@@ -53,10 +56,15 @@ ktap_plan 2
 mark_dmesg
 output=$(lunatik spawn "$BODY" 2>&1)
 [ -n "$output" ] && fail "spawn failed: $output"
-run_script "$SCRIPT"
-check_dmesg || { ktap_totals; exit 1; }
-lunatik stop "$SCRIPT" > /dev/null 2>&1
-ktap_pass "every checker refuses another class, nil, a foreign userdata and a closed object"
+output=$(lunatik run "$SCRIPT" 2>&1)
+if [[ "$output" == *"the kernel serves no "* ]]; then
+	ktap_skip "the checker matrix: ${output#lunatik: }"
+else
+	[ -n "$output" ] && fail "the checker matrix failed: $output"
+	check_dmesg || { ktap_totals; exit 1; }
+	lunatik stop "$SCRIPT" > /dev/null 2>&1
+	ktap_pass "every checker refuses another class, nil, a foreign userdata and a closed object"
+fi
 
 if [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] &&
 	grep -qaF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
