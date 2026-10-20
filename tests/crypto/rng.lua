@@ -3,10 +3,15 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 local rng = require("crypto").rng
-local test = require("tests.lib").test
+local lib = require("tests.lib")
+local test = lib.test
 local closing = require("tests.crypto.closing")
 
 local DRBG <const> = "drbg_nopr_hmac_sha512"
+
+-- the algorithms the cases allocate, before they run, so run.sh skips the test where the kernel lacks one
+lib.alloc(rng, "stdrng")
+lib.alloc(rng, DRBG)
 
 test("RNG generate 32 bytes", function()
 	local r = rng"stdrng"

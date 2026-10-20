@@ -5,10 +5,15 @@
 -- Kernel-side script for the darken context test (see run.sh).
 
 local lunatik = require("lunatik")
-local test    = require("tests.lib").test
+local aead    = require("crypto").aead
+local lib     = require("tests.lib")
+local test    = lib.test
 
 local RECEIVER <const> = "tests/darken/context_recv"
 local REFUSAL  <const> = "not allowed once the runtime is armed"
+
+-- the algorithm darken.run allocates, before the cases run, so run.sh skips the test where the kernel lacks it
+lib.alloc(aead, "gcm(aes)")
 
 local function resume(context)
 	local runtime <close> = lunatik.runtime(RECEIVER, context)

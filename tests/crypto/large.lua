@@ -5,12 +5,16 @@
 -- Kernel-side script for the crypto large test (see large.sh).
 
 local crypto = require("crypto")
-local test = require("tests.lib").test
+local lib = require("tests.lib")
+local test = lib.test
 local sizes = require("tests.crypto.large_sizes")
 
 local concat, insert = table.concat, table.insert
 local char, rep, sub = string.char, string.rep, string.sub
 
+local CBC <const> = "cbc(aes)"
+local GCM <const> = "gcm(aes)"
+local CTR <const> = "ctr(aes)"
 local KEY <const> = "0123456789abcdef"
 local IV <const> = "fedcba9876543210"
 local NONCE <const> = "abcdefghijkl"
@@ -24,6 +28,11 @@ local spanning = rep("a", page) .. rep("b", page) .. rep("c", BLOCK)
 local associated = rep("d", page) .. rep("e", page + 1)
 local oversized = rep("x", sizes.kmalloc + page)
 
+-- the algorithms the cases allocate, before they run, so large.sh skips the test where the kernel lacks one
+lib.alloc(crypto.skcipher, CBC)
+lib.alloc(crypto.aead, GCM)
+lib.alloc(crypto.skcipher, CTR)
+
 local function keyed(new, algorithm)
 	local c = new(algorithm)
 	c:setkey(KEY)
@@ -31,11 +40,11 @@ local function keyed(new, algorithm)
 end
 
 local function cbc()
-	return keyed(crypto.skcipher, "cbc(aes)")
+	return keyed(crypto.skcipher, CBC)
 end
 
 local function gcm()
-	return keyed(crypto.aead, "gcm(aes)")
+	return keyed(crypto.aead, GCM)
 end
 
 local function chained(c, data)
@@ -75,7 +84,7 @@ test("AEAD AES-128-GCM data and associated data spanning pages", function()
 	local sealed = c:encrypt(NONCE, spanning, associated)
 	assert(#sealed == #spanning + c:authsize(), "sealed length mismatch")
 
-	local ctr = keyed(crypto.skcipher, "ctr(aes)")
+	local ctr = keyed(crypto.skcipher, CTR)
 	assert(sub(sealed, 1, #spanning) == ctr:encrypt(GCM_COUNTER, spanning), "ciphertext differs from ctr(aes)")
 	assert(c:decrypt(NONCE, sealed, associated) == spanning, "round-trip mismatch")
 

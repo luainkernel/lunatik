@@ -6,7 +6,8 @@
 
 local darken = require("darken")
 local aead   = require("crypto").aead
-local test   = require("tests.lib").test
+local lib    = require("tests.lib")
+local test   = lib.test
 
 local KEY      <const> = string.rep("k", 32)
 local IV       <const> = string.rep("i", 12)
@@ -14,7 +15,7 @@ local TAGLEN   <const> = 16
 local MISMATCH <const> = "EBADMSG"
 local LARGE    <const> = 64 << 20
 
-local gcm = aead("gcm(aes)")
+local gcm = lib.alloc(aead, "gcm(aes)")
 gcm:setkey(KEY)
 
 local function seal(script)

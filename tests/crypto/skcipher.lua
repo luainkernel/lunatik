@@ -6,8 +6,13 @@
 local skcipher = require("crypto").skcipher
 local util = require("util")
 local closing = require("tests.crypto.closing")
-local test = require("tests.lib").test
+local lib = require("tests.lib")
+local test = lib.test
 local hex2bin = util.hex2bin
+
+-- the algorithms the cases allocate, before they run, so run.sh skips the test where the kernel lacks one
+lib.alloc(skcipher, "cbc(aes)")
+lib.alloc(skcipher, "ecb(aes)")
 
 test("SKCIPHER AES-128-CBC encrypt", function()
 	local c = skcipher("cbc(aes)")

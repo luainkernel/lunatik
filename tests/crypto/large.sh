@@ -20,7 +20,8 @@
 # A build that maps the string itself hands the cipher a struct page virt_to_page() made up from a
 # vmalloc address, which arm64 reads when the walk flushes a page it wrote, an oops under the
 # runtime's lock. The case runs only when the loaded luacrypto lists the copy's allocator,
-# luacrypto_newbuffer, in /proc/kallsyms.
+# luacrypto_newbuffer, in /proc/kallsyms, and skips where the kernel serves cbc(aes), gcm(aes) or
+# ctr(aes) not at all, which the script allocates before its cases and names.
 #
 # Usage: sudo bash tests/crypto/large.sh
 
@@ -50,10 +51,6 @@ grep -Eq " $COPY[[:space:]]\[$MODULE\]$" /proc/kallsyms 2> /dev/null || {
 page=$(getconf PAGESIZE)
 printf 'return {page = %d, kmalloc = %d}\n' "$page" "$(kmalloc_max)" > "$SIZES"
 
-if run_test "$SCRIPT"; then
-	ktap_pass "crypto/large"
-else
-	ktap_fail "crypto/large"
-fi
+served_case "crypto/large" run_test "$SCRIPT"
 ktap_totals
 

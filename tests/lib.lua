@@ -26,5 +26,19 @@ function lib.test(test_name, func)
 	end
 end
 
+--- Allocates a crypto object, raising "the kernel serves no <name>" where the constructor raises ENOENT, which is how
+-- the crypto API answers for an algorithm no provider serves; tests/lib.sh's served_case skips a case on the message.
+-- @tparam function new constructor, such as `crypto.skcipher`.
+-- @tparam string name algorithm name.
+-- @return the object `new` returns.
+-- @usage local gcm = lib.alloc(crypto.aead, "gcm(aes)")
+function lib.alloc(new, name)
+	local ok, object = pcall(new, name)
+	if not ok then
+		error(object == "ENOENT" and "the kernel serves no " .. name or object, 0)
+	end
+	return object
+end
+
 return lib
 

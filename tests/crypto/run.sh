@@ -5,6 +5,9 @@
 #
 # Runs all crypto tests and reports aggregated KTAP results.
 #
+# skcipher, aead and rng allocate each algorithm their cases use before the first of them, through
+# tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script names.
+#
 # context: a crypto object refused for its execution context leaves nothing
 # allocated, measured on the reference a tfm holds on the module implementing
 # the algorithm, for the two constructors that allocated one before the object.
@@ -65,10 +68,8 @@ for t in $TESTS; do
 		ktap_skip "crypto/$t: the binding is not built on this kernel"
 	elif [ "$t" = sig ] && [ -n "$CONFIG" ] && ! hassig; then
 		ktap_skip "crypto/$t: needs CONFIG_CRYPTO_ECDSA and CONFIG_CRYPTO_RSA"
-	elif run_test "tests/crypto/$t"; then
-		ktap_pass "crypto/$t"
 	else
-		ktap_fail "crypto/$t"
+		served_case "crypto/$t" run_test "tests/crypto/$t"
 	fi
 done
 
