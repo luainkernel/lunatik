@@ -61,11 +61,13 @@ local OTHER   <const> = 16
 local METHOD  <const> = 32
 local PACKET  <const> = 64
 local MAYBE   <const> = 128              -- a map value the program has not tested yet
+local RECORD  <const> = 256              -- a struct map value, read a field at a time
 local RUNTIME <const> = INT | BOOL | NIL -- a value the kernel holds as a word
-local PROXY   <const> = CTX | PACKET | MAYBE -- a pointer the kernel holds, read through a proxy
+local PROXY   <const> = CTX | PACKET | MAYBE | RECORD -- a pointer the kernel holds, read through a proxy
 
 local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context",
-	[METHOD] = "method", [PACKET] = "packet", [MAYBE] = "map value"}
+	[METHOD] = "method", [PACKET] = "packet", [MAYBE] = "map value",
+	[RECORD] = "struct map value"}
 
 local opnames = {}
 for name, op in pairs(opcodes) do
@@ -83,7 +85,8 @@ emit.maygoto = config.kernel_version >= MAYGOTO
 ---
 -- Whether the kernel Lunatik is built for lets a program read a word at any address, as its
 -- `HAVE_EFFICIENT_UNALIGNED_ACCESS`, which `lunatik.config` carries, says. Without it the
--- verifier refuses a packet read wider than a byte at an offset it cannot prove aligned.
+-- verifier refuses a packet read, or a read of a struct map value's field, wider than a byte at
+-- an offset it cannot prove aligned.
 -- @field luaebpf.emit.unaligned
 emit.unaligned = config.efficient_unaligned_access
 
@@ -630,6 +633,9 @@ end
 
 local function mapstore(f, pc, ins, state, map, key)
 	local code = f.code
+	if map.value.fields ~= nil then
+		refuse(f, pc, "a struct map value is read-only in a compiled function")
+	end
 	local value = stored(f, pc, ins, state, map)
 	mapslot(f, KEY, key, map.key.size)
 	if value == nil then
@@ -660,6 +666,22 @@ local function mapfrom(f, pc, value)
 	return value.map
 end
 
+-- one field of a struct value, at the offset and the width its codec carries
+local function mapfield(f, pc, ins, state, value, key)
+	tested(f, pc, value)
+	local field = mapfrom(f, pc, value).value.fields[key]
+	if field == nil then
+		refuse(f, pc, "a map value has no field '%s'", key)
+	end
+	aligned(f, pc, format("field '%s'", key), field.size)
+	f.code:load(reg.R1, fetch(f, ins.b, reg.R1), field.offset, field.size)
+	if field.signed and field.size * BYTE < NBITS then
+		extend(f, reg.R1, field.size)
+	end
+	setreg(f, ins.a, reg.R1)
+	state[ins.a] = {t = INT, name = key}
+end
+
 -- the map a write names, or the refusal for a table that is not one
 local function mapof(f, pc, state, i)
 	local container = state[i]
@@ -670,9 +692,15 @@ local function mapof(f, pc, state, i)
 end
 
 -- the value behind a pointer the program has just found non-null, which is the only place the
--- verifier lets it be read
+-- verifier lets it be read. A struct stays the pointer it is, and its fields are read one at a
+-- time from there.
 local function mapvalue(f, pc, state, i, value)
-	local spec = mapfrom(f, pc, value).value
+	local map = mapfrom(f, pc, value)
+	local spec = map.value
+	if spec.fields ~= nil then
+		state[i] = {t = RECORD, map = map, name = value.name}
+		return
+	end
 	f.code:load(reg.R1, fetch(f, i, reg.R1), 0, spec.size)
 	if spec.signed and spec.size * BYTE < NBITS then
 		extend(f, reg.R1, spec.size)
@@ -761,6 +789,19 @@ function ops.GETUPVAL(f, pc, ins, state)
 	resolve(f, pc, state, ins.a, value, name)
 end
 
+-- a struct map value, or the lookup that finds one before the program has tested it
+local function isrecord(value)
+	return value ~= nil and (value.t == RECORD
+		or value.t == MAYBE and value.map ~= nil and value.map.value.fields ~= nil)
+end
+
+-- bpf.map decodes a struct value into a table keyed by the layout's names, which has no index
+local function indexable(f, pc, container)
+	if isrecord(container) then
+		refuse(f, pc, "a struct map value is read by field name, not by index")
+	end
+end
+
 local function lookup(f, pc, container, key, name)
 	if container == nil or type(container.k) ~= "table" then
 		refuse(f, pc, "'%s' is read from a value the compiler cannot resolve", name)
@@ -789,6 +830,9 @@ function ops.GETFIELD(f, pc, ins, state)
 	if container ~= nil and container.t == CTX then
 		return contextfield(f, pc, key)
 	end
+	if isrecord(container) then
+		return mapfield(f, pc, ins, state, container, key)
+	end
 	if container ~= nil and maps.declares(container.k) then
 		mapnumber(f, pc, "key")
 	end
@@ -800,6 +844,9 @@ function ops.SETFIELD(f, pc, ins, state)
 	local container = state[ins.a]
 	if container ~= nil and container.t == CTX then
 		return contextfield(f, pc, tostring(constant(f, pc, ins.b)))
+	end
+	if isrecord(container) then
+		refuse(f, pc, "a struct map value is read-only in a compiled function")
 	end
 	mapof(f, pc, state, ins.a)
 	mapnumber(f, pc, "key")
@@ -827,6 +874,7 @@ end
 
 function ops.GETI(f, pc, ins, state)
 	local container = state[ins.b]
+	indexable(f, pc, container)
 	if container ~= nil and maps.declares(container.k) then
 		packable(f, pc, container.k.key, "key", ins.c)
 		f.code:set(reg.R3, ins.c)
@@ -839,6 +887,7 @@ end
 function ops.GETTABLE(f, pc, ins, state)
 	local key = state[ins.c]
 	local container = state[ins.b]
+	indexable(f, pc, container)
 	if container ~= nil and maps.declares(container.k) then
 		return mapread(f, pc, ins, state, container.k)
 	end

@@ -354,7 +354,10 @@ under `sudo`.
   [arch/arm64/Kconfig#L199](https://github.com/torvalds/linux/blob/v7.2/arch/arm64/Kconfig#L199)),
   and the compiler reads it from `lunatik.config`, which `make` writes from the build tree's
   `include/generated/autoconf.h`, the config the modules are built with, and refuses every read
-  wider than a byte where it is unset.
+  wider than a byte where it is unset. A map value is held to its size the same way, without the
+  2, by `check_generic_ptr_alignment`
+  ([#L4945-L4967](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L4945-L4967)):
+  "misaligned value access", so a struct field wider than a byte is refused there as well.
 
 ## A map the object declares
 

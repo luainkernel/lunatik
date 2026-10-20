@@ -1169,6 +1169,20 @@ interpreter raises, the compiled program owes its default verdict instead.
   A write the map refuses, an index past an array's entries, a second key in a
   hash of one entry and a delete from an array, takes the default verdict, and
   what the map held is kept. A value that is not a number is refused.
+- **struct**: a map whose value spec is a `struct` codec, read a field at a
+  time: one field of every width and signedness with a gap the codec reads as
+  padding, and a layout `luaebpf.vmlinux` read out of the running kernel's BTF
+  seeded with an IPv4 header, each answering what the same codec reads off the
+  bytes the case seeded. A write to a field or to the whole value, a field the
+  codec does not carry, an index into the value, a constant, one a local holds
+  and one the program computes, a field whose width no eBPF load covers, a spec
+  that is neither a format nor a codec, and a field read through a value two
+  struct maps merge into are refused, and so is a lookup the program has not
+  tested, a field read of it as a value that may be nil and an index into it
+  and a write to it as they are on the tested value. A field wider than a byte
+  is refused, and a byte field is not, where the kernel lacks efficient
+  unaligned access, the program file's body setting `luaebpf.emit.unaligned`
+  as in **packet**.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind; a verdict that may be nil, which a register

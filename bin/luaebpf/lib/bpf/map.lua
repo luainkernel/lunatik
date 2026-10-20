@@ -14,7 +14,10 @@
 -- Inside a compiled function a map is a table proxy with the kernel module's semantics:
 -- indexing looks up, assignment updates, assigning `nil` deletes. A lookup has the type "value
 -- or nil", and the translator refuses to use it as a number until the function has tested it,
--- which is what the verifier requires of the pointer underneath.
+-- which is what the verifier requires of the pointer underneath. A `struct` value spec yields a
+-- read-only proxy of fields rather than a number, read by field name, as the kernel module decodes
+-- such a value into a table keyed by the layout's names; an index into it is refused, and so is a
+-- field wider than a byte on a kernel without efficient unaligned access, as a packet read is.
 -- @module bpf.map
 -- @usage
 -- local map = require("bpf.map")
@@ -72,11 +75,25 @@ local function scalar(spec)
 	return {format = spec, size = size, signed = signed, native = native}
 end
 
--- the width in a spec that no eBPF load covers, or nil where it is covered
+-- the width in a spec that no eBPF load covers, or nil where every one of them is covered
 local function unreadable(spec)
-	if not loadable[spec.size] then
-		return spec.size
+	for _, field in pairs(spec.fields or {spec}) do
+		if not loadable[field.size] then
+			return field.size
+		end
 	end
+end
+
+-- a struct codec, whose layout says where every field sits and how wide it is
+local function record(spec)
+	if type(spec) ~= "table" or spec.pack == nil or spec.layout == nil then
+		return nil
+	end
+	local fields = {}
+	for _, field in ipairs(spec.layout.fields) do
+		fields[field.name] = field
+	end
+	return {size = spec.size, fields = fields, native = true}
 end
 
 local function named(kind, name, spec)
@@ -93,9 +110,9 @@ local function codecs(spec)
 	if key == nil then
 		error("a map key spec packs one value", CHECK)
 	end
-	local value = scalar(spec.value)
+	local value = scalar(spec.value) or record(spec.value)
 	if value == nil then
-		error("a map value spec packs one value", CHECK)
+		error("a map value spec packs one value or is a struct codec", CHECK)
 	end
 	return key, value
 end
@@ -141,13 +158,14 @@ end
 -- Declares a hash map in a program file, which `lunatik bpf` compiles.
 -- @function bpf.map.hash
 -- @tparam string name what the object calls it, and what the loader pins it under
--- @tparam table spec `{key, value, entries}`; `key` and `value` are `string.pack` formats of one
---   fixed-size integer each, and `entries` is the map's capacity
+-- @tparam table spec `{key, value, entries}`; `key` is a `string.pack` format of one fixed-size
+--   integer, `value` is one of those or a `struct` codec, and `entries` is the map's capacity
 -- @treturn table the declared map, a table proxy inside a compiled function
 -- @raise `map.hash takes a name and a spec`, `a map name is a C identifier, not '<name>'`, `a
---   map key spec packs one value`, `a map value spec packs one value`, `a map is read in the
---   host's byte order, not '<spec>'`, `a map reads 1, 2, 4 or 8 bytes at a time, not <n>`, `a map
---   holds between 1 and 4294967295 entries, not <n>`, or `'<name>' is declared twice`
+--   map key spec packs one value`, `a map value spec packs one value or is a struct codec`, `a
+--   map is read in the host's byte order, not '<spec>'`, `a map reads 1, 2, 4 or 8 bytes at a
+--   time, not <n>`, `a map holds between 1 and 4294967295 entries, not <n>`, or `'<name>' is
+--   declared twice`
 function map.hash(name, spec)
 	return declare("hash", name, spec)
 end

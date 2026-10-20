@@ -173,9 +173,14 @@ map does not hold does nothing, as there.
 the function has tested it, which is what the verifier requires of the pointer underneath. The
 test is `if cached then`, the form the verifier narrows the pointer at; `cached == nil` is
 refused with the same message, since a comparison does not reach that narrowing. A `struct` spec
-yields a proxy of fields rather than a scalar. A value is read with the spec of the map it came
-from, so a register that lookups in two different maps merge into is refused where it is read
-rather than lowered against one of them.
+yields a proxy of fields rather than a scalar, read by field name, `v.ttl`, as the kernel's
+`bpf.map` decodes such a value into a table keyed by the layout's names, so an index, `v[1]`, is
+refused. It is read-only until a phase needs otherwise: writing one, or a field of one, is refused
+at the line that does it. A value is read with the spec of the map it came from, so a register
+that lookups in two different maps merge into is refused where it is read rather than lowered
+against one of them. A field wider than a byte is refused where a packet read that wide is, on a
+kernel without efficient unaligned access, since its verifier refuses a map value read at an
+offset it cannot prove aligned too.
 
 The loader creates the maps and pins them under `/sys/fs/bpf/lunatik/<script>/<name>`, so the
 kernel script opens the same map by that path with the API it has today:
