@@ -1468,7 +1468,10 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   `fsnotify.watch`), called through the class's metatable, refuses an object
   of another class naming both classes, refuses `nil` and refuses a userdata
   of another library; `rcu.foreach` refuses `nil`; and a method on a closed
-  runtime or fifo is refused instead of dereferencing its NULL private.
+  runtime or fifo is refused instead of dereferencing its NULL private;
+  this case skips where the kernel serves no algorithm the `crypto.skcipher`,
+  `crypto.aead`, `crypto.rng` or `crypto.sig` row allocates, `ecdsa-nist-p256`
+  without `CONFIG_CRYPTO_ECDSA` among them.
   A close of another class, `fifo`'s `close` on a thread, a device and a
   runtime, and the runtime's `stop` on a thread, a device and a fifo, is
   refused, and each object then answers its own methods; a `crypto.shash`
