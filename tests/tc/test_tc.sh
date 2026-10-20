@@ -31,6 +31,11 @@
 # through reaches the kernel; the five that are not an action log "invalid action",
 # which no other case logs, and each case reads back the line its callback printed.
 #
+# The compiled cases attach no C program: `lunatik run --dev=` loads the object `make install`
+# compiled from compiled_pass.bpf.lua or compiled_drop.bpf.lua on tcx egress, with no kernel
+# script and no callback, so the verdict is read off the ping and the program off the device.
+# They skip where the CLI's loader is built against a libbpf older than tcx, which it names.
+#
 # The reload case keeps the pass program attached across `lunatik reload`: the
 # program holds luatc loaded while lunatik_run unloads and loads again with a new
 # _ENV. A ping before the reload has the kfunc find the pass script, and the one
@@ -60,6 +65,7 @@ PREFIX="tc verdict: "
 INVALID="$MODULE: invalid action"
 RAISED="${PREFIX}raised"
 RELOADED="tc reload: the callback runs after lunatik_run reloads under an attached program"
+NOTCX="tcx needs libbpf 1.3.0"
 
 # the verdict cases: the payload sizes verdict.lua reads, the case each picks, what it logs
 VERDICT_PAYLOADS=(101 102 103 104 105 106 107)
@@ -95,7 +101,7 @@ tc_unload()
 }
 
 ktap_header
-ktap_plan 18
+ktap_plan 20
 
 skip_all()
 {
@@ -110,6 +116,8 @@ skip_all()
 	ktap_skip "tc data: \"net\" starts at the IP header, and the views end at the frame's tail"
 	ktap_skip "$REFUSED"
 	ktap_skip "$PULLED"
+	ktap_skip "tc compiled pass: a compiled program lets the ping through"
+	ktap_skip "tc compiled drop: a compiled program blocks the ping"
 	for title in "${VERDICT_TITLES[@]}"; do
 		ktap_skip "$title"
 	done
@@ -136,6 +144,8 @@ cleanup()
 	lunatik stop tests/tc/data > /dev/null 2>&1
 	lunatik stop tests/tc/nonlinear > /dev/null 2>&1
 	lunatik stop tests/tc/verdict > /dev/null 2>&1
+	lunatik stop tests/tc/compiled_pass > /dev/null 2>&1
+	lunatik stop tests/tc/compiled_drop > /dev/null 2>&1
 	pkill -f "TCP-LISTEN:$PORT," 2>/dev/null
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
@@ -355,6 +365,33 @@ verdict_case()
 	done
 }
 
+# the program the device carries is named for the script, and the ping alone decides: both programs
+# read it through packet.lua's isping, the predicate the callbacks use, compiled as a subprogram
+compiled_case()
+{
+	local script="$1" expect_reachable="$2" title="$3"
+	local output attached reached
+
+	output=$(lunatik run --dev="$IFACE" "tests/tc/$script" 2>&1)
+	if grep -qF "$NOTCX" <<< "$output"; then
+		ktap_skip "$title ($NOTCX)"; return 0
+	fi
+	attached=$(bpftool net show dev "$IFACE" | grep -c "tcx/egress $script ")
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
+	reached=$?
+	lunatik stop "tests/tc/$script" > /dev/null 2>&1
+
+	[ -z "$output" ] || { comment "$output"; ktap_fail "$title"; return 1; }
+	[ "$attached" -eq 1 ] || { ktap_fail "$title: $IFACE carries no tcx/egress $script"; return 1; }
+	if [ "$expect_reachable" = "yes" ] && [ "$reached" -ne 0 ]; then
+		ktap_fail "$title: expected PASS but ping was blocked"; return 1
+	fi
+	if [ "$expect_reachable" = "no" ] && [ "$reached" -eq 0 ]; then
+		ktap_fail "$title: expected DROP but ping got through"; return 1
+	fi
+	ktap_pass "$title"
+}
+
 reload_case()
 {
 	local before reloaded
@@ -404,6 +441,8 @@ run_case tc_data.bpf.o data.lua yes "tc data" \
 
 nonlinear_case
 verdict_case
+compiled_case compiled_pass yes "tc compiled pass: a compiled program lets the ping through"
+compiled_case compiled_drop no "tc compiled drop: a compiled program blocks the ping"
 reload_case
 
 ktap_totals

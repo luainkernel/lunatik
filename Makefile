@@ -49,6 +49,14 @@ LUAEBPF_TABLES_SRCS := bin/luaebpf/bytecode.c lua/lopcodes.c
 LOADER := bin/luaebpf/loader.so
 LOADER_CFLAGS := -std=gnu99 -O2 -Wall -fPIC -shared -DLUA_USE_LINUX -Ilua
 
+# a program file's object goes beside the script it belongs to, where `lunatik run <script>` looks for it;
+# the compiler reads the context's layout from the kernel's BTF, so a kernel that publishes none gets no object
+define INSTALL_BPF
+	[ ! -r /sys/kernel/btf/vmlinux ] || for f in $(1); do case "$$f" in \
+		*.bpf.lua) ${LUNATIK_INSTALL_PATH}/lunatik bpf -o $(2)/$$(basename $$f .lua).o $$f || exit 1;; \
+	esac; done
+endef
+
 # a directory's kernel scripts, not its program files: a program file's body runs on the host, never under the kernel's require
 LUA_SCRIPTS = $$(ls $(1)/*.lua 2>/dev/null | grep -v '\.bpf\.lua$$')
 
@@ -221,6 +229,7 @@ examples_install:
 		${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/$$d; \
 		lua=$(call LUA_SCRIPTS,examples/$$d); \
 		$(call INSTALL_LUA,$$lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
+		$(call INSTALL_BPF,examples/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
 	done
 
 examples_uninstall:
@@ -256,6 +265,10 @@ tests_install:
 	${INSTALL} -m 0755 tests/socket/unix/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix
 	${INSTALL} -m 0644 tests/socket/unix/*.lua ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	for f in $(TEST_PEERS); do ${INSTALL} -m 0644 $$f ${LUNATIK_TESTS_INSTALL_PATH}/$${f#tests/}; done
+	# a luaebpf case compiles its own program files: the corpora write their oracle where they compile
+	for d in $(filter-out luaebpf,$(TEST_DIRS)); do \
+		$(call INSTALL_BPF,tests/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/tests/$$d); \
+	done
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
@@ -272,7 +285,9 @@ btf_install:
 modules_uninstall:
 	${RM} -r ${MODULES_INSTALL_PATH}/lunatik
 
-install: scripts_install modules_install examples_install tests_install
+# the program files of examples_install and tests_install compile with the CLI scripts_install writes
+install: scripts_install modules_install
+	${MAKE} examples_install tests_install
 	for mod in $(MODULES_ORDER_LIST); do \
 		sed -i "\|^$$mod$$|d" $(MODULES_ORDER_FILE); \
 		echo "$$mod" >> $(MODULES_ORDER_FILE); \
