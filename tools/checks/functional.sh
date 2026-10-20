@@ -28,7 +28,9 @@ code() {
 	git show "$rev:$path" > "$tmp/file" 2> /dev/null || { git rev-parse --verify -q "$rev:$path"; return 0; }
 	git ls-tree "$rev" -- "$path" | cut -c1-6
 	case "$path" in
-		*.c|*.h) gcc -fpreprocessed -dD -E -P -x c "$tmp/file" 2> /dev/null | tr -s ' \t\n' ' ' > "$tmp/code" ;;
+		# -fpreprocessed joins no continuation, and reads a "#name" that opens one as a directive
+		*.c|*.h) sed -e ':a' -e '/\\$/N; s/\\\n//; ta' "$tmp/file" | gcc -fpreprocessed -dD -E -P -x c - 2> /dev/null |
+			tr -s ' \t\n' ' ' > "$tmp/code" ;;
 		*.lua) luac5.5 -s -o "$tmp/code" "$tmp/file" 2> /dev/null ;;
 		*.sh) sed '1!{/^[[:space:]]*#/d;}' "$tmp/file" | tr -s ' \t\n' ' ' > "$tmp/code" ;;
 		*) cp "$tmp/file" "$tmp/code" ;;
