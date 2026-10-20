@@ -5,7 +5,7 @@
 #
 # Runs all crypto tests and reports aggregated KTAP results.
 #
-# skcipher, aead and rng allocate each algorithm their cases use before the first of them, through
+# skcipher, aead, rng and sig allocate each algorithm their cases use before the first of them, through
 # tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script names.
 #
 # context: a crypto object refused for its execution context leaves nothing
@@ -21,7 +21,6 @@
 #
 # sig: crypto.sig verifies the kernel's own ECDSA P-256 vector and an RSA PKCS#1 v1.5 pair openssl
 # signed, each verifier allocated by its 6.13 name and, on ENOENT, by the name of 6.12 and earlier.
-# It skips where the kernel builds no ECDSA or no RSA.
 #
 # comp is served only where the kernel still has the crypto_comp API, which
 # Linux 6.15 removed: lib/luacrypto_comp.c compiles to nothing there and
@@ -37,12 +36,6 @@ source "$DIR/../lib.sh"
 TESTS="shash skcipher aead rng sig hkdf comp"
 TOTAL=$(echo $TESTS | wc -w)
 PROBE="tests/crypto/hascomp"
-
-CONFIG=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null)
-
-hassig() {
-	grep -q '^CONFIG_CRYPTO_ECDSA=' <<< "$CONFIG" && grep -q '^CONFIG_CRYPTO_RSA=' <<< "$CONFIG"
-}
 
 cleanup() {
 	for t in $TESTS; do
@@ -66,8 +59,6 @@ esac
 for t in $TESTS; do
 	if [ "$t" = "$MISSING" ]; then
 		ktap_skip "crypto/$t: the binding is not built on this kernel"
-	elif [ "$t" = sig ] && [ -n "$CONFIG" ] && ! hassig; then
-		ktap_skip "crypto/$t: needs CONFIG_CRYPTO_ECDSA and CONFIG_CRYPTO_RSA"
 	else
 		served_case "crypto/$t" run_test "tests/crypto/$t"
 	fi
