@@ -25,12 +25,19 @@ local ST    <const> = 0x02
 local STX   <const> = 0x03
 local JMP   <const> = 0x05
 local ALU64 <const> = 0x07
+local W     <const> = 0x00
+local H     <const> = 0x08
+local B     <const> = 0x10
 local DW    <const> = 0x18
 local MEM   <const> = 0x60
 local SRC_X <const> = 0x08
 local PSEUDO_CALL <const> = 1
 local MAY_GOTO    <const> = 0
 local SIZE  <const> = 8
+local WORD  <const> = 8
+
+-- the field an access of that many bytes carries, BPF_B and friends
+local widths = {[1] = B, [2] = H, [4] = W, [8] = DW}
 
 -- string.pack's i4 takes a signed word; the halves of a 64-bit immediate are unsigned
 local function word(value)
@@ -146,16 +153,16 @@ function code:set(dst, imm)
 	return at
 end
 
---- `dst := *(u64 *)(src + off)`.
+--- `dst := *(u<8n> *)(src + off)`, zero-extended; `n` is eight bytes by default.
 -- @function luaebpf.insn.code:load
-function code:load(dst, src, off)
-	return append(self, {code = LDX | DW | MEM, dst = dst, src = src, off = off, imm = 0})
+function code:load(dst, src, off, n)
+	return append(self, {code = LDX | widths[n or WORD] | MEM, dst = dst, src = src, off = off, imm = 0})
 end
 
---- `*(u64 *)(dst + off) := src`.
+--- `*(u<8n> *)(dst + off) := src`; `n` is eight bytes by default.
 -- @function luaebpf.insn.code:store
-function code:store(dst, off, src)
-	return append(self, {code = STX | DW | MEM, dst = dst, src = src, off = off, imm = 0})
+function code:store(dst, off, src, n)
+	return append(self, {code = STX | widths[n or WORD] | MEM, dst = dst, src = src, off = off, imm = 0})
 end
 
 --- `*(u64 *)(dst + off) := imm`; `imm` must fit in 32 signed bits.

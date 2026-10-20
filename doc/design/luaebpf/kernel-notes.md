@@ -221,6 +221,35 @@ under `sudo`.
   ([lib/luakfunc.h#L41-L46](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luakfunc.h#L41-L46)),
   and an IRQ-context runtime may not sleep. A compiled program loaded sleepable may.
 
+## The context a network program reads
+
+* **Every XDP context access is exactly four bytes, and none is a write.**
+  `__is_valid_xdp_access` rejects a size other than `sizeof(__u32)` and any offset the size does
+  not divide
+  ([net/core/filter.c#L9341-L9351](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L9341-L9351));
+  `xdp_is_valid_access` refuses `egress_ifindex` outside a devmap program, refuses every write
+  unless the program is offloaded, and refuses an `LDSX` load of `data`, `data_meta` or
+  `data_end`
+  ([#L9353-L9395](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L9353-L9395)).
+  Those three yield `PTR_TO_PACKET`, `PTR_TO_PACKET_META` and `PTR_TO_PACKET_END`, so the
+  four-byte load `convert_ctx_access` rewrites gives the program a full pointer.
+* **What `BPF_PROG_TEST_RUN` gives an XDP program.** `xdp_convert_md_to_buff` refuses a non-zero
+  `egress_ifindex`, refuses an `rx_queue_index` without an `ingress_ifindex`, and for a non-zero
+  `ingress_ifindex` requires the device to exist in the caller's netns, the queue index to be
+  below `real_num_rx_queues`, and that queue's `xdp_rxq` to be registered
+  ([net/bpf/test_run.c#L1274-L1317](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L1274-L1317)).
+  Every device registers its generic rx queues' `xdp_rxq` in `netif_alloc_rx_queues`
+  ([net/core/dev.c#L11177-L11184](https://github.com/torvalds/linux/blob/v7.2/net/core/dev.c#L11177-L11184)),
+  so loopback with queue 0 is a context every machine can supply, with no veth and no attach.
+* **The XDP ctx a kernel script already has.** `lib/luaxdp.c`'s method table publishes `packet`
+  and `argument`
+  ([#L85-L90](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaxdp.c#L85-L90)),
+  over the `struct xdp_buff *` the hook ran on, and #1987 adds `ingress` and `queue`, reading
+  `xdp->rxq->dev->ifindex` and `xdp->rxq->queue_index`, which is what `xdp_convert_ctx_access`
+  lowers the `xdp_md` fields `ingress_ifindex` and `rx_queue_index` to
+  ([net/core/filter.c#L10467-L10484](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L10467-L10484)).
+  The proxy spells the two as those methods and reads those fields.
+
 ## BTF: what the object carries and what the log prints
 
 * `func_info` and `line_info` ride on `BPF_PROG_LOAD`; the requirements are that
