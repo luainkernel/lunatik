@@ -7,7 +7,8 @@
 #   - a read one byte past the last, a read at an offset above the ceiling the verifier lets a
 #     packet pointer take, a read that lands in the whole ClientHello but past the truncated one,
 #     and a read at a negative offset the program computed: the interpreter raises on each, and
-#     the compiled program owes its default verdict
+#     the compiled program owes its default verdict, through ctx:packet() on XDP and skb:data() on
+#     TC, whose bounds sit at other offsets of the context
 #   - every row is declared twice, once with each default, so the answer is the verdict the file
 #     asked for and not a number the failure path happened to leave in R0
 #   - with LUAEBPF_DROP=bounds the object is still written, and the verifier rejects it naming an

@@ -25,9 +25,8 @@
 local programs = require("luaebpf.programs")
 local action   = require("linux.xdp").action
 
-local mathtype = math.type
-local format   = string.format
-local getinfo  = debug.getinfo
+-- libbpf reads the program type back from the ELF section name (tools/lib/bpf/libbpf.c)
+local SECTION <const> = "xdp"
 
 -- what a program reaches on its context, spelled as the kernel's XDP ctx object spells it
 -- (lib/luaxdp.c): each method maps to the xdp_md field it reads. Nothing is writable:
@@ -36,7 +35,8 @@ local getinfo  = debug.getinfo
 local context = {
 	struct = "xdp_md",
 	methods = {ingress = "ingress_ifindex", queue = "rx_queue_index"},
-	packet = {base = "data", limit = "data_end"},
+	writable = {},
+	packet = {method = "packet", base = "data", limit = "data_end"},
 }
 
 local xdp = {}
@@ -53,16 +53,8 @@ local xdp = {}
 --   an integer`, the line where `fn` is defined
 function xdp.program(fn, opts)
 	opts = opts or {}
-	if type(fn) ~= "function" or getinfo(fn, "S").what == "C" then
-		error("xdp.program takes a Lua function", 2)
-	end
-	local default = opts.default or action.PASS
-	if mathtype(default) ~= "integer" then
-		local info = getinfo(fn, "S") -- a caller that returns xdp.program(...) leaves no line of its own
-		error(format("%s:%d: xdp.program's default verdict is not an integer", info.short_src, info.linedefined), 0)
-	end
-	return programs.declare{kind = "xdp", fn = fn, default = default, name = opts.name,
-		context = context}
+	return programs.declare("xdp.program", fn, {section = SECTION, default = opts.default or action.PASS,
+		name = opts.name, context = context})
 end
 
 return xdp

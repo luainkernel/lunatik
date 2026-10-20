@@ -265,6 +265,15 @@ local function abort(f)
 	return f.aborted
 end
 
+-- a value the program computes past `size` unsigned bytes, fewer than a register holds, takes
+-- the default verdict
+local function fitsunsigned(f, src, size)
+	local code = f.code
+	code:alu(alu.MOV, reg.R5, src)
+	code:alui(alu.RSH, reg.R5, size * BYTE)
+	code:branchi(jump.JNE, reg.R5, 0, abort(f))
+end
+
 local function jumptarget(f, pc)
 	local ins = f.proto.code[pc]
 	if ins == nil or ins.op ~= opcodes.JMP then
@@ -328,13 +337,47 @@ local function contextload(f, state, a, ctx, field)
 	state[a] = {t = INT, name = field.name}
 end
 
--- a method reads the field its context maps it to
+local function contextlen(f, pc, ins, state)
+	local length = f.unit.context.length
+	if length == nil then
+		refuse(f, pc, "the context has no length; '#' on the packet is its length")
+	end
+	contextload(f, state, ins.a, ins.b, layout(f)[length])
+end
+
+-- the value a setter is called with, held to its field as the kernel's own setter holds it: one
+-- the compiler holds is refused at its line
+local function contextstore(f, pc, ins, state, field)
+	local value = state[ins.a + 2]
+	if not isinteger(value) then
+		refuse(f, pc, "'%s' takes a number, not a %s", field.name, typename(value))
+	end
+	local src = getreg(f, pc, state, ins.a + 2, reg.R2)
+	local bits = field.size * BYTE
+	if value.k == nil then
+		fitsunsigned(f, src, field.size)
+	elseif value.k >> bits ~= 0 then
+		refuse(f, pc, "'%s' takes 0 to %d, not %d", field.name, (1 << bits) - 1, value.k)
+	end
+	f.code:store(fetch(f, ins.a + 1, reg.R1), field.offset, src, field.size)
+end
+
+-- a setter is called with the receiver and the value, both of which OP_CALL counts
+local VALUEARGS <const> = 2
+
+-- a method reads the field its context maps it to, after storing there the value a setter is
+-- called with
 local function contextcall(f, pc, ins, state, name)
-	local member = f.unit.context.methods[name]
+	local context = f.unit.context
+	local member = context.methods[name]
 	if not member then
 		refuse(f, pc, "the context has no method '%s'", name)
 	end
-	contextload(f, state, ins.a, ins.a + 1, layout(f)[member])
+	local field = layout(f)[member]
+	if context.writable[name] and ins.b > VALUEARGS then
+		contextstore(f, pc, ins, state, field)
+	end
+	contextload(f, state, ins.a, ins.a + 1, field)
 end
 
 --- @section the packet
@@ -398,28 +441,50 @@ local function packetread(f, pc, ins, state, access)
 	state[ins.a] = {t = INT}
 end
 
--- the length is the distance between the bounds, which is what '#' on the kernel's data object
--- answers and what the interpreted twin reads off the same bytes
-local function packetlen(f, ins, state)
+local function span(f, ptr)
 	local code, base, limit = f.code, bounds(f)
-	local ptr = fetch(f, ins.b, reg.R3)
 	code:load(reg.R1, ptr, base.offset, base.size)
 	code:load(reg.R2, ptr, limit.offset, limit.size)
 	code:alu(alu.SUB, reg.R2, reg.R1)
-	setreg(f, ins.a, reg.R2)
+	return reg.R2
+end
+
+-- the length is the distance between the bounds, which is what '#' on the kernel's data object
+-- answers and what the interpreted twin reads off the same bytes
+local function packetlen(f, ins, state)
+	setreg(f, ins.a, span(f, fetch(f, ins.b, reg.R3)))
 	state[ins.a] = {t = INT}
 end
 
+-- data_end ends the linear head (bpf_compute_data_pointers): a packet longer than the span is not linear
+local function checklinear(f, ctx)
+	local length = layout(f)[f.unit.context.length]
+	local head = span(f, ctx)
+	f.code:load(reg.R1, ctx, length.offset, length.size)
+	f.code:branch(jump.JNE, reg.R1, head, abort(f))
+end
+
+-- a method that takes a layer is called with the receiver and the layer, both of which OP_CALL counts
+local LAYERARGS <const> = 2
+
 -- the packet proxy is the context register under another type: one register, passed to a
 -- subprogram in one argument, with nothing to keep live across a call
-local function contextpacket(f, ins, state, name)
-	setreg(f, ins.a, fetch(f, ins.a + 1, reg.R1))
+local function contextpacket(f, pc, ins, state, name)
+	local packet = f.unit.context.packet
+	if packet.layered and ins.b > LAYERARGS then
+		refuse(f, pc, "'%s' with a layer is not compiled yet", name)
+	end
+	local ctx = fetch(f, ins.a + 1, reg.R3)
+	if packet.linear then
+		checklinear(f, ctx)
+	end
+	setreg(f, ins.a, ctx)
 	state[ins.a] = {t = PACKET, name = name}
 end
 
 local function contextmethod(f, pc, ins, state, callee)
-	if callee.name == "packet" then
-		return contextpacket(f, ins, state, callee.name)
+	if callee.name == f.unit.context.packet.method then
+		return contextpacket(f, pc, ins, state, callee.name)
 	end
 	contextcall(f, pc, ins, state, callee.name)
 end
@@ -569,6 +634,9 @@ end
 
 function ops.LEN(f, pc, ins, state)
 	local value = state[ins.b]
+	if value ~= nil and value.t == CTX then
+		return contextlen(f, pc, ins, state)
+	end
 	if value == nil or value.t ~= PACKET then
 		refuse(f, pc, "'#' cannot be applied in a compiled function")
 	end

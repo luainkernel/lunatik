@@ -250,6 +250,68 @@ under `sudo`.
   ([net/core/filter.c#L10467-L10484](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L10467-L10484)).
   The proxy spells the two as those methods and reads those fields.
 
+* **A `__sk_buff` write is four bytes, and only some fields take one.**
+  `tc_cls_act_is_valid_access` allows a write to `mark`, `tc_index`, `priority`, `tc_classid`,
+  `cb[0..4]`, `tstamp` and `queue_mapping` and to nothing else
+  ([net/core/filter.c#L9273-L9292](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L9273-L9292));
+  `bpf_skb_is_valid_access`'s default arm takes a write only at `size_default`, four bytes
+  ([#L8952-L8962](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L8952-L8962)),
+  and `data`, `data_meta` and `data_end` are four-byte reads that yield packet pointers
+  ([#L8920-L8929](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L8920-L8929)).
+  That set is kernel policy rather than layout, so BTF cannot supply it and the program type's
+  module carries it.
+* **What `BPF_PROG_TEST_RUN` gives a TC program.** `convert___skb_to_skb` refuses a `ctx_in`
+  with anything non-zero outside `mark`, `priority`, `ingress_ifindex`, `ifindex`, `cb`,
+  `data_end`, `tstamp`, `wire_len`, `gso_segs`, `gso_size` and `hwtstamp`, and copies `mark`,
+  `priority`, `ingress_ifindex`, `tstamp` and `cb` into the skb
+  ([net/bpf/test_run.c#L925-L1003](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L925-L1003));
+  `convert_skb_to___skb` writes them back into `ctx_out`
+  ([#L1011](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L1011)), so a
+  `priority` write is observable. `skb->len` is the bytes handed in, and `ctx_in.len` must be
+  zero.
+* **The skb a kernel script already has.** `lib/luaskb.c`'s method table
+  ([#L379-L395](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaskb.c#L379-L395))
+  publishes `__len`, which answers `skb->len`
+  ([#L87-L92](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaskb.c#L87-L92)),
+  `ifindex`, which answers `skb->dev->ifindex` and `nil` without a device
+  ([#L98-L104](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaskb.c#L98-L104)),
+  and `priority`, which stores a value `lunatik_checkinteger` holds from 0 up to `U32_MAX`,
+  raising outside them, and answers the field
+  ([#L321-L348](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaskb.c#L321-L348)).
+  `bpf_convert_ctx_access` reads `__sk_buff`'s `len`, `priority` and `ifindex` from those same
+  members, `ifindex` as 0 without a device
+  ([net/core/filter.c#L9888-L9931](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L9888-L9931)),
+  and a TC program runs with one: `sch_handle_ingress` finds it through `skb->dev`
+  ([net/core/dev.c#L4465-L4468](https://github.com/torvalds/linux/blob/v7.2/net/core/dev.c#L4465-L4468))
+  and the test run's `eth_type_trans` sets it
+  ([net/bpf/test_run.c#L1168](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L1168)).
+  #1989 adds `hash`, which answers `skb->hash` as it stands rather than `skb_get_hash()`'s
+  computed one, and `__sk_buff.hash` reads that same member
+  ([net/core/filter.c#L9933-L9937](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L9933-L9937));
+  a test run leaves it 0, since `convert___skb_to_skb` refuses a `ctx_in` that sets it. The
+  object carries no `ingress_ifindex`, so the proxy spells the four as the object does and
+  refuses that one.
+* **The packet behind the skb.** The object's `data` answers a view from `skb->data` to the tail,
+  or, given a layer, from the network or the MAC header
+  ([lib/luaskb.c#L150-L185](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaskb.c#L150-L185));
+  `__sk_buff.data` is `skb->data` too, and `data_end` the end of its linear part,
+  `skb->data + skb_headlen(skb)`
+  ([include/linux/filter.h#L919-L926](https://github.com/torvalds/linux/blob/v7.2/include/linux/filter.h#L919-L926)).
+  The proxy spells the packet `skb:data()` and refuses a layer, which no read of the two bounds
+  reaches. In a tc callback the object raises on an skb that is not linear
+  ([lib/luaskb.c#L118-L120](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaskb.c#L118-L120)),
+  one whose `data_len` is not zero, and `skb_headlen` is `len` less `data_len`
+  ([include/linux/skbuff.h#L2527-L2535](https://github.com/torvalds/linux/blob/v7.2/include/linux/skbuff.h#L2527-L2535)),
+  so the proxy takes the default verdict where `skb:data()` finds `__sk_buff.len` past
+  `data_end - data`. A test run builds such an skb only from v6.19, when `ctx_in`'s `data_end`
+  stops short of the packet
+  ([net/bpf/test_run.c#L1083-L1159](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L1083-L1159)),
+  so `nonlinear.sh` attaches the program to a device instead.
+* **Section names.** libbpf maps `tcx/ingress` and `tcx/egress` to `SCHED_CLS` with the matching
+  `expected_attach_type`, `tc` to `SCHED_CLS` with none, and `xdp` to `XDP`
+  ([tools/lib/bpf/libbpf.c#L10101-L10146](https://github.com/torvalds/linux/blob/v7.2/tools/lib/bpf/libbpf.c#L10101-L10146)),
+  so an object whose entry sits in the right section needs no type argument on the way in.
+
 ## The packet a network program reads
 
 * **The reads a kernel script already has.** `LUADATA_NEWINT_GETTER` is
