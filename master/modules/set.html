@@ -173,6 +173,7 @@
 </ul>
 <h3>Other</h3>
 <ul class="mono">
+  <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
 </aside>
@@ -211,6 +212,10 @@
 <h2 id="set">set</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
+	<td class="name"><a href="#fromdata">fromdata (d, layout)</a></td>
+	<td class="summary">Builds a set over the bytes of a <a href="../modules/data.html#">data</a>, without copying them.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#new">new (t)</a></td>
 	<td class="summary">Builds a set from a list of strings or from a map of strings to labels.</td>
 	</tr>
@@ -219,7 +224,8 @@
     <h2 class="section-header" id="Class_set-details"><a name="Class_set"></a>Class set  in detail</h2>
 
           <div class="section-description">
-          A built <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#new">set.new</a>; <code>#s</code> is its number of members.
+          A built <a href="../modules/set.html#">set</a>, returned by <a href="../modules/set.html#new">set.new</a>, <a href="../modules/set.html#fromdata">set.fromdata</a> or <a href="../modules/set.image.html#load">set.image.load</a>; <code>#s</code> is its number of
+ members.
           </div>
     <dl class="function">
     <dt id="set:has"><a name="set:has"></a><strong>set:has (s)</strong></dt>
@@ -278,6 +284,51 @@
     <h2 class="section-header" id="set-details"><a name="set"></a>set in detail</h2>
 
     <dl class="function">
+    <dt id="fromdata"><a name="fromdata"></a><strong>fromdata (d, layout)</strong></dt>
+    <dd>
+    Builds a set over the bytes of a <a href="../modules/data.html#">data</a>, without copying them.</p>
+
+<p> <code>layout</code> holds byte offsets into <code>d</code>, counted from 0: <code>n</code>, the number of members;
+ <code>offsets</code>, where <code>n + 1</code> u32 offsets sit, member <code>i</code> being bytes <code>off[i]</code> up to <code>off[i+1]</code>
+ of the members; <code>labels</code>, where <code>n</code> u32 labels sit, absent for a list, whose members carry 1;
+ and <code>blob</code>, where the members' bytes begin. The u32 are little-endian and their offsets
+ multiples of 4. Every array is checked to fit in <code>d</code>, and a lookup reads a member only when its
+ offsets keep it inside the bytes from <code>blob</code> on, so no layout or content makes it read outside
+ the data. That is the whole check: members out of order or repeated, offsets that decrease or
+ reach past the data and a label of 0 make the lookups answer wrong, the error of whoever wrote
+ the bytes. <code>d</code> must own its memory: the set makes it
+ read only for good, a refused layout included, and holds it for as long as the set lives, so
+ the bytes a set reads neither move nor change, and the set is read without a lock from any
+ runtime it is passed to. <a href="../modules/set.image.html#">set.image</a> builds this form from a set image.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">d</span>
+            <span class="types"><span class="type">data</span></span>
+         the data that holds the members.
+        </li>
+        <li><span class="parameter">layout</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         where the set&rsquo;s arrays sit in <code>d</code>.
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/set.html#set">set</a></span>
+        the built set.
+    </ol>
+
+    <h3>Raises</h3>
+     <code>external memory</code> for a data that views memory it does not own, as <code>skb:data()</code> does;
+ <code>out of bounds</code> for a layout field outside the data or an array that does not fit in it or whose
+ offset is not a multiple of 4; or on allocation failure.
+
+
+
+</dd>
     <dt id="new"><a name="new"></a><strong>new (t)</strong></dt>
     <dd>
     Builds a set from a list of strings or from a map of strings to labels.</p>
@@ -330,7 +381,7 @@
 <a href="../../modules/set.html">5.1 docs</a> ·
 <a href="../../5.0/modules/set.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 13:22:08</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-20 13:39:56</span>
 </div>
 </footer>
 </body>
