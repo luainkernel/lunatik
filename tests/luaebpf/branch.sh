@@ -29,7 +29,7 @@ output=$(luaebpf_compile branch) || { comment "$output"; fail "luaebpf: branch.b
 output=$(luaebpf_loadall branch) || { comment "$output"; fail "luaebpf: the corpus did not verify"; }
 ktap_pass "luaebpf: every branch row verifies"
 
-output=$(luaebpf_differential 2) || { comment "$output"; fail "luaebpf: a branch differs from the interpreter"; }
+output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a branch differs from the interpreter"; }
 ktap_pass "luaebpf: every branch row agrees with the interpreter"
 
 check_dmesg

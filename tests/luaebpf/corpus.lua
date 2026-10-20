@@ -35,8 +35,8 @@ function corpus.new()
 end
 
 function rows:declare(name, fn, default)
-	xdp.program(fn, {name = name, default = default})
-	self.out:write(name, "\t", answer(pcall(fn, 0)), "\n")
+	local program = xdp.program(fn, {name = name, default = default})
+	self.out:write(name, "\t", answer(pcall(fn, 0)), "\t", program.default, "\n")
 end
 
 function rows:close()
