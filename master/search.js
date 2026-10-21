@@ -591,6 +591,7 @@ window.LUNATIK_SEARCH = [
 ["lunatik_toobject","topics/capi.md.html#lunatik_toobject","Guide · Lunatik C API"],
 ["lunatik_checkshareable","topics/capi.md.html#lunatik_checkshareable","Guide · Lunatik C API"],
 ["LUNATIK_PRIVATECHECKER","topics/capi.md.html#lunatik_privatechecker","Guide · Lunatik C API"],
+["LUNATIK_INTEGERGETTER","topics/capi.md.html#lunatik_integergetter","Guide · Lunatik C API"],
 ["lunatik_argcheckclass","topics/capi.md.html#lunatik_argcheckclass","Guide · Lunatik C API"],
 ["lunatik_checkobjectclass","topics/capi.md.html#lunatik_checkobjectclass","Guide · Lunatik C API"],
 ["Locking","topics/capi.md.html#locking","Guide · Lunatik C API"],

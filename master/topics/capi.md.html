@@ -1292,6 +1292,19 @@ and <code>tname</code> is the name the type error quotes. The first form&rsquo;s
 validation statements, run with <code>L</code>, <code>ix</code>, <code>object</code> and <code>private</code> in scope, before <code>return
 private</code>.</p>
 
+<h3 id="lunatik_integergetter">LUNATIK_INTEGERGETTER</h3>
+
+<pre>
+#define LUNATIK_INTEGERGETTER(name, checker, expr)
+</pre>
+
+
+<p>Defines the method <code>static int name(lua_State <em>L)</code>, which takes the object at index 1 with
+<code>checker(L, 1)</code> as <code>private</code>, of the type <code>checker</code> returns, pushes <code>expr</code>, which reads <code>private</code>,
+with <code>lua_pushinteger</code> and returns 1: the getter of one integer of an object. <code>checker</code> is any
+function of <code>(lua_State </em>L, int ix)</code>, one <a href="#lunatik_privatechecker"><code>LUNATIK_PRIVATECHECKER</code></a>
+defines among them.</p>
+
 <h3 id="lunatik_argcheckclass">lunatik_argcheckclass</h3>
 
 <pre>
@@ -2734,7 +2747,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 13:40:36</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 15:21:51</span>
 </div>
 </footer>
 </body>
