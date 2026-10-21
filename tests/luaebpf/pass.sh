@@ -5,6 +5,8 @@
 #
 # Tests the object a constant-verdict program compiles into.
 #   - a file declaring two programs compiles, and loadall pins one program per xdp.program call
+#   - with no -o the object takes the input's own name, and an -o the CLI cannot write exits 1
+#     naming it
 #   - prog run returns the verdict each program's function returns
 #   - a program returning nil takes its default verdict, as one returning nothing does, since
 #     the hook reads the two alike
@@ -20,10 +22,23 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 6
+luaebpf_start 8
 
 output=$(luaebpf_compile pass) || { comment "$output"; fail "luaebpf: pass.bpf.lua did not compile"; }
 ktap_pass "luaebpf: a file declaring two programs compiles"
+
+mkdir -p "$LUAEBPF_WORK/noout" && cp "$LUAEBPF_SRC/pass.bpf.lua" "$LUAEBPF_WORK/noout/"
+( cd "$LUAEBPF_WORK/noout" && lunatik bpf pass.bpf.lua ) > /dev/null 2>&1
+[ -s "$LUAEBPF_WORK/noout/pass.bpf.o" ] \
+	|| fail "luaebpf: with no -o the object is $(ls "$LUAEBPF_WORK/noout" | tr '\n' ' ')"
+ktap_pass "luaebpf: with no -o the object is named after the input"
+
+unwritable="$LUAEBPF_WORK/missing/pass.bpf.o"
+output=$(lunatik bpf -o "$unwritable" "$LUAEBPF_SRC/pass.bpf.lua" 2>&1)
+status=$?
+[ "$status" -eq 1 ] && echo "$output" | grep -qF "$unwritable: " \
+	|| fail "luaebpf: an -o the CLI cannot write exited $status with: $output"
+ktap_pass "luaebpf: an -o the CLI cannot write exits 1 naming it"
 
 output=$(luaebpf_loadall pass) || { comment "$output"; fail "luaebpf: the object did not load"; }
 [ -e "$LUAEBPF_PINS/pass" ] && [ -e "$LUAEBPF_PINS/drop" ] \
@@ -48,7 +63,7 @@ return xdp.program(function(_)
 	return nil
 end, {name = "explicit", default = action.DROP})
 LUA
-output=$(cd "$LUAEBPF_WORK" && luaebpf_bpf "$LUAEBPF_WORK/nilverdict.bpf.o" "$LUAEBPF_WORK/nilverdict.bpf.lua" 2>&1) \
+output=$(cd "$LUAEBPF_WORK" && lunatik bpf "$LUAEBPF_WORK/nilverdict.bpf.lua" 2>&1) \
 	&& output=$(bpftool prog loadall "$LUAEBPF_WORK/nilverdict.bpf.o" "$LUAEBPF_PINS" type xdp 2>&1) \
 	|| { comment "$output"; fail "luaebpf: the programs returning nil did not compile and load"; }
 none=$(luaebpf_verdict none)

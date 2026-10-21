@@ -17,7 +17,7 @@
 #   - a function and the one it returns, and two functions, written on one line, each read as
 #     themselves
 #   - xdp.program, which the CLI's Lua compiled from source, is refused as a compiled function
-# The body asserts and raises, so the case reads what the CLI's Lua printed and its exit status.
+# The body asserts and raises, so the case reads what lunatik bpf printed and its exit status.
 #
 # Usage: sudo bash tests/luaebpf/host.sh
 
@@ -28,7 +28,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 1
+luaebpf_start 2
 
 # BYTECODE=1 installs a module as the stripped chunk lunatic writes
 echo 'return {width = 10 / 4}' > "$LUAEBPF_WORK/kernelchunk.lua"
@@ -52,6 +52,9 @@ if [ $? -ne 0 ]; then
 	fail "luaebpf: the body does not run lunatic's bytecode, reads a host module, or hands over other bytecode"
 fi
 ktap_pass "luaebpf: the body runs lunatic's bytecode, reads no host module, and hands over that bytecode"
+
+[ -s "$LUAEBPF_WORK/host.bpf.o" ] || fail "luaebpf: no object was written"
+ktap_pass "luaebpf: lunatik bpf writes the object -o names"
 
 check_dmesg
 ktap_totals

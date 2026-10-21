@@ -48,23 +48,12 @@ luaebpf_start() {
 	mark_dmesg
 }
 
-# luaebpf_bpf <object> <program>: the compiler in the CLI's Lua writes the object only once the
-# program compiled
-luaebpf_bpf() {
-	lua5.5 - "$1" "$2" <<'LUA'
-local object = require("luaebpf").compile(arg[2])
-local file = assert(io.open(arg[1], "wb"))
-assert(file:write(object))
-assert(file:close())
-LUA
-}
-
 # compiles an installed program file; the body runs here, so its oracle lands in the scratch
 # directory beside the object
 luaebpf_compile() {
 	local name="$1"
 	( cd "$LUAEBPF_WORK" && LUAEBPF_DROP="${2:-}" \
-		luaebpf_bpf "$LUAEBPF_WORK/$name.bpf.o" "$LUAEBPF_SRC/$name.bpf.lua" ) 2>&1
+		lunatik bpf -o "$LUAEBPF_WORK/$name.bpf.o" "$LUAEBPF_SRC/$name.bpf.lua" ) 2>&1
 }
 
 luaebpf_loadall() {
@@ -82,12 +71,12 @@ luaebpf_verdict() {
 		| grep -oP 'Return value: \K[0-9]+'
 }
 
-# a refused construct: the message names the file and the line, the compile exits non-zero, and no
+# a refused construct: the message names the file and the line, the CLI exits non-zero, and no
 # object is left behind
 luaebpf_refuses() {
 	local name="$1" pattern="$2" out
 	rm -f "$LUAEBPF_WORK/$name.bpf.o"
-	out=$(cd "$LUAEBPF_WORK" && luaebpf_bpf "$LUAEBPF_WORK/$name.bpf.o" \
+	out=$(cd "$LUAEBPF_WORK" && lunatik bpf -o "$LUAEBPF_WORK/$name.bpf.o" \
 		"$LUAEBPF_WORK/$name.bpf.lua" 2>&1)
 	if [ $? -eq 0 ]; then
 		echo "$name: compiled, and the construct should have been refused"
