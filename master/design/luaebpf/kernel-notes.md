@@ -8,8 +8,8 @@ kernel you target; line numbers move.
 |------|----------|
 | linux | tag `v7.2` (`8d3ae59288f1e7d58d76558a6ee96d533bc5019f`); older tags only to date a facility |
 | lunatik | `origin/master` at `22c5afe26049b3adf4da7b05a512411ef262e29c` |
-| lua (submodule `luainkernel/lua`) | `d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd`, Lua 5.5.0 with the `_KERNEL` patch |
-| lunatikc | pull request #742, head `210deebd28060d60a6ddb0e81fda7db1f35a2f23` |
+| lua (submodule `luainkernel/lua`) | `74f1f100cb58a23b4ff7625a99715394540beba9`, Lua 5.5.1 with the `_KERNEL` patch |
+| lunatic | `Makefile` and `luac/` at lunatik `b566eecc4b8713b67875ba51310345e3b546cb3d` (`luainkernel/luac` `f65d5faa40eaf17aa7216f9478997fdbf479adbe`) |
 | llvm-project | tag `llvmorg-23.1.1` (`6dfe1677ab8dffbc6ec13d53a1e0215d75147689`) |
 | iovisor/bcc | `8a46070fe08d646e2781fba69586d755da766aa2` |
 | oracle/dtrace | `61fea621160ea4b6302874c62a723da105b44883` |
@@ -169,9 +169,9 @@ under `sudo`.
   a conditional jump the kernel takes after `BPF_MAX_LOOPS` iterations, so a loop whose header
   carries one is accepted whatever its condition. Lua's numeric `for` computes its iteration count
   up front (`forprep`,
-  [lvm.c#L223-L259](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/lvm.c#L223-L259))
+  [lvm.c#L223-L259](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L223-L259))
   and `OP_FORLOOP` counts it down
-  ([lopcodes.h#L333-L334](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/lopcodes.h#L333-L334)):
+  ([lopcodes.h#L333-L334](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lopcodes.h#L333-L334)):
   a counted loop by construction. Constant bounds become a bounded loop; anything else gets a
   `may_goto` header.
 * **Exceptions are one way.** `bpf_throw`
@@ -199,9 +199,9 @@ under `sudo`.
   `sleepable_lsm_hooks`), uprobes, struct_ops, syscall. A sleepable kfunc from a non-sleepable
   program is refused at
   [#L12981](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L12981). The
-  trampoline's Lua callback can never run there: `lunatik_ebpf_lookupruntime` refuses a
+  trampoline's Lua callback can never run there: `luakfunc_lookupruntime` refuses a
   process-context runtime
-  ([lunatik_ebpf.h#L35-L40](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lunatik_ebpf.h#L35-L40)),
+  ([lib/luakfunc.h#L41-L46](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luakfunc.h#L41-L46)),
   and an IRQ-context runtime may not sleep. A compiled program loaded sleepable may.
 
 ## BTF: what the object carries and what the log prints
@@ -248,9 +248,9 @@ The kfunc hook a module registers for follows the program type:
 `bpf_prog_type_to_kfunc_hook` maps XDP, `SCHED_CLS`, `STRUCT_OPS`, tracing and LSM, and the cgroup
 family to their sets
 ([kernel/bpf/btf.c#L9035-L9055](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/btf.c#L9035-L9055)).
-The tree registers per type: `LUNATIK_EBPF_KFUNC_INIT(xdp, BPF_PROG_TYPE_XDP)`
-([lib/luaxdp.c#L258](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luaxdp.c#L258))
-and `LUNATIK_EBPF_KFUNC_INIT(tc, BPF_PROG_TYPE_SCHED_CLS)` in `lib/luatc.c`.
+The tree registers per type: `LUAKFUNC_INIT(xdp, BPF_PROG_TYPE_XDP)`
+([lib/luaxdp.c#L247](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaxdp.c#L247))
+and `LUAKFUNC_INIT(tc, BPF_PROG_TYPE_SCHED_CLS)` in `lib/luatc.c`.
 
 Verdict conventions differ per type: XDP returns an `XDP_*` action, TC a `TC_ACT_*` action, LSM 0
 to allow and a negative errno to refuse, cgroup socket programs 1 to allow and 0 to refuse
@@ -260,56 +260,80 @@ program returns the type's constants.
 ## The kfunc the escape hatch calls
 
 `bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx, void *arg, size_t arg__sz)`
-([lib/luaxdp.c#L145-L158](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luaxdp.c#L145-L158))
+([lib/luaxdp.c#L135-L147](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaxdp.c#L135-L147))
 and its `tc` twin are the whole kernel side of the escape hatch. Facts the emitter relies on:
 
 * `__sz` pairs a pointer argument with its size, and the verifier proves the memory
   ([Documentation/bpf/kfuncs.rst#L124-L137](https://github.com/torvalds/linux/blob/v7.2/Documentation/bpf/kfuncs.rst#L124-L137)).
   `key`/`key__sz` selects the runtime by name, `arg`/`arg__sz` carries whatever the caller packs.
 * The runtime is looked up in `_ENV.runtimes` and must be an IRQ-context one
-  ([lunatik_ebpf.h#L22-L41](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lunatik_ebpf.h#L22-L41));
+  ([lib/luakfunc.h#L28-L47](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luakfunc.h#L28-L47));
   the handler resets two `data` objects over the packet and the argument and `lua_pcall`s the
   callback
-  ([lib/luaxdp.c#L125-L143](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luaxdp.c#L125-L143)).
-  A missing runtime or a raise returns `-1`.
-* The kernel side is gated on 6.4
-  ([lib/luaxdp.c#L27](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luaxdp.c#L27)).
-  Issue #561 factors the per-module copies into one `lunatik_bpf_run`; the emitter calls whatever
-  name the module publishes, resolved through the module's BTF.
+  ([lib/luaxdp.c#L116-L133](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaxdp.c#L116-L133)).
+  A missing runtime, a raise, a `nil` or a verdict outside the type's range returns `-1`
+  ([lib/luakfunc.h#L79-L90](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luakfunc.h#L79-L90)),
+  and so do the errnos `lunatik_run` answers for a runtime it did not run
+  ([#L119-L128](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luakfunc.h#L119-L128)).
+* `lib/luakfunc.h` is the sequence `bpf_luaxdp_run` and `bpf_luatc_run` share; #561 closed without
+  one kfunc for every type, so the emitter calls the one of the program's type, resolved through
+  the module's BTF.
 
 ## Toolchain
 
-### The compiler host: the kernel's own Lua
+### The compiler host: the CLI's Lua running the kernel's bytecode
 
-`lunatikc` (#742) is a C driver that creates a Lua state from the `lua/` submodule built with
-`-D_KERNEL`, parses text and dumps bytecode
-([bin/lunatikc.c](https://github.com/luainkernel/lunatik/blob/210deebd28060d60a6ddb0e81fda7db1f35a2f23/bin/lunatikc.c)).
-That build is the one the translator runs under. What it gives:
+`lunatic` (#743) is `luac.c` built by `make` with the host compiler from the `lua/` sources and the
+`_KERNEL` configuration `lunatik.ko` uses
+([Makefile#L32-L38](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/Makefile#L32-L38)).
+It parses text and dumps bytecode, and runs no Lua. The CLI's Lua 5.5
+([bin/lunatik#L1](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/bin/lunatik#L1))
+runs that bytecode instead: `lunatik bpf` has `lunatic` compile the program file, rewrites the
+chunk in its own build's numbering, loads it and runs the body from it, so one compilation serves
+the body and the program. What that chunk carries, and what the rewrite changes:
 
 * Integer-only arithmetic and 80 opcodes: `OP_LOADF`, `OP_POWK`, `OP_DIVK`, `OP_POW`, `OP_DIV` are
   fenced out under `_KERNEL`
-  ([lopcodes.h#L237-L239](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/lopcodes.h#L237-L239),
-  [#L269-L272](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/lopcodes.h#L269-L272),
-  [#L286-L289](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/lopcodes.h#L286-L289)),
-  and `/` parses as `OP_IDIV` (`doc/design/luac/kernel-notes.md` on the #742 branch). That is
-  already eBPF's arithmetic.
-* `string.dump` and `string.pack` are unfenced
-  ([lstrlib.c#L227](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/lstrlib.c#L227),
-  [#L1879](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/lstrlib.c#L1879),
-  [#L1891](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/lstrlib.c#L1891)),
-  and the `debug` library keeps everything but `debug.debug`
-  ([ldblib.c#L455-L457](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/ldblib.c#L455-L457)),
-  so `debug.getupvalue` can read a program function's captured environment on the host.
+  ([lopcodes.h#L237-L239](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lopcodes.h#L237-L239),
+  [#L269-L272](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lopcodes.h#L269-L272),
+  [#L286-L289](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lopcodes.h#L286-L289)),
+  and `/` parses as `OPR_IDIV`
+  ([lparser.c#L1331-L1336](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lparser.c#L1331-L1336)).
+  That is already eBPF's arithmetic, and the body computes with it too: `10 / 4` is 2 there, as in
+  the kernel.
 * The 5.5 opcode set the translator reads includes `OP_GETVARG` and `OP_ERRNNIL`
-  ([lopcodes.h#L347-L349](https://github.com/luainkernel/lua/blob/d7ca49b3a9c44278078b4e12a7cb26bf4c9e30fd/lopcodes.h#L347-L349)).
-* The kernel builds the full library set, `lbaselib`, `lstrlib`, `ltablib`, `ldblib`, `lmathlib`
-  among them
-  ([Kbuild#L28-L35](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/Kbuild#L28-L35));
-  #742's driver opens a bare state, `luaL_newstate` with no `luaL_openlibs`
-  ([bin/lunatikc.c#L152](https://github.com/luainkernel/lunatik/blob/210deebd28060d60a6ddb0e81fda7db1f35a2f23/bin/lunatikc.c#L152)),
-  so hosting the translator adds the libraries to that state.
+  ([lopcodes.h#L347-L349](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lopcodes.h#L347-L349)).
+* A header the CLI's Lua refuses: `lua_Number` is `lua_Integer` under the kernel configuration
+  ([lunatik_conf.h#L10](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lunatik_conf.h#L10)),
+  so the header's number check carries `LUAC_NUM`, `-370.5`, as the integer `-370`
+  ([lundump.h#L22](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lundump.h#L22),
+  [lundump.c#L392](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lundump.c#L392)),
+  and `load` in the CLI fails with "Lua number format mismatch". The rewrite puts the CLI's own
+  header in its place; every size the header checks agrees between the two builds, so the rest of
+  the chunk keeps its offsets and its alignment.
+* Numbers that differ: the fenced opcodes shift every opcode after them, and the same fence takes
+  `TM_POW` and `TM_DIV` out of the metamethod events
+  ([ltm.h#L29-L32](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/ltm.h#L29-L32)),
+  which `OP_MMBIN`, `OP_MMBINI` and `OP_MMBINK` carry in their C argument for the VM to call
+  ([lvm.c#L1646-L1655](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L1646-L1655)):
+  left in the kernel's numbering, `"10" // 3` in the body calls `__pow`. The rewrite renumbers
+  both by name, since every opcode and event the kernel's build has, the CLI's has too. It walks
+  the chunk field by field as `loadFunction` does
+  ([lundump.c#L330-L344](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lundump.c#L330-L344)),
+  with the opcode numbers and argument modes, the events, the instruction layout and the format
+  constants generated at `make` from the `lua/` headers of each build.
+* What then runs is the CLI's VM over the kernel's bytecode. The `_KERNEL` branches of `lvm.c` keep
+  the integer paths of the arithmetic, the comparisons and the numeric `for`, so integer operands
+  run alike; what the CLI adds is its libraries, whose `math` and string coercion can still hand
+  the body a float, refused at the line that hands it to a compiled function.
+* The functions the body hands over are closures of that chunk: `string.dump` gives each one's
+  prototype, read back with the CLI's tables, and `debug.getupvalue` its captured environment. A
+  module the body requires from the kernel scripts' tree loads the same way, through `lunatic`,
+  source or a chunk `BYTECODE=1` installed; the compile-time modules under `luaebpf/` are the
+  CLI's own Lua. A function from anywhere else, the compile-time modules or a string given to
+  `load`, is refused as a compiled function.
 
-The CLI is Lua 5.4; it does not run the translator, it runs the loader.
+The CLI runs both the translator and the loader.
 
 ### libbpf
 
@@ -391,7 +415,7 @@ bytecode reader and types are LuaJIT's. The design transfers, the code does not.
 | `bpf_loop` | v5.17 | [e6f2dd0f8067](https://github.com/torvalds/linux/commit/e6f2dd0f80674e9d5960337b3e9c2a242441b326) (2021-11-30) |
 | kfunc BTF id sets in `struct btf` | v5.17 | [dee872e124e8](https://github.com/torvalds/linux/commit/dee872e124e8d5de22b68c58f6f6c3f5e8889160) (2022-01-14) |
 | open-coded iterators | v6.4 | [06accc8779c1](https://github.com/torvalds/linux/commit/06accc8779c1d558a5b5a21f2ac82b0c95827ddd) (2023-03-08) |
-| the tree's kfuncs (`lib/luaxdp.c` gate) | v6.4 | [lib/luaxdp.c#L27](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/lib/luaxdp.c#L27) |
+| the tree's kfuncs (`lib/luakfunc.h`, no gate above the tree's floor) | v6.6 | [lib/luakfunc.h#L130-L139](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luakfunc.h#L130-L139) |
 | `bpf_throw` | v6.7 | [f18b03fabaa9](https://github.com/torvalds/linux/commit/f18b03fabaa9b7c80e80b72a621f481f0d706ae0) (2023-09-12) |
 | `may_goto` | v6.9 | [011832b97b31](https://github.com/torvalds/linux/commit/011832b97b311bb9e3c27945bc0d1089a14209c9) (2024-03-06) |
 | arena | v6.9 | [317460317a02](https://github.com/torvalds/linux/commit/317460317a02a1af512697e6e964298dedd8a163) (2024-03-08) |
@@ -445,11 +469,13 @@ it may not (`kern_sys_bpf`).
   `Documentation/bpf/btf.rst`, `kfuncs.rst`, `standardization/instruction-set.rst`;
   `tools/lib/bpf/libbpf.c`, `libbpf.h`, `bpf.h`, `libbpf.map`, `linker.c`, `skel_internal.h`;
   `tools/bpf/bpftool/gen.c`, `prog.c`, `net.c`, all at Linux `v7.2`
-* `lunatik_ebpf.h`, `lib/luaxdp.c`, `lib/luatc.c`, `lib/luabpf.c`, `lib/bpf/map.lua`, `bin/lunatik`,
-  `lunatik_aux.c`, `Makefile`, `Kbuild`, `README.md`, `tests/xdp/`, `tests/tc/`, `examples/filter/`,
-  `examples/sniclassify/` at `22c5afe2`; `doc/design/lsm-ebpf/` for the LSM and cgroup verdicts
-* `lopcodes.h`, `lvm.c`, `lstrlib.c`, `ldblib.c` in `luainkernel/lua` at `d7ca49b3`
-* `bin/lunatikc.c`, `doc/design/luac/plan.md`, `doc/design/luac/kernel-notes.md` at #742's head
+* `lib/luatc.c`, `lib/luabpf.c`, `lib/bpf/map.lua`, `bin/lunatik`, `lunatik_aux.c`, `Makefile`,
+  `Kbuild`, `README.md`, `tests/xdp/`, `tests/tc/`, `examples/filter/`, `examples/sniclassify/` at
+  `22c5afe2`; `doc/design/lsm-ebpf/` for the LSM and cgroup verdicts
+* `lib/luakfunc.h`, `lib/luaxdp.c` at `b566eecc`
+* `lopcodes.h`, `ltm.h`, `lvm.c`, `lparser.c`, `lundump.c`, `lundump.h` in `luainkernel/lua` at
+  `74f1f100`
+* `Makefile`, `lunatik_conf.h`, `bin/lunatik` at `b566eecc`
 * `llvm/lib/Target/BPF/BPFInstrInfo.td`, `clang/lib/Basic/Targets/BPF.cpp` at `llvmorg-23.1.1`
 * `src/lua/bpf/` in `iovisor/bcc` at `8a46070f`; `bpf/Build`, `README.md`, `libdtrace/dt_cg.c` in
   `oracle/dtrace` at `61fea621`

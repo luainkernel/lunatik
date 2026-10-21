@@ -33,10 +33,12 @@ Three things decide whether this work goes well:
    tree's own kfuncs (no module BTF fd), cannot open a pinned map by path, and imports a symbol its
    maintainers namespaced against exactly this use. The CLI has all four. `kernel-notes.md`
    traces each one to a line.
-2. **The compiler runs the kernel's own Lua.** `lunatikc` (#742) builds the `lua/` submodule with
-   `-D_KERNEL` on the host: integer-only arithmetic, `/` as integer division, the 80-opcode set.
-   The translator reads the bytecode of that build and folds constants with that arithmetic, so
-   what it compiles is what the kernel would have interpreted. It does not run in the kernel.
+2. **The compiler reads the kernel's own bytecode.** `lunatic` (#743) compiles the program file
+   with the `lua/` submodule built with `-D_KERNEL` on the host: integer-only arithmetic, `/` as
+   integer division, the 80-opcode set. The CLI's Lua loads that chunk, renumbered for its own
+   build, and runs the file's body from it, so the body computes as the kernel would and the
+   functions it hands the translator are the bytecode the kernel would have interpreted. There is
+   one compilation, `lunatic`'s, and the translator does not run in the kernel.
 3. **Refusing is the normal outcome, and it is explicit.** The subset is what the verifier can
    check: integers, booleans, counted loops, proxies over the context, the packet and maps, calls
    to functions the translator can see. Anything else is a compile error naming the Lua line, not
