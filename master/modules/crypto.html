@@ -188,6 +188,8 @@
  constructor raises &ldquo;&lsquo;crypto.shash&rsquo;: process-context class in interrupt-context runtime&rdquo;, naming
  its class. Errors are raised as errno names: &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;EINVAL&rdquo; for a
  wrong IV, key or state length or a block cipher input that is not a multiple of <code>blocksize()</code>,
+ and on 6.12 and later for a name whose template refuses the type the constructor asks for, such
+ as <code>shash(&quot;cbc(aes)&quot;)</code>, which 6.11 and earlier answer with &ldquo;ENOENT&rdquo;,
  &ldquo;ENOMEM&rdquo; when the kernel cannot allocate the transform, &ldquo;ENOKEY&rdquo; for a signature verifier used
  before its key is set, and
  &ldquo;not enough memory&rdquo; when the binding cannot allocate its own state, its output or the copy of its
@@ -382,8 +384,10 @@
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;ENOENT&rdquo; for an unknown algorithm, or one the kernel serves only for encryption, such as
-   <code>rsa</code> on 6.13 and later, &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation failure
+     &ldquo;ENOENT&rdquo; for an unknown algorithm, or one the kernel serves only for encryption, such as
+   <code>rsa</code> on 6.13 and later, &ldquo;EINVAL&rdquo; for a name its template refuses, such as
+   <code>pkcs1pad(rsa,sha256)</code> on 6.14 and later, whose template serves only encryption, where 6.11 and
+   earlier and 6.13 raise &ldquo;ENOENT&rdquo;, &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation failure
 
 
     <h3>Usage</h3>
@@ -451,7 +455,7 @@ v:<span class="function-name">setpubkey</span>(point)
 <a href="../../modules/crypto.html">5.1 docs</a> ·
 <a href="../../5.0/modules/crypto.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 13:03:58</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 13:05:05</span>
 </div>
 </footer>
 </body>
