@@ -532,6 +532,14 @@ EXPORT_SYMBOL_GPL(luaopen_##libname)
 static const lunatik_class_t *const checker##_classes[] = { __VA_ARGS__, NULL };		\
 LUNATIK_CHECKER(checker, T, luaL_argexpected(L, lunatik_isoneof(object->class, checker##_classes), ix, tname))
 
+#define LUNATIK_INTEGERGETTER(name, checker, expr)	\
+static int name(lua_State *L)				\
+{							\
+	__auto_type private = checker(L, 1);		\
+	lua_pushinteger(L, expr);			\
+	return 1;					\
+}
+
 #define lunatik_getregistry(L, key)	lua_rawgetp((L), LUA_REGISTRYINDEX, (key))
 
 static inline lunatik_object_t *lunatik_getregistryobject(lua_State *L, const void *key)

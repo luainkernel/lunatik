@@ -89,12 +89,7 @@ static int luacrypto_rng_getbytes(lua_State *L)
 * @function seedsize
 * @treturn integer
 */
-static int luacrypto_rng_seedsize(lua_State *L)
-{
-	struct crypto_rng *tfm = luacrypto_rng_check(L, 1);
-	lua_pushinteger(L, crypto_rng_seedsize(tfm));
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luacrypto_rng_seedsize, luacrypto_rng_check, crypto_rng_seedsize(private));
 
 /***
 * Returns the driver-independent name of the algorithm the transform was allocated with.

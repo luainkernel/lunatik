@@ -32,12 +32,7 @@ static void luacrypto_shash_release(void *private)
 * @function digestsize
 * @treturn integer
 */
-static int luacrypto_shash_digestsize(lua_State *L)
-{
-	struct shash_desc *sdesc = luacrypto_shash_check(L, 1);
-	lua_pushinteger(L, crypto_shash_digestsize(sdesc->tfm));
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luacrypto_shash_digestsize, luacrypto_shash_check, crypto_shash_digestsize(private->tfm));
 
 /***
 * Sets the key (required for HMAC algorithms).

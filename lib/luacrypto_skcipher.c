@@ -40,24 +40,14 @@ static int luacrypto_skcipher_setkey(lua_State *L)
 * @function ivsize
 * @treturn integer
 */
-static int luacrypto_skcipher_ivsize(lua_State *L)
-{
-	struct crypto_skcipher *tfm = luacrypto_skcipher_check(L, 1);
-	lua_pushinteger(L, crypto_skcipher_ivsize(tfm));
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luacrypto_skcipher_ivsize, luacrypto_skcipher_check, crypto_skcipher_ivsize(private));
 
 /***
 * Returns the cipher block size in bytes.
 * @function blocksize
 * @treturn integer
 */
-static int luacrypto_skcipher_blocksize(lua_State *L)
-{
-	struct crypto_skcipher *tfm = luacrypto_skcipher_check(L, 1);
-	lua_pushinteger(L, crypto_skcipher_blocksize(tfm));
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luacrypto_skcipher_blocksize, luacrypto_skcipher_check, crypto_skcipher_blocksize(private));
 
 typedef struct luacrypto_skcipher_request_s {
 	struct scatterlist sg;

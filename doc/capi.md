@@ -864,6 +864,16 @@ and `tname` is the name the type error quotes. The first form's optional `...` a
 validation statements, run with `L`, `ix`, `object` and `private` in scope, before `return
 private`.
 
+### LUNATIK\_INTEGERGETTER
+```C
+#define LUNATIK_INTEGERGETTER(name, checker, expr)
+```
+Defines the method `static int name(lua_State *L)`, which takes the object at index 1 with
+`checker(L, 1)` as `private`, of the type `checker` returns, pushes `expr`, which reads `private`,
+with `lua_pushinteger` and returns 1: the getter of one integer of an object. `checker` is any
+function of `(lua_State *L, int ix)`, one [`LUNATIK_PRIVATECHECKER`](#lunatik_privatechecker)
+defines among them.
+
 ### lunatik\_argcheckclass
 ```C
 void lunatik_argcheckclass(lua_State *L, int ix, lunatik_object_t *object, const lunatik_class_t *cls);

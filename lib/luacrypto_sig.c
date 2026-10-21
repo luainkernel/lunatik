@@ -105,12 +105,7 @@ static int luacrypto_sig_verify(lua_State *L)
 * @treturn integer
 * @raise "ENOKEY" before a `setpubkey` succeeds
 */
-static int luacrypto_sig_maxsize(lua_State *L)
-{
-	struct crypto_sig *tfm = luacrypto_sig_checkkeyed(L, 1);
-	lua_pushinteger(L, crypto_sig_maxsize(tfm));
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luacrypto_sig_maxsize, luacrypto_sig_checkkeyed, crypto_sig_maxsize(private));
 
 /***
 * Returns the driver-independent name of the algorithm the transform was allocated with.

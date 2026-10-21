@@ -50,12 +50,7 @@ static int luatask_comm(lua_State *L)
 * @function pid
 * @treturn integer pid of the task
 */
-static int luatask_pid(lua_State *L)
-{
-	struct task_struct *task = luatask_check(L, 1);
-	lua_pushinteger(L, task->pid);
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luatask_pid, luatask_check, private->pid);
 
 /***
 * Returns the thread group ID (TGID) of the task.
@@ -64,12 +59,7 @@ static int luatask_pid(lua_State *L)
 * @function tgid
 * @treturn integer tgid of the task
 */
-static int luatask_tgid(lua_State *L)
-{
-	struct task_struct *task = luatask_check(L, 1);
-	lua_pushinteger(L, task->tgid);
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luatask_tgid, luatask_check, private->tgid);
 
 /***
 * Returns the dynamic priority of the task.
@@ -78,24 +68,14 @@ static int luatask_tgid(lua_State *L)
 * @function prio
 * @treturn integer priority of the task
 */
-static int luatask_prio(lua_State *L)
-{
-	struct task_struct *task = luatask_check(L, 1);
-	lua_pushinteger(L, task->prio);
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luatask_prio, luatask_check, private->prio);
 
 /***
 * Returns the CPU the task last ran on.
 * @function cpu
 * @treturn integer CPU index
 */
-static int luatask_cpu(lua_State *L)
-{
-	struct task_struct *task = luatask_check(L, 1);
-	lua_pushinteger(L, task_cpu(task));
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luatask_cpu, luatask_check, task_cpu(private));
 
 /***
 * Gets an object representing the current kernel task.

@@ -84,12 +84,7 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *, &luaskb_class,
 * @function __len
 * @treturn integer skb length in bytes
 */
-static int luaskb_len(lua_State *L)
-{
-	luaskb_t *lskb = luaskb_check(L, 1);
-	lua_pushinteger(L, lskb->skb->len);
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luaskb_len, luaskb_check, private->skb->len);
 
 /***
 * @function ifindex
@@ -122,12 +117,7 @@ static int luaskb_vlan(lua_State *L)
 * @function hash
 * @treturn integer 32-bit flow hash, or 0 if none is set
 */
-static int luaskb_hash(lua_State *L)
-{
-	luaskb_t *lskb = luaskb_check(L, 1);
-	lua_pushinteger(L, lskb->skb->hash);
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luaskb_hash, luaskb_check, private->skb->hash);
 
 #define luaskb_checklinear(L, lskb, ix)								\
 	luaL_argcheck((L), (lskb)->kfunc ? !skb_is_nonlinear((lskb)->skb) : !skb_linearize((lskb)->skb),	\
