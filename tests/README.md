@@ -969,21 +969,27 @@ the `util` module to its documentation on that Lua's stack.
 
 ### luaebpf
 
-Tests for the Lua to eBPF compiler. Each case runs a program file's body in
-the CLI's Lua, from the chunk `lunatic` compiles; the scratch directory is
-removed in a `trap` that also runs once up front. Skips when `lunatic` is
-missing.
+Tests for the Lua to eBPF compiler. Each case compiles a program file in the
+CLI's Lua, loads what it emits on the running kernel and runs it with
+`bpftool prog run`; the object and the pins are removed in a `trap` that also
+runs once up front. Skips when `lunatic` or `bpftool` is missing, or when
+`/sys/fs/bpf` is not mounted.
 
 - **host**: the body runs from the chunk `lunatic` compiles, rewritten for
   the CLI's Lua, and computes as the kernel does: `10 / 4` is the integer 2,
   and `"10" // 3` is 3 through the metamethod event the rewrite renumbers. It
-  requires `linux.xdp.action` and `luaebpf.proto`, takes `class` from the
-  kernel scripts rather than the compiler's `lunatik.class`, and
+  requires `bpf.xdp`, `linux.xdp.action` and `luaebpf.proto`, takes `class`
+  from the kernel scripts rather than the compiler's `lunatik.class`, and
   loads a module installed as the stripped chunk `lunatic` writes, whose own
   `10 / 4` is 2. `luaebpf.proto.read` hands back a function's own bytecode,
   whose `numparams`, `maxstacksize`, first opcode, first line and source the
   body asserts, with `/` read as `IDIV`; a function and the one it returns,
-  and two functions, written on one line, each read as themselves.
+  and two functions, written on one line, each read as themselves; and
+  `xdp.program`, which the CLI's Lua compiled from source, is refused. The
+  body reads none of the host's modules: a `luaebpf.*` module the compiler
+  itself does not load is reached through the host's path, and `class` and
+  `struct` come from the kernel scripts though a Lua module on
+  `LUA_PATH_5_5` and a C one on `LUA_CPATH_5_5` carry their names.
 - **object**: no program file and no translator: the CLI's Lua assembles an
   XDP program of five instructions by hand with `luaebpf.insn`, a jump over
   one of them and a 64-bit immediate among them, and writes it with
@@ -996,6 +1002,21 @@ missing.
   sizes one `func_info` and a `line_info` per source line, whose strings
   `.BTF` carries. Skips when `readelf` or `bpftool` is missing, or when
   `luaebpf` is not installed.
+- **pass**: a file declaring two programs; `loadall` pins one per
+  `xdp.program` call, `prog run` returns each verdict, the `license` section
+  reads `Dual MIT/GPL`, and the BTF carries one `FUNC` per program; a program
+  returning `nil` takes its default verdict, as one returning nothing does.
+- **lineinfo**: the verifier's log quotes the Lua line, its text, which v6.9
+  and later follow with `<file>.bpf.lua:<line>`; with
+  `LUAEBPF_DROP=lineinfo` it carries no Lua line, and with
+  `LUAEBPF_DROP=verdict` the program never writes `R0`, is rejected, and the
+  rejection still names the Lua line.
+- **refuse**: every construct the phase 1 subset refuses, one program file per
+  row, asserted on its exact message and Lua line, on the non-zero exit, and
+  on no object being left behind; a float the CLI's `math` returns, as a
+  value, as a table's field and as the default verdict, a float literal
+  `lunatic` refuses to parse, a C function handed to `xdp.program`, and a
+  function the CLI's Lua compiled from a string among them.
 
 ### monitor
 
