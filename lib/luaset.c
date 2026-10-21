@@ -79,12 +79,7 @@ static ssize_t luaset_find(const luaset_t *set, const char *s, size_t len)
 	return -1;
 }
 
-static int luaset_length(lua_State *L)
-{
-	luaset_t *set = luaset_check(L, 1);
-	lua_pushinteger(L, (lua_Integer)set->n);
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luaset_length, luaset_check, (lua_Integer)private->n);
 
 static inline void luaset_free(luaset_t *set)
 {

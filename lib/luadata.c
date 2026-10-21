@@ -190,12 +190,7 @@ static int luadata_resize(lua_State *L)
 * @function __len
 * @treturn integer data size in bytes
 */
-static int luadata_length(lua_State *L)
-{
-	luadata_t *data = luadata_check(L, 1);
-	lua_pushinteger(L, (lua_Integer)data->size);
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luadata_length, luadata_check, (lua_Integer)private->size);
 
 /***
 * @function __tostring

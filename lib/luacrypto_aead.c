@@ -54,24 +54,14 @@ static int luacrypto_aead_setauthsize(lua_State *L)
 * @function ivsize
 * @treturn integer
 */
-static int luacrypto_aead_ivsize(lua_State *L)
-{
-	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
-	lua_pushinteger(L, crypto_aead_ivsize(tfm));
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luacrypto_aead_ivsize, luacrypto_aead_check, crypto_aead_ivsize(private));
 
 /***
 * Returns the authentication tag size in bytes.
 * @function authsize
 * @treturn integer
 */
-static int luacrypto_aead_authsize(lua_State *L)
-{
-	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
-	lua_pushinteger(L, crypto_aead_authsize(tfm));
-	return 1;
-}
+LUNATIK_INTEGERGETTER(luacrypto_aead_authsize, luacrypto_aead_check, crypto_aead_authsize(private));
 
 typedef struct luacrypto_aead_request_s {
 	struct scatterlist sg;
