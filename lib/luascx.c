@@ -14,11 +14,11 @@
 * using `scx.attach()`.
 *
 * The callback runs inside the sched_ext operation that calls the kfunc, and `ops.enqueue`
-* runs with the runqueue lock of its CPU held, so a callback must not call `print`, a
-* completion's `complete` or a mailbox's `send`: each can wake a task, and the wakeup takes
-* that lock again on a CPU that already holds it. An allocation the callback's Lua makes
-* under memory pressure, which can wake kswapd, and the log of an error the callback raises
-* can wake a task the same way.
+* runs with the runqueue lock of its CPU held: a wakeup from there takes that lock again on a
+* CPU that already holds it. A completion's `complete`, and a mailbox's `send` through it, are
+* refused in the callback for that reason, and the dispatch logs nothing while the lock is held.
+* A callback must still not call `print`, whose console wakeup is the same hazard, and an
+* allocation its Lua makes under memory pressure can wake kswapd the same way.
 *
 * Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT`; without it the module loads
 * and offers `attach`, which raises `EOPNOTSUPP`, and `detach`, which does nothing.
@@ -125,7 +125,8 @@ static int luascx_decision(lua_State *L, luascx_ctx_t *ctx)
 		return -1;
 
 	if (!luascx_isoptional(dsq) || !luascx_isoptional(slice)) {
-		pr_err_ratelimited("invalid task class\n");
+		if (!lunatik_isrunqueue()) /* a printk here wakes a console waiter under the runqueue lock */
+			pr_err_ratelimited("invalid task class\n");
 		return -1;
 	}
 
@@ -165,7 +166,13 @@ __bpf_kfunc int bpf_luascx_run(char *key, size_t key__sz, struct task_struct *ta
 		.cls  = cls,
 	};
 
+	unsigned long flags;
+	local_irq_save(flags); /* rq-locked ops already run with IRQs off; a sleepable op keeps the
+				  per-CPU marker from leaking to another task on this CPU */
+	this_cpu_inc(lunatik_runqueue); /* count, so a nested dispatch keeps the outer marker */
 	LUAKFUNC_RUN(key, key__sz, luascx_handler, ret, &ctx);
+	this_cpu_dec(lunatik_runqueue);
+	local_irq_restore(flags);
 	return ret;
 }
 
