@@ -264,49 +264,52 @@ end
 local contexts = {process = true, softirq = true, hardirq = true}
 
 local options = {}
+local spellings = {}
+local valued = {}
 
-function options.help()
+-- an option with no handler of its own stores its value, or true when it takes none, under its name
+local function option(name, short, hasvalue, handler)
+	spellings["--" .. name] = name
+	if short ~= nil then spellings["-" .. short] = name end
+	valued[name] = hasvalue
+	options[name] = handler or function(parsed, value) parsed[name] = value or true end
+	return name
+end
+
+local function accepting(...)
+	local accepted = {}
+	for _, name in ipairs({...}) do
+		accepted[name] = true
+	end
+	return accepted
+end
+
+local function print_usage()
 	print(usage)
 	os.exit()
 end
 
-function options.version()
+local function print_version()
 	if not probe() then fail("not loaded") end
 	print(version())
 	os.exit()
 end
 
-function options.interactive(parsed)
-	parsed.interactive = true
-end
-
-function options.eval(parsed, chunk)
-	parsed.chunk = chunk
-end
-
-function options.context(parsed, word)
+local function set_context(parsed, word)
 	if not contexts[word] then
 		misuse(word .. " is not a context: process, softirq or hardirq")
 	end
 	parsed.context = word
 end
 
-function options.percpu(parsed)
-	parsed.percpu = true
-end
-
-local spellings = {
-	["-h"] = "help", ["--help"] = "help",
-	["-V"] = "version", ["--version"] = "version",
-	["-i"] = "interactive", ["--interactive"] = "interactive",
-	["-e"] = "eval", ["--eval"] = "eval",
-	["-c"] = "context", ["--context"] = "context",
-	["-p"] = "percpu", ["--percpu"] = "percpu",
-}
-
-local valued = {eval = true, context = true}
-local general = {help = true, version = true, interactive = true, eval = true}
-local modifying = {context = true, percpu = true, ["--"] = true}
+local general = accepting(
+	option("help", "h", false, print_usage),
+	option("version", "V", false, print_version),
+	option("interactive", "i"),
+	option("eval", "e", true))
+local modifying = accepting("--",
+	option("context", "c", true, set_context),
+	option("percpu", "p"))
 
 local function parse(i, accepted, parsed)
 	while arg[i] ~= nil and arg[i]:sub(1, 1) == "-" do
@@ -378,11 +381,11 @@ local function main()
 	local parsed = {}
 	local i = parse(1, general, parsed)
 	local verb = arg[i]
-	if verb ~= nil and (parsed.chunk ~= nil or parsed.interactive) then
-		misuse((parsed.chunk and "-e" or "-i") .. " takes no command")
+	if verb ~= nil and (parsed.eval ~= nil or parsed.interactive) then
+		misuse((parsed.eval and "-e" or "-i") .. " takes no command")
 	end
-	if parsed.chunk ~= nil then
-		eval(parsed.chunk)
+	if parsed.eval ~= nil then
+		eval(parsed.eval)
 		if parsed.interactive then start_repl() end
 		return
 	end
