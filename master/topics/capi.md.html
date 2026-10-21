@@ -1346,7 +1346,8 @@ locked only where the caller may sleep.</p>
 <code>-EINTR</code> without the lock: on a kernel thread, on its stop, since the wait is interruptible there;
 on any other task, on a fatal signal. A SOFTIRQ or HARDIRQ object is locked as <code>lunatik_lock</code>
 does, and it returns <code>0</code>. The entries a script reaches take a runtime&rsquo;s lock through it, and
-<code>lunatik_try</code> raises the <code>EINTR</code>.</p>
+<code>lunatik_try</code> raises the <code>EINTR</code>. Sparse cannot read a lock taken only on a <code>0</code> return, so through
+6.19 <code>make C=1</code> reports a context imbalance at every caller, however it unlocks.</p>
 
 <h3 id="lunatik_closeprivate">lunatik_closeprivate</h3>
 
@@ -2733,7 +2734,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 13:07:07</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 13:12:11</span>
 </div>
 </footer>
 </body>
