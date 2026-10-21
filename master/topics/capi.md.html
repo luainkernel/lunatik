@@ -696,14 +696,18 @@ checks it with <code>lunatik_checkobjectclass(L, ix, &amp;lunatik_runtime_class)
 <h3 id="lunatik_env">lunatik_env</h3>
 
 <pre>
-<span class="keyword">extern</span> lunatik_object_t *lunatik_env;
+<span class="keyword">extern</span> lunatik_object_t __rcu *lunatik_env;
 </pre>
 
 
 <p>The <a href="../modules/rcu.html#table">rcu.table</a> every runtime shares as <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a>, through which scripts exchange objects.
 <code>lunatik_run.ko</code>, the module that runs the <code>/dev/lunatik</code> driver, creates it when it loads and
-clears it when it unloads; it is <code>NULL</code> while that module is not loaded, and a runtime created then
-has no <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a>.</p>
+publishes it with <code>rcu_assign_pointer()</code> once it is built; when it unloads it clears it and drops
+its reference a grace period later. It is <code>NULL</code> while that module is not loaded, and a runtime
+created then has no <a href="../modules/lunatik.html#_ENV">lunatik._ENV</a>. A reader dereferences it with <code>rcu_dereference()</code> under
+<code>rcu_read_lock()</code>, and the table stays valid until that section ends; to keep the table past the
+section, the reader takes a reference inside it with <a href="#lunatik_getobject"><code>lunatik_getobject</code></a>,
+which the pointer&rsquo;s own reference makes safe there.</p>
 
 <h3 id="lunatik_isready">lunatik_isready</h3>
 
@@ -2729,7 +2733,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 12:57:18</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 12:59:14</span>
 </div>
 </footer>
 </body>
