@@ -35,9 +35,11 @@ LUNATIK_PRIVATECHECKER(luacompletion_check, struct completion *, &luacompletion_
 /***
 * Signals a completion.
 * This wakes up one task waiting on this completion object.
-* Corresponds to the kernel's `complete()` function. It may be called from any runtime.
+* Corresponds to the kernel's `complete()` function.
 * @function complete
 * @treturn nil
+* @raise "not allowed under the runqueue lock" from an scx callback, where waking the waiter would
+*   take the runqueue lock the CPU already holds
 * @usage
 *   -- Assuming 'c' is a completion object returned by completion.new()
 *   c:complete()
@@ -47,6 +49,7 @@ static int luacompletion_complete(lua_State *L)
 {
 	struct completion *completion = luacompletion_check(L, 1);
 
+	lunatik_checkrunqueue(L); /* complete() wakes a waiter, whose wakeup takes the runqueue lock */
 	complete(completion);
 	return 0;
 }
