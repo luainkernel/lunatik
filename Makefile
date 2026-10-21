@@ -164,9 +164,10 @@ scripts_install:
 	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
 	${INSTALL} -D -m 0755 ${LUNATIC} ${LUNATIK_INSTALL_PATH}/lunatic
 	${RM} -r ${LUAEBPF_INSTALL_PATH}
-	${MKDIR} ${LUAEBPF_INSTALL_PATH}/bytecode
+	${MKDIR} ${LUAEBPF_INSTALL_PATH}/bytecode ${LUAEBPF_INSTALL_PATH}/lib/bpf
 	${INSTALL} -m 0644 bin/luaebpf/*.lua ${LUAEBPF_INSTALL_PATH}
 	${INSTALL} -m 0644 ${LUAEBPF_TABLES} ${LUAEBPF_INSTALL_PATH}/bytecode
+	${INSTALL} -m 0644 bin/luaebpf/lib/bpf/*.lua ${LUAEBPF_INSTALL_PATH}/lib/bpf
 
 scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua

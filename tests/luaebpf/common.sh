@@ -4,16 +4,18 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Helpers the luaebpf cases share: the toolchain check that turns a missing tool into a skip,
-# and the run of a program file's body in a scratch directory.
+# the compile into a scratch directory and the load into a pin root.
 # Source this file, and tests/lib.sh, from each case.
 
 # the program files install beside the cases, out of the tree the kernel's require reads
 LUAEBPF_SRC=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 LUAEBPF_SCRIPTS=/lib/modules/lua/tests/luaebpf
+LUAEBPF_PINS=/sys/fs/bpf/luaebpf
 LUAEBPF_KERNELCHUNK=$LUAEBPF_SCRIPTS/kernelchunk.lua
 LUAEBPF_WORK=
 
 cleanup() {
+	rm -rf "$LUAEBPF_PINS"
 	rm -f "$LUAEBPF_KERNELCHUNK"
 	[ -n "$LUAEBPF_WORK" ] && rm -rf "$LUAEBPF_WORK"
 	return 0
@@ -22,6 +24,9 @@ cleanup() {
 # why the case cannot run, or nothing at all
 luaebpf_reason() {
 	command -v lunatic  >/dev/null || { echo "lunatic is not installed; run make and make install"; return; }
+	command -v bpftool  >/dev/null || { echo "bpftool is not installed"; return; }
+	mountpoint -q /sys/fs/bpf      || { echo "/sys/fs/bpf is not mounted"; return; }
+	[ -r "$LUAEBPF_SRC/pass.bpf.lua" ] || { echo "the program files are not installed"; return; }
 }
 
 # the plan, the skips a missing tool turns every case into, and a scratch directory of its own
@@ -37,15 +42,65 @@ luaebpf_start() {
 	fi
 	cleanup
 	LUAEBPF_WORK=$(mktemp -d)
+	mkdir -p "$LUAEBPF_PINS"
+	# BPF_PROG_TEST_RUN on XDP refuses anything shorter than an ethernet header
+	printf '\xff\xff\xff\xff\xff\xff\x00\x11\x22\x33\x44\x55\x08\x00' > "$LUAEBPF_WORK/packet.bin"
 	mark_dmesg
 }
 
-# lunatic compiles an installed program file, and the CLI's Lua runs its body from that chunk in
-# the scratch directory
-luaebpf_compile() {
-	( cd "$LUAEBPF_WORK" && lua5.5 - "$LUAEBPF_SRC/$1.bpf.lua" ) 2>&1 <<'LUA'
-local proto = require("luaebpf.proto")
-proto.load(arg[1])()
+# luaebpf_bpf <object> <program>: the compiler in the CLI's Lua writes the object only once the
+# program compiled
+luaebpf_bpf() {
+	lua5.5 - "$1" "$2" <<'LUA'
+local object = require("luaebpf").compile(arg[2])
+local file = assert(io.open(arg[1], "wb"))
+assert(file:write(object))
+assert(file:close())
 LUA
+}
+
+# compiles an installed program file; the body runs here, so its oracle lands in the scratch
+# directory beside the object
+luaebpf_compile() {
+	local name="$1"
+	( cd "$LUAEBPF_WORK" && LUAEBPF_DROP="${2:-}" \
+		luaebpf_bpf "$LUAEBPF_WORK/$name.bpf.o" "$LUAEBPF_SRC/$name.bpf.lua" ) 2>&1
+}
+
+luaebpf_loadall() {
+	bpftool prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" type xdp 2>&1
+}
+
+# the verifier's own log: the Lua line it quotes, the may_goto header before the kernel rewrites
+# it into a loop counter, and the instruction budget each program cost
+luaebpf_verbose() {
+	bpftool -d prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" type xdp 2>&1
+}
+
+luaebpf_verdict() {
+	bpftool prog run pinned "$LUAEBPF_PINS/$1" data_in "$LUAEBPF_WORK/packet.bin" 2>&1 \
+		| grep -oP 'Return value: \K[0-9]+'
+}
+
+# a refused construct: the message names the file and the line, the compile exits non-zero, and no
+# object is left behind
+luaebpf_refuses() {
+	local name="$1" pattern="$2" out
+	rm -f "$LUAEBPF_WORK/$name.bpf.o"
+	out=$(cd "$LUAEBPF_WORK" && luaebpf_bpf "$LUAEBPF_WORK/$name.bpf.o" \
+		"$LUAEBPF_WORK/$name.bpf.lua" 2>&1)
+	if [ $? -eq 0 ]; then
+		echo "$name: compiled, and the construct should have been refused"
+		return 1
+	fi
+	if ! echo "$out" | grep -qF "$pattern"; then
+		echo "$name: expected '$pattern', got: $out"
+		return 1
+	fi
+	if [ -e "$LUAEBPF_WORK/$name.bpf.o" ]; then
+		echo "$name: an object was written for a refused program"
+		return 1
+	fi
+	return 0
 }
 

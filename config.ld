@@ -21,6 +21,7 @@ sort_modules = true
 file = {
 	'./lib/luabpf.c',
 	'./lib/bpf/map.lua',
+	'./bin/luaebpf/lib/bpf/xdp.lua',
 	'./lib/luabyteorder.c',
 	'./common/class.lua',
 	'./lib/luacompletion.c',
@@ -42,6 +43,7 @@ file = {
 	'./lib/lighten.lua',
 	'./lib/lualinux.c',
 	'./lib/linux',
+	'./bin/luaebpf/init.lua',
 	'./lunatik_core.c',
 	'./lunatik_percpu.c',
 	'./lib/lunatik/runner.lua',

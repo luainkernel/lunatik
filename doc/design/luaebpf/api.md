@@ -13,10 +13,12 @@ beside it:
     examples/filter/sni.bpf.lua    the program file: compiled by lunatik bpf into sni.bpf.o
 
 `lunatik bpf sni.bpf.lua` produces `sni.bpf.o` (`-o` names another), a BPF ELF object that
-`bpftool prog load` accepts like any other. `make install` compiles every program file it
-installs and puts the object beside the script, under `/lib/modules/lua/`, so
-`lunatik run examples/filter/sni` finds `/lib/modules/lua/examples/filter/sni.bpf.o` the way the
-kernel finds `sni.lua`.
+`bpftool prog load` accepts like any other. The CLI is the only part that touches a file:
+`luaebpf.compile(path)` returns the object as a string and raises on a refusal, so a program that
+does not compile leaves no object behind by construction rather than by a cleanup path. `make
+install` compiles every program file it installs and puts the object beside the script, under
+`/lib/modules/lua/`, so `lunatik run examples/filter/sni` finds
+`/lib/modules/lua/examples/filter/sni.bpf.o` the way the kernel finds `sni.lua`.
 
 A program file may exist without a kernel script (a program that never calls into Lua), and a
 kernel script may exist without a program file (everything the tree runs today).
@@ -65,9 +67,9 @@ A compiled function is Lua where every value has a type the translator can prove
 
 Everything else is a compile error naming the line: runtime tables and strings, closures created
 at runtime, varargs, `pcall`, coroutines, metatables other than the proxies', a global that is
-not one of the compile-time modules, a call through a value the translator cannot resolve, and a
-`nil` used where a number is required. Refusing is the normal outcome; the message says which
-line and why, in one line:
+not one of the compile-time modules, a call through a value the translator cannot resolve, a tail
+call, and a `nil` used where a number is required. Refusing is the normal outcome; the message
+says which line and why, in one line:
 
     sni.bpf.lua:31: 'host' may be nil here; test it first
     sni.bpf.lua:40: recursion through 'walk'
@@ -90,7 +92,7 @@ Every packet access carries a bounds check against `data_end`. An access that fa
 raise (there is nothing to raise to): the function returns the program's **default verdict**, the
 type's safe answer (`PASS` for XDP, `OK` for TC), overridable in the constructor:
 
-    return xdp.program{default = action.DROP}(function(ctx) ... end)
+    return xdp.program(function(ctx) ... end, {default = action.DROP})
 
 Division by zero and every other check the interpreter would turn into an error take the same
 path. This is the compiled analogue of what the trampoline does today, where a raising callback
@@ -236,11 +238,17 @@ What the body of a program file can `require`:
 * `bpf.xdp`, `bpf.tc`, later `bpf.lsm` and `bpf.cgroup`: the program constructors and their
   proxies;
 * `bpf.map`: map declarations;
+* `luaebpf.*`: the compiler's own modules, which a test reads from a body;
 * `linux.*`: the autogen constant tables, loaded from the same files the kernel scripts use;
 * `string`, `table`, `math`, `utf8`: the CLI's standard libraries, for building constants;
 * other program files or Lua modules among the kernel scripts, for shared helpers such as
   `examples/common/sni.lua`, compiled by `lunatic` as the program file is, whether installed as
   source or, with `BYTECODE=1`, as a chunk.
+
+`require` finds the compile-time modules first, then the compiler's `luaebpf.*`, then the kernel
+scripts, `linux.*` among them, and nothing else the CLI's Lua would: while the body runs,
+`package.path` is the compile-time modules' root alone and `package.cpath` is empty, so a module
+the host installs, Lua or C, never stands in for a kernel script of its name.
 
 What a compiled function may reference from the body: constants (integers, booleans, strings,
 tables of those, folded), map proxies, runtime proxies, and other functions declared in the file.
