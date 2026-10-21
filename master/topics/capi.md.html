@@ -2282,18 +2282,20 @@ allocator.</p>
 <span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_skcipher_class;
 <span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_aead_class;
 <span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_rng_class;
+<span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_sig_class;
 <span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_comp_class;
 
 <span class="keyword">int</span> <span class="function-name">luacrypto_shash_new</span>(lua_State *L);
 <span class="keyword">int</span> <span class="function-name">luacrypto_skcipher_new</span>(lua_State *L);
 <span class="keyword">int</span> <span class="function-name">luacrypto_aead_new</span>(lua_State *L);
 <span class="keyword">int</span> <span class="function-name">luacrypto_rng_new</span>(lua_State *L);
+<span class="keyword">int</span> <span class="function-name">luacrypto_sig_new</span>(lua_State *L);
 <span class="keyword">int</span> <span class="function-name">luacrypto_comp_new</span>(lua_State *L);
 </pre>
 
 
-<p>The classes and constructors of <a href="../modules/crypto.html#shash">crypto.shash</a>, <a href="../modules/crypto.html#skcipher">crypto.skcipher</a>, <a href="../modules/crypto.html#aead">crypto.aead</a>, <a href="../modules/crypto.html#rng">crypto.rng</a> and
-<a href="../modules/crypto.html#comp">crypto.comp</a>, which <code>luacrypto_core.c</code> opens as the <a href="../modules/crypto.html#">crypto</a> module; the module&rsquo;s reference says
+<p>The classes and constructors of <a href="../modules/crypto.html#shash">crypto.shash</a>, <a href="../modules/crypto.html#skcipher">crypto.skcipher</a>, <a href="../modules/crypto.html#aead">crypto.aead</a>, <a href="../modules/crypto.html#rng">crypto.rng</a>,
+<a href="../modules/crypto.html#sig">crypto.sig</a> and <a href="../modules/crypto.html#comp">crypto.comp</a>, which <code>luacrypto_core.c</code> opens as the <a href="../modules/crypto.html#">crypto</a> module; the module&rsquo;s reference says
 what each constructor raises. <a href="../modules/crypto.html#comp">crypto.comp</a> is declared on kernels before v6.15 alone.</p>
 
 <hr />
@@ -2358,6 +2360,22 @@ view once its callback returns. <code>luadata_close</code> clears it and drops a
 as a binding&rsquo;s <code>release</code> does for a view it keeps, through <a href="#lunatik_putobject"><code>lunatik_putobject</code></a>.
 They take the object&rsquo;s lock, a spinlock, so a handler calls them in any context, but not under that
 lock, which a method of a monitored data object holds.</p>
+
+<h3 id="luadata_checkreadonly">luadata_checkreadonly</h3>
+
+<pre>
+lunatik_object_t *<span class="function-name">luadata_checkreadonly</span>(lua_State *L, <span class="keyword">int</span> ix, <span class="keyword">const</span> <span class="keyword">void</span> **ptr, size_t *size);
+</pre>
+
+
+<p>Checks that <code>ix</code> is a data object that owns its memory, <code>LUADATA_OPT_FREE</code>, makes it
+<code>LUADATA_OPT_READONLY</code> for good, and returns the object with its memory in <code>ptr</code> and its size in
+<code>size</code>, read under its lock after the flag is set: a write and a <code>resize</code> raise <code>read only</code> from
+then on, so the memory stays as the caller read it while the object lives. Raises for a value that
+is not a data object, and <code>external memory</code> for one that views memory it does not own. It takes the
+object&rsquo;s lock, a spinlock, so it runs in any context, but not under that lock. The object is the
+caller&rsquo;s to borrow from the stack: one that keeps the memory past the call takes a reference of its
+own, as <a href="../modules/set.html#fromdata">set.fromdata</a> does with <a href="#lunatik_getobject"><code>lunatik_getobject</code></a>.</p>
 
 <hr />
 
@@ -2747,7 +2765,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 15:21:51</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 15:31:04</span>
 </div>
 </footer>
 </body>

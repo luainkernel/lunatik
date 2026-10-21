@@ -662,6 +662,7 @@ window.LUNATIK_SEARCH = [
 ["LUADATA_OPT_NONE","topics/capi.md.html#luadata_opt_none","Guide · Lunatik C API"],
 ["luadata_new","topics/capi.md.html#luadata_new","Guide · Lunatik C API"],
 ["luadata_reset","topics/capi.md.html#luadata_reset","Guide · Lunatik C API"],
+["luadata_checkreadonly","topics/capi.md.html#luadata_checkreadonly","Guide · Lunatik C API"],
 ["luakfunc","topics/capi.md.html#luakfunc","Guide · Lunatik C API"],
 ["luakfunc_getruntimes","topics/capi.md.html#luakfunc_getruntimes","Guide · Lunatik C API"],
 ["luakfunc_lookupruntime","topics/capi.md.html#luakfunc_lookupruntime","Guide · Lunatik C API"],
