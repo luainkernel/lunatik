@@ -14,11 +14,13 @@
 * using `scx.attach()`.
 *
 * The callback runs inside the sched_ext operation that calls the kfunc, and `ops.enqueue`
-* runs with the runqueue lock of its CPU held, so a callback must not call `print`, a
-* completion's `complete` or a mailbox's `send`: each can wake a task, and the wakeup takes
-* that lock again on a CPU that already holds it. An allocation the callback's Lua makes
-* under memory pressure, which can wake kswapd, and the log of an error the callback raises
-* can wake a task the same way.
+* runs with the runqueue lock of its CPU held: a wakeup from there takes that lock again on a
+* CPU that already holds it. So in the callback, whichever operation calls the kfunc, a
+* completion's `complete`, and a mailbox's `send` through it, raise `not allowed under the
+* runqueue lock`, and what the dispatch logs, an error the callback raises or a decision it
+* gets wrong, reaches the console deferred, as the scheduler's own lines do.
+* A callback must still not call `print`, whose console wakeup is the same hazard, and an
+* allocation its Lua makes under memory pressure can wake kswapd the same way.
 *
 * Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT`; without it the module loads
 * and offers `attach`, which raises `EOPNOTSUPP`, and `detach`, which does nothing.
@@ -125,7 +127,7 @@ static int luascx_decision(lua_State *L, luascx_ctx_t *ctx)
 		return -1;
 
 	if (!luascx_isoptional(dsq) || !luascx_isoptional(slice)) {
-		pr_err_ratelimited("invalid task class\n");
+		luakfunc_err("invalid task class\n");
 		return -1;
 	}
 
@@ -156,6 +158,7 @@ static int luascx_handler(lua_State *L, luascx_ctx_t *ctx)
 __bpf_kfunc int bpf_luascx_run(char *key, size_t key__sz, struct task_struct *task, struct luascx_task_class *cls)
 {
 	int ret = -1;
+	unsigned long flags;
 
 	if (!cls)
 		return -1;
@@ -165,7 +168,9 @@ __bpf_kfunc int bpf_luascx_run(char *key, size_t key__sz, struct task_struct *ta
 		.cls  = cls,
 	};
 
+	lunatik_setrunqueue(flags);
 	LUAKFUNC_RUN(key, key__sz, luascx_handler, ret, &ctx);
+	lunatik_unsetrunqueue(flags);
 	return ret;
 }
 

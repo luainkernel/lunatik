@@ -3,14 +3,14 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 
-all: scx_pass.bpf.o
+all: scx_pass.bpf.o scx_runqueue.bpf.o
 
 vmlinux.h:
 	bpftool btf dump file /sys/kernel/btf/vmlinux format c > $@
 
-scx_pass.bpf.o: scx_pass.bpf.c vmlinux.h
+%.bpf.o: %.bpf.c vmlinux.h
 	clang -target bpf -Wall -O2 -c -g $<
 
 clean:
-	rm -f vmlinux.h scx_pass.bpf.o
+	rm -f vmlinux.h *.bpf.o
 

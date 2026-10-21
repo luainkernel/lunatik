@@ -1834,6 +1834,14 @@ own, its two variables included. The kfunc runs where the program runs, in softi
 `tc` and inside the scheduler for `scx`, so it dispatches only to a softirq or hardirq runtime and
 nothing on its path sleeps.
 
+### luakfunc\_err
+```C
+void luakfunc_err(const char *fmt, ...);
+```
+Logs as `pr_err_ratelimited` does, through [`lunatik_printk`](#lunatik_printk), so an `scx`
+dispatch, which holds its CPU's runqueue lock, writes its line deferred. Every log an `scx` dispatch
+reaches goes through it. Defined as a macro.
+
 ### luakfunc\_getruntimes
 ```C
 static lunatik_object_t *luakfunc_runtimes = NULL;
@@ -1856,7 +1864,7 @@ passes it, `key_sz` bytes with the terminator, holding a reference the caller dr
 `key` is writable. Returns `NULL` for a `key_sz` of `0`, which the verifier allows; for a missing
 `_ENV.runtimes`, logging `couldn't find _ENV.runtimes`; for a key no runtime is stored under; and
 for a process-context runtime, whose lock is a mutex, logging
-`'<key>' is a process-context runtime, not dispatched`. It logs rate limited.
+`'<key>' is a process-context runtime, not dispatched`, both through [`luakfunc_err`](#luakfunc_err).
 
 ### luakfunc\_findctx
 ```C
@@ -1871,7 +1879,7 @@ runtime keep a context each. They leave the object's userdata on the stack, wher
 [`luakfunc_invoke`](#luakfunc_invoke) passes a copy of it to the callback and `detach`'s
 [`luakfunc_unbind`](#luakfunc_bind) pops it. With no callback attached they leave the stack as
 they found it and return `NULL`, and `luakfunc_getctx`, the handler's, logs
-`no callback attached (cpu <n>)`, rate limited.
+`no callback attached (cpu <n>)` through [`luakfunc_err`](#luakfunc_err).
 
 ### luakfunc\_invoke
 ```C
@@ -1880,10 +1888,10 @@ int luakfunc_action(lua_State *L, int cb, lua_Integer min, lua_Integer max);
 ```
 `luakfunc_invoke` calls the callback `luakfunc_bind` referenced at `cb`, with a copy of the value on
 top of the stack, the context `luakfunc_getctx` left there, as its argument, and returns `0` with
-`nresults` results on the stack; when the callback raises, it logs the error through
-[`lunatik_errmsg`](#lunatik_errmsg), rate limited, pops it and returns `-1`. The context stays below
-the call, so the collector keeps it, its private included, until
-[`lunatik_handle`](#lunatik_handle) restores the stack after the handler, whatever the callback did
+`nresults` results on the stack; when the callback raises, it logs the error
+[`lunatik_errmsg`](#lunatik_errmsg) reads through [`luakfunc_err`](#luakfunc_err), pops it and
+returns `-1`. The context stays below the call, so the collector keeps it, its private included,
+until [`lunatik_handle`](#lunatik_handle) restores the stack after the handler, whatever the callback did
 with its argument or with `detach`. The call is protected and nothing before it raises, so a handler
 calls it outside a protected call of its own.
 `luakfunc_action` invokes the callback for one result, a verdict, and returns it when it is an
