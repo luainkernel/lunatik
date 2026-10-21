@@ -2398,6 +2398,19 @@ or when `bpftool`, `clang` or `taskset` is unavailable.
 - **scx attach**: `scx.attach()` refuses a sleepable runtime with
   `runtime context mismatch: scx.ctx needs hardirq`.
 
+- **scx runqueue**: a scheduler of its own, whose `select_cpu` dispatches
+  nothing so that every wakeup reaches its `enqueue`, runs the callback with
+  the runqueue lock held, one step per enqueue. There `complete` and a
+  mailbox's `send` raise `not allowed under the runqueue lock`, the message
+  left queued, which the callback records in an `rcu.table` of `_ENV`; the
+  dispatch still logs an error the callback raises, a dispatch queue that is
+  not a number as `invalid task class` and the enqueue after it detaches as
+  `no callback attached`, the last one the scheduler calls the kfunc for. A
+  kprobe on `vprintk_emit` reads the level of each of those writes, which must
+  be `LOGLEVEL_SCHED`, the level that leaves the console to an irq_work; that
+  case skips where the kprobe cannot be placed. The record is read once the
+  scheduler is unregistered and its runtime stopped.
+
 - **scx reattach**: a hardirq runtime attaches, re-attaches (replacing the
   callback) and detaches without a Lua error.
 

@@ -14,8 +14,8 @@
 --
 -- The receiver creates the inbox and hands its `queue` and `event` to the other runtime, as
 -- through `runtime:resume`, where the sender builds `mailbox.outbox(queue, event)`: a mailbox
--- built on an existing fifo needs its completion too. `send` works in any context; `receive`
--- sleeps, and a softirq or hardirq runtime refuses it.
+-- built on an existing fifo needs its completion too. `send` works in any context but an scx
+-- callback, where it raises; `receive` sleeps, and a softirq or hardirq runtime refuses it.
 --
 -- @module mailbox
 -- @see fifo
@@ -142,7 +142,8 @@ end
 -- @tparam string message message to send.
 -- @treturn boolean `true` if the message was queued, `false` if the queue has no room for it.
 -- @raise "receive-only mailbox" on an inbox; "out of bounds" for a message whose length plus a
---   `size_t` exceeds the queue's capacity.
+--   `size_t` exceeds the queue's capacity; "not allowed under the runqueue lock" from an scx
+--   callback, with the message already queued.
 function MailBox:send(message)
 	local queued = self.queue:push(string.pack("s", message))
 	if queued then
