@@ -27,16 +27,20 @@ machine. Two rules follow from that and outrank everything else in this document
 | `lua/` | the Lua fork (luainkernel/lua): upstream's git mirror plus the `_KERNEL` patch, which only modifies, `#ifndef _KERNEL` with upstream first; code the kernel side needs is added on the Lunatik side, `luac/` included, never to the fork |
 | `luac/` | the luac fork (luainkernel/luac): the release tarball's `luac.c`, which the git mirror does not carry, plus the `_KERNEL` patch; a bump is an "update to Lua x.y.z" commit made from the tarball |
 | `klibc/` | the klibc fork (luainkernel/klibc): upstream's tags mirrored, and per release a `klibc-x.y.z-kernel` branch, upstream's tag plus Lunatik's two setjmp patches (arm64 saves x18, x86_64 returns through the retpoline and rethunk thunks), which the fork's `lunatik` branch follows; the tree links only each architecture's `setjmp.S`, `archsetjmp.h` and `archconfig.h` and libgcc's 64-bit division helpers, so a bump is read against those files |
+| `include/` | the C library headers the kernel's Lua includes, written over the kernel's headers and klibc's setjmp |
 | `lib/lua*.c` | kernel modules, one `.ko` each, exposing a Lua module |
 | `lib/*.lua`, `lib/*/*.lua` | kernel side Lua libraries, installed to `/lib/modules/lua/` |
 | `autogen/` | build time generation of `linux.*` constant tables from kernel headers |
-| `bin/lunatik` | userspace CLI, talks to the kernel through `/dev/lunatik` |
+| `driver.lua` | the script of the runtime `lunatik_run.ko` creates for the `/dev/lunatik` driver, installed as `lunatik/driver` |
+| `bin/` | the host side: the CLI, `bin/lunatik`, which talks to the kernel through `/dev/lunatik`, and what it builds or loads, installed where the host finds it |
 | `tests/` | KTAP integration tests, one directory per suite |
 | `examples/` | example kernel scripts |
 | `tools/` | maintenance scripts, and the mechanical convention checks in `tools/checks/` |
 | `.agents/skills/` | the recurring workflows packaged as agent skills (open `SKILL.md` format) |
 | `.agents/rules/` | the rules for a kind of file, loaded by the paths each one names |
 | `.agents/agents/` | the agents a workflow runs a narrow job in, the host's and GitHub's |
+| `.claude/` | Claude Code's wiring of the guards, the checks and the skills, with no logic of its own (see *Skills*) |
+| `.github/` | the CI workflows |
 | `doc/` | all documentation: the guide pages (`doc/guide/`), the hand written C API reference (`doc/capi.md`), design notes (`doc/design/`), the site's style (`doc/style/`), and generated LDoc output (everything else, gitignored) |
 | `doc/design/` | design notes for work in progress: gap analysis, proposed APIs, verified kernel references, test strategy |
 
@@ -45,6 +49,16 @@ second top level one (`docs/`, `documentation/`, and the like). A guide page goe
 the `topics` of `config.ld`, design notes go in `doc/design/<topic>/`, the C API reference is
 `doc/capi.md`, and LDoc fills the rest of `doc/`. The README is the site's home page: what it does not
 say in a few lines links to a guide page.
+
+Code lives and installs where it runs. What runs in the kernel, the bindings, their Lua libraries, the
+examples and the test scripts, lives in `lib/`, `examples/` and `tests/`, with `driver.lua` and the tables
+`autogen/` writes, and installs under `/lib/modules/lua/`, the tree the kernel's `require` reads; what runs
+in the CLI, on the host, lives in `bin/` and installs where the host finds it, its Lua where the host's Lua
+does, as `lunatik/config.lua` is linked into the host's `LUA_PATH`. A new top-level directory gets its row
+in the table above, which says which side it is. The
+luaebpf compiler, which runs only in the CLI's Lua, reached review after review at the root of the tree,
+installing into `/lib/modules/lua/`; `tools/checks/layout.sh` names a top-level directory the table does
+not list, and a file `make install` puts in the kernel's script tree from outside the trees that run there.
 
 A module or an example that needs a second file gets a directory, not a prefixed sibling:
 `examples/systrack/probe.lua` beside `device.lua`, never `systrack_device.lua` beside `systrack.lua`.
