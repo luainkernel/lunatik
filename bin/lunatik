@@ -14,9 +14,15 @@ local function probe()
 	return os.execute("[ -e " .. device .. " ]")
 end
 
+local function open(path, mode)
+	local file, err = io.open(path, mode)
+	if file == nil then error(err, 0) end -- the message is the user's, with no position in this script
+	return file
+end
+
 local function dostring(chunk)
 	if chunk == "" then return true, "" end -- an empty write never reaches the driver
-	local session <close> = assert(io.open(device, "r+"))
+	local session <close> = open(device, "r+")
 	session:setvbuf("no") -- the driver runs each write as a chunk
 	assert(session:write(chunk))
 	session:flush()
@@ -187,7 +193,8 @@ usage: lunatik [-h | -V]
        lunatik stop <script>...
        lunatik list
        lunatik test [<suite>]
-       lunatik compile [<lunatic argument>...]]=]
+       lunatik compile [<lunatic argument>...]
+       lunatik bpf [-o <object>] <program>]=]
 
 local function report(message)
 	io.stderr:write("lunatik: ", message, "\n")
@@ -310,6 +317,8 @@ local general = accepting(
 local modifying = accepting("--",
 	option("context", "c", true, set_context),
 	option("percpu", "p"))
+local compiling = accepting("--", option("output", "o", true))
+local takes = {bpf = compiling}
 
 local function parse(i, accepted, parsed)
 	while arg[i] ~= nil and arg[i]:sub(1, 1) == "-" do
@@ -377,6 +386,17 @@ function runners.list(parsed, script)
 	if scripts ~= "" then print(scripts) end
 end
 
+function runners.bpf(parsed, program, ...)
+	if program == nil then misuse("bpf takes a program file") end
+	if select("#", ...) > 0 then misuse("bpf takes nothing after the program file") end
+	local luaebpf = require("luaebpf")
+	local object = luaebpf.compile(program)
+	local path = parsed.output or program:gsub("%.lua$", "") .. ".o"
+	local file = open(path, "wb")
+	assert(file:write(object))
+	assert(file:close())
+end
+
 local function main()
 	local parsed = {}
 	local i = parse(1, general, parsed)
@@ -405,7 +425,7 @@ local function main()
 	if handler == nil then
 		misuse("unknown command " .. verb)
 	end
-	i = parse(i + 1, modifying, parsed)
+	i = parse(i + 1, takes[verb] or modifying, parsed)
 	handler(parsed, table.unpack(arg, i))
 end
 

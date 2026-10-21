@@ -12,6 +12,7 @@ usage: lunatik [-h | -V]
        lunatik list
        lunatik test [<suite>]
        lunatik compile [<lunatic argument>...]
+       lunatik bpf [-o <object>] <program>
 ```
 
 * `-h`, `--help`: print the usage
@@ -21,6 +22,7 @@ usage: lunatik [-h | -V]
 * `-i`, `--interactive`: enter the REPL after `-e`
 * `-c <context>`, `--context=<context>`: the context `run` creates the runtime in
 * `-p`, `--percpu`: `run` creates one runtime per CPU id
+* `-o <object>`, `--output=<object>`: the object `bpf` writes
 
 * <code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
   `modprobe` prints its error on stderr and the load goes on, so read `lunatik status` and the kernel log
@@ -32,6 +34,8 @@ usage: lunatik [-h | -V]
   is not the installed build
 * `test [suite]`: run installed test suites (see [Development](06-development.md))
 * `compile <arguments>`: run `lunatic` with the given arguments (see [lunatic](#lunatic))
+* `bpf [-o <object>] <program>`: compile a program file into a BPF object (see
+  [Program files](#program-files))
 * `list`: show which runtime environments are currently running, one script a line, in order of name
 * `run [-c softirq | hardirq] [-p] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md)
 * `spawn <script>`: create a new runtime environment for the script `/lib/modules/lua/<script>.lua`,
@@ -123,4 +127,25 @@ sudo lunatik run hello
 instead of source, so an error raised from one of them reads `?:?:`. `class` stays source, since the CLI's Lua reads
 it too.
 
+## Program files
+
+`lunatik bpf` compiles a **program file** into a BPF ELF object, `<program>` with `.lua` replaced
+by `.o` unless `-o` names another, so `filter.bpf.lua` becomes `filter.bpf.o`. `lunatic` compiles
+the file, and its body is compile-time Lua: it runs once, here, from that bytecode in the CLI's Lua,
+so it computes as the kernel would, and hands the functions it declares to a program constructor.
+Those functions are the program: their bytecode is compiled to eBPF and held to the subset the
+verifier can check. Anything outside it is an error naming the Lua file and line, and no object is
+written.
+
+```Shell
+lunatik bpf filter.bpf.lua
+sudo bpftool prog load filter.bpf.o /sys/fs/bpf/filter type xdp
+```
+
+`require` in the body finds the compile-time modules first, `bpf.xdp`, then the compiler's own
+`luaebpf` modules, then `/lib/modules/lua/`, whose modules `lunatic` compiles as it does the
+program file, installed as source or, with `BYTECODE=1`, as chunks. It finds nothing else the CLI's
+Lua would, so a Lua or C module the host installs never stands in for a kernel script. `10 / 4` is
+`2` in the body as in the kernel; the CLI's libraries can still return a float, as `math.sqrt`
+does, and one reaching a compiled function is refused at the line that reaches it.
 

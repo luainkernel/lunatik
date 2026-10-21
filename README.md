@@ -52,7 +52,7 @@ Dependencies, OpenWRT and the first steps are in [Getting started](doc/guide/01-
 ## Documentation
 
 * [Getting started](doc/guide/01-getting-started.md): install, build, first script
-* [Running scripts](doc/guide/02-running-scripts.md): the command line tool, execution contexts, `lunatic`
+* [Running scripts](doc/guide/02-running-scripts.md): the command line tool, execution contexts, `lunatic`, program files
 * [Per-CPU scripts](doc/guide/03-percpu.md): one runtime per CPU, and where state belongs
 * [Lua in the kernel](doc/guide/04-lua.md): what differs from userspace Lua
 * [Examples](doc/guide/05-examples.md): device drivers, packet filters, probes, filesystem guards

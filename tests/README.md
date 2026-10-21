@@ -365,8 +365,10 @@ REPL and the builds `status` and `reload` compare.
   word after `load`, `unload`, `reload` or `status`, a second suite given to
   `test`, `-e` without a chunk, a value given to `--help`, a chunk or `-i` given
   with a command, an option on the wrong side of the verb, `-c` without a
-  context, a value given to `--percpu`, and a context or percpu given to `stop`
-  or `list` each exit 2 with a line naming it and the usage on stderr; `-V`
+  context, a value given to `--percpu`, a context or percpu given to `stop` or
+  `list`, `bpf` without its program file or with a word after it, `-c` given
+  to `bpf`, `-o` without an object, and `-o` given to `run` each exit 2 with a
+  line naming it and the usage on stderr; `-V`
   and `--version` print the loaded version, `Lunatik <major>.<minor>`, and with the modules unloaded `-V`
   exits 1, not loaded; each module `status` reports as loaded carries as its
   version the release `-V` prints, which gives it the srcversion `reload`
@@ -969,8 +971,8 @@ the `util` module to its documentation on that Lua's stack.
 
 ### luaebpf
 
-Tests for the Lua to eBPF compiler. Each case compiles a program file in the
-CLI's Lua, loads what it emits on the running kernel and runs it with
+Tests for the Lua to eBPF compiler. Each case compiles a program file with
+`lunatik bpf`, loads what it emits on the running kernel and runs it with
 `bpftool prog run`; the object and the pins are removed in a `trap` that also
 runs once up front. Skips when `lunatic` or `bpftool` is missing, or when
 `/sys/fs/bpf` is not mounted.
@@ -1006,6 +1008,8 @@ runs once up front. Skips when `lunatic` or `bpftool` is missing, or when
   `xdp.program` call, `prog run` returns each verdict, the `license` section
   reads `Dual MIT/GPL`, and the BTF carries one `FUNC` per program; a program
   returning `nil` takes its default verdict, as one returning nothing does.
+  With no `-o` the object takes the input's own name, and an `-o` the CLI
+  cannot write exits 1 naming it.
 - **lineinfo**: the verifier's log quotes the Lua line, its text, which v6.9
   and later follow with `<file>.bpf.lua:<line>`; with
   `LUAEBPF_DROP=lineinfo` it carries no Lua line, and with
