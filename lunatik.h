@@ -169,6 +169,7 @@ typedef struct lunatik_runtime_s {
 
 extern lunatik_object_t __rcu *lunatik_env;
 extern struct task_struct *lunatik_rtnl;
+DECLARE_PER_CPU(unsigned int, lunatik_runqueue);
 extern const lunatik_class_t lunatik_runtime_class;
 
 /* internals the C API depends on: the core's own, which doc/capi.md leaves out */
@@ -404,6 +405,7 @@ static inline lua_Integer lunatik_checkfieldinteger(lua_State *L, const char *fi
 #define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
 #define LUNATIK_ERR_HARDIRQ	"not allowed in a hardirq runtime"
 #define LUNATIK_ERR_REPLAY	"not allowed inside a replay"
+#define LUNATIK_ERR_RUNQUEUE	"not allowed under the runqueue lock"
 
 static inline void lunatik_checkclosing(lua_State *L)
 {
@@ -442,10 +444,30 @@ static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class
 #define lunatik_setrtnl(task)	WRITE_ONCE(lunatik_rtnl, (task))
 #define lunatik_isrtnl()	(READ_ONCE(lunatik_rtnl) == current)
 
+#define lunatik_isrunqueue()	unlikely(this_cpu_read(lunatik_runqueue) != 0)
+
+#define lunatik_setrunqueue(flags)	\
+do {					\
+	local_irq_save(flags);		\
+	this_cpu_inc(lunatik_runqueue);	\
+} while (0)
+
+#define lunatik_unsetrunqueue(flags)	\
+do {					\
+	this_cpu_dec(lunatik_runqueue);	\
+	local_irq_restore(flags);	\
+} while (0)
+
 static inline void lunatik_checkrtnl(lua_State *L)
 {
 	if (lunatik_isrtnl())
 		luaL_error(L, LUNATIK_ERR_RTNL);
+}
+
+static inline void lunatik_checkrunqueue(lua_State *L)
+{
+	if (lunatik_isrunqueue())
+		luaL_error(L, LUNATIK_ERR_RUNQUEUE);
 }
 
 static inline void lunatik_checkarmed(lua_State *L)
