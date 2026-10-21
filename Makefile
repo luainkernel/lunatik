@@ -17,6 +17,7 @@ INCLUDE_PATH := ${MODULES_BUILD_PATH}/include
 
 LUA ?= lua5.5
 LUA_PATH = $(shell $(LUA) -E -e 'print(package.path:match("([^;]*)/%?%.lua;"))')
+LUAEBPF_INSTALL_PATH = ${LUA_PATH}/luaebpf
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
@@ -36,6 +37,15 @@ LUNATIC_CORE := lapi lcode lctype ldebug ldo ldump lfunc lgc llex lmem lobject l
 	lparser lstate lstring ltable ltm lundump lvm lzio lauxlib
 LUNATIC_SRCS := luac/luac.c $(addprefix lua/,$(addsuffix .c,$(LUNATIC_CORE)))
 LUNATIC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
+
+# what reading and rewriting a chunk takes from lua/, printed by bin/luaebpf/bytecode.c built as lunatic
+# is and as the CLI's Lua is, so a chunk lunatic writes loads in the CLI's Lua
+LUAEBPF_BYTECODE := bin/luaebpf/bytecode
+LUAEBPF_TABLES := ${LUAEBPF_BYTECODE}/kernel.lua ${LUAEBPF_BYTECODE}/host.lua
+LUAEBPF_TABLES_SRCS := bin/luaebpf/bytecode.c lua/lopcodes.c
+
+# a directory's kernel scripts, not its program files: a program file's body runs on the host, never under the kernel's require
+LUA_SCRIPTS = $$(ls $(1)/*.lua 2>/dev/null | grep -v '\.bpf\.lua$$')
 
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names
 define INSTALL_LUA
@@ -79,17 +89,26 @@ AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
 	tests_install tests_uninstall \
 	ebpf ebpf_install ebpf_uninstall
 
-all: lunatik_sym.h autogen ${LUNATIC}
+all: lunatik_sym.h autogen ${LUNATIC} ${LUAEBPF_TABLES}
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} $(LUNATIK_CONFIG_FLAGS)
 
 ${LUNATIC}: ${LUNATIC_SRCS} $(wildcard lua/*.h) lunatik_conf.h
 	${HOSTCC} ${LUNATIC_CFLAGS} -o $@ ${LUNATIC_SRCS}
+
+${LUAEBPF_BYTECODE}/kernel.lua: TABLES_CFLAGS := ${LUNATIC_CFLAGS}
+${LUAEBPF_BYTECODE}/host.lua: TABLES_CFLAGS := -std=gnu99 -O2 -Wall -DLUA_USE_LINUX -Ilua
+${LUAEBPF_TABLES}: ${LUAEBPF_TABLES_SRCS} $(wildcard lua/*.h) lunatik_conf.h
+	${MKDIR} ${LUAEBPF_BYTECODE}
+	${HOSTCC} ${TABLES_CFLAGS} -o $@.bin ${LUAEBPF_TABLES_SRCS}
+	./$@.bin > $@
+	${RM} $@.bin
 
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD}/autogen clean
 	${MAKE} -C examples/filter clean
 	${RM} lunatik_sym.h ${LUNATIC}
+	${RM} -r ${LUAEBPF_BYTECODE}
 	${RM} -r lib/linux
 	${RM} autogen/lunatik/*.lua autogen/linux/*.lua \
 		autogen/dump_*.c autogen/dump_*.pp \
@@ -117,7 +136,8 @@ scripts_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/linux
 	${MKDIR} ${LUA_PATH}/lunatik
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
-	$(call INSTALL_LUA,common/class.lua,${SCRIPTS_INSTALL_PATH}/)
+	# source whatever BYTECODE says: the CLI's Lua reads it through the link below, and refuses a chunk lunatic writes
+	${INSTALL} -m 0644 common/class.lua ${SCRIPTS_INSTALL_PATH}/
 	$(call INSTALL_LUA,lib/mailbox.lua,${SCRIPTS_INSTALL_PATH}/)
 	$(call INSTALL_LUA,lib/net.lua,${SCRIPTS_INSTALL_PATH}/)
 	$(call INSTALL_LUA,lib/struct.lua,${SCRIPTS_INSTALL_PATH}/)
@@ -140,8 +160,13 @@ scripts_install:
 	$(call INSTALL_LUA,lib/lunatik/*.lua,${SCRIPTS_INSTALL_PATH}/lunatik)
 	${INSTALL} -m 0644 autogen/lunatik/*.lua ${SCRIPTS_INSTALL_PATH}/lunatik
 	${LN} ${SCRIPTS_INSTALL_PATH}/lunatik/config.lua ${LUA_PATH}/lunatik/config.lua
+	${LN} ${SCRIPTS_INSTALL_PATH}/class.lua ${LUA_PATH}/lunatik/class.lua
 	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
 	${INSTALL} -D -m 0755 ${LUNATIC} ${LUNATIK_INSTALL_PATH}/lunatic
+	${RM} -r ${LUAEBPF_INSTALL_PATH}
+	${MKDIR} ${LUAEBPF_INSTALL_PATH}/bytecode
+	${INSTALL} -m 0644 bin/luaebpf/*.lua ${LUAEBPF_INSTALL_PATH}
+	${INSTALL} -m 0644 ${LUAEBPF_TABLES} ${LUAEBPF_INSTALL_PATH}/bytecode
 
 scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua
@@ -162,6 +187,7 @@ scripts_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/set
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/linux
 	${RM} ${LUNATIK_INSTALL_PATH}/lunatik ${LUNATIK_INSTALL_PATH}/lunatic
+	${RM} -r ${LUAEBPF_INSTALL_PATH}
 	${RM} -r ${LUA_PATH}/lunatik
 
 ebpf:
@@ -183,7 +209,8 @@ examples_install:
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples
 	for d in $(EXAMPLE_DIRS); do \
 		${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/$$d; \
-		$(call INSTALL_LUA,examples/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
+		lua=$(call LUA_SCRIPTS,examples/$$d); \
+		$(call INSTALL_LUA,$$lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
 	done
 
 examples_uninstall:
@@ -204,13 +231,14 @@ tests_install:
 	for d in $(TEST_DIRS); do \
 		${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/$$d ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 		${INSTALL} -m 0755 tests/$$d/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/$$d; \
-		lua=$$(ls tests/$$d/*.lua 2>/dev/null); \
+		lua=$(call LUA_SCRIPTS,tests/$$d); \
 		[ -z "$$lua" ] || ${INSTALL} -m 0644 $$lua ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 	done
 	${INSTALL} -m 0644 tests/xdp/Makefile tests/xdp/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/xdp
 	${INSTALL} -m 0644 tests/tc/Makefile tests/tc/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/tc
 	${INSTALL} -m 0644 tests/scx/Makefile tests/scx/*.bpf.c tests/scx/*.bpf.h ${LUNATIK_TESTS_INSTALL_PATH}/scx
 	${INSTALL} -m 0644 tests/fifo/Makefile tests/fifo/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/fifo
+	${INSTALL} -m 0644 tests/luaebpf/*.bpf.lua ${LUNATIK_TESTS_INSTALL_PATH}/luaebpf
 	${INSTALL} -m 0755 tools/shade.sh ${LUNATIK_TESTS_INSTALL_PATH}/darken
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket

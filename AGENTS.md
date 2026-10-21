@@ -34,6 +34,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | `autogen/` | build time generation of `linux.*` constant tables from kernel headers |
 | `driver.lua` | the script of the runtime `lunatik_run.ko` creates for the `/dev/lunatik` driver, installed as `lunatik/driver` |
 | `bin/` | the host side: the CLI, `bin/lunatik`, which talks to the kernel through `/dev/lunatik`, and what it builds or loads, installed where the host finds it |
+| `bin/luaebpf/` | the Lua to eBPF compiler, a package of the CLI's Lua installed under the host's `LUA_PATH` as `luaebpf/` |
 | `tests/` | KTAP integration tests, one directory per suite |
 | `examples/` | example kernel scripts |
 | `tools/` | maintenance scripts, and the mechanical convention checks in `tools/checks/` |

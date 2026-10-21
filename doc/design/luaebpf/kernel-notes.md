@@ -329,7 +329,7 @@ the body and the program. What that chunk carries, and what the rewrite changes:
 * The functions the body hands over are closures of that chunk: `string.dump` gives each one's
   prototype, read back with the CLI's tables, and `debug.getupvalue` its captured environment. A
   module the body requires from the kernel scripts' tree loads the same way, through `lunatic`,
-  source or a chunk `BYTECODE=1` installed; the compile-time modules under `luaebpf/` are the
+  source or a chunk `BYTECODE=1` installed; the compile-time modules under `bin/luaebpf/` are the
   CLI's own Lua. A function from anywhere else, the compile-time modules or a string given to
   `load`, is refused as a compiled function.
 
