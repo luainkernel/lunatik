@@ -1637,16 +1637,18 @@ extern const lunatik_class_t luacrypto_shash_class;
 extern const lunatik_class_t luacrypto_skcipher_class;
 extern const lunatik_class_t luacrypto_aead_class;
 extern const lunatik_class_t luacrypto_rng_class;
+extern const lunatik_class_t luacrypto_sig_class;
 extern const lunatik_class_t luacrypto_comp_class;
 
 int luacrypto_shash_new(lua_State *L);
 int luacrypto_skcipher_new(lua_State *L);
 int luacrypto_aead_new(lua_State *L);
 int luacrypto_rng_new(lua_State *L);
+int luacrypto_sig_new(lua_State *L);
 int luacrypto_comp_new(lua_State *L);
 ```
-The classes and constructors of `crypto.shash`, `crypto.skcipher`, `crypto.aead`, `crypto.rng` and
-`crypto.comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
+The classes and constructors of `crypto.shash`, `crypto.skcipher`, `crypto.aead`, `crypto.rng`,
+`crypto.sig` and `crypto.comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
 what each constructor raises. `crypto.comp` is declared on kernels before v6.15 alone.
 
 ---
@@ -1700,6 +1702,19 @@ view once its callback returns. `luadata_close` clears it and drops a reference 
 as a binding's `release` does for a view it keeps, through [`lunatik_putobject`](#lunatik_putobject).
 They take the object's lock, a spinlock, so a handler calls them in any context, but not under that
 lock, which a method of a monitored data object holds.
+
+### luadata\_checkreadonly
+```C
+lunatik_object_t *luadata_checkreadonly(lua_State *L, int ix, const void **ptr, size_t *size);
+```
+Checks that `ix` is a data object that owns its memory, `LUADATA_OPT_FREE`, makes it
+`LUADATA_OPT_READONLY` for good, and returns the object with its memory in `ptr` and its size in
+`size`, read under its lock after the flag is set: a write and a `resize` raise `read only` from
+then on, so the memory stays as the caller read it while the object lives. Raises for a value that
+is not a data object, and `external memory` for one that views memory it does not own. It takes the
+object's lock, a spinlock, so it runs in any context, but not under that lock. The object is the
+caller's to borrow from the stack: one that keeps the memory past the call takes a reference of its
+own, as `set.fromdata` does with [`lunatik_getobject`](#lunatik_getobject).
 
 ---
 
