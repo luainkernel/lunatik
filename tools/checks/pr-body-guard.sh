@@ -166,10 +166,21 @@ field() {
 	printf '%s' "$1" | grep -oE -- "(-f|-F|--raw-field|--field)[ =]$2=[\"']?[^[:space:]\"']+" | head -n 1 | sed "s/.*$2=[\"']\{0,1\}//"
 }
 
+# the commit at the tip of the branch <name> on GitHub, in the repository the write <post> targets,
+# asked with the credential the command carries; it fails when GitHub does not answer
+tip() {
+	local repo
+	repo=$(gh_repo "$1")
+	[ -n "$repo" ] || return 1
+	GH_TOKEN=$(gh_token "$input") gh api "repos/$repo/branches/$2" --jq .commit.sha 2> /dev/null
+}
+
 # a pull request opened on a branch names every example its change touches (examples-named.sh); the
 # head and the base are read from the write, `head=<branch>` and `base=<branch>` or the JSON's, and
 # resolved in this checkout, the base as its remote-tracking ref first: a stacked pull request's change
-# is what its head adds to the branch below it, and read against master it carries that branch's too
+# is what its head adds to the branch below it, and read against master it carries that branch's too.
+# Without that ref the base is the tip GitHub has, since a push through a URL updates none and a local
+# branch of the same name can lag it, and the local branch only when GitHub does not answer
 examples() {
 	local post body file head target ref base files findings project
 	project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
@@ -192,7 +203,7 @@ examples() {
 		[ -n "$head" ] || continue
 		target=${target:-master}
 		ref=origin/$target
-		git -C "$project" rev-parse -q --verify "$ref^{commit}" > /dev/null || ref=$target
+		git -C "$project" rev-parse -q --verify "$ref^{commit}" > /dev/null || ref=$(tip "$post" "$target") || ref=$target
 		if ! base=$(git -C "$project" merge-base "$ref" "$head" 2> /dev/null); then
 			echo "pr-body-guard: the head $head or the base $target is not a ref this checkout can read, so the examples its change touches cannot be listed; fetch it, or pass EXAMPLES_OK=1 once the body says of each what it did." >&2
 			exit 2
