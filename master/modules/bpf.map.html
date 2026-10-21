@@ -193,8 +193,9 @@
  <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format (e.g. <code>&quot;I4&quot;</code>, <code>&quot;c6&quot;</code>) or a <a href="../modules/struct.html#">struct</a> codec, and says both
  how many bytes it takes, validated against the map on open, and how to read
  them. Specs that pack a single value take and return it as a scalar;
- multi-value formats and <a href="../modules/struct.html#">struct</a> codecs take and return an array of values,
- in field order.</p>
+ multi-value formats take and return an array of values, in field order, and
+ <a href="../modules/struct.html#">struct</a> codecs a table keyed by the layout&rsquo;s field names. Encoding a table
+ that lacks one of the fields raises, as <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> does on <code>nil</code>.</p>
 
 <p> Operations on a table proxy come from outside it (<a href="../modules/bpf.map.html#close">close</a> and <a href="../modules/bpf.map.html#info">info</a> are
  module functions, as in Lua&rsquo;s <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a> library or <a href="../modules/rcu.html#foreach">rcu.foreach</a>), so any key the
@@ -608,7 +609,7 @@ print(events:pop())
 <a href="../../modules/bpf.map.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.map.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 13:23:07</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 13:28:10</span>
 </div>
 </footer>
 </body>

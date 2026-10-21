@@ -223,7 +223,8 @@ local len, mtype = nlmsghdr:unpack(bytes)
 
           <div class="section-description">
           Codec a layout builds, packing its fields in native byte order.  Its <code>size</code> field holds the
- struct&rsquo;s size in bytes.
+ struct&rsquo;s size in bytes, and its <code>fields</code> field the layout&rsquo;s fields in offset order, the order
+ <a href="../modules/struct.html#codec:pack">pack</a> takes and <a href="../modules/struct.html#codec:unpack">unpack</a> returns their values.
           </div>
     <dl class="function">
     <dt id="codec:fieldsize"><a name="codec:fieldsize"></a><strong>codec:fieldsize (name)</strong></dt>
@@ -322,7 +323,7 @@ local len, mtype = nlmsghdr:unpack(bytes)
     <ol>
 
            <span class="types"><a class="type" href="../modules/struct.html#codec">codec</a></span>
-        a codec exposing <code>:pack</code>, <code>:unpack</code>, <code>:fieldsize</code> and a <code>size</code> field.
+        a codec exposing <code>:pack</code>, <code>:unpack</code>, <code>:fieldsize</code> and the <code>size</code> and <code>fields</code> fields.
     </ol>
 
     <h3>Raises</h3>
@@ -348,7 +349,7 @@ local len, mtype = nlmsghdr:unpack(bytes)
 <a href="../../modules/struct.html">5.1 docs</a> ·
 <a href="../../5.0/modules/struct.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 13:23:07</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 13:28:10</span>
 </div>
 </footer>
 </body>
