@@ -484,6 +484,23 @@ own task holds: `lunatik_checkarmed` refuses every call that may sleep there. It
 task only, which is what a softirq runtime leaves to see: nothing that holds its lock sleeps, so no
 second task waits for RTNL under it. Defined as macros.
 
+### lunatik\_isrunqueue
+```C
+bool lunatik_isrunqueue(void);
+void lunatik_setrunqueue(unsigned long flags);
+void lunatik_unsetrunqueue(unsigned long flags);
+DECLARE_PER_CPU(unsigned int, lunatik_runqueue);
+```
+`lunatik_isrunqueue` returns `true` while the calling CPU dispatches an scx callback, which
+`ops.enqueue` runs with that CPU's runqueue lock held. The scx dispatch marks itself with
+`lunatik_setrunqueue(flags)`, which turns IRQs off, saving their state in `flags`, and counts one,
+and ends with `lunatik_unsetrunqueue(flags)`, which counts it back and restores them: nothing but the
+dispatch runs on the CPU while the marker is up, a sleepable operation included, and a nested
+dispatch keeps the outer one's, as the kernel's own `printk_context` does. Unlike
+[`lunatik_isrtnl`](#lunatik_isrtnl), the marker is a per-CPU counter and not one task pointer: the
+runqueue lock is per-CPU, so several CPUs run a callback at once, each under its own, and no single
+pointer can hold them all. Defined as macros.
+
 ### lunatik\_iskthread
 ```C
 bool lunatik_iskthread(void);
@@ -572,6 +589,15 @@ Raises a Lua error, `"not allowed under RTNL"`, when [`lunatik_isrtnl`](#lunatik
 a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs.
 [`lunatik_checkarmed`](#lunatik_checkarmed) calls it, so every entry point that may sleep refuses there.
 
+### lunatik\_checkrunqueue
+```C
+void lunatik_checkrunqueue(lua_State *L);
+```
+Raises a Lua error, `"not allowed under the runqueue lock"`, when
+[`lunatik_isrunqueue`](#lunatik_isrunqueue) holds: from an scx callback, whose wakeup of a task
+would take the runqueue lock the CPU already holds. `completion:complete` uses it, since it wakes a
+waiter; a mailbox's `send` wakes its own through that method, and raises there too.
+
 ### lunatik\_checkowner
 ```C
 void lunatik_checkowner(lua_State *L, lunatik_object_t *runtime);
@@ -603,6 +629,16 @@ Raises a Lua error, `"not allowed in a hardirq runtime"`, when `L`'s runtime is 
 constructor whose object no callback of such a runtime can use calls it, as `netlink.channel.new`
 does, whose send re-enables bottom halves where an nlmon tap is up. It reads the runtime's context
 rather than the CPU's state, so the refusal comes from the script body, which runs with interrupts on.
+
+### lunatik\_printk
+```C
+void lunatik_printk(const char *fmt, ...);
+```
+Writes to the kernel log as `printk` does, at the level a `KERN_*` prefix of `fmt` names, from any
+context. While [`lunatik_isrunqueue`](#lunatik_isrunqueue) holds, it writes as the scheduler's
+`printk_deferred` does, which no module can call: through `vprintk_emit` at `LOGLEVEL_SCHED`, which
+stores the line at once and leaves the console to an irq_work, since flushing it there would wake a
+task waiting on the console, whose wakeup takes the runqueue lock the CPU holds.
 
 ### lunatik\_percpudata
 ```C
@@ -1145,6 +1181,7 @@ handler, a `BUG()`. After a protected call or a resume fails, the error is read 
 #define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
 #define LUNATIK_ERR_HARDIRQ	"not allowed in a hardirq runtime"
 #define LUNATIK_ERR_REPLAY	"not allowed inside a replay"
+#define LUNATIK_ERR_RUNQUEUE	"not allowed under the runqueue lock"
 #define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
 ```
 The messages of the refusals this page documents. A binding that refuses one of their conditions on

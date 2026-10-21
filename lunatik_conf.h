@@ -19,6 +19,8 @@
 #undef lua_getlocaledecpoint
 #define lua_getlocaledecpoint()		('.')
 
+__printf(1, 2) void lunatik_printk(const char *fmt, ...);
+
 #define lua_writestring(s,l)		printk(KERN_CONT "%s",(s))
 #define lua_writeline()			pr_cont("\n")
 #define lua_writestringerror(...)	printk(KERN_ERR KERN_CONT __VA_ARGS__)
