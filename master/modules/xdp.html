@@ -207,8 +207,16 @@
 	<td class="summary">Returns the argument data buffer passed from eBPF.</td>
 	</tr>
 	<tr>
+	<td class="name"><a href="#xdp_ctx:ingress">xdp_ctx:ingress ()</a></td>
+	<td class="summary">Returns the index of the device the packet arrived on, the <code>ingress_ifindex</code> of <code>struct xdp_md</code>.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#xdp_ctx:packet">xdp_ctx:packet ()</a></td>
 	<td class="summary">Returns the packet data buffer for the current XDP context.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#xdp_ctx:queue">xdp_ctx:queue ()</a></td>
+	<td class="summary">Returns the index of the receive queue the packet arrived on, the <code>rx_queue_index</code> of <code>struct xdp_md</code>.</td>
 	</tr>
 </table></div>
 <h2 id="xdp">xdp</h2>
@@ -248,6 +256,23 @@
 
 
 </dd>
+    <dt id="xdp_ctx:ingress"><a name="xdp_ctx:ingress"></a><strong>xdp_ctx:ingress ()</strong></dt>
+    <dd>
+    Returns the index of the device the packet arrived on, the <code>ingress_ifindex</code> of <code>struct xdp_md</code>.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        network interface index
+    </ol>
+
+
+
+
+</dd>
     <dt id="xdp_ctx:packet"><a name="xdp_ctx:packet"></a><strong>xdp_ctx:packet ()</strong></dt>
     <dd>
     Returns the packet data buffer for the current XDP context.
@@ -259,6 +284,23 @@
 
            <span class="types"><span class="type">data</span></span>
         packet buffer
+    </ol>
+
+
+
+
+</dd>
+    <dt id="xdp_ctx:queue"><a name="xdp_ctx:queue"></a><strong>xdp_ctx:queue ()</strong></dt>
+    <dd>
+    Returns the index of the receive queue the packet arrived on, the <code>rx_queue_index</code> of <code>struct xdp_md</code>.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">integer</span></span>
+        receive queue index
     </ol>
 
 
@@ -377,7 +419,7 @@ xdp.<span class="function-name">attach</span>(my_packet_processor)
 <a href="../../modules/xdp.html">5.1 docs</a> ·
 <a href="../../5.0/modules/xdp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 15:32:28</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-21 15:36:04</span>
 </div>
 </footer>
 </body>
