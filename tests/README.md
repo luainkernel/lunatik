@@ -948,6 +948,24 @@ the `util` module to its documentation on that Lua's stack.
   `load(..., "t")` rejects a chunk in the kernel. Skips when `lunatic` is
   not installed.
 
+### luaebpf
+
+Tests for the Lua to eBPF compiler. Each case runs a program file's body in
+the CLI's Lua, from the chunk `lunatic` compiles; the scratch directory is
+removed in a `trap` that also runs once up front. Skips when `lunatic` is
+missing.
+
+- **host**: the body runs from the chunk `lunatic` compiles, rewritten for
+  the CLI's Lua, and computes as the kernel does: `10 / 4` is the integer 2,
+  and `"10" // 3` is 3 through the metamethod event the rewrite renumbers. It
+  requires `linux.xdp.action` and `luaebpf.proto`, takes `class` from the
+  kernel scripts rather than the compiler's `lunatik.class`, and
+  loads a module installed as the stripped chunk `lunatic` writes, whose own
+  `10 / 4` is 2. `luaebpf.proto.read` hands back a function's own bytecode,
+  whose `numparams`, `maxstacksize`, first opcode, first line and source the
+  body asserts, with `/` read as `IDIV`; a function and the one it returns,
+  and two functions, written on one line, each read as themselves.
+
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction, the gfp its caller
