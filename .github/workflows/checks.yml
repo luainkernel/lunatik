@@ -38,6 +38,9 @@ jobs:
     - name: C API entries
       # a name a header of lib/ declares with no entry in doc/capi.md fails the run
       run: bash tools/checks/capi-entries.sh lib/*.h
+    - name: Layout
+      # a top-level directory the Layout table does not list, or kernel-tree installs from outside it, fail the run
+      run: bash tools/checks/layout.sh
     - name: Guard cases
       # each command guard read again against the cases it was proved on, its own change or one beneath it
       run: bash tools/checks/cases.sh

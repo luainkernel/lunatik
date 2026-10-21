@@ -236,6 +236,14 @@ than landing its fixups on master.
 that called `luadata_reset` read the `.c` for what it raises, the context it runs in and who owns what
 it takes. It catches a name missing, not an entry that no longer says what the code does.
 
+`layout.sh` reads the tree from its top and names a top-level directory the Layout table of AGENTS.md
+does not list, and a file the Makefile installs into `SCRIPTS_INSTALL_PATH`, or into a variable defined
+over it, from outside `lib/`, `examples/`, `tests/`, `autogen/` and the root files the table lists; the
+`Checks` workflow fails on either. Code lives and installs where it runs (AGENTS.md, *Layout*), and the
+luaebpf compiler, which runs only in the CLI's Lua, reached review after review at the root of the tree,
+installing into `/lib/modules/lua/`. A source spelled through a variable is not read, so a table the
+build writes under a variable's name passes unread.
+
 `discard-guard.sh`, wired before a shell call, refuses a command that writes over a file holding a
 change nobody committed, a checkout or a restore of a path, `git reset --hard`, and a checkout or a
 switch that forces, naming the files: a session that meant to put back its head's version of two
