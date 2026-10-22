@@ -6,7 +6,7 @@
 --
 
 local linux = require("linux")
-local lunatik = require("lunatik")
+local check = require("tests.linux.check")
 local test = require("tests.lib").test
 
 local UNNAMEABLE <const> = "lunatik no such symbol" -- a space, which no compiler emits into a symbol
@@ -35,14 +35,11 @@ test("linux.lookup rejects an argument that is not a string", function()
 	assert(err:match("string expected"), "raised something else: " .. err)
 end)
 
--- an IRQ runtime is armed past its body, which is the state a hook calls from; resume reaches it
 test("linux.lookup answers an armed softirq runtime", function()
-	local runtime <close> = lunatik.runtime(RECEIVER, "softirq")
-	runtime:resume()
+	check.armed(RECEIVER, "softirq")
 end)
 
 test("linux.lookup answers an armed hardirq runtime", function()
-	local runtime <close> = lunatik.runtime(RECEIVER, "hardirq")
-	runtime:resume()
+	check.armed(RECEIVER, "hardirq")
 end)
 

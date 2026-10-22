@@ -6,7 +6,7 @@
 --
 
 local linux   = require("linux")
-local lunatik = require("lunatik")
+local check   = require("tests.linux.check")
 local test    = require("tests.lib").test
 
 local RECEIVER <const> = "tests/linux/tracing_recv"
@@ -31,11 +31,9 @@ test("linux.tracing refuses a value that is neither a boolean nor nil, and chang
 	assert(linux.tracing() == false, "a refused value turned tracing on")
 end)
 
--- a runtime is armed past its body, which is the state a hook calls from; resume reaches it
 for _, context in ipairs(contexts) do
 	test("linux.tracing turns tracing off and on from an armed " .. context .. " runtime", function()
-		local runtime <close> = lunatik.runtime(RECEIVER, context)
-		runtime:resume()
+		check.armed(RECEIVER, context)
 	end)
 end
 

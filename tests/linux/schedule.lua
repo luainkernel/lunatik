@@ -6,7 +6,7 @@
 --
 
 local linux   = require("linux")
-local lunatik = require("lunatik")
+local check   = require("tests.linux.check")
 local test    = require("tests.lib").test
 
 local NAP_MS   <const> = 1
@@ -29,14 +29,11 @@ test("linux.schedule refuses a timeout outside 0 to 2^31 - 1, and takes 0", func
 	assert(linux.schedule(0) == 0, "linux.schedule(0) left time")
 end)
 
--- an IRQ runtime is armed past its body, which is the state a hook calls from; resume reaches it
 test("linux.schedule refuses an armed softirq runtime", function()
-	local runtime <close> = lunatik.runtime(RECEIVER, "softirq")
-	runtime:resume()
+	check.armed(RECEIVER, "softirq")
 end)
 
 test("linux.schedule refuses an armed hardirq runtime", function()
-	local runtime <close> = lunatik.runtime(RECEIVER, "hardirq")
-	runtime:resume()
+	check.armed(RECEIVER, "hardirq")
 end)
 
