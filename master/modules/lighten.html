@@ -199,7 +199,8 @@
 <pre>
 SECRET=$(tools/shade.sh darken hello.lua)
 tools/shade.sh <span class="function-name">lighten</span> <span class="string">"$SECRET"</span>
-sudo cp light.lua hello.dark.lua /lib/modules/lua/
+sudo install -m <span class="number">0600</span> light.lua /lib/modules/lua/
+sudo cp hello.dark.lua /lib/modules/lua/
 sudo lunatik run hello.dark
 </pre>
 
@@ -305,7 +306,7 @@ sudo lunatik run hello.dark
 <a href="../../modules/lighten.html">5.1 docs</a> ·
 <a href="../../5.0/modules/lighten.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-22 19:52:44</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-22 20:00:33</span>
 </div>
 </footer>
 </body>
