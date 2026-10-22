@@ -4,6 +4,8 @@
 --
 -- Assertions shared by the linux scripts (see run.sh).
 
+local lunatik = require("lunatik")
+
 local check = {}
 
 function check.carries(name, constants, values)
@@ -22,6 +24,12 @@ function check.holds(name, constants, names)
 	for key in pairs(constants) do
 		assert(expected[key], ("linux.%s.%s is outside its family"):format(name, key))
 	end
+end
+
+-- a runtime is armed past its body, which is the state a hook calls from; resume reaches it
+function check.armed(receiver, context)
+	local runtime <close> = lunatik.runtime(receiver, context)
+	runtime:resume()
 end
 
 return check
