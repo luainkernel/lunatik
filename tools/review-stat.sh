@@ -6,9 +6,9 @@
 # What a pull request still needed after the review workflow read it, which is what the review
 # missed or what the maintainer asked for over it: for each pull request labelled workflow-reviewed,
 # the commits authored after the label and the comments written after it by a person, the ones that
-# do not open with the line an agent's post carries. A review that left nothing to ask shows zeros
-# there, and the totals say how often that was so. The forced pushes after it are shown beside them,
-# and count nothing, since the squash before a merge is one.
+# do not open with the note an agent's post carries, or with the line that note replaced. A review
+# that left nothing to ask shows zeros there, and the totals say how often that was so. The forced
+# pushes after it are shown beside them, and count nothing, since the squash before a merge is one.
 #
 # Usage: GH_TOKEN=... bash tools/review-stat.sh [<pr>...]   (default every labelled pull request)
 
@@ -31,7 +31,7 @@ for pr in $prs; do
 	comments=$( { gh api --paginate "repos/$repo/issues/$pr/comments?per_page=100" --jq '.[]'
 		gh api --paginate "repos/$repo/pulls/$pr/comments?per_page=100" --jq '.[]'
 		gh api --paginate "repos/$repo/pulls/$pr/reviews?per_page=100" --jq '.[] | select(.body != "") | .created_at = .submitted_at'; } |
-		jq -s --arg at "$at" '[.[] | select(.created_at > $at and .user.type != "Bot" and (.body | startswith("(posted by an agent") | not))] | length')
+		jq -s --arg at "$at" '[.[] | select(.created_at > $at and .user.type != "Bot" and (.body | test("^(\\(posted by an agent|> \\[!NOTE\\]\n> This [a-z]+ was written by an LLM)") | not))] | length')
 	read -r state title < <(gh api "repos/$repo/pulls/$pr" --jq '"\(if .merged_at then "merged" else .state end) \(.title)"')
 	printf '%-6s %-7s %7s %7s %8s  %s\n' "#$pr" "$state" "$commits" "$pushes" "$comments" "${title:0:60}"
 	total=$((total + 1))
