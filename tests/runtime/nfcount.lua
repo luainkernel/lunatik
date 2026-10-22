@@ -20,13 +20,14 @@ function nfcount.count()
 	return nf.action.ACCEPT
 end
 
-function nfcount.localin(hook, mark)
+function nfcount.localin(hook, mark, mask)
 	return {
 		hook     = hook,
 		pf       = nf.proto.INET,
 		hooknum  = nf.inet.LOCAL_IN,
 		priority = nf.ip.pri.FILTER,
 		mark     = mark,
+		mask     = mask,
 	}
 end
 

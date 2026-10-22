@@ -46,6 +46,7 @@ typedef struct luanetfilter_hook_s {
 	lunatik_object_t *runtime;
 	struct nf_hook_ops nfops;
 	u32 mark;
+	u32 mask;
 	bool marked;
 } luanetfilter_hook_t;
 
@@ -108,7 +109,7 @@ static int luanetfilter_hook_cb(lua_State *L, luanetfilter_hook_t *hook, struct 
 
 	lua_Integer mark = lua_tointeger(L, -1);
 	if (lua_type(L, -1) == LUA_TNUMBER && luanetfilter_ismark(mark))
-		skb->mark = (u32)mark;
+		skb->mark = (skb->mark & ~hook->mask) | ((u32)mark & hook->mask);
 	else if (!lua_isnil(L, -1))
 		pr_err_ratelimited("invalid mark\n");
 	lua_Integer verdict = lua_tointeger(L, -2);
@@ -127,7 +128,7 @@ static inline unsigned int luanetfilter_docall(luanetfilter_hook_t *hook, struct
 	int ret;
 	int policy = NF_ACCEPT;
 
-	if (hook->marked && likely(hook->mark != skb->mark))
+	if (hook->marked && likely((skb->mark & hook->mask) != hook->mark))
 		return policy;
 
 	lunatik_run(hook->runtime, luanetfilter_hook_cb, ret, hook, skb);
@@ -139,13 +140,18 @@ static unsigned int luanetfilter_hook(void *priv, struct sk_buff *skb, const str
 	return luanetfilter_docall((luanetfilter_hook_t *)priv, skb);
 }
 
+#define luanetfilter_issame(hook, spec)							\
+	((hook)->marked == (spec)->marked && (hook)->mark == (spec)->mark &&		\
+	 (hook)->mask == (spec)->mask && (hook)->nfops.pf == (spec)->nfops.pf &&	\
+	 (hook)->nfops.hooknum == (spec)->nfops.hooknum &&				\
+	 (hook)->nfops.priority == (spec)->nfops.priority)
+
 static luanetfilter_hook_t *luanetfilter_find(struct hlist_head *hooks, const luanetfilter_hook_t *spec)
 {
 	luanetfilter_hook_t *hook;
 
 	hlist_for_each_entry(hook, hooks, node) {
-		if (hook->marked == spec->marked && hook->mark == spec->mark && hook->nfops.pf == spec->nfops.pf &&
-		    hook->nfops.hooknum == spec->nfops.hooknum && hook->nfops.priority == spec->nfops.priority)
+		if (luanetfilter_issame(hook, spec))
 			return hook;
 	}
 	return NULL;
@@ -208,6 +214,9 @@ static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *sp
 	lunatik_setinteger(L, ix, (&spec->nfops), priority, INT_MIN, INT_MAX);
 	spec->marked = lunatik_optfield(L, ix, "mark", LUA_TNUMBER);
 	spec->mark = spec->marked ? lunatik_checkfieldinteger(L, "mark", 0, U32_MAX) : 0;
+	lunatik_optinteger(L, ix, spec, mask, 0, U32_MAX, U32_MAX);
+	if (spec->mark & ~spec->mask)
+		luaL_error(L, "bad field 'mark' (bits outside 'mask')");
 	lua_pop(L, 2); /* hook and mark */
 }
 
@@ -282,14 +291,16 @@ static const lunatik_class_t luanetfilter_class = {
 * @function register
 * @tparam table opts Hook options: `hook` (function), `pf`, `hooknum`, `priority` (integers),
 *   and optionally `mark` (integer), a prefilter that keeps a packet out of Lua: given a
-*   `mark`, 0 included, only a packet whose `skb:mark()` equals it reaches the callback, and
-*   the hook accepts every other packet; without a `mark`, the callback runs for every
-*   packet. `pf` takes a `linux.nf.proto` value, `hooknum` a hook of that family, as
-*   `linux.nf.inet`, `linux.nf.arp` or `linux.nf.br` list them, and `priority` a
-*   `linux.nf.ip.pri` or `linux.nf.br.pri` value.
+*   `mark`, 0 included, only a packet whose `skb:mark() & mask` equals it reaches the callback,
+*   and the hook accepts every other packet; without a `mark`, the callback runs for every
+*   packet. `mask` (integer, optional) names the bits of the packet mark the hook owns, the
+*   whole mark when absent: the prefilter compares those bits alone, and a mark the callback
+*   returns sets those bits alone. `pf` takes a `linux.nf.proto` value, `hooknum` a hook of
+*   that family, as `linux.nf.inet`, `linux.nf.arp` or `linux.nf.br` list them, and `priority`
+*   a `linux.nf.ip.pri` or `linux.nf.br.pri` value.
 *
 *   `hook(skb)` returns the packet's verdict, `DROP`, `ACCEPT` or `QUEUE` of `linux.nf.action`,
-*   and optionally a mark to set on the packet. A callback that returns no verdict, or that
+*   and optionally a mark to set under `mask`. A callback that returns no verdict, or that
 *   raises, accepts the packet; one that returns any other value, `STOLEN`, `REPEAT` and `STOP`
 *   included, accepts it too and logs `invalid verdict`. A mark that is not an integer from 0 to
 *   2^32 - 1 leaves the packet's mark as it was and logs `invalid mark`.
@@ -301,12 +312,13 @@ static const lunatik_class_t luanetfilter_class = {
 *   outside a softirq runtime; `not allowed while the runtime closes` from a finalizer that runs at
 *   its close; `bad field 'hook' (function expected, got <type>)` if `hook` is missing or not a
 *   function; `bad field '<field>' (number expected, got <type>)` if `pf`, `hooknum` or
-*   `priority` is missing or not a number, or if `mark` is present and not a number;
+*   `priority` is missing or not a number, or if `mark` or `mask` is present and not a number;
 *   `bad field '<field>' (out of bounds)` if `pf` is not a family whose hooks netfilter keeps
-*   in a table, `hooknum` is not a hook of that table, `mark` is negative or past 32 bits, or
-*   `priority` is past an `int`; if the hook cannot be registered; in a
-*   percpu script, if this runtime already registered the same `pf`, `hooknum`, `priority` and
-*   `mark`, or the same three both times without a `mark`
+*   in a table, `hooknum` is not a hook of that table, `mark` or `mask` is negative or past
+*   32 bits, or `priority` is past an `int`; `bad field 'mark' (bits outside 'mask')` if `mark`
+*   sets a bit `mask` leaves out, which no packet could match; if the hook cannot be
+*   registered; in a percpu script, if this runtime already registered the same `pf`,
+*   `hooknum`, `priority` and `mask`, with the same `mark` or both times without one
 * @usage
 *   local netfilter = require("netfilter")
 *   local nf        = require("linux.nf")

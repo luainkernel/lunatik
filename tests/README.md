@@ -1006,19 +1006,27 @@ hooks it keeps off the object's lock).
   answer and not a hook that never ran.
 - **register**: what `netfilter.register()` refuses in the table it is given,
   before any hook is registered, each with an error naming the field: a `hook`
-  that is missing, as a misspelled one is, or holds a string, a `mark` that holds
-  a string, a numeric one included, or a boolean, a `pf`, `hooknum` or
-  `priority` that is missing or holds a string, and any of the four numbers past
-  its type, by a value whose low bits a truncating build would register; a family
-  netfilter keeps no hook table for is refused naming `pf`, and a hook past its
-  family's table, the kernel's WARN in `nf_hook_entry_head`, naming `hooknum`; a
-  `mark` at the top of its range and a `priority` at either end of an `int` are
-  accepted.
-- **mark**: which packets a hook's mark lets reach its callback. Two `LOCAL_OUT`
-  hooks, one registered without a mark and one with a mark of 0, and two pings to
-  a loopback address, one marked and one not: the hook without a mark runs for
-  both, and the hook with 0 runs for the unmarked one and not for the marked
-  one, since a mark given selects by equality, 0 included.
+  that is missing, as a misspelled one is, or holds a string, a `mark` or a
+  `mask` that holds a string, a numeric one included, or a boolean, a `pf`,
+  `hooknum` or `priority` that is missing or holds a string, any of the five
+  numbers past its type, by a value whose low bits a truncating build would
+  register, and a `mark` with a bit outside its `mask`, which no packet could
+  match; a family netfilter keeps no hook table for is refused naming `pf`, and a
+  hook past its family's table, the kernel's WARN in `nf_hook_entry_head`,
+  naming `hooknum`; a `mark` at the top of its range, a `mask` at either end of
+  its range and a `priority` at either end of an `int` are accepted.
+- **mark**: which packets a hook's mark and mask let reach its callback, and
+  which bits a mark it returns sets. `LOCAL_OUT` hooks, one registered without a
+  mark and one with a mark of 0, and two pings to a loopback address, one marked
+  and one not: the hook without a mark runs for both, and the hook with 0 runs
+  for the unmarked one and not for the marked one, since a mark given selects by
+  equality, 0 included. The marked ping holds a value in each of two fields of
+  the mark: a hook registered on one field's value under that field's mask runs
+  for it, whatever the other field holds, and not for the unmarked one, whose
+  field differs; one with that mask and no mark runs for both; and a mark a
+  later hook returns under the other field's mask sets that field alone: the
+  packet keeps its own bits outside the mask, and the returned ones outside it
+  are dropped.
 - **stop**: a hook's `stop` takes its callback off, its `__close` is that stop,
   and a stopped hook lets its packets through without a word in the kernel log.
   Four `LOCAL_OUT` hooks, each on its own mark: one stopped twice while the
@@ -1599,8 +1607,9 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   request is counted exactly once, by the runtime of that CPU; a burst that
   reaches the hook while the runtimes are still being created is accepted
   without being counted; one set holds a hook per target, a hook without a
-  mark and one with a mark of 0 being two, and a second registration of the
-  same one in a runtime is refused; a registration from a
+  mark and one with a mark of 0 being two, as are two on one mark under
+  different masks, and a second registration of the same one in a runtime is
+  refused; a registration from a
   callback, after load, is refused, in a percpu script and in a plain softirq
   runtime, and so is one from a body a driver resumes; and the same script
   registers as a plain softirq runtime.

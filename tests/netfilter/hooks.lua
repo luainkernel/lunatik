@@ -8,13 +8,14 @@ local nf = require("linux.nf")
 
 local hooks = {}
 
-function hooks.localout(hook, mark)
+function hooks.localout(hook, mark, mask, priority)
 	return {
 		hook     = hook,
 		pf       = nf.proto.IPV4,
 		hooknum  = nf.inet.LOCAL_OUT,
-		priority = nf.ip.pri.FILTER,
+		priority = priority or nf.ip.pri.FILTER,
 		mark     = mark,
+		mask     = mask,
 	}
 end
 
