@@ -5,6 +5,7 @@
 -- Clock and pacing for the kernel threads of object_grace and foreach_sync (see object_grace.sh and foreach_sync.sh).
 
 local linux = require("linux")
+local clock = require("linux.clock")
 
 local SLICE_MS <const> = 10
 local NAP_MS   <const> = 1
@@ -12,7 +13,7 @@ local NAP_MS   <const> = 1
 local pace = {}
 
 function pace.milliseconds()
-	return linux.time() // 1000000
+	return linux.time(clock.MONOTONIC) // 1000000
 end
 
 local slice = pace.milliseconds() + SLICE_MS

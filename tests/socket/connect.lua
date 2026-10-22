@@ -9,6 +9,7 @@ local inet   = require("socket.inet")
 local unix   = require("socket.unix")
 local net    = require("net")
 local linux  = require("linux")
+local clock  = require("linux.clock")
 local struct = require("struct")
 local sk     = require("linux.socket")
 
@@ -88,9 +89,9 @@ say("a path alone connects")
 
 local waiting = unix.stream(PATH)
 waiting.socket:setsockopt(sk.sol.SOCKET, sk.so.SNDTIMEO_NEW, timeval:pack(0, TIMEOUT_MS * 1000))
-local start = linux.time()
+local start = linux.time(clock.MONOTONIC)
 connected, err = waiting.socket:connect(PATH, NONBLOCK)
-local elapsed = linux.time() - start
+local elapsed = linux.time(clock.MONOTONIC) - start
 assert(connected == false and err == nil, format("a non-blocking connect with no room answered %s, %s", connected, err))
 assert(elapsed < TIMEOUT_MS * MS_NS, format("a non-blocking connect with no room waited %d ns", elapsed))
 say("a flag past the path reaches the kernel")
