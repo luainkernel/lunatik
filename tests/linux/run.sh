@@ -47,7 +47,12 @@
 # BOOTTIME falls between two reads of /proc/uptime, to the centisecond it shows, and REALTIME read
 # after BOOTTIME is ahead of it by the btime /proc/stat shows, to its second. It refuses
 # CLOCK_TAI, -1 and an id past an int as invalid clock, and an armed softirq and an armed hardirq
-# runtime, the state a hook calls from, read each clock. MONOTONIC and BOOTTIME differ by the time
+# runtime, the state a hook calls from, read each clock. The case runs again from a time namespace
+# whose offsets shift MONOTONIC by a billion seconds and BOOTTIME by a million: linux.time reads the
+# initial namespace's clocks there, where /proc/uptime adds the boottime offset and btime takes it
+# off, so the script takes back the offset run.sh writes for that run, and a build that applied
+# the offsets reads MONOTONIC past BOOTTIME, a billion seconds being past any time a host has spent
+# suspended. That run is skipped without time namespaces. MONOTONIC and BOOTTIME differ by the time
 # suspended alone, nothing on a host that has not suspended, so the case cannot tell one from the
 # other there; and that setting the wall clock moves REALTIME alone is not run, since the clock is
 # the whole host's: do_settimeofday64() moves wall_to_monotonic, offs_real and offs_tai, which
@@ -65,7 +70,8 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 TESTS="random fsnotify notifier signal task lookup constants schedule netns errname ifindex tracing time socket"
-TOTAL=$(echo $TESTS | wc -w)
+# the time case again, from a time namespace
+TOTAL=$(( $(echo $TESTS | wc -w) + 1 ))
 
 # lunatik_lookup reaches kallsyms_lookup_name through a kprobe, so without kprobes every lookup is nil
 CONFIG=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null)
@@ -79,13 +85,22 @@ carries_refusal() {
 		grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"
 }
 
+# the boottime offset, in seconds, of the namespace timens() makes, which time.lua requires from OFFSETMOD
+BOOTOFFSET=1000000
+OFFSETMOD="/lib/modules/lua/tests/linux/time_offset.lua"
+
+# the CLI in a time namespace of its own: CLI=timens before run_test runs the script's body from there
+timens() { unshare --time --monotonic 1000000000 --boottime $BOOTOFFSET lunatik "$@"; }
+
 cleanup() {
 	for t in $TESTS; do
 		lunatik stop "tests/linux/$t" 2>/dev/null
 	done
+	rm -f "$OFFSETMOD"
 }
 trap cleanup EXIT
 cleanup
+echo "return {boot = 0}" > "$OFFSETMOD" # the loop's run is the initial namespace's
 
 ktap_header
 ktap_plan $TOTAL
@@ -109,6 +124,16 @@ for t in $TESTS; do
 		ktap_fail "linux/$t"
 	fi
 done
+
+lunatik stop tests/linux/time 2> /dev/null # its run in the loop stays registered, and a second run is refused
+echo "return {boot = $BOOTOFFSET}" > "$OFFSETMOD"
+if ! unshare --time true 2> /dev/null; then
+	ktap_skip "linux/time: from a time namespace: needs time namespaces"
+elif CLI=timens run_test tests/linux/time; then
+	ktap_pass "linux/time: from a time namespace"
+else
+	ktap_fail "linux/time: from a time namespace"
+fi
 
 RESULT=0
 ktap_totals || RESULT=1
