@@ -13,14 +13,15 @@
 -- from a root task, as it does in a script `lunatik run` or `lunatik spawn` runs, not from a callback
 -- an unprivileged task drives, such as a `device` read. Without the file, or from a task that cannot
 -- read it, `require("lighten")` raises "module 'light' not found".
--- `tools/shade.sh darken [-s <secret>] <script>.lua` encrypts a script into `<script>.dark.lua`,
+-- `tools/shade.sh darken [-s] <script>.lua` encrypts a script into `<script>.dark.lua`,
 -- which calls what `lighten.load` returns with its own arguments, and prints the secret, 64 hex
--- characters;
--- `tools/shade.sh lighten <secret>` writes `light.lua` from it. With `-t` both derive the key from
--- the current 30 second step, so `light.lua` and the dark script are generated in the same step:
+-- characters, a new one or, with `-s`, the one it reads on stdin;
+-- `tools/shade.sh lighten` writes `light.lua` from the secret it reads on stdin. With `-t` both derive
+-- the key from the current 30 second step, so `light.lua` and the dark script are generated in the
+-- same step:
 --
 --     SECRET=$(tools/shade.sh darken hello.lua)
---     tools/shade.sh lighten "$SECRET"
+--     tools/shade.sh lighten <<< "$SECRET"
 --     sudo install -m 0600 light.lua /lib/modules/lua/
 --     sudo cp hello.dark.lua /lib/modules/lua/
 --     sudo lunatik run hello.dark
