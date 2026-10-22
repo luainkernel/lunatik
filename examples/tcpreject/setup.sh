@@ -54,10 +54,8 @@ nft add chain ip6 tcpreject forward \
 nft add rule ip6 tcpreject forward \
 	ip6 daddr $DNS6 tcp dport 443 mark set $MARK
 
-# load the Lua hook
-lunatik run --context=softirq examples/tcpreject/nf_tcpreject
-
 echo "setup done"
+echo "load the hook: sudo lunatik run --context=softirq examples/tcpreject/nf_tcpreject"
 echo "test IPv4: sudo ip netns exec $NETNS curl --connect-timeout 2 https://$DNS4"
 echo "test IPv6: sudo ip netns exec $NETNS curl --connect-timeout 2 https://[$DNS6]"
 

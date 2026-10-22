@@ -10,8 +10,6 @@ IF=${1:?usage: setup.sh <iface>}
 DIR=$(dirname "$(readlink -f "$0")")
 PIN=/sys/fs/bpf/sniclassify
 
-lunatik run --context=softirq --percpu examples/sniclassify/sni
-
 tc qdisc add dev "$IF" root handle 1: htb default 20
 tc class add dev "$IF" parent 1:  classid 1:1  htb rate 100mbit ceil 100mbit
 tc class add dev "$IF" parent 1:1 classid 1:10 htb rate 50mbit  ceil 100mbit prio 1

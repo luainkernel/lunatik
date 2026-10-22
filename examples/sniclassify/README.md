@@ -23,8 +23,11 @@ sudo make install             # installs Lunatik and the examples
 make ebpf                     # builds the TC/eBPF program, which setup.sh loads from the checkout
 ```
 
-Run the classifier and set up the HTB classes on an interface:
+Run the Lua script, then set up the HTB classes and the TC/eBPF program on an interface. The script
+runs first because it loads the module that exports `bpf_luatc_run`, and the program does not load
+without it:
 ```sh
+sudo lunatik run --context=softirq --percpu examples/sniclassify/sni
 sudo ./examples/sniclassify/setup.sh eth0
 ```
 
