@@ -10,8 +10,9 @@ local test      = require("tests.lib").test
 local format    = string.format
 
 local MARK <const> = 0x10
+local MASK <const> = 0x0f -- leaves MARK's bit out
 local U8   <const> = 1 << 8  -- past the u8 pf
-local U32  <const> = 1 << 32 -- past the unsigned int hooknum and the u32 mark
+local U32  <const> = 1 << 32 -- past the unsigned int hooknum and the u32 mark and mask
 local S32  <const> = 1 << 31 -- past the int priority, on either side
 
 local notnumbers = {"x", "16", true}
@@ -23,6 +24,7 @@ local pastrange = {
 	hooknum  = {nf.inet.LOCAL_OUT - U32, nf.inet.LOCAL_OUT | U32},
 	priority = {-S32 - 1, S32},
 	mark     = {MARK - U32, MARK | U32},
+	mask     = {MASK - U32, MASK | U32},
 }
 
 local function accept()
@@ -66,9 +68,10 @@ test("netfilter.register refuses a hook that is missing or not a function", func
 	refuses("hook", "accept", "bad field 'hook' %(function expected, got string%)")
 end)
 
-test("netfilter.register refuses a mark that is not a number", function()
-	for _, mark in ipairs(notnumbers) do
-		nonumber("mark", mark)
+test("netfilter.register refuses a mark or a mask that is not a number", function()
+	for _, value in ipairs(notnumbers) do
+		nonumber("mark", value)
+		nonumber("mask", value)
 	end
 end)
 
@@ -99,8 +102,21 @@ test("netfilter.register refuses a family with no hook table and a hook past its
 	end
 end)
 
+test("netfilter.register refuses a mark with a bit outside its mask", function()
+	local opts = spec("mark", MARK)
+	opts.mask = MASK
+	local ok, err = pcall(netfilter.register, opts)
+	assert(not ok, "netfilter.register accepted a mark with a bit outside its mask")
+	assert(err:match("bad field 'mark' %(bits outside 'mask'%)"), "netfilter.register raised something else: " .. err)
+end)
+
 test("netfilter.register accepts a mark at the top of its range", function()
 	netfilter.register(spec("mark", U32 - 1))
+end)
+
+test("netfilter.register accepts a mask at either end of its range", function()
+	netfilter.register(spec("mask", 0))
+	netfilter.register(spec("mask", U32 - 1))
 end)
 
 test("netfilter.register accepts a priority at either end of an int", function()

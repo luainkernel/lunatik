@@ -9,6 +9,7 @@ local nf        = require("linux.nf")
 local nfcount   = require("tests.runtime.nfcount")
 
 local MARK <const> = 209
+local MASK <const> = 0xff
 
 local function accept()
 	return nf.action.ACCEPT
@@ -17,12 +18,14 @@ end
 local hook = nfcount.localin(accept)
 local zero = nfcount.localin(accept, 0)
 local marked = nfcount.localin(accept, MARK)
+local masked = nfcount.localin(accept, MARK, MASK)
 
 netfilter.register(hook)
 netfilter.register(zero) -- a second hook in the same set, told apart by a mark of 0 from one without a mark
 netfilter.register(marked) -- a third, this one told apart by its mark
+netfilter.register(masked) -- a fourth, told apart from the third by its mask
 
-print("percpu netfilter twice: three targets armed")
+print("percpu netfilter twice: four targets armed")
 
 local ok, err = pcall(netfilter.register, hook)
 assert(not ok and err:find("hook already registered", 1, true), "a hook without a mark was registered twice")
