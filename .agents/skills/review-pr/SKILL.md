@@ -117,9 +117,10 @@ Each finding goes inline on its line; the review body is only the verdict, openi
 author's @handle (`process.md`, "Comments and the verdict"). The posting account authors the pull
 requests here, and GitHub answers 422 to `APPROVE` or `REQUEST_CHANGES` on one's own, so `event` is
 `COMMENT` and the verdict is the body's first line. Because that account is the maintainer's, every
-text an agent posts under it, the body and each inline comment, opens with
-`(posted by an agent, not by @<handle>)`, so a reader knows who wrote the words.
-`tools/checks/review-post-guard.sh` refuses a post whose body or inline comment lacks that line, and,
+text an agent posts under it, the body and each inline comment, opens with GitHub's note,
+`> [!NOTE]` and `> This review was written by an LLM, not a human.` (`comment` in an inline comment
+or a reply), then a blank line, so a reader knows who wrote the words.
+`tools/checks/review-post-guard.sh` refuses a post whose body or inline comment lacks that note, and,
 on a pull request the posting account did not open, one that lacks `REVIEW_POST_OK=1`: there, show
 the exact text, get the OK, then prefix the marker to the command. On a pull request the account
 opened, the maintainer's own, the review he asked for is posted as written; the guard reads the

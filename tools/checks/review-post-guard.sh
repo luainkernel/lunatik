@@ -22,8 +22,8 @@
 # The text of a post is read from the files the command names (body=@<file>,
 # --body-file, --input) and run through machine-leak.sh, since a review comment
 # is how the machine escaped into GitHub before any file did, and through the
-# check that every text, the review body and each inline comment, opens by
-# saying an agent wrote it, since the account it posts under is the
+# check that every text, the review body and each inline comment, opens with
+# GitHub's note that an LLM wrote it, since the account it posts under is the
 # maintainer's. The raw input is not scanned: it carries the working directory
 # on every command, so a scan of it would fire on every post. Text the guard
 # cannot read, passed inline or on stdin, is refused rather than skipped, and so
@@ -94,16 +94,18 @@ if [ -n "$undecided" ]; then
 	exit 2
 fi
 
-# the account is the maintainer's, so every text opens by saying an agent wrote it
-agentline='\(posted by an agent, not by @'
+# the account is the maintainer's, so every text opens with the note, its two lines a GitHub alert
+alert='> \[!NOTE\]'
+llm='> This [a-z]+ was written by an LLM, not a human\.'
 unsigned=$(for f in $files; do
 	case "$(head -c 1 "$f")" in
-		"{") grep -oE '"body"[[:space:]]*:[[:space:]]*"(\\.|[^"\\]){0,40}' "$f" | grep -vE "^\"body\"[[:space:]]*:[[:space:]]*\"$agentline" ;;
-		*) head -n 1 "$f" | grep -qE "^$agentline" || echo "$f: $(head -n 1 "$f")" ;;
+		"{") grep -oE '"body"[[:space:]]*:[[:space:]]*"(\\.|[^"\\]){0,80}' "$f" |
+			grep -vE "^\"body\"[[:space:]]*:[[:space:]]*\"$alert"'\\n'"$llm" ;;
+		*) head -n 2 "$f" | tr '\n' '\t' | grep -qE "^$alert"$'\t'"$llm"$'\t' || echo "$f: $(head -n 1 "$f")" ;;
 	esac
 done)
 if [ -n "$unsigned" ]; then
-	echo "review-post-guard: a text posted under the maintainer's account opens with \"(posted by an agent, not by @<handle>)\", the review body and each inline comment alike; these do not:" >&2
+	echo "review-post-guard: a text posted under the maintainer's account opens with GitHub's note that an LLM wrote it, \"> [!NOTE]\" and \"> This <review|comment> was written by an LLM, not a human.\" on the next line, the review body and each inline comment alike; these do not:" >&2
 	echo "$unsigned" >&2
 	exit 2
 fi

@@ -168,7 +168,7 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   placement is decided before posting, not repaired after.
 * Each comment links its fixup as a full commit URL — never a backtick'd SHA, which renders as code and
   does not link. A reply to an author's comment @-mentions the author and quotes the line it answers
-  under the opening that says an agent wrote it: an issue comment does not thread and need not even
+  under the note that says an LLM wrote it: an issue comment does not thread and need not even
   notify them, so the @-mention reaches them and the quote makes it a reply, not a stray remark. A
   request for changes is not a place for praise; padding buries the change being asked for.
 * Write a finding plainly and no longer than it needs to be: the defect, the fix, and the trace,

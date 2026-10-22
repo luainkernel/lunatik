@@ -10,7 +10,7 @@
 # second tab the description the call carries beside it, which a guard reads for no verdict; a
 # `# agent: <id>` line gives the cases after it the agent_id of a subagent's call, and `# agent:` takes
 # it away. Only the guards whose verdict the command decides, alone or with the repository it runs
-# in or the processes beside it, have cases, none that asks GitHub; <guard>.fixture.sh, beside the
+# in or the processes beside it, have cases, and no case asks GitHub; <guard>.fixture.sh, beside the
 # cases of one that reads the repository, builds it in a scratch directory the cases run in, and
 # beside one that reads the process table, starts there a process that ends with the directory.
 # Prints each wrong verdict and a count, and exits 1 when one is wrong.

@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run in the directory review-post-guard.fixture.sh writes; each case carries the marker, so no verdict asks GitHub
+pass	REVIEW_POST_OK=1 gh api -X POST repos/luainkernel/lunatik/issues/871/comments -F body=@note.md
+block	REVIEW_POST_OK=1 gh api -X POST repos/luainkernel/lunatik/issues/871/comments -F body=@late.md
+block	REVIEW_POST_OK=1 gh api -X POST repos/luainkernel/lunatik/issues/871/comments -F body=@line.md
+pass	REVIEW_POST_OK=1 gh api -X POST repos/luainkernel/lunatik/pulls/871/reviews --input review.json
+block	REVIEW_POST_OK=1 gh api -X POST repos/luainkernel/lunatik/pulls/871/reviews --input bare.json
+pass	REVIEW_POST_OK=1 gh issue comment 871 --body-file note.md
+block	REVIEW_POST_OK=1 gh issue comment 871 --body-file line.md
+
