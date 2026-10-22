@@ -61,6 +61,14 @@
 # Skips below OpenSSL 3, where darken stops at its probe for openssl mac before
 # any step.
 #
+# shade_mode: tools/shade.sh lighten writes light.lua readable by its owner
+# alone whatever the umask, 022 and then 002, and over a light.lua of mode 664
+# it writes a new file, so a link to the old one, as a descriptor open on it
+# would, keeps reading what it held and not the key. shade and shade_chunk run
+# with such a key, which the kernel opens as the root task that loads the
+# script. It runs outside the OpenSSL 3 gate, since lighten takes no openssl mac,
+# and skips without openssl, which lighten derives the key with.
+#
 # Usage: sudo bash tests/darken/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -138,8 +146,20 @@ shade_error() {
 		refuses lighten -s "$hex" "$hex"
 }
 
+# shade.sh lighten run in $TMP under the umask $1 writes light.lua of mode 600
+lightens() {
+	(cd "$TMP" && umask "$1" && bash "$TOOL" lighten "$(printf '%064d' 0)") &&
+		[ "$(stat -c %a "$TMP/light.lua")" = 600 ]
+}
+
+shade_mode() {
+	rm -f "$TMP/light.lua" "$TMP/held.lua"
+	lightens 022 && echo held > "$TMP/held.lua" && chmod 664 "$TMP/held.lua" &&
+		ln -f "$TMP/held.lua" "$TMP/light.lua" && lightens 002 && [ "$(cat "$TMP/held.lua")" = held ]
+}
+
 ktap_header
-ktap_plan 5
+ktap_plan 6
 
 if ! [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] ||
 	! grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
@@ -159,6 +179,12 @@ for name in shade shade_chunk shade_error; do
 		served_case "darken/$name" "$name"
 	fi
 done
+
+if ! command -v openssl > /dev/null; then
+	ktap_skip "darken/shade_mode: openssl not installed"
+else
+	served_case "darken/shade_mode" shade_mode
+fi
 
 ktap_totals
 

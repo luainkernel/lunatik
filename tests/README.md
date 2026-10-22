@@ -213,8 +213,9 @@ after it.
 
 ### darken
 
-Every case but **shade_error** skips where the kernel serves no `gcm(aes)`, the
-algorithm `darken` decrypts with, which each script allocates before its cases.
+Every case but **shade_error** and **shade_mode** skips where the kernel
+serves no `gcm(aes)`, the algorithm `darken` decrypts with, which each script
+allocates before its cases.
 
 - **context**: `darken.run` decrypts and runs a chunk in a process runtime,
   in its body and resumed past it, and in the body of a `softirq` and a
@@ -246,6 +247,10 @@ algorithm `darken` decrypts with, which each script allocates before its cases.
   digits, an option it does not take and one after the secret stop `darken` and
   `lighten` with a non-zero status before they write the dark script or
   `light.lua`. Skips below OpenSSL 3.
+- **shade_mode**: `tools/shade.sh lighten` writes `light.lua` readable by its
+  owner alone under a umask of 022 and of 002, and over a `light.lua` of mode 664
+  writes a new file, so a link to the old one keeps what it held and not the key;
+  **shade** and **shade_chunk** run with such a key. Skips without `openssl`.
 
 ### data
 

@@ -103,7 +103,7 @@ cmd_lighten() {
 
 	key=$(derive_key "$secret")
 
-	cat > light.lua <<-EOF
+	install -m 0600 /dev/stdin light.lua <<-EOF
 	return "${key}"
 	EOF
 }
