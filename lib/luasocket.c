@@ -52,6 +52,11 @@ do {						\
 	msg.msg_name = &addr;			\
 } while (0)
 
+#define luasocket_addr(fn, addr)	_Generic((fn),						\
+	int (*)(struct socket *, struct sockaddr *, int): (struct sockaddr *)(addr),		\
+	int (*)(struct socket *, struct sockaddr *, int, int): (struct sockaddr *)(addr),	\
+	default: (struct sockaddr_unsized *)(addr))
+
 #define LUASOCKET_ADDRMAX	(sizeof_field(struct sockaddr_storage, __data))
 
 static int luasocket_lnew(lua_State *L);
@@ -401,11 +406,7 @@ static int luasocket_bind(lua_State *L)
 	struct socket *socket = luasocket_check(L, 1);
 	struct sockaddr_storage addr;
 	size_t size = luasocket_checkaddr(L, socket, &addr, 2);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0))
-	lunatik_try(L, kernel_bind, socket, (struct sockaddr_unsized *)&addr, size);
-#else
-	lunatik_try(L, kernel_bind, socket, (struct sockaddr *)&addr, size);
-#endif
+	lunatik_try(L, kernel_bind, socket, luasocket_addr(kernel_bind, &addr), size);
 	return 0;
 }
 
@@ -468,11 +469,7 @@ static int luasocket_connect(lua_State *L)
 	struct sockaddr_storage addr;
 	size_t size = luasocket_checkaddr(L, socket, &addr, 2);
 	int flags = luaL_opt(L, luasocket_checkint, luasocket_ispair(luasocket_family(socket)) ? 4 : 3, 0);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 19, 0))
-	int ret = kernel_connect(socket, (struct sockaddr_unsized *)&addr, size, flags);
-#else
-	int ret = kernel_connect(socket, (struct sockaddr *)&addr, size, flags);
-#endif
+	int ret = kernel_connect(socket, luasocket_addr(kernel_connect, &addr), size, flags);
 
 	if (ret == -EAGAIN && LUASOCKET_ISUNIX(luasocket_family(socket))) /* inet's is a failed autobind */
 		lua_pushboolean(L, false);
