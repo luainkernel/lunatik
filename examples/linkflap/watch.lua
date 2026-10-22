@@ -10,6 +10,7 @@
 -- netlink family. Consume it in userspace with examples/linkflap/subscriber.c.
 
 local linux    = require("linux")
+local clock    = require("linux.clock")
 local notifier = require("notifier")
 local channel  = require("netlink.channel")
 local message  = require("netlink.message")
@@ -33,7 +34,7 @@ local flapping = {}  -- ifname -> true while in a flap episode
 local transitions = {[netdev.UP] = true, [netdev.DOWN] = true}
 
 local function record(name)
-	local now = linux.time()
+	local now = linux.time(clock.MONOTONIC)
 	local seen = history[name] or {}
 	insert(seen, now)
 	while now - seen[1] > WINDOW do
