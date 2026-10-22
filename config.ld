@@ -22,7 +22,7 @@ file = {
 	'./lib/luabpf.c',
 	'./lib/bpf/map.lua',
 	'./lib/luabyteorder.c',
-	'./lib/class.lua',
+	'./common/class.lua',
 	'./lib/luacompletion.c',
 	'./lib/luacpu.c',
 	'./lib/luacrypto_core.c',
