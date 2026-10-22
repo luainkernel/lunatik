@@ -893,7 +893,12 @@ after the watch is stopped.
   `BOOTTIME` is ahead of it by the `btime` `/proc/stat` shows, to its second.
   It refuses `CLOCK_TAI`, -1 and
   an id past an `int` as "invalid clock", and an armed `softirq` and an armed
-  `hardirq` runtime, the state a hook calls from, read each clock. `MONOTONIC`
+  `hardirq` runtime, the state a hook calls from, read each clock. The case
+  runs again from a time namespace whose offsets shift `MONOTONIC` by a billion
+  seconds and `BOOTTIME` by a million, where `linux.time` reads the initial
+  namespace's clocks while `/proc/uptime` adds the boottime offset and `btime`
+  takes it off, so the script takes back the boottime offset `run.sh` writes
+  for that run; that run is skipped without time namespaces. `MONOTONIC`
   and `BOOTTIME` differ by the time suspended alone, so on a host that has not
   suspended the case cannot tell one from the other; that setting the wall
   clock moves `REALTIME` alone is not run, since the clock is the whole

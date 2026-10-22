@@ -10,6 +10,7 @@ local clock   = require("linux.clock")
 local lunatik = require("lunatik")
 local test    = require("tests.lib").test
 local check   = require("tests.linux.check")
+local offset  = require("tests.linux.time_offset") -- run.sh writes it: kernel_read() refuses /proc/self/timens_offsets
 
 local format = string.format
 
@@ -26,16 +27,19 @@ local steady   <const> = {"MONOTONIC", "BOOTTIME"}
 local refused  <const> = {11, -1, 1 << 32}
 local contexts <const> = {"softirq", "hardirq"}
 
+-- the boottime offset of the time namespace the script runs from, which /proc/uptime adds and btime takes off
+local BOOTOFFSET <const> = offset.boot * SECOND
+
 local function uptime()
 	local file <close> = assert(io.open("/proc/uptime"))
 	local seconds, centiseconds = file:read("l"):match("^(%d+)%.(%d%d) ")
-	return (tonumber(seconds) * 100 + tonumber(centiseconds)) * CENTISECOND
+	return (tonumber(seconds) * 100 + tonumber(centiseconds)) * CENTISECOND - BOOTOFFSET
 end
 
 -- REALTIME less BOOTTIME, the boot time getboottime64() gives /proc/stat
 local function btime()
 	local file <close> = assert(io.open("/proc/stat"))
-	return tonumber(file:read("a"):match("\nbtime (%d+)\n"))
+	return tonumber(file:read("a"):match("\nbtime (%d+)\n")) + BOOTOFFSET // SECOND
 end
 
 test("linux.clock carries REALTIME, MONOTONIC and BOOTTIME at their uapi ids, and no other clock", function()
