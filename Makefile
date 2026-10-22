@@ -103,7 +103,7 @@ AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
 	ebpf ebpf_install ebpf_uninstall
 
 all: lunatik_sym.h autogen ${LUNATIC} ${LUAEBPF_TABLES} ${LOADER}
-	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} $(LUNATIK_CONFIG_FLAGS)
+	${MAKE} -C ${MODULES_BUILD_PATH} M=${CURDIR} $(LUNATIK_CONFIG_FLAGS)
 
 ${LUNATIC}: ${LUNATIC_SRCS} $(wildcard lua/*.h) lunatik_conf.h
 	${HOSTCC} ${LUNATIC_CFLAGS} -o $@ ${LUNATIC_SRCS}
@@ -120,8 +120,8 @@ ${LOADER}: bin/luaebpf/loader.c $(wildcard lua/*.h)
 	${HOSTCC} ${LOADER_CFLAGS} -o $@ $< -lbpf
 
 clean:
-	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD} clean
-	${MAKE} -C ${MODULES_BUILD_PATH} M=${PWD}/autogen clean
+	${MAKE} -C ${MODULES_BUILD_PATH} M=${CURDIR} clean
+	${MAKE} -C ${MODULES_BUILD_PATH} M=${CURDIR}/autogen clean
 	${MAKE} -C examples/filter clean
 	${RM} lunatik_sym.h ${LUNATIC} ${LOADER}
 	${RM} -r ${LUAEBPF_BYTECODE}

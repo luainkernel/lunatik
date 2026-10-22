@@ -18,12 +18,12 @@ KLIBC_USR := klibc/usr
 KLIBC_INC := $(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
 KLIBC_LIBGCC := $(KLIBC_USR)/klibc/libgcc
 
-LUNATIK_FLAGS := -D_LUNATIK -D_KERNEL -I${PWD}/$(KLIBC_INC)
+LUNATIK_FLAGS := -D_LUNATIK -D_KERNEL -I$(src)/$(KLIBC_INC)
 
 asflags-y += $(LUNATIK_FLAGS)
 # include/ ahead of KLIBC_INC: its klibc/diverr.h stands in for klibc's, which includes <signal.h>
-ccflags-y += -I${PWD}/include $(LUNATIK_FLAGS) -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
-	-Wimplicit-fallthrough=0 -I$(src) -I${PWD} -I${PWD}/lua
+ccflags-y += -I$(src)/include $(LUNATIK_FLAGS) -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
+	-Wimplicit-fallthrough=0 -I$(src) -I$(src)/lua
 # presence, not version: stable series took the helper with the passive namespace reference it drops
 LUNATIK_SOCK_H := $(srctree)/include/net/sock.h
 LUNATIK_NET_NAMESPACE_H := $(srctree)/include/net/net_namespace.h
