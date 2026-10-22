@@ -99,6 +99,29 @@ static int luaskb_ifindex(lua_State *L)
 }
 
 /***
+* Reads the name `skb->dev` carries when called, the device `skb:ifindex()` indexes: a device
+* created or renamed after the script loaded reads its current name. A frame that races a rename
+* of its device may read a mix of the two names, and the first frame after the rename completes
+* reads the new one.
+* @function ifname
+* @treturn string network interface name, at most 15 bytes, or nil when the skb has no device
+*/
+static int luaskb_ifname(lua_State *L)
+{
+	luaskb_t *lskb = luaskb_check(L, 1);
+	struct net_device *dev = lskb->skb->dev;
+
+	if (dev != NULL) {
+		char name[IFNAMSIZ];
+		strscpy(name, dev->name, IFNAMSIZ); /* unlocked: a rename writes it under locks that sleep or are static */
+		lua_pushstring(L, name);
+	}
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
+/***
 * @function vlan
 * @treturn integer VLAN tag ID, or nil if not present
 */
@@ -384,6 +407,7 @@ static const luaL_Reg luaskb_mt[] = {
 	{"__gc",     luaskb_gc},
 	{"__len",    luaskb_len},
 	{"ifindex",  luaskb_ifindex},
+	{"ifname",   luaskb_ifname},
 	{"vlan",     luaskb_vlan},
 	{"hash",     luaskb_hash},
 	{"data",     luaskb_data},
