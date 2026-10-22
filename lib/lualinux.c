@@ -137,14 +137,46 @@ static int lualinux_tracing(lua_State *L)
 }
 
 /***
-* Gets the current real time.
+* Gets the current time of a clock.
+* `linux.clock.REALTIME` is the real time, since the epoch, `ktime_get_real_ns()`, and it steps
+* when the wall clock is set. `MONOTONIC` counts from boot and stops while the system is
+* suspended, `ktime_get_ns()`; `BOOTTIME` counts from boot through suspend,
+* `ktime_get_boottime_ns()`, the clock `/proc/uptime` shows. Neither of these two moves when the
+* wall clock is set, so an age or a deadline is measured on one of them.
+* The three are the initial time namespace's. A task in another reads `CLOCK_MONOTONIC`,
+* `CLOCK_BOOTTIME` and `/proc/uptime` shifted by the offsets `/proc/<pid>/timens_offsets` shows,
+* so a time written from userspace compares on the same clock only when its writer runs in the
+* initial time namespace.
+* Safe to call from softirq and hardirq.
 *
 * @function time
-* @treturn integer current time in nanoseconds since the epoch (from `ktime_get_real_ns`).
+* @tparam[opt] integer clock `linux.clock.REALTIME` (the default), `MONOTONIC` or `BOOTTIME`.
+* @treturn integer current time of the clock in nanoseconds.
+* @raise "invalid clock" for any other clock.
+* @usage
+*   local clock = require("linux.clock")
+*   local start = linux.time(clock.MONOTONIC)
+*   local elapsed = linux.time(clock.MONOTONIC) - start -- in nanoseconds
 */
 static int lualinux_time(lua_State *L)
 {
-	lua_pushinteger(L, (lua_Integer)ktime_get_real_ns());
+	lua_Integer clock = luaL_optinteger(L, 1, CLOCK_REALTIME);
+	u64 ns;
+
+	switch (clock) {
+	case CLOCK_REALTIME:
+		ns = ktime_get_real_ns();
+		break;
+	case CLOCK_MONOTONIC:
+		ns = ktime_get_ns();
+		break;
+	case CLOCK_BOOTTIME:
+		ns = ktime_get_boottime_ns();
+		break;
+	default:
+		return luaL_argerror(L, 1, "invalid clock");
+	}
+	lua_pushinteger(L, (lua_Integer)ns);
 	return 1;
 }
 

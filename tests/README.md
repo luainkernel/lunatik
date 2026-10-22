@@ -877,6 +877,20 @@ after the watch is stopped.
   nothing, and it refuses any other value as `boolean expected`, changing
   nothing. The script leaves tracing as it found it. Skipped without
   `CONFIG_TRACING`, where the kernel's three are stubs.
+- **time**: `linux.clock` carries `REALTIME`, `MONOTONIC` and `BOOTTIME` at
+  their uapi ids and no other clock. `linux.time` reads the real time given
+  nothing or `nil`, between two reads of `REALTIME`; two reads of `MONOTONIC`
+  or of `BOOTTIME` never decrease, `MONOTONIC` read first is never past
+  `BOOTTIME` read after it, `BOOTTIME` falls between two reads of
+  `/proc/uptime`, to the centisecond it shows, and `REALTIME` read after
+  `BOOTTIME` is ahead of it by the `btime` `/proc/stat` shows, to its second.
+  It refuses `CLOCK_TAI`, -1 and
+  an id past an `int` as "invalid clock", and an armed `softirq` and an armed
+  `hardirq` runtime, the state a hook calls from, read each clock. `MONOTONIC`
+  and `BOOTTIME` differ by the time suspended alone, so on a host that has not
+  suspended the case cannot tell one from the other; that setting the wall
+  clock moves `REALTIME` alone is not run, since the clock is the whole
+  host's.
 - **socket**: `linux.socket.ip` carries the `IP_` options
   `net/ipv4/ip_sockglue.c` takes, at their `uapi/linux/in.h` values, and no
   other `IP_` name: not the `IP_MTU_DISCOVER` values or the multicast
