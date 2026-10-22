@@ -850,11 +850,11 @@ lib/util.lua (bin2hex, hex2bin, log, test) is installed and required by lighten 
 
 *Fix.* Add './lib/util.lua' to config.ld in the module-name order the list keeps (between './lib/luathread.c' and './lib/luaxdp.c' by module name: thread < util < xdp). In util.lua's module doc, mark log and test as test helpers. No README row: the README has no module table.
 
-#### MC-29 · `lib/class.lua:28` · missing · low
+#### MC-29 · `common/class.lua:28` · missing · low
 
 The class page shows only the module blurb and usage; the function the module returns, and the fact that `new` wires `__close` only when the class already has `close` at instantiation time, are not rendered.
 
-*Evidence.* lib/class.lua:28-32 doc on `return function(class)` is not rendered on doc/modules/class.html; the file's local `new` sets `self.__close = self.close` on each :new call.
+*Evidence.* common/class.lua:28-32 doc on `return function(class)` is not rendered on doc/modules/class.html; the file's local `new` sets `self.__close = self.close` on each :new call.
 
 *Fix.* Render the call as `@function class` with `@tparam[opt] table class` and `@treturn table`, and add: 'class:new(o) sets __index and __close (from close, as it is at that call) on the class, then makes it the metatable of o.'
 
@@ -1264,7 +1264,7 @@ message.attrs describes parsing into `{[type] = value}` but does not say that th
 
 Each OOP class page (inet, unix, session, genl, nl80211.*, rt.*) documents `X:new([o])` as 'Creates a new X object'. That is the class helper's derive step: it creates no socket, so the object it returns fails at its first method. The working constructor is calling the class (`netlink.rt.route([pid])`), and the rt and nl80211 subclass pages never document that call or its pid argument. netlink.rt.object documents only a free `list`.
 
-*Evidence.* lib/class.lua:21-26 `local function new(self, o) ... return setmetatable(o, self) end` (no socket); lib/netlink/session.lua:102-107 `function session:__call(pid) local o = self:new() o.socket = socket.new(...)`; lib/netlink/rt/object.lua:19 `object.__call = session.__call`
+*Evidence.* common/class.lua:21-26 `local function new(self, o) ... return setmetatable(o, self) end` (no socket); lib/netlink/session.lua:102-107 `function session:__call(pid) local o = self:new() o.socket = socket.new(...)`; lib/netlink/rt/object.lua:19 `object.__call = session.__call`
 
 *Fix.* Reword the `:new` blocks to 'Derives a subclass or wraps a table (internal); create instances by calling the class', or mark them @local. On the rt and nl80211 subclass pages, add a doc-only `@function route:__call` (and link, addr, rule, the nl80211 objects) with `@tparam[opt] integer pid` and session:__call's ESRCH/EOPNOTSUPP raises.
 

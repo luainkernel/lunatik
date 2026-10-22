@@ -519,7 +519,7 @@ named, not one discovered at that consumer's build.
 * Do not commit directly to `master`.
 * Copyright years: a new file carries the current year; a modified file extends its range to include
   it; and a file that factors code out of another carries that file's first year, found with
-  `git log -S` on the moved lines. `lib/class.lua` took the `:new` that `lib/socket/inet.lua` had
+  `git log -S` on the moved lines. `common/class.lua` took the `:new` that `lib/socket/inet.lua` had
   carried since 2023. Every source file opens with `SPDX-FileCopyrightText` and
   `SPDX-License-Identifier`, the holder being who created it, and a file that cannot carry a header,
   Markdown, data or a font, is declared in `REUSE.toml`; `pre-commit` refuses a source file staged without one.
