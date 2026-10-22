@@ -23,7 +23,8 @@ packet with no route is never forwarded and the hook never sees it.
 
 ```
 sudo make install                      # installs Lunatik and the examples
-sudo examples/tcpreject/setup.sh        # sets up namespace, nft mark rule, and loads the hook
+sudo examples/tcpreject/setup.sh        # sets up namespace and nft mark rule
+sudo lunatik run --context=softirq examples/tcpreject/nf_tcpreject	# loads the hook
 
 # connection is reset immediately (IPv4)
 sudo ip netns exec tcpreject curl --connect-timeout 2 https://8.8.8.8
