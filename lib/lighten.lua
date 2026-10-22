@@ -8,7 +8,11 @@
 -- using the `darken` C module.
 --
 -- The key is the module `light`, `/lib/modules/lua/light.lua`, which returns the hex-encoded
--- 32-byte key; without it, `require("lighten")` raises "module 'light' not found".
+-- 32-byte key. The kernel opens it with the credentials of the task that first requires `lighten`
+-- in the runtime, and the recipe below installs it readable by root alone, so that require must come
+-- from a root task, as it does in a script `lunatik run` or `lunatik spawn` runs, not from a callback
+-- an unprivileged task drives, such as a `device` read. Without the file, or from a task that cannot
+-- read it, `require("lighten")` raises "module 'light' not found".
 -- `tools/shade.sh darken [-s <secret>] <script>.lua` encrypts a script into `<script>.dark.lua`,
 -- which calls what `lighten.load` returns with its own arguments, and prints the secret, 64 hex
 -- characters;
@@ -20,6 +24,15 @@
 --     sudo install -m 0600 light.lua /lib/modules/lua/
 --     sudo cp hello.dark.lua /lib/modules/lua/
 --     sudo lunatik run hello.dark
+--
+-- A runtime that sets `package.loaded.light` to a hex key of its own, or `package.preload.light` to
+-- a function that returns one, before it first requires `lighten`, lightens with that key instead,
+-- which no other runtime reaches. Since `lunatik run hello.dark` runs nothing before the dark
+-- script, a runtime run that way reads `light.lua`, and one with its own key runs a script that sets
+-- it and then requires the dark modules, each installed where `require` finds its name, as
+-- `hello/dark.lua` for `require("hello.dark")`. A caller that holds the ciphertext, the IV and the
+-- key calls `darken.load` or `darken.run` itself, which take all three in binary: `util.hex2bin`
+-- decodes the hex `tools/shade.sh` writes.
 --
 -- @module lighten
 
