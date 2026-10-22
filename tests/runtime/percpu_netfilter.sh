@@ -59,7 +59,8 @@ burst_when_armed()
 		dmesg_since | grep -qF "$ARMED" && break
 		sleep 0.02
 	done
-	ping -f -c $BURST -m $MARK 127.0.0.1 > /dev/null 2>&1
+	# preloaded: a flood's exit timer of two round trips can fire as ping exits, and crash iputils s20200821 to 20211215
+	ping -f -l $BURST -c $BURST -m $MARK 127.0.0.1 > /dev/null 2>&1
 }
 
 late_refused()
