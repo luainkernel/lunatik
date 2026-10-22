@@ -50,8 +50,18 @@ s32 BPF_STRUCT_OPS(workload_select_cpu, struct task_struct *p, s32 prev_cpu, u64
 	return scx_bpf_select_cpu_dfl(p, prev_cpu, wake_flags, &is_idle);
 }
 
+#define NR_LEADS 8
+
+/* realtime leads 5 of the 8 dispatches, default 2 and batch 1, so no busy queue starves the ones below */
+static const u64 leads[NR_LEADS] = {
+	DSQ_REALTIME, DSQ_DEFAULT, DSQ_REALTIME, DSQ_BATCH, DSQ_REALTIME, DSQ_DEFAULT, DSQ_REALTIME, DSQ_REALTIME,
+};
+static u64 turn;
+
 void BPF_STRUCT_OPS(workload_dispatch, s32 cpu, struct task_struct *prev)
 {
+	if (scx_min_dsq_move_to_local(leads[turn++ % NR_LEADS]))
+		return;
 	if (!scx_min_dsq_move_to_local(DSQ_REALTIME) && !scx_min_dsq_move_to_local(DSQ_DEFAULT))
 		scx_min_dsq_move_to_local(DSQ_BATCH);
 }
