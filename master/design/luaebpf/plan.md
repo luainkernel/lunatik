@@ -98,13 +98,13 @@ change in the facts behind it can reopen it.
 
 Four artefacts, none of them a kernel module:
 
-* **the translator**, a Lua library, `luaebpf/`, a peer of `lib/` and `autogen/`, that the CLI's
+* **the translator**, a Lua library, `bin/luaebpf/`, beside the CLI, that the CLI's
   Lua runs through `lunatik bpf`: it has `lunatic` compile the program file, runs the body from
   that chunk, captures the functions it declares, reads their bytecode and emits `bpf_insn`,
   `.BTF`, `.BTF.ext` and the map definitions into a BPF ELF object. The chunk reader and rewriter,
   the BTF reader and the ELF writer are Lua inside the library; the tables they take, the opcodes,
   the metamethod events and the format, are generated from `lua/` at `make`;
-* **the runtime library**, C under `luaebpf/rt/`, compiled by clang at `make`, shipped as one
+* **the runtime library**, C under `bin/luaebpf/rt/`, compiled by clang at `make`, shipped as one
   BPF object and linked into each program by libbpf's static linker as a step `make` runs;
 * **the loader**, a libbpf C extension for the CLI's Lua: open, load, pin maps by name under a
   root, attach, pin the link, and the reverse;
@@ -202,7 +202,7 @@ name for every type.
 
 ### Phase 1: the translator and the object
 
-`luaebpf/` is created as a library with its own tests, and `lunatik bpf` calls it; the chunk
+`bin/luaebpf/` is created as a library with its own tests, and `lunatik bpf` calls it; the chunk
 `lunatic` writes is rewritten in the CLI's numbering and loaded, and a reader hands each function's
 prototype to Lua, with the tables of the opcodes, the metamethod events and the chunk format
 generated from `lua/` at `make`. The translator gains a type lattice (integer,

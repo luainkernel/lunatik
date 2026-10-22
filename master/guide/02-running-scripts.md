@@ -120,6 +120,7 @@ sudo lunatik run hello
 ```
 
 `sudo make install BYTECODE=1`, after `make`, installs the kernel Lua libraries and the examples as stripped chunks
-instead of source, so an error raised from one of them reads `?:?:`.
+instead of source, so an error raised from one of them reads `?:?:`. `class` stays source, since the CLI's Lua reads
+it too.
 
 
