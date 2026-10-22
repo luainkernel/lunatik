@@ -148,6 +148,7 @@
 <ul class="mono">
   <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.clock.html">linux.clock</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -221,8 +222,8 @@
 	<td class="summary">Puts the current task to sleep.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#time">time ()</a></td>
-	<td class="summary">Gets the current real time.</td>
+	<td class="name"><a href="#time">time ([clock])</a></td>
+	<td class="summary">Gets the current time of a clock.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#tracing">tracing ([on])</a></td>
@@ -476,21 +477,45 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 </span>linux.<span class="function-name">schedule</span>(<span class="number">500</span>, task.UNINTERRUPTIBLE) <span class="comment">-- Sleep for 0.5 seconds (uninterruptible)</span></pre>
 
 </dd>
-    <dt id="time"><a name="time"></a><strong>time ()</strong></dt>
+    <dt id="time"><a name="time"></a><strong>time ([clock])</strong></dt>
     <dd>
-    Gets the current real time.
+    Gets the current time of a clock.
+ <code>linux.clock.REALTIME</code> is the real time, since the epoch, <code>ktime_get_real_ns()</code>, and it steps
+ when the wall clock is set. <code>MONOTONIC</code> counts from boot and stops while the system is
+ suspended, <code>ktime_get_ns()</code>; <code>BOOTTIME</code> counts from boot through suspend,
+ <code>ktime_get_boottime_ns()</code>, the clock <code>/proc/uptime</code> shows. Neither of these two moves when the
+ wall clock is set, so an age or a deadline is measured on one of them.
+ The three are the initial time namespace&rsquo;s. A task in another reads <code>CLOCK_MONOTONIC</code>,
+ <code>CLOCK_BOOTTIME</code> and <code>/proc/uptime</code> shifted by the offsets <code>/proc/&lt;pid&gt;/timens_offsets</code> shows,
+ so a time written from userspace compares on the same clock only when its writer runs in the
+ initial time namespace.
+ Safe to call from softirq and hardirq.
 
 
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">clock</span>
+            <span class="types"><span class="type">integer</span></span>
+         <code>linux.clock.REALTIME</code> (the default), <code>MONOTONIC</code> or <code>BOOTTIME</code>.
+         (<em>optional</em>)
+        </li>
+    </ul>
 
     <h3>Returns</h3>
     <ol>
 
            <span class="types"><span class="type">integer</span></span>
-        current time in nanoseconds since the epoch (from <code>ktime_get_real_ns</code>).
+        current time of the clock in nanoseconds.
     </ol>
 
+    <h3>Raises</h3>
+    &ldquo;invalid clock&rdquo; for any other clock.
 
 
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">local</span> clock = <span class="global">require</span>(<span class="string">"linux.clock"</span>)
+<span class="keyword">local</span> start = linux.<span class="function-name">time</span>(clock.MONOTONIC)
+<span class="keyword">local</span> elapsed = linux.<span class="function-name">time</span>(clock.MONOTONIC) - start <span class="comment">-- in nanoseconds</span></pre>
 
 </dd>
     <dt id="tracing"><a name="tracing"></a><strong>tracing ([on])</strong></dt>
@@ -545,7 +570,7 @@ linux.<span class="function-name">schedule</span>(<span class="number">1000</spa
 <a href="../../modules/linux.html">5.1 docs</a> ·
 <a href="../../5.0/modules/linux.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-22 15:22:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-22 19:52:44</span>
 </div>
 </footer>
 </body>
