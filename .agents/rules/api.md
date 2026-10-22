@@ -1,6 +1,7 @@
 ---
 paths:
   - "**/lib/**"
+  - "**/common/**"
   - "**/lunatik*.c"
   - "**/lunatik*.h"
   - "**/autogen/**"

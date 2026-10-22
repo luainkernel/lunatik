@@ -28,7 +28,9 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
    is grounded in that changeset, never in a directory listing scoped to where you assumed it would
    live. Each file the list adds, and each place `make install` puts it, is read first against where
    its code runs (AGENTS.md, *Layout*): the luaebpf compiler, which runs only in the CLI's Lua, passed
-   several reviews at the root of the tree, installing into the kernel's script tree.
+   several reviews at the root of the tree, installing into the kernel's script tree. So is each module
+   the change requires, for the side it lives on: what the CLI requires lives in `bin/` or `common/`, and
+   the compiler, once in `bin/`, required `class` from `lib/` through a copy installed in its own root.
 3. Read the PR's own conversation, not only its diff. An author's comment may raise a question or
    propose an alternative the review has to engage; a verdict that ignores an open author thread is
    incomplete.

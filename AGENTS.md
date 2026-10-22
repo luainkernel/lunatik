@@ -30,6 +30,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | `include/` | the C library headers the kernel's Lua includes, written over the kernel's headers and klibc's setjmp |
 | `lib/lua*.c` | kernel modules, one `.ko` each, exposing a Lua module |
 | `lib/*.lua`, `lib/*/*.lua` | kernel side Lua libraries, installed to `/lib/modules/lua/` |
+| `common/` | Lua both sides run: installed under `/lib/modules/lua/`, where kernel scripts require it, as source whatever `BYTECODE` says, since the CLI's Lua refuses a chunk `lunatic` writes, and linked into the host's `LUA_PATH` under `lunatik/`, as `lunatik/config.lua` is, where the CLI requires it by that name, so that a program file's body, requiring it by the kernel's name, loads it from the kernel scripts through `lunatic` |
 | `autogen/` | build time generation of `linux.*` constant tables from kernel headers |
 | `driver.lua` | the script of the runtime `lunatik_run.ko` creates for the `/dev/lunatik` driver, installed as `lunatik/driver` |
 | `bin/` | the host side: the CLI, `bin/lunatik`, which talks to the kernel through `/dev/lunatik`, and what it builds or loads, installed where the host finds it |
@@ -54,14 +55,19 @@ Code lives and installs where it runs. What runs in the kernel, the bindings, th
 examples and the test scripts, lives in `lib/`, `examples/` and `tests/`, with `driver.lua` and the tables
 `autogen/` writes, and installs under `/lib/modules/lua/`, the tree the kernel's `require` reads; what runs
 in the CLI, on the host, lives in `bin/` and installs where the host finds it, its Lua where the host's Lua
-does, as `lunatik/config.lua` is linked into the host's `LUA_PATH`. A new top-level directory gets its row
-in the table above, which says which side it is. The
-luaebpf compiler, which runs only in the CLI's Lua, reached review after review at the root of the tree,
-installing into `/lib/modules/lua/`; `tools/checks/layout.sh` names a top-level directory the table does
-not list, and a file `make install` puts in the kernel's script tree from outside the trees that run there.
+does, as `lunatik/config.lua` is linked into the host's `LUA_PATH`; what both run lives in `common/`, and
+installs on both sides. A new top-level directory gets its row in the table above, which says which side
+it is. The luaebpf compiler, which runs only in the CLI's Lua, reached review after review at the root of
+the tree, installing into `/lib/modules/lua/`, and once moved to `bin/` it required `class` from `lib/`
+through a copy `make install` put in its own root, from a package at `bin/luaebpf/luaebpf/`.
+`tools/checks/layout.sh` names a top-level directory the table does not list, a file `make install` puts
+in the kernel's script tree from outside the trees that run there, one it puts in the host's Lua path
+from a tree that runs only in the kernel, and a directory named as the one that holds it.
 
 A module or an example that needs a second file gets a directory, not a prefixed sibling:
-`examples/systrack/probe.lua` beside `device.lua`, never `systrack_device.lua` beside `systrack.lua`.
+`examples/systrack/probe.lua` beside `device.lua`, never `systrack_device.lua` beside `systrack.lua`. The
+directory is named for what it holds, never as the directory that holds it: a reader takes `x/x/` for a
+copy made by mistake.
 
 ## Build, install, test
 
