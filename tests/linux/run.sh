@@ -41,6 +41,18 @@
 # refuses any other value as boolean expected, changing nothing. The script leaves tracing as it
 # found it. Skipped without CONFIG_TRACING, where the kernel's three are stubs.
 #
+# time: linux.clock carries REALTIME, MONOTONIC and BOOTTIME at their uapi ids and no other clock.
+# linux.time reads the real time given nothing or nil, between two reads of REALTIME; two reads of
+# MONOTONIC or of BOOTTIME never decrease, MONOTONIC read first is never past BOOTTIME read after it,
+# BOOTTIME falls between two reads of /proc/uptime, to the centisecond it shows, and REALTIME read
+# after BOOTTIME is ahead of it by the btime /proc/stat shows, to its second. It refuses
+# CLOCK_TAI, -1 and an id past an int as invalid clock, and an armed softirq and an armed hardirq
+# runtime, the state a hook calls from, read each clock. MONOTONIC and BOOTTIME differ by the time
+# suspended alone, nothing on a host that has not suspended, so the case cannot tell one from the
+# other there; and that setting the wall clock moves REALTIME alone is not run, since the clock is
+# the whole host's: do_settimeofday64() moves wall_to_monotonic, offs_real and offs_tai, which
+# neither of the two reads.
+#
 # socket: linux.socket.ip carries the IP_ options net/ipv4/ip_sockglue.c takes, at their
 # uapi/linux/in.h values, and no other IP_ name: not the IP_MTU_DISCOVER values or the multicast
 # defaults, nor IP_ORIGDSTADDR, the control message IP_RECVORIGDSTADDR asks for, or IP_RECVRETOPTS,
@@ -52,7 +64,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="random fsnotify notifier signal task lookup constants schedule netns errname ifindex tracing socket"
+TESTS="random fsnotify notifier signal task lookup constants schedule netns errname ifindex tracing time socket"
 TOTAL=$(echo $TESTS | wc -w)
 
 # lunatik_lookup reaches kallsyms_lookup_name through a kprobe, so without kprobes every lookup is nil
