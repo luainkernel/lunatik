@@ -17,7 +17,8 @@
 --
 --     SECRET=$(tools/shade.sh darken hello.lua)
 --     tools/shade.sh lighten "$SECRET"
---     sudo cp light.lua hello.dark.lua /lib/modules/lua/
+--     sudo install -m 0600 light.lua /lib/modules/lua/
+--     sudo cp hello.dark.lua /lib/modules/lua/
 --     sudo lunatik run hello.dark
 --
 -- @module lighten
