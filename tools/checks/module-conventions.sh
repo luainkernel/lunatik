@@ -13,7 +13,7 @@
 rc=0
 
 check() {
-	local file="$1" module=0 issues="" clash
+	local file="$1" module=0 issues="" printed=0 clash
 
 	case "$file" in
 		*.mod.c|*/lunatik_sym.h|lunatik_sym.h) return 0 ;;  # generated
@@ -82,17 +82,18 @@ check() {
 
 	# (b) a comment whose words reappear as an identifier on the next code line is
 	# likely restating the code (e.g. /* sorts the array */ above luaXXX_sort()).
-	awk '
+	awk -v file="$file" '
 		function sig(s,   n, a, i, o) { n=split(s, a, /[^A-Za-z0-9_]+/)
 			for (i=1;i<=n;i++) if (length(a[i])>=6) o=o" "a[i]; return o }
 		cw != "" && $0 !~ /^[[:space:]]*(\/\*|\*[[:space:]\/]|\/\/)/ && $0 !~ /^[[:space:]]*$/ {
 			n=split(cw, w, " ")
-			for (i=1;i<=n;i++) if (w[i]!="" && $0 ~ ("[^A-Za-z0-9_]" w[i] "[^A-Za-z0-9_]")) { print pn; found=1; break }
+			for (i=1;i<=n;i++) if (w[i]!="" && $0 ~ ("[^A-Za-z0-9_]" w[i] "[^A-Za-z0-9_]")) {
+				printf "%s:%d: has a comment that repeats an identifier used on the next line; it likely restates the code — remove it unless it explains non-obvious rationale\n", file, pn
+				found=1; break }
 			cw="" }
 		{ if ($0 ~ /^[[:space:]]*(\/\*|\*[[:space:]\/]|\/\/)/) { cw=sig($0); pn=NR } else if ($0 !~ /^[[:space:]]*$/) cw="" }
 		END { exit !found }
-	' "$file" >/dev/null 2>&1 && \
-		add "has a comment that repeats an identifier used on the next line; it likely restates the code — remove it unless it explains non-obvious rationale"
+	' "$file" && printed=1
 
 	if [ "$module" = 1 ]; then
 		grep -nE '\b(kmalloc|kzalloc|kcalloc|kvmalloc|kvzalloc|kvcalloc|krealloc|kvrealloc|kfree|kvfree|vmalloc|vzalloc|vfree)\b' "$file" >/dev/null 2>&1 && \
@@ -129,7 +130,7 @@ check() {
 		fi
 	fi
 
-	[ -z "$issues" ] && return 0
+	[ -z "$issues" ] && return $printed
 	printf '%s may not follow the framework conventions:\n%sReview it against a simple module such as lib/luafifo.c: @module/@type/@function/@tparam/@treturn/@raise/@usage LDoc, /* */ block comments, no banners or @section, and prefer lunatik'"'"'s APIs (lunatik.h) over raw kernel ones.\n' \
 		"$(basename "$file")" "$issues"
 	return 1
