@@ -46,7 +46,7 @@ defined_modules() {
 		lib/luacrypto_*.c) echo crypto ;;
 		lib/lua*.c) head_or_base "$1" | sed -nE 's/^(LUNATIK|LUAKFUNC)_NEWLIB\(([a-z0-9_]+),.*/\2/p;
 			s/^LUNATIK_OPENER\(([a-z0-9_]+)\);.*/\1/p' | head -1 | tr _ . ;;
-		lib/*.lua) local m=${1#lib/}; m=${m%.lua}; echo "${m//\//.}" ;;
+		lib/*.lua|common/*.lua) local m=${1#*/}; m=${m%.lua}; echo "${m//\//.}" ;;
 		lunatik.h|lunatik_*.[ch]) echo lunatik ;;
 		autogen.lua|autogen/specs.lua) linux_tables "$1" ;;
 	esac
@@ -67,7 +67,7 @@ reaching_modules() {
 		queue=("${queue[@]:1}")
 		for mod in $(defined_modules "$file"); do
 			echo "$mod"
-			for next in $(grep -rlE "require\(\"${mod//./\\.}\"\)" lib --include='*.lua' 2>/dev/null); do
+			for next in $(grep -rlE "require\(\"${mod//./\\.}\"\)" lib common --include='*.lua' 2>/dev/null); do
 				reach "$next"
 			done
 		done

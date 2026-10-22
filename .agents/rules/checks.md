@@ -237,12 +237,16 @@ that called `luadata_reset` read the `.c` for what it raises, the context it run
 it takes. It catches a name missing, not an entry that no longer says what the code does.
 
 `layout.sh` reads the tree from its top and names a top-level directory the Layout table of AGENTS.md
-does not list, and a file the Makefile installs into `SCRIPTS_INSTALL_PATH`, or into a variable defined
-over it, from outside `lib/`, `examples/`, `tests/`, `autogen/` and the root files the table lists; the
-`Checks` workflow fails on either. Code lives and installs where it runs (AGENTS.md, *Layout*), and the
-luaebpf compiler, which runs only in the CLI's Lua, reached review after review at the root of the tree,
-installing into `/lib/modules/lua/`. A source spelled through a variable is not read, so a table the
-build writes under a variable's name passes unread.
+does not list, a tracked directory named as the directory that holds it, a file the Makefile installs
+into `SCRIPTS_INSTALL_PATH`, or into a variable defined over it, from outside `lib/`, `examples/`,
+`tests/`, `autogen/`, `common/` and the root files the table lists, and a file it installs or links into
+the host's Lua path, `LUA_PATH`, `LUA_CPATH` or a variable defined over them, from `lib/`, `examples/` or
+`tests/`, which run only in the kernel; the `Checks` workflow fails on any. Code lives and installs where
+it runs (AGENTS.md, *Layout*), and the luaebpf compiler, which runs only in the CLI's Lua, reached review
+after review at the root of the tree, installing into `/lib/modules/lua/`; once in `bin/`, it required
+`class` from `lib/` through a copy installed in its own root, from a package at `bin/luaebpf/luaebpf/`. A
+source spelled through a variable is not read, so a table the build writes under a variable's name passes
+unread, and so does a link whose source is an installed copy, as `lunatik/config.lua`'s is.
 
 `discard-guard.sh`, wired before a shell call, refuses a command that writes over a file holding a
 change nobody committed, a checkout or a restore of a path, `git reset --hard`, and a checkout or a
@@ -263,8 +267,8 @@ for #1917's design note lost "#1905 settles..." that way. `-F` alone keeps it, a
 `--cleanup=whitespace`; `MESSAGE_OK=1` commits the message as git cleans it.
 
 `implement-guard.sh`, wired before a shell call, refuses a commit in the session's own thread that
-carries code, a path under `lib/`, `tests/`, `examples/`, `autogen/` or `bin/` or a `lunatik*` file at
-the root, staged before the call or by a `git add` in it: an implementation is written by
+carries code, a path under `lib/`, `common/`, `tests/`, `examples/`, `autogen/` or `bin/` or a `lunatik*`
+file at the root, staged before the call or by a `git add` in it: an implementation is written by
 implement-issue's agents, whose calls carry the `agent_id` a main thread's never does, so its
 implementer and its review are not the session's. A fixup, a squash and an amend pass, since they
 correct a commit a review reads, and `IMPLEMENT_OK=1` commits one the maintainer asked the session to

@@ -10,7 +10,7 @@
 # which arms a kprobe on every syscall and counts into an rcu table from each
 # hit; its first run on the merged code took the host down.
 #
-# For each file given that defines a Lua module, a binding, a library under lib/,
+# For each file given that defines a Lua module, a binding, a library under lib/ or common/,
 # the core or a linux.* table autogen builds, prints the examples that require it
 # or reach it through what tools/checks/modules.sh names, a library or a binding
 # that hands its objects to a callback, so the reviewer and the Build phase know

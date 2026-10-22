@@ -6,9 +6,9 @@
 # PreToolUse (Bash) hook: an implementation is written by implement-issue's agents, so its implementer
 # and its review are not the session's (AGENTS.md, "Skills"); #1894 was written in the thread of the
 # session that reviewed #1893, and the maintainer sent the shape after it to implement-issue. This
-# blocks (exit 2) a git commit in the session's own thread that stages code, under lib/, tests/,
-# examples/, autogen/ or bin/ or a lunatik* file at the root, staged before the call or by a git add
-# in it, unless the commit is a fixup, a squash or an amend, which correct a commit a review reads,
+# blocks (exit 2) a git commit in the session's own thread that stages code, under lib/, common/,
+# tests/, examples/, autogen/ or bin/ or a lunatik* file at the root, staged before the call or by a git
+# add in it, unless the commit is a fixup, a squash or an amend, which correct a commit a review reads,
 # or the command carries IMPLEMENT_OK=1, set when the maintainer asked the session to write it.
 # Silent (exit 0) on everything else.
 
@@ -28,7 +28,7 @@ case "$(command_text "$input")" in
 	*IMPLEMENT_OK=1*) exit 0 ;;
 esac
 
-code='^(lib|tests|examples|autogen|bin)/|^lunatik[^/]*$'
+code='^(lib|common|tests|examples|autogen|bin)/|^lunatik[^/]*$'
 cmds=$(commands "$input")
 cwd=$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
 added=$(git_runs "$cmds" "$cwd" add)
