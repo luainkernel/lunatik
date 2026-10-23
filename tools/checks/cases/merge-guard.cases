@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+block	gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge
+block	gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=squash
+block	cd /tmp && gh api --method PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=merge
+block	gh pr merge 7 --squash
+block	gh pr merge 7
+block	gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=squash	MERGE_OK=1
+pass	MERGE_OK=1 gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=squash
+pass	MERGE_OK=1 gh pr merge 7 --squash
+pass	gh api repos/luainkernel/lunatik/pulls/7/merge
+pass	gh api repos/luainkernel/lunatik/pulls/7 --jq .mergeable
+pass	git merge --ff-only origin/master
+pass	gh pr view 7

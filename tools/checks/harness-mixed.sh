@@ -15,19 +15,36 @@
 # the rest are documentation sweeps that correct one wording in AGENTS.md and in the
 # README at once, and a CI change whose README claim moved with it. Heuristic: it
 # nudges a review, it does not rewrite.
+#
+# With --outside, reads paths on stdin and prints those that are not the harness, which
+# merge-guard.sh reads a pull request's files with.
+
+kind() {
+	case "$1" in
+		tools/shade.sh|tools/debian_kernel_postinst_lunatik.sh) echo other ;; # a user's tool, not the harness
+		AGENTS.md|CLAUDE.md|.luarc.json|tools/*|.agents/*|.github/*|.claude/*) echo harness ;;
+		.gitignore|.gitmodules|.editorconfig|LICENSE) echo neither ;; # neither, and in both kinds of commit
+		*) echo other ;;
+	esac
+}
+
+if [ "$1" = --outside ]; then
+	while IFS= read -r f; do
+		[ -z "$f" ] || [ "$(kind "$f")" = harness ] || printf '%s\n' "$f"
+	done
+	exit 0
+fi
 
 status=0
 
 for commit in $(git rev-list --no-walk "${@:-HEAD}"); do
 	harness="" other=""
 	while IFS= read -r f; do
-		case "$f" in
-			"") ;;
-			tools/shade.sh|tools/debian_kernel_postinst_lunatik.sh) other=$f ;; # a user's tool, not the harness
-			AGENTS.md|CLAUDE.md|.luarc.json|tools/*|.agents/*|.github/*|.claude/*) harness="$harness  $f
+		[ -n "$f" ] || continue
+		case "$(kind "$f")" in
+			harness) harness="$harness  $f
 " ;;
-			.gitignore|.gitmodules|.editorconfig|LICENSE) ;; # neither, and in both kinds of commit
-			*) other=$f ;;
+			other) other=$f ;;
 		esac
 	done < <(git show --name-only --format= "$commit")
 	[ -n "$harness" ] && [ -n "$other" ] || continue

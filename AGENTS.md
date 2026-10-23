@@ -469,6 +469,14 @@ named, not one discovered at that consumer's build.
   each other, never inside an implementation: a rule that rides in a feature's commit lands unread,
   and a maintainer who wants the fix and not the rule has nothing to pick.
   `tools/checks/harness-mixed.sh` names a commit that mixes them.
+* A harness pull request the session opened, one whose every file `harness-mixed.sh` reads as the
+  harness, merges without waiting for the maintainer once `review.js` ran over its head at `xhigh`
+  and returned it ready and its CI passed: what a correction teaches binds the next session that
+  day, and the maintainer reads it on master, in the report the merged skill hands him. One that
+  removes a file or changes what the gate reads, the guard, the list of what the harness is, the CI
+  or the settings that wire the guards, waits for him, and so does one that relaxes a rule, a check
+  or a guard, which reverses what he decided. `tools/checks/merge-guard.sh` refuses any other merge
+  the session runs; `MERGE_OK=1` merges one he ordered merged in his own words.
 * No session links or assistant footers in a commit or a pull request beyond the `Co-Authored-By`
   trailer. The project settings turn the link off; one that slipped in is removed with a reword.
 * A root cause named in a commit body or a pull request rests on a captured stack or a source-traced
