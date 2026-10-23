@@ -110,10 +110,7 @@ static int luaskb_ifname(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct net_device *dev = lskb->skb->dev;
-	if (dev != NULL)
-		lua_pushstring(L, dev->name);
-	else
-		lua_pushnil(L);
+	lua_pushstring(L, dev ? dev->name : NULL);
 	return 1;
 }
 
