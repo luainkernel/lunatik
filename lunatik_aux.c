@@ -141,6 +141,15 @@ EXPORT_SYMBOL(lunatik_lookup);
 #endif /* MODULE */
 
 #if BITS_PER_LONG == 32
+/* GCC folds a / and a % of the same operands into this call, so it is spelled with neither */
+int64_t __divmoddi4(int64_t num, int64_t den, int64_t *rem)
+{
+	int64_t quot = __divdi3(num, den);
+
+	*rem = num - quot * den;
+	return quot;
+}
+
 /* require by lib/lualinux.c */
 EXPORT_SYMBOL(__moddi3);
 #endif /* BITS_PER_LONG == 32 */
