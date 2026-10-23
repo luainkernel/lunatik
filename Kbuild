@@ -52,7 +52,7 @@ lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 ifeq ($(CONFIG_64BIT),)
 lunatik-objs += $(KLIBC_LIBGCC)/__udivmoddi4.o	\
 	$(KLIBC_LIBGCC)/__divdi3.o $(KLIBC_LIBGCC)/__udivdi3.o \
-	$(KLIBC_LIBGCC)/__moddi3.o $(KLIBC_LIBGCC)/__umoddi3.o
+	$(KLIBC_LIBGCC)/__moddi3.o $(KLIBC_LIBGCC)/__umoddi3.o lunatik_libgcc.o
 endif
 
 obj-$(CONFIG_LUNATIK_RUN) += lunatik_run.o
