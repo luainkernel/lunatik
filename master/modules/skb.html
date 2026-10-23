@@ -253,6 +253,11 @@ netfilter.register{
 	<td class="summary"></td>
 	</tr>
 	<tr>
+	<td class="name"><a href="#skb:ifname">skb:ifname ()</a></td>
+	<td class="summary">Reads the name <code>skb-&gt;dev</code> carries when called, the device <code>skb:ifindex()</code> indexes: a device
+ created or renamed after the script loaded reads its current name.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#skb:mark">skb:mark ([value])</a></td>
 	<td class="summary">Gets or sets the packet mark: with no argument or nil reads it, with <code>value</code> sets it.</td>
 	</tr>
@@ -463,6 +468,26 @@ netfilter.register{
 
 
 </dd>
+    <dt id="skb:ifname"><a name="skb:ifname"></a><strong>skb:ifname ()</strong></dt>
+    <dd>
+    Reads the name <code>skb-&gt;dev</code> carries when called, the device <code>skb:ifindex()</code> indexes: a device
+ created or renamed after the script loaded reads its current name.  A frame that races a rename
+ of its device may read a mix of the two names, and the first frame after the rename completes
+ reads the new one.
+
+
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+        network interface name, at most 15 bytes, or nil when the skb has no device
+    </ol>
+
+
+
+
+</dd>
     <dt id="skb:mark"><a name="skb:mark"></a><strong>skb:mark ([value])</strong></dt>
     <dd>
     Gets or sets the packet mark: with no argument or nil reads it, with <code>value</code> sets it.
@@ -583,7 +608,7 @@ netfilter.register{
 <a href="../../modules/skb.html">5.1 docs</a> ·
 <a href="../../5.0/modules/skb.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 15:36:12</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 15:37:08</span>
 </div>
 </footer>
 </body>
