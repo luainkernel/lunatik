@@ -1982,6 +1982,15 @@ pid, what a valid call does, and where it refuses to run.
   does answers a nonzero one; each connected socket's read the one nonzero hash
   `connect()` drew for it, and the two connected sockets read two different ones.
   Skips without `socat`.
+- **ifname**: a veth pair joins the initial namespace to one of the test's own, and
+  once the script is loaded the initial end gets a VLAN sub-interface enslaved to a
+  bridge. A datagram the other namespace sends over its own sub-interface arrives
+  untagged on that port, and the bridge's `PRE_ROUTING` hook reads its name with
+  `skb:ifname()`; renamed to a name of `IFNAMSIZ - 1` bytes, the port reads that
+  name whole on the next datagram, where a build that bounds the copy a byte short
+  reads it cut. A datagram sent to `127.0.0.1` reaches the IPv4 `LOCAL_OUT` hook
+  before `ip_output` gives it a device, and reads nil. Skips without `socat`, veth,
+  a bridge or 8021q.
 - **resize**: a `LOCAL_OUT` netfilter hook resizes non-linear skbs, the TCP
   segments over loopback whose payload sits in page fragments, one case per
   sender picked by its `SO_PRIORITY`: a shrink inside the payload, a shrink
