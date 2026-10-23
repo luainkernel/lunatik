@@ -72,6 +72,12 @@ static inline void *lunatik_unholdmodule(void *ud, void *ptr, size_t osize, size
 	return NULL;
 }
 
+static inline void *lunatik_unholdstring(void *ud, void *ptr, size_t osize, size_t nsize)
+{
+	lunatik_putstring((lunatik_string_t *)ud);
+	return NULL;
+}
+
 #define lunatik_hold(L, unhold, ud)								\
 do {												\
 	lua_pushexternalstring((L), "", 0, (unhold), (ud)); /* freed at the end of lua_close */	\

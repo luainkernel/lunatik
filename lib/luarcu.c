@@ -8,14 +8,14 @@
 * Provides a concurrent hash table using Read-Copy-Update (RCU) synchronization.
 * Reads are lockless; writes are serialized. Keys are strings, and a number key is its
 * decimal string, so `t[1]` and `t["1"]` are one entry; values can be
-* booleans, integers, shareable lunatik objects, or `nil` (to delete an entry). A
+* booleans, integers, strings, shareable lunatik objects, or `nil` (to delete an entry). A
 * SINGLE object, such as a `device`, a `probe` or a `hid` driver, raises
-* `cannot share SINGLE object`, and a string or a table raises `unsupported type`.
+* `cannot share SINGLE object`, and a table raises `unsupported type`.
 * Reading an object returns a new handle on the same kernel object, so two reads of an
 * entry compare unequal; from a softirq or
 * hardirq runtime, one whose class needs process context raises
 * `'<class>': process-context class in interrupt-context runtime`. A read that
-* meets a writer releasing the entry's object sees the entry gone. An entry holds its
+* meets a writer releasing the entry's string or object sees the entry gone. An entry holds its
 * object until the entry is overwritten or deleted or the table goes, and a reference
 * count does not see a cycle, so storing an `rcu.table` raises `ELOOP` when it is the
 * table it is stored in or reaches that table, directly or through the tables it holds;
@@ -53,7 +53,7 @@ typedef struct luarcu_entry_s {
 * RCU hash table object, indexed as a Lua table.
 *
 * `t[key]` reads the value (RCU-protected, lockless): `nil` for a key without an
-* entry, and for one whose object a writer is releasing.
+* entry, and for one whose string or object a writer is releasing.
 *
 * `t[key] = value` sets the value, and `nil` removes the entry (serialized). A key
 * takes up to 255 bytes, and a longer one raises `out of bounds`; a failed
@@ -67,6 +67,7 @@ typedef struct luarcu_entry_s {
 *  local t = rcu.table()
 *  t["key"] = true        -- boolean
 *  t["n"]   = 42          -- integer
+*  t["s"]   = "text"      -- string
 *  t["obj"] = data.new(8) -- object
 *  print(t["key"])        -- true
 *  t["key"] = nil         -- delete
@@ -122,8 +123,7 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 	memcpy(entry->key, key, keylen);
 	entry->keylen = keylen;
 	entry->value = *value;
-	if (lunatik_isuserdata(value))
-		lunatik_getobject(value->object);
+	lunatik_holdvalue(value);
 	return entry;
 }
 
@@ -134,8 +134,7 @@ static void luarcu_freeentry(struct rcu_head *head)
 
 static inline void luarcu_free(luarcu_entry_t *entry)
 {
-	if (lunatik_isuserdata(&entry->value))
-		lunatik_putobject(entry->value.object);
+	lunatik_dropvalue(&entry->value);
 	call_srcu(&luarcu_srcu, &entry->rcu, luarcu_freeentry);
 }
 
@@ -157,6 +156,8 @@ static inline void luarcu_readvalue(luarcu_entry_t *entry, lunatik_value_t *valu
 {
 	*value = entry->value;
 	if (lunatik_isuserdata(value) && !lunatik_trygetobject(value->object))
+		value->type = LUA_TNIL;
+	else if (lunatik_isstring(value) && !lunatik_trygetstring(value->string))
 		value->type = LUA_TNIL;
 }
 
@@ -318,6 +319,7 @@ static int luarcu_newindex(lua_State *L)
 	lunatik_value_t value;
 	lunatik_checkvalue(L, 3, &value);
 	int ret = luarcu_setvalue(table, key, keylen, &value);
+	lunatik_dropvalue(&value);
 	if (ret == -ENOMEM)
 		lunatik_enomem(L);
 	else if (ret < 0)
@@ -395,8 +397,8 @@ static inline int luarcu_foreach_call(lua_State *L, int cb, luarcu_entry_t *entr
 * added is visited only if its bucket is still ahead, and the order is not guaranteed.
 * @function foreach
 * @tparam rcu_table t the table to walk
-* @tparam function callback `function(key, value)`; an entry whose object a writer is
-*   releasing is skipped.
+* @tparam function callback `function(key, value)`; an entry whose string or object a
+*   writer is releasing is skipped.
 * @raise Error if callback raises.
 * @usage rcu.foreach(t, function (key, value) print(key, value) end)
 * @within rcu
