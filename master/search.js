@@ -28,6 +28,8 @@ window.LUNATIK_SEARCH = [
 ["map_queue:peek ()","modules/bpf.map.html#map_queue:peek","bpf.map · Returns the next value, leaving it in the map."],
 ["map_queue:pop ()","modules/bpf.map.html#map_queue:pop","bpf.map · Removes and returns the next value."],
 ["map_queue:push (value)","modules/bpf.map.html#map_queue:push","bpf.map · Inserts a value."],
+["bpf.tc","modules/bpf.tc.html","Module · Declares a TC program in a program file."],
+["bpf.tc.program (fn[, opts])","modules/bpf.tc.html#bpf.tc.program","bpf.tc · Declares fn as a TC program."],
 ["bpf.xdp","modules/bpf.xdp.html","Module · Declares an XDP program in a program file."],
 ["bpf.xdp.program (fn[, opts])","modules/bpf.xdp.html#bpf.xdp.program","bpf.xdp · Declares fn as an XDP program."],
 ["byteorder","modules/byteorder.html","Module · Converts integers between host, big-endian (network) and little-endian byte order, typically around the data accessors, which read and write in host order."],

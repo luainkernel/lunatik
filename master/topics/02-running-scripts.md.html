@@ -73,6 +73,7 @@
 <ul class="mono">
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
+  <li><a href="../modules/bpf.tc.html">bpf.tc</a></li>
   <li><a href="../modules/bpf.xdp.html">bpf.xdp</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
   <li><a href="../modules/skb.html">skb</a></li>
@@ -376,12 +377,12 @@ sudo bpftool prog <span class="global">load</span> filter.bpf.o /sys/fs/bpf/filt
 </pre>
 
 
-<p><a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> in the body finds the compile-time modules first, <a href="../modules/bpf.xdp.html#">bpf.xdp</a>, then the compiler&rsquo;s own
-<a href="../modules/luaebpf.html#">luaebpf</a> modules, then <code>/lib/modules/lua/</code>, whose modules <code>lunatic</code> compiles as it does the
-program file, installed as source or, with <code>BYTECODE=1</code>, as chunks. It finds nothing else the CLI&rsquo;s
-Lua would, so a Lua or C module the host installs never stands in for a kernel script. <code>10 / 4</code> is
-<code>2</code> in the body as in the kernel; the CLI&rsquo;s libraries can still return a float, as <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.sqrt">math.sqrt</a>
-does, and one reaching a compiled function is refused at the line that reaches it.</p>
+<p><a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> in the body finds the compile-time modules first, <a href="../modules/bpf.xdp.html#">bpf.xdp</a> and <a href="../modules/bpf.tc.html#">bpf.tc</a>, then the
+compiler&rsquo;s own <a href="../modules/luaebpf.html#">luaebpf</a> modules, then <code>/lib/modules/lua/</code>, whose modules <code>lunatic</code> compiles as it
+does the program file, installed as source or, with <code>BYTECODE=1</code>, as chunks. It finds nothing else
+the CLI&rsquo;s Lua would, so a Lua or C module the host installs never stands in for a kernel script.
+<code>10 / 4</code> is <code>2</code> in the body as in the kernel; the CLI&rsquo;s libraries can still return a float, as
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.sqrt">math.sqrt</a> does, and one reaching a compiled function is refused at the line that reaches it.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/01-getting-started.md.html"><span>Previous</span>Getting started</a>
     <a class="next" href="../topics/03-percpu.md.html"><span>Next</span>Per-CPU scripts</a>
@@ -402,7 +403,7 @@ does, and one reaching a compiled function is refused at the line that reaches i
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 23:09:54</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 23:26:00</span>
 </div>
 </footer>
 </body>
