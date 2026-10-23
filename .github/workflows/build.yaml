@@ -75,11 +75,13 @@ jobs:
         make -j$(nproc) vmlinux modules
         echo "KERNEL_DIR=$(pwd)" >> $GITHUB_ENV
     - name: Build Lunatik
+      # not the checkout and holding no Makefile, so a build file that takes the checkout from PWD fails here
+      working-directory: ${{ runner.temp }}
       run: |
-        make clean MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}" || true
+        make -C "$GITHUB_WORKSPACE" clean MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
         # a table an earlier build left and no spec generates, which make must not install
-        touch autogen/linux/stale.lua
-        make -j$(nproc) MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
+        touch "$GITHUB_WORKSPACE/autogen/linux/stale.lua"
+        make -j$(nproc) -C "$GITHUB_WORKSPACE" MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
     - name: Check lock contexts
       # sparse reads lock contexts through 6.19; doc/capi.md says why lunatik_lockkillable's callers stay
       if: matrix.kernel-version == '6.6'
