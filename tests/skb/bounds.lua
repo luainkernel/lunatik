@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the skb bounds test (see bounds.sh).
 
-local netfilter = require("netfilter")
+local filter    = require("tests.skb.filter")
 local nf        = require("linux.nf")
 local byteorder = require("byteorder")
 local ipproto   = require("linux.socket").ipproto
@@ -70,10 +70,5 @@ local function bounds_hook(skb)
 	return nf.action.ACCEPT
 end
 
-netfilter.register{
-	hook     = bounds_hook,
-	pf       = nf.proto.IPV4,
-	hooknum  = nf.inet.LOCAL_OUT,
-	priority = nf.ip.pri.FILTER,
-}
+filter.register(bounds_hook, nf.proto.IPV4, nf.inet.LOCAL_OUT)
 

@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the copy test (see copy.sh).
 
-local netfilter = require("netfilter")
+local filter    = require("tests.skb.filter")
 local nf        = require("linux.nf")
 local linux     = require("linux")
 
@@ -51,10 +51,5 @@ local function copy_hook(skb)
 	return nf.action.DROP
 end
 
-netfilter.register{
-	hook     = copy_hook,
-	pf       = nf.proto.IPV4,
-	hooknum  = nf.inet.PRE_ROUTING,
-	priority = nf.ip.pri.FILTER,
-}
+filter.register(copy_hook, nf.proto.IPV4, nf.inet.PRE_ROUTING)
 

@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the skb hash test (see hash.sh).
 
-local netfilter = require("netfilter")
+local filter    = require("tests.skb.filter")
 local nf        = require("linux.nf")
 
 local PRIORITY <const> = 0x12380000
@@ -18,10 +18,5 @@ local function hash_hook(skb)
 	return nf.action.ACCEPT
 end
 
-netfilter.register{
-	hook     = hash_hook,
-	pf       = nf.proto.IPV4,
-	hooknum  = nf.inet.LOCAL_OUT,
-	priority = nf.ip.pri.FILTER,
-}
+filter.register(hash_hook, nf.proto.IPV4, nf.inet.LOCAL_OUT)
 

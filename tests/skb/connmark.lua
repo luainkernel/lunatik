@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the connmark test (see connmark.sh).
 
-local netfilter = require("netfilter")
+local filter    = require("tests.skb.filter")
 local nf        = require("linux.nf")
 local byteorder = require("byteorder")
 local ipproto   = require("linux.socket").ipproto
@@ -88,10 +88,5 @@ local function connmark_hook(skb)
 	return nf.action.ACCEPT
 end
 
-netfilter.register{
-	hook     = connmark_hook,
-	pf       = nf.proto.INET,
-	hooknum  = nf.inet.LOCAL_OUT,
-	priority = nf.ip.pri.FILTER,
-}
+filter.register(connmark_hook, nf.proto.INET, nf.inet.LOCAL_OUT)
 

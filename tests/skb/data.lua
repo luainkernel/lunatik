@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the data test (see data.sh).
 
-local netfilter = require("netfilter")
+local filter    = require("tests.skb.filter")
 local nf        = require("linux.nf")
 local ipproto   = require("linux.socket").ipproto
 
@@ -70,16 +70,6 @@ local function sent(skb)
 	return nf.action.DROP
 end
 
-local function register(hook, hooknum)
-	netfilter.register{
-		hook     = hook,
-		pf       = nf.proto.INET,
-		hooknum  = hooknum,
-		priority = nf.ip.pri.FILTER,
-		mark     = MARK,
-	}
-end
-
-register(sent, nf.inet.LOCAL_OUT)
-register(received, nf.inet.PRE_ROUTING)
+filter.register(sent, nf.proto.INET, nf.inet.LOCAL_OUT, MARK)
+filter.register(received, nf.proto.INET, nf.inet.PRE_ROUTING, MARK)
 

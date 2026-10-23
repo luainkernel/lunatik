@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the checksum test (see checksum.sh).
 
-local netfilter = require("netfilter")
+local filter    = require("tests.skb.filter")
 local byteorder = require("byteorder")
 local nf        = require("linux.nf")
 
@@ -157,10 +157,5 @@ local function checksum_hook(skb)
 	return nf.action.DROP
 end
 
-netfilter.register{
-	hook     = checksum_hook,
-	pf       = nf.proto.INET,
-	hooknum  = nf.inet.LOCAL_OUT,
-	priority = nf.ip.pri.FILTER,
-}
+filter.register(checksum_hook, nf.proto.INET, nf.inet.LOCAL_OUT)
 

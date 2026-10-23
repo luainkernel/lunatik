@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the resize test (see resize.sh).
 
-local netfilter = require("netfilter")
+local filter    = require("tests.skb.filter")
 local nf        = require("linux.nf")
 
 local PRIORITY <const> = 0x12360000 -- resize.sh's senders take PRIORITY plus their case's place in CASES
@@ -105,10 +105,5 @@ local function resize_hook(skb)
 	return nf.action.DROP
 end
 
-netfilter.register{
-	hook     = resize_hook,
-	pf       = nf.proto.INET,
-	hooknum  = nf.inet.LOCAL_OUT,
-	priority = nf.ip.pri.FILTER,
-}
+filter.register(resize_hook, nf.proto.INET, nf.inet.LOCAL_OUT)
 
