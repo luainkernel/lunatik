@@ -260,6 +260,13 @@ known to hold nothing to keep.
 several changes in it otherwise fuses them under a message that explains one. `STAGE_OK=1` stages a tree
 that holds one change only.
 
+`scratch-guard.sh`, wired before a shell call, refuses a recursive `rm` of `scratch` itself, of a path one
+component under it, or of everything such a path holds: that is a workflow's scratch directory, where every
+phase of a batch keeps its checkpoints, defect patches and worktrees, and a phase removes its own worktree,
+two components down, never the directory beside it. The build of #2080's run removed `scratch/b2066` whole
+under the runs in flight, and the next build found its defect patches gone (#2123). `SCRATCH_OK=1`
+removes one known to hold nothing of another run's.
+
 `message-guard.sh`, wired before a shell call, refuses a `git commit` whose editor copies a message in,
 `GIT_EDITOR="cp <file>"`, or edits the file `-F` reads, when that file holds a line that opens with `#`:
 git cleans a message an editor gave in strip mode, which drops such a line without a word, and an amend!
