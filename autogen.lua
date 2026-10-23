@@ -442,11 +442,13 @@ end
 
 --- Write autogen/lunatik/config.lua with kernel version and module list.
 function emit.config()
+	local version = util.slurp(KBUILD .. "/include/generated/uapi/linux/version.h")
+		:match("#define LINUX_VERSION_CODE (%d+)")
 	local out <close> = assert(io.open(BASE .. "/lunatik/config.lua", "w"))
 	out:write("-- auto-generated, do not edit\n")
 	out:write("-- kernel: ", KERNEL, "\n\n")
 	out:write("local config = {}\n\n")
-	out:write('config.kernel_version = "', KERNEL, '"\n')
+	out:write("config.kernel_version = ", version, "\n")
 	out:write('config.modules = {\n\t"lunatik",\n')
 	for m in LUNATIK_MODULES:gmatch("%S+") do
 		out:write('\t"lua', m:lower(), '",\n')
