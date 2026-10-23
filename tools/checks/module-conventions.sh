@@ -83,6 +83,7 @@ check() {
 		function sig(s,   n, a, i, o) { n=split(s, a, /[^A-Za-z0-9_]+/)
 			for (i=1;i<=n;i++) if (length(a[i])>=6) o=o" "a[i]; return o }
 		cw != "" && $0 !~ /^[[:space:]]*(\/\*|\*[[:space:]\/]|\/\/)/ && $0 !~ /^[[:space:]]*$/ {
+			gsub(/"([^"\\]|\\.)*"/, "\"\"")
 			n=split(cw, w, " ")
 			for (i=1;i<=n;i++) if (w[i]!="" && $0 ~ ("[^A-Za-z0-9_]" w[i] "[^A-Za-z0-9_]")) { print pn; break }
 			cw="" }
