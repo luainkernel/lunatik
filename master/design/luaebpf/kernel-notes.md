@@ -178,6 +178,23 @@ under `sudo`.
   ([helpers.c#L3388](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/helpers.c#L3388))
   unwinds to the program's exception callback and never returns. `pcall` cannot be compiled; the
   design does not emit `bpf_throw` either, a failed check returns the program's default verdict.
+* **A callee answers through R0 and through the caller's stack, and nothing else.**
+  `set_callee_state` copies R1-R5 into the callee, types and ranges included, so `PTR_TO_CTX`,
+  `PTR_TO_PACKET` and `PTR_TO_STACK` all propagate
+  ([verifier.c#L9478-L9490](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L9478-L9490));
+  R0 and R6-R9 arrive uninitialised, and the callee may write into its caller's stack
+  ([#L9106-L9109](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L9106-L9109)).
+  `prepare_func_exit` hands the caller whatever R0 held at the callee's exit
+  ([#L9762-L9763](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L9762-L9763)),
+  and the verifier explores every exit against every path after the call, so an exit that leaves
+  R0 uninitialised is rejected at the caller's first use of it, "R%d !read_ok"
+  ([#L3110](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L3110)). This is
+  why a failed check in a subprogram raises a flag in the caller's frame and still sets R0.
+  Passing a stack pointer to a *static* subprogram is safe against the BTF argument check:
+  `btf_check_subprog_call` only marks a static subprogram unreliable on a mismatch, where a
+  global one fails the load
+  ([#L9248-L9274](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L9248-L9274)),
+  so the emitter keeps declaring every parameter `long` in `.BTF`.
 * **Division and modulo by zero do not trap.** `ALU64` division by zero sets the destination to
   zero and modulo by zero leaves the dividend
   ([Documentation/bpf/standardization/instruction-set.rst#L351-L357](https://github.com/torvalds/linux/blob/v7.2/Documentation/bpf/standardization/instruction-set.rst#L351-L357)).
