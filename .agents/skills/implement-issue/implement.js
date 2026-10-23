@@ -227,6 +227,9 @@ are one: file the fullest once and name every index against the issue that holds
 - an entry whose body carries \`Decision:\` or \`Decision D<n>:\`, or whose home is an epic (a title that starts with \`Epic:\`),
   opens an issue of its own, whatever it reports, and its body ends with \`Part of #<home>.\` when it has a
   home;
+- no entry goes to #${a.issue}, which the pull request of this change closes, whoever opens it, and what is
+  appended to it closes unread with it: one that belongs there opens an issue of its own, whose body ends with
+  \`Found while implementing #${a.issue}.\`;
 - an entry whose home is an open issue goes to that issue: its body is appended to the issue's own under a
   line \`Update: <title> (#${source})\`, with that number as it stands, and the issue carries one severity
   label, the higher of its own and the entry's; the whole body is written with your Write tool to exactly
@@ -408,7 +411,11 @@ else if (findings_left.length) {
   })
 }
 const filed = filing?.filed || []
-const unfiled = findings_left.filter((_, index) => !filed.some(f => f.index === index))
+// the pull request closes the issue, and an entry appended to it closes unread with it
+const closing = filed.filter(f => f.number === a.issue && f.action === 'updated').map(f => f.index)
+if (closing.length)
+  log(`entries ${closing.join(', ')} went to #${a.issue}, which the pull request of this change closes; the session files them`)
+const unfiled = findings_left.filter((_, index) => closing.includes(index) || !filed.some(f => f.index === index))
 if (unfiled.length) {
   log(`${unfiled.length} of ${findings_left.length} left unfiled: ${unfiled.map(f => f.title).join('; ')}${filing?.notes ? `; ${filing.notes}` : ''}`)
 }
