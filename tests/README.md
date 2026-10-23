@@ -2519,6 +2519,16 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   callback reads and copies the whole packet and shrinks it, then drops it,
   and TCP sends it again. Skips without `socat`.
 
+- **tc copy**: four pings, one step of the callback on each echo reply. On the
+  first it keeps a copy, whose `ifindex()` is the hook's skb's; on the second
+  that copy has no `ifindex()`, its `forward()` raises "skb has no device" and
+  its `data()` reads the first echo reply. On the third it keeps another copy,
+  calls `tc.detach()`, attaches a second callback and collects, which finalizes
+  the hook's skb the detach unregistered while the copy holds its object, as a
+  weak table shows; on the fourth the second callback finds that copy without its
+  device too. A build whose copies read the hook's device in a later callback
+  fails at the second echo reply.
+
 - **tc verdict**: one ping per case, whose payload size picks what the callback
   returns for its echo reply: nothing, a value that is not a number, an action
   as a string, a number past `TRAP` or below `UNSPEC`, one whose low 32 bits
