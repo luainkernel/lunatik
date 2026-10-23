@@ -221,7 +221,7 @@ are one: file the fullest once and name every index against the issue that holds
   tools/checks/machine-leak.sh and tools/checks/untraced.sh over it; a line either one names is rewritten before
   anything is posted, and the command that posts it spells that path out (\`-F body=@<that path>\`), since the
   guards refuse a path a shell variable holds;
-- an entry whose body carries \`Decision:\`, or whose home is an epic (a title that starts with \`Epic:\`),
+- an entry whose body carries \`Decision:\` or \`Decision D<n>:\`, or whose home is an epic (a title that starts with \`Epic:\`),
   opens an issue of its own, whatever it reports, and its body ends with \`Part of #<home>.\` when it has a
   home;
 - an entry whose home is an open issue goes to that issue: its body is appended to the issue's own under a
