@@ -25,6 +25,9 @@
 # out parameters, `while (next(&s, &len))`, is a foreach macro too, and two functions whose one statement
 # returns the same call with another argument are a pair a macro generates: #1896 spelled luaset_next and the
 # set.labeled and set.valued constructors that way, which the loop check above and the review read past.
+# A local array a copy fills only for a push to read is a second copy, since lua_pushstring copies already:
+# #2083's skb:ifname took dev->name through strscpy that way, after nftables' meta iifname, which fills a
+# fixed register, and passed its implementer and its review.
 # Takes file paths; silent on files that carry none, and on the Lua fork under lua/, whose
 # guards keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
@@ -180,6 +183,31 @@ for file in "$@"; do
 		}
 		else
 			wsig = 0
+		# a local array a copy fills and a push reads, and nothing else: lua_pushstring copies already
+		if ($0 ~ /^\{/)
+			split("", copied)
+		else if ($0 ~ /^\}/) {
+			for (name in copied)
+				if (filled[name] && pushed[name] && uses[name] == 2)
+					printf "%s:%d: %s is copied only to be pushed: lua_pushstring and lua_pushlstring copy the string themselves\n", f, filled[name], name
+			split("", copied)
+		}
+		else if (line ~ /^char [a-z_][a-z0-9_]*\[[^]]*\];$/) {
+			name = line
+			sub(/^char /, "", name)
+			sub(/\[.*/, "", name)
+			copied[name] = NR
+			uses[name] = filled[name] = pushed[name] = 0
+		}
+		else
+			for (name in copied)
+				if (reads(line, name)) {
+					uses[name]++
+					if (line ~ "^(strscpy|strncpy|strcpy|memcpy)\\(" name ",")
+						filled[name] = NR
+					if (line ~ "lua_push(l)?string\\(L, " name "[,)]")
+						pushed[name] = NR
+				}
 		prev = line
 	}' "$file"
 done
