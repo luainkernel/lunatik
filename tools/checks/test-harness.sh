@@ -18,8 +18,9 @@
 # test: tests/linux/errname reached master taking it from util after #1550 had moved it,
 # in a merge that did not conflict. Heuristic: it nudges a review, it does not rewrite.
 # Usage: test-harness.sh <file>...
-# Prints the findings; exits 1 when there are any. Files outside its scope
-# are skipped silently, so callers can pass any path.
+# Prints each finding as <file>:<line>: <what>; exits 1 when there are
+# any. Files outside its scope are skipped silently, so callers can pass
+# any path.
 
 rc=0
 
@@ -31,20 +32,16 @@ checkcases() {
 		while (n > 0 && line ~ /[^[:space:]]/ && d <= open[n] && line !~ /^[[:space:]]*(else|elseif)([^A-Za-z0-9_]|$)/) n--
 		if (line ~ /require[[:space:]]*\(?[[:space:]]*"[^"]*"[[:space:]]*\)?\.test([^A-Za-z0-9_]|$)/ && line !~ /"tests\.lib"/) {
 			printf "%s:%d: takes test from a module other than tests.lib, which holds the case harness\n", file, NR
-			found = 1
 		}
 		if (line ~ /^[[:space:]]*if[[:space:]].*[[:space:]]then[[:space:]]*$/) { open[++n] = d; next }
 		if (n > 0 && line ~ /^[[:space:]]*test[[:space:]]*\(/) {
 			printf "%s:%d: a case run under a condition, which the script'\''s KTAP line counts as passed when it does not run; skip it in the .sh\n", file, NR
-			found = 1
 		}
-	}
-	END { exit !found }' "$1" && return 1
-	return 0
+	}' "$1"
 }
 
 check() {
-	local file="$1" issues=""
+	local file="$1"
 
 	case "$file" in
 		*/lib.sh|*/run.sh|lib.sh|run.sh) return 0 ;; # the library and the runners, not tests
@@ -54,8 +51,7 @@ check() {
 	esac
 	[ -f "$file" ] || return 0
 
-	add() { issues="${issues}- $1
-"; }
+	finding() { local n; while IFS=: read -r n _; do echo "$file:$n: $1"; done; }
 
 	# covered when the script uses run_script/run_test (tests/lib.sh, which fail
 	# on any output), when it tests the output captured with 2>&1 for emptiness,
@@ -69,9 +65,9 @@ check() {
 		! { grep -qE '\[ -[nz] "\$\{?out' "$file" && grep -qE 'lunatik run.*2>&1' "$file"; } &&
 		! grep -qE 'grep -q[a-zA-Z]*[[:space:]].*\|\|' "$file"; then
 		if grep -qE 'grep -[a-zA-Z]*E?[a-zA-Z]*[[:space:]]*"?.\\\.lua:\[0-9\]' "$file"; then
-			add "detects errors by matching \`file.lua:N:\`, which a failed require does not print; check the exit status or any output instead"
+			grep -n 'lunatik run' "$file" | finding "detects errors by matching \`file.lua:N:\`, which a failed require does not print; check the exit status or any output instead"
 		else
-			add "runs a script without checking whether it loaded, so a failed load reports a pass. Check the exit status (lunatik run ... || fail), capture the output (2>&1) and treat any as a failure, or use run_script/run_test from tests/lib.sh"
+			grep -n 'lunatik run' "$file" | finding "runs a script without checking whether it loaded, so a failed load reports a pass. Check the exit status (lunatik run ... || fail), capture the output (2>&1) and treat any as a failure, or use run_script/run_test from tests/lib.sh"
 		fi
 	fi
 
@@ -80,30 +76,27 @@ check() {
 	# module. The proof is a symbol only the fixed build has in /proc/kallsyms, or the message of an
 	# inline check read from the module file (grep -aF ... "$(modinfo -n <module>)").
 	if grep -q 'srcversion' "$file" && ! grep -qE 'kallsyms|modinfo -n' "$file"; then
-		add "skips on srcversion alone, which proves that the loaded module is the installed one and not that the file carries the fix; read a symbol in /proc/kallsyms or the message in \$(modinfo -n <module>) as well"
+		grep -n 'srcversion' "$file" | finding "skips on srcversion alone, which proves that the loaded module is the installed one and not that the file carries the fix; read a symbol in /proc/kallsyms or the message in \$(modinfo -n <module>) as well"
 	fi
 
 	# a message the header says check_dmesg reads is one tests/lib.sh's KTAP_ERRORS matches
-	local lib pattern token
+	local lib pattern
 	lib=$(dirname "$file")/../lib.sh
 	[ -f "$lib" ] || lib=$(dirname "$(readlink -f "$0")")/../../tests/lib.sh
 	pattern=$(sed -n "s/^KTAP_ERRORS='\(.*\)'$/\1/p" "$lib" 2> /dev/null)
 	if [ -n "$pattern" ]; then
-		while read -r token; do
-			[ -n "$token" ] || continue
-			printf '%s:\n' "$token" | grep -qE "$pattern" ||
-				add "says check_dmesg reads \`$token\`, which KTAP_ERRORS in tests/lib.sh does not match: the case proves nothing by it"
-		done <<< "$(grep -E '^#.*check_dmesg' "$file" | grep -oE '\bBUG\b|\bWARNING\b|\bUBSAN\b|Internal error|\boops\b|Unexpected kernel BRK' | sort -u)"
+		grep -nE '^#.*check_dmesg' "$file" | while IFS=: read -r n claim; do
+			grep -oE '\bBUG\b|\bWARNING\b|\bUBSAN\b|Internal error|\boops\b|Unexpected kernel BRK' <<< "$claim" | sort -u | while read -r token; do
+				printf '%s:\n' "$token" | grep -qE "$pattern" ||
+					finding "says check_dmesg reads \`$token\`, which KTAP_ERRORS in tests/lib.sh does not match: the case proves nothing by it" <<< "$n"
+			done
+		done
 	fi
-
-	[ -z "$issues" ] && return 0
-	printf '%s may not detect what it says it does:\n%sSee tests/lib.sh (run_script/run_test, KTAP_ERRORS) and tests/bpf/run.sh for the expected shape.\n' \
-		"$(basename "$file")" "$issues"
-	return 1
 }
 
 for f in "$@"; do
-	check "$f" || rc=1
+	findings=$(check "$f")
+	[ -n "$findings" ] && { echo "$findings"; rc=1; }
 done
 exit $rc
 
