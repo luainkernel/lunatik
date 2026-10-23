@@ -60,8 +60,7 @@ check() {
 	' "$file" 2>/dev/null | \
 		finding "reads ->private right after lunatik_checkobject, which accepts any Lunatik object; check the class first (lunatik_argcheckclass, or luaL_argexpected over the classes the method accepts)"
 
-	# a function past thirty lines of body hides a step that wants a name; the tree's
-	# longest, luadevice_new, has 42, and a register of 39 was split three ways.
+	# a function past thirty lines of body hides a step that wants a name.
 	awk '
 		/^[a-zA-Z].*\)$/ && !/;$/ { name=$0; signature=NR; next }
 		/^\{$/ && name != "" { start=NR; next }
