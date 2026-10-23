@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the forward test (see forward.sh).
 
-local netfilter = require("netfilter")
+local filter    = require("tests.skb.filter")
 local nf        = require("linux.nf")
 local ipproto   = require("linux.socket").ipproto
 
@@ -49,21 +49,9 @@ local function resend(skb)
 	return nf.action.ACCEPT
 end
 
-netfilter.register{
-	hook     = past,
-	pf       = nf.proto.INET,
-	hooknum  = nf.inet.LOCAL_OUT,
-	priority = nf.ip.pri.FILTER,
-	mark     = PAST_MARK,
-}
+filter.register(past, nf.proto.INET, nf.inet.LOCAL_OUT, PAST_MARK)
 
 for mark in pairs(cells) do
-	netfilter.register{
-		hook     = resend,
-		pf       = nf.proto.INET,
-		hooknum  = nf.inet.PRE_ROUTING,
-		priority = nf.ip.pri.FILTER,
-		mark     = mark,
-	}
+	filter.register(resend, nf.proto.INET, nf.inet.PRE_ROUTING, mark)
 end
 

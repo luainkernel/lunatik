@@ -4,7 +4,7 @@
 --
 -- Kernel-side script for the copy_view test (see copy_view.sh).
 
-local netfilter = require("netfilter")
+local filter    = require("tests.skb.filter")
 local nf        = require("linux.nf")
 
 local MARK      <const> = 1275 -- MARK in copy_view.sh
@@ -81,11 +81,5 @@ local function hook(skb)
 	return nf.action.ACCEPT
 end
 
-netfilter.register{
-	hook     = hook,
-	pf       = nf.proto.INET,
-	hooknum  = nf.inet.LOCAL_OUT,
-	priority = nf.ip.pri.FILTER,
-	mark     = MARK,
-}
+filter.register(hook, nf.proto.INET, nf.inet.LOCAL_OUT, MARK)
 
