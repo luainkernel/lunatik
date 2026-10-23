@@ -31,7 +31,6 @@
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#include <linux/version.h>
 #include <linux/string.h>
 #include <linux/hid.h>
 
@@ -297,11 +296,7 @@ static int luahid_doreport_fixup(lua_State *L)
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
-typedef const __u8 * luahid_rdesc_t;
-#else
-typedef __u8 * luahid_rdesc_t;
-#endif
+typedef typeof(((struct hid_driver *)NULL)->report_fixup(NULL, NULL, NULL)) luahid_rdesc_t;
 
 static luahid_rdesc_t luahid_report_fixup(struct hid_device *hdev, __u8 *rdesc, unsigned int *rsize)
 {
