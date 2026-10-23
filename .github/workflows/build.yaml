@@ -16,7 +16,7 @@ jobs:
     name: Build ${{ matrix.kernel-version }}
     strategy:
       matrix:
-        kernel-version: [6.6, 7.2]
+        kernel-version: [6.6, 6.18, 7.2]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
