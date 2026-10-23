@@ -176,7 +176,11 @@ the state, where a boolean stored on an existing node cannot.
   with it where a stable series backports the change: raising the floor then deletes `#else` arms
   and touches no line that stays. `lunatik_pusherrname` is the shape, `errname` in the `#if` arm
   and the `%pe` fallback below it; `#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 19, 0))` with the
-  current call in `#else` is the inversion `idioms.sh` names.
+  current call in `#else` is the inversion `idioms.sh` names. An API that changed only a type takes
+  no guard: the type is read from the kernel's own declaration, `typeof` over a call of a struct's
+  member or a `_Generic` over the function's type as `luasocket_addr` reads it, and builds on a
+  kernel that took the change at any release. A change of arity, a name one kernel lacks or an
+  export stays on the version, since a `_Generic` compiles the arms it does not take too.
 * Every arm of a version guard or a header probe is safe on the kernels it selects: where a kernel
   lacks what the safe shape needs, that arm refuses with an errno the script sees rather than taking
   the unsafe path, and what each arm does is said in the binding's documentation, where the author
