@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 -- Packet predicates for the tc test callbacks: the namespace emits IPv6 autoconf traffic of
--- its own, so a callback acts only on the ping, which the host's egress carries as the echo reply.
+-- its own, so a callback acts only on the ping, whose echo reply the classifier's egress carries.
 
 local ETH_HI    <const> = 12 -- ethertype, then IPv4 protocol, then ICMP type
 local ETH_LO    <const> = 13

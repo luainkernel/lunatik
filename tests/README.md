@@ -20,7 +20,7 @@ Optional tools, without which the suites that need them skip:
 - `gcc`, which builds the userspace peers: device, examples, netlink, socket
 - `genl`: netlink
 - `iw` and the `mac80211_hwsim` module: netlink
-- `nsenter`: netlink, notifier, socket
+- `nsenter`: netlink, notifier, socket, tc
 - `nft`: skb, socket
 - `setarch`: probe, rcu, signal
 - `taskset`: netfilter, probe, xdp
@@ -2533,6 +2533,13 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   there, the ping decides the verdict and `lunatik stop` takes it down. Both read
   the packet through `packet.isping`, compiled as a subprogram. Skipped where
   the CLI's loader names a libbpf older than 1.3.0, which has no tcx attach.
+
+- **tc ifname**: the pass program sits on the egress of the peer, in the
+  namespace, so the skb holds a device of a namespace other than the initial one;
+  on the echo reply to a ping from the host, the line the pass callback prints
+  carries `skb:ifname()` and `skb:ifindex()`, the name and the index the peer
+  carries there, which no device of the initial namespace carries. Skips without
+  `nsenter`, which runs `tc` in the namespace.
 
 - **tc reload**: the pass program stays attached across `lunatik reload`, which
   replaces `lunatik_run` and its `_ENV` while the program holds `luatc` loaded. A
