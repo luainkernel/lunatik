@@ -27,7 +27,9 @@ Optional tools, without which the suites that need them skip:
 - `lunatic`: luac
 
 The scx, tc and xdp suites also need the modules built with the kernel's
-BTF: run `sudo make btf_install` before `make`.
+BTF: run `sudo make btf_install` before `make`. The install suite builds a
+module against the running kernel's build tree, `/lib/modules/$(uname -r)/build`,
+and skips without it.
 
 ## Running
 
@@ -805,6 +807,20 @@ after the watch is stopped.
   a resume past the body is refused with "not allowed once the runtime is
   armed", since unregistering sleeps. `/sys/bus/hid/drivers` holds the kept
   driver alone, until its runtime stops. Skips when the kernel has no HID bus.
+
+### install
+
+Tests for what `make install` leaves in the module tree. Nothing is loaded:
+each case runs `depmod -b` over a tree of the suite's own.
+
+- **zfs**: OpenZFS exports its own Lua under names `lunatik.ko` exports too,
+  and the edit `make install` makes to `modules.order` leaves depmod giving
+  those names to `lunatik.ko`. A stand-in for `zfs.ko`, built from `zfs.c`,
+  exports `lua_createtable` as ZFS's Lua does, and sits in turn at
+  `kernel/zfs/zfs.ko`, `kernel/zfs/zlua.ko`, `updates/dkms/zfs.ko`,
+  `updates/dkms/zlua.ko` and `ubuntu/dkms/zfs/zfs.ko`, beside the installed
+  Lunatik modules and the host's `modules.order`; no module under
+  `kernel/lunatik/` depends on it at any of those paths.
 
 ### io
 
