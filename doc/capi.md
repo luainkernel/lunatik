@@ -1739,15 +1739,12 @@ nothing on its path sleeps.
 
 ### luakfunc\_getruntimes
 ```C
-static lunatik_object_t *luakfunc_runtimes = NULL;
-
 lunatik_object_t *luakfunc_getruntimes(void);
 ```
 Returns `_ENV.runtimes`, the `rcu.table` of [`lunatik_env`](#lunatik_env) where `lunatik run`
-stores each runtime under its script's name, or `NULL` while `lunatik_env` or that entry is
-missing. The first call that finds it keeps it in `luakfunc_runtimes`, with the reference
-[`luarcu_getobject`](#luarcu_getvalue) took, and the later ones return it from there;
-[`LUAKFUNC_EXIT`](#luakfunc_newlib) drops it as the module unloads. It takes no lock.
+stores each runtime under its script's name, with the reference
+[`luarcu_getobject`](#luarcu_getvalue) took, which the caller drops, or `NULL` while `lunatik_env`
+or that entry is missing. It reads `lunatik_env` in an RCU read-side section and takes no lock.
 
 ### luakfunc\_lookupruntime
 ```C
@@ -1851,9 +1848,8 @@ declares: `__bpf_kfunc_start_defs` and `__bpf_kfunc_end_defs` from v6.7, pragmas
 `LUAKFUNC_INIT` defines `lua<subsys>_init`, which registers `bpf_lua<subsys>_kfunc_set` for the
 programs of `prog_type` with `register_btf_kfunc_id_set` and returns what it returns: a module whose
 BTF is missing loads with its kfunc unregistered, as [Building out of tree](#building-out-of-tree)
-says. `LUAKFUNC_EXIT` defines `lua<subsys>_exit`, which drops the `_ENV.runtimes` that
-[`luakfunc_getruntimes`](#luakfunc_getruntimes) kept. The module passes them to `module_init` and
-`module_exit`.
+says. `LUAKFUNC_EXIT` defines `lua<subsys>_exit`, empty, without which the module could not
+unload. The module passes them to `module_init` and `module_exit`.
 
 ---
 
