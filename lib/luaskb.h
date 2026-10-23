@@ -19,6 +19,8 @@ enum {
 typedef struct {
 	struct sk_buff *skb;
 	lunatik_object_t *view[LUASKB_VIEWS];
+	lunatik_object_t *hook;
+	u64 gen;
 	bool kfunc;
 } luaskb_t;
 
@@ -36,6 +38,7 @@ static inline void luaskb_clear(lunatik_object_t *object)
 	lunatik_object_t *view;
 	luaskb_foreachview(lskb, layer, view)
 		luadata_clear(view);
+	lskb->gen++;
 	lskb->skb = NULL;
 }
 

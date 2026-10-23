@@ -2105,6 +2105,20 @@ pid, what a valid call does, and where it refuses to run.
   copy alive, or whose copy leaves its view set, fails at the step that drops the
   copy, on the view's length, so no view of a freed copy is read; one whose skb
   keeps a dropped view registered fails there on the data count.
+- **copy_device**: a copy reads the device of the skb it was made from while the
+  callback that received the original runs, and keeps the packet but not the
+  device once it returns. `PRE_ROUTING` netfilter hooks take one step per echo
+  request and drop it: on `lo`, a copy and a copy of it name the device with
+  `ifindex()` and `ifname()`, and `forward()` sends each back out through `lo`,
+  where a hook sees it arrive, while a third copy dropped and collected in the
+  callback goes; on a veth of the test's own, a copy names the veth inside the
+  callback; from a later callback the three copies have no `ifindex()` nor
+  `ifname()`, their `forward()` raises "skb has
+  no device" and their `data()` reads the echo request, as a copy made of each
+  then does; and once the veth is deleted, which waits on no copy, they answer the
+  same. A build whose copies keep the device fails at the later callback, before
+  the test deletes the veth, and one that clears it as the copy is made fails
+  inside the callback. Skips without veth.
 
 ### socket
 

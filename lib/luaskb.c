@@ -36,6 +36,7 @@
 #include <linux/netdevice.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
+#include <net/dst.h>
 #include <net/ip.h>
 #include <net/ip6_checksum.h>
 #if defined(CONFIG_NF_CONNTRACK_MARK)
@@ -76,7 +77,8 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *, &luaskb_class,
 *
 * A `netfilter` hook callback receives one and `tc_ctx:skb()` returns one, valid only while that
 * callback runs: once it returns, every method raises `skb is not set`, and the views that
-* `skb:data()` returned are cleared too. `skb:copy()` keeps a packet past the callback.
+* `skb:data()` returned are cleared too. `skb:copy()` keeps a packet past the callback, but not its
+* device: once the callback returns, a copy's `ifindex()` returns nil and its `forward()` raises.
 * @type skb
 */
 
@@ -86,6 +88,12 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *, &luaskb_class,
 */
 LUNATIK_INTEGERGETTER(luaskb_len, luaskb_check, private->skb->len);
 
+static inline struct net_device *luaskb_dev(luaskb_t *lskb)
+{
+	luaskb_t *hook = lskb->hook != NULL ? (luaskb_t *)lskb->hook->private : lskb;
+	return hook->gen == lskb->gen ? hook->skb->dev : NULL;
+}
+
 /***
 * @function ifindex
 * @treturn integer network interface index, or nil if not available
@@ -93,13 +101,13 @@ LUNATIK_INTEGERGETTER(luaskb_len, luaskb_check, private->skb->len);
 static int luaskb_ifindex(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	struct net_device *dev = lskb->skb->dev;
+	struct net_device *dev = luaskb_dev(lskb);
 	lunatik_pushoptinteger(L, dev, dev->ifindex);
 	return 1;
 }
 
 /***
-* Reads the name `skb->dev` carries when called, the device `skb:ifindex()` indexes: a device
+* Reads, when called, the name of the device `skb:ifindex()` indexes: a device
 * created or renamed after the script loaded reads its current name. A frame that races a rename
 * of its device may read a mix of the two names, and the first frame after the rename completes
 * reads the new one.
@@ -109,7 +117,7 @@ static int luaskb_ifindex(lua_State *L)
 static int luaskb_ifname(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	struct net_device *dev = lskb->skb->dev;
+	struct net_device *dev = luaskb_dev(lskb);
 	lua_pushstring(L, dev ? dev->name : NULL);
 	return 1;
 }
@@ -299,7 +307,7 @@ static int luaskb_forward(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct sk_buff *skb = lskb->skb;
-	struct net_device *dev = skb->dev;
+	struct net_device *dev = luaskb_dev(lskb);
 
 	luaL_argcheck(L, dev != NULL, 1, "skb has no device");
 	luaL_argcheck(L, skb_mac_header_was_set(skb), 1, "MAC header not set");
@@ -307,6 +315,7 @@ static int luaskb_forward(lua_State *L)
 
 	struct sk_buff *nskb = lunatik_checknull(L, skb_clone(skb, GFP_ATOMIC));
 
+	nskb->dev = dev;
 	skb_push(nskb, nskb->data - skb_mac_header(nskb));
 	dev_queue_xmit(nskb);
 	return 0;
@@ -377,6 +386,8 @@ static void luaskb_release(void *private)
 		luadata_close(view);
 	if (lskb->skb)
 		kfree_skb(lskb->skb);
+	if (lskb->hook)
+		lunatik_putobject(lskb->hook);
 }
 
 static int luaskb_gc(lua_State *L)
@@ -431,6 +442,9 @@ static const lunatik_class_t luaskb_class = {
 * linearized, and a non-linear one raises.
 * A view of the copy that `data()` returns is valid until the copy is collected,
 * and is then cleared as a view of a callback's skb is when the callback returns.
+* The copy reads the device of the skb it was made from until the callback that received
+* the original returns, so `forward()` sends it out of that device until then; afterwards
+* it reads none, and neither does a copy made from it.
 * @function copy
 * @treturn skb
 * @raise if skb is FRAGLIST GSO, if the skb is not linear, in a tc callback or after a failed
@@ -445,6 +459,11 @@ static int luaskb_copy(lua_State *L)
 	lunatik_object_t *object = lunatik_newobject(L, &luaskb_class, sizeof(luaskb_t), LUNATIK_OPT_NONE);
 	luaskb_t *copy = (luaskb_t *)object->private;
 	copy->skb = lunatik_checknull(L, skb_copy(lskb->skb, GFP_ATOMIC));
+	copy->skb->dev = NULL; /* skb_copy holds no reference on it */
+	skb_dst_force(copy->skb); /* a NOREF route is valid only while the callback runs */
+	copy->hook = lskb->hook != NULL ? lskb->hook : lunatik_toobject(L, 1);
+	lunatik_getobject(copy->hook);
+	copy->gen = lskb->gen;
 	return 1;
 }
 
