@@ -63,7 +63,9 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
 - The last stage files `findings_left`, what the implementer, the review, each fix and each build run
   again after one leave as issues: an entry
   opens an issue with its `severity:` label, or goes under an `Update:` line into the open issue it
-  names as its home or reports again. It posts nothing on a pull request, and skips, `skipped` in
+  names as its home or reports again, never the one the pull request closes, which closes with it: one
+  that belongs there opens an issue of its own, and one appended there anyway comes back as `unfiled`.
+  It posts nothing on a pull request, and skips, `skipped` in
   `filed`, what the branch fixed after the entry was written, a review's commit or a fix's, and a host
   failure a fix read as fixed by an open pull request. An entry is filed once the issue read back from
   GitHub holds it, since #1450's run named #1937 updated where a guard had refused the edit. What it
