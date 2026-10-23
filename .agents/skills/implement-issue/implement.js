@@ -134,10 +134,10 @@ you take it, what you read, decided, committed and measured, and your answer bef
    before it is written down (AGENTS.md rule 1). An issue whose stimulus is a script out of contract
    (AGENTS.md, "Deciding what to change") closes as not a defect, with no pull request.
 2. Write the smallest shape that makes the defect unreachable, or meets the need, in the checkpoint
-   before any other, and take a larger one only for what it buys (AGENTS.md, "Deciding what to change"),
-   a helper or a loop the issue prescribes included, which is a shape to weigh and not the spec.
-   Your answer's smallest carries that shape beside the diff, and names what each mechanism past it
-   buys; the review and the maintainer read the change against it.
+   before any other, and take a larger one, a helper or a loop the issue prescribes included, which is a
+   shape to weigh and not the spec, only where AGENTS.md, "Deciding what to change", keeps one. Your
+   answer's smallest carries that shape beside the diff, and names what each mechanism past it buys with
+   its source; the review keeps none without one.
 3. Commit as "Patches and commits" asks: one change per commit, the harness apart from the code, tests
    wired and described (the new-test skill), each doc where its reader looks. \`make\` is clean on every
    commit, and \`make C=1\` where the change touches an annotated pointer. ${PUSH}
@@ -151,7 +151,8 @@ you take it, what you read, decided, committed and measured, and your answer bef
    Run no install, reload, suite or example yourself. List the examples tools/checks/examples-touched.sh
    names over the changed files.
 6. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/pr-body.sh
-   passes the body, which carries \`Closes #${a.issue}\` on a line of its own and names each example as run:
+   passes the body, which names the smallest shape in a sentence and each mechanism past it with its source
+   in a clause, carries \`Closes #${a.issue}\` on a line of its own and names each example as run:
    the pull request opens only on a head the host run passed, and says of an example the host only loaded
    what the build said of it. Open nothing.
 7. Remove your worktree (\`rm -rf <tree> && git worktree prune\`) once the branch is pushed: the review, the host
@@ -260,7 +261,8 @@ const SMALLEST = { type: 'object', properties: {
   diff: { type: 'integer', description: 'the lines the pull request adds and removes' },
   beyond: { type: 'array', items: { type: 'object', properties: {
     mechanism: { type: 'string' }, buys: { type: 'string', description: 'what it buys that the smallest shape does not' },
-  }, required: ['mechanism', 'buys'] } },
+    source: { type: 'string', description: 'the defect the smallest shape leaves reachable, with its trace, or the need the issue or the maintainer stated, quoted with where; empty when it has neither' },
+  }, required: ['mechanism', 'buys', 'source'] } },
 }, required: ['shape', 'lines', 'diff', 'beyond'] }
 
 const DEFECTS = { type: 'array', items: { type: 'object', properties: {
@@ -370,7 +372,8 @@ if (implemented?.branch && a.push !== false) {
     head = build?.head || head
   }
   const missing = unrun(implemented, build)
-  if (passed(build) && !missing.length && a.gh !== false) {
+  const unsourced = review?.unsourced || []
+  if (passed(build) && !missing.length && !unsourced.length && a.gh !== false) {
     phase('Open')
     const unrelated = fixes.filter(f => f && !f.caused).map(f => f.notes)
     const body = review?.reviewer?.body || implemented.body
@@ -382,7 +385,8 @@ if (implemented?.branch && a.push !== false) {
     if (pr && !labelled)
       log(`#${pr} opened without workflow-reviewed: ${opened.notes || 'the agent gave no reason'}; the session adds it`)
   } else {
-    const why = !passed(build) ? 'the host run did not pass' : missing.length ? `the host run left ${missing.join(', ')} unrun` : 'gh is absent'
+    const why = !passed(build) ? 'the host run did not pass' : missing.length ? `the host run left ${missing.join(', ')} unrun`
+      : unsourced.length ? `the review kept ${unsourced.map(b => b.mechanism).join('; ')} without a source` : 'gh is absent'
     log(`no pull request for #${a.issue}: ${why}; the session reads the result`)
   }
 } else {
