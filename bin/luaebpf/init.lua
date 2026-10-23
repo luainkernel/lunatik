@@ -12,8 +12,9 @@
 -- and returns an object `bpftool prog load` accepts. Anything the subset refuses is an error
 -- naming the Lua file and line.
 --
--- The compiler runs on the machine that loads what it emits, so it reads the running kernel
--- rather than being told which kernel to target.
+-- The compiler runs on the machine that loads what it emits, so it reads the running kernel's
+-- types rather than being told which kernel to target, and the kernel's version from
+-- `lunatik.config`, which `make` writes from the tree Lunatik is built against.
 -- @module luaebpf
 -- @usage
 -- local luaebpf = require("luaebpf")

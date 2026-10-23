@@ -16,6 +16,7 @@
 -- numeric `for` jumps backwards; the code of the last walk is what is kept.
 -- @module luaebpf.emit
 
+local config  = require("lunatik.config")
 local insn    = require("luaebpf.insn")
 local proto   = require("luaebpf.proto")
 local vmlinux = require("luaebpf.vmlinux")
@@ -37,6 +38,7 @@ local NBITS    <const> = 64
 local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
 local MININT   <const> = 1 << 63
+local MAYGOTO  <const> = 6 << 16 | 9 << 8 -- KERNEL_VERSION(6, 9, 0): v6.9 and later take may_goto
 
 -- the words every frame reserves: the flag a callee raises through the pointer its caller passed,
 -- and where the callee keeps that pointer, since R1-R5 do not survive a nested call
@@ -64,23 +66,11 @@ end
 
 local emit = {}
 
--- v6.9 and later take may_goto, and the compiler runs on the machine that loads what it emits
-local function release()
-	local f = io.open("/proc/sys/kernel/osrelease", "r")
-	if f == nil then
-		return 0, 0
-	end
-	local major, minor = f:read("l"):match("^(%d+)%.(%d+)")
-	f:close()
-	return tonumber(major) or 0, tonumber(minor) or 0
-end
-
-local major, minor = release()
-
 ---
--- Whether the running kernel takes the `may_goto` a loop without a proven bound needs.
+-- Whether the kernel Lunatik is built for, whose version `lunatik.config` carries, takes the
+-- `may_goto` a loop without a proven bound needs.
 -- @field luaebpf.emit.maygoto
-emit.maygoto = major > 6 or (major == 6 and minor >= 9)
+emit.maygoto = config.kernel_version >= MAYGOTO
 
 local function typename(value)
 	if value == nil then
