@@ -265,9 +265,10 @@ position capture <code>()</code> and each item with <code>?</code>, <code>*</cod
 Lunatik&rsquo;s: the top-level name of every module this reference documents, a binding such as <a href="../modules/socket.html#">socket</a> or
 a Lua library such as <a href="../modules/util.html#">util</a>; <a href="../modules/lunatik.html#">lunatik</a>, <a href="../modules/linux.html#">linux</a>, <code>examples</code> and <code>tests</code>, which hold the runtime&rsquo;s own
 scripts, the <code>linux.*</code> constants, the examples and the test suites; and <code>light</code>, the key <a href="../modules/lighten.html#">lighten</a>
-requires, which the user supplies. A binding&rsquo;s name followed by a hyphen, <code>socket-&lt;x&gt;</code>, is the
-binding&rsquo;s as well: <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> loads <code>luaopen_socket</code> for it. A product&rsquo;s scripts live in a directory
-of their own, <code>/lib/modules/lua/&lt;product&gt;/</code>, and run as <code>&lt;product&gt;/&lt;script&gt;</code>.</p>
+requires, which the user supplies there or sets in the runtime that requires <a href="../modules/lighten.html#">lighten</a>. A binding&rsquo;s
+name followed by a hyphen, <code>socket-&lt;x&gt;</code>, is the binding&rsquo;s as well: <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> loads <code>luaopen_socket</code>
+for it. A product&rsquo;s scripts live in a directory of their own, <code>/lib/modules/lua/&lt;product&gt;/</code>, and run
+as <code>&lt;product&gt;/&lt;script&gt;</code>.</p>
 
 <p><a name="Softirq_and_hardirq_runtimes"></a></p>
 
@@ -302,7 +303,7 @@ raise <code>not allowed once the runtime is armed</code>, and <a href="https://w
 <a href="../../topics/04-lua.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/04-lua.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 13:53:53</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 13:57:29</span>
 </div>
 </footer>
 </body>

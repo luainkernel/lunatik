@@ -187,11 +187,15 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-crypto">Cryptography</a></div>
 <h1>lighten<span class="kind">Module</span></h1>
 <p class="lead">Encrypted Lua script support (AES-256-GCM).</p>
-<p> This module provides functions to load and run encrypted Lua scripts
+ This module provides functions to load and run encrypted Lua scripts
  using the <a href="../modules/darken.html#">darken</a> C module.</p>
 
 <p> The key is the module <code>light</code>, <code>/lib/modules/lua/light.lua</code>, which returns the hex-encoded
- 32-byte key; without it, <code>require(&quot;lighten&quot;)</code> raises &ldquo;module &lsquo;light&rsquo; not found&rdquo;.
+ 32-byte key. The kernel opens it with the credentials of the task that first requires <a href="../modules/lighten.html#">lighten</a>
+ in the runtime, and the recipe below installs it readable by root alone, so that require must come
+ from a root task, as it does in a script <code>lunatik run</code> or <code>lunatik spawn</code> runs, not from a callback
+ an unprivileged task drives, such as a <a href="../modules/device.html#">device</a> read. Without the file, or from a task that cannot
+ read it, <code>require(&quot;lighten&quot;)</code> raises &ldquo;module &lsquo;light&rsquo; not found&rdquo;.
  <code>tools/shade.sh darken [-s &lt;secret&gt;] &lt;script&gt;.lua</code> encrypts a script into <code>&lt;script&gt;.dark.lua</code>,
  which calls what <a href="../modules/lighten.html#load">lighten.load</a> returns with its own arguments, and prints the secret, 64 hex
  characters;
@@ -206,6 +210,15 @@ sudo cp hello.dark.lua /lib/modules/lua/
 sudo lunatik run hello.dark
 </pre>
 
+
+<p> A runtime that sets <code>package.loaded.light</code> to a hex key of its own, or <code>package.preload.light</code> to
+ a function that returns one, before it first requires <a href="../modules/lighten.html#">lighten</a>, lightens with that key instead,
+ which no other runtime reaches. Since <code>lunatik run hello.dark</code> runs nothing before the dark
+ script, a runtime run that way reads <code>light.lua</code>, and one with its own key runs a script that sets
+ it and then requires the dark modules, each installed where <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> finds its name, as
+ <code>hello/dark.lua</code> for <code>require(&quot;hello.dark&quot;)</code>. A caller that holds the ciphertext, the IV and the
+ key calls <a href="../modules/darken.html#load">darken.load</a> or <a href="../modules/darken.html#run">darken.run</a> itself, which take all three in binary: <a href="../modules/util.html#hex2bin">util.hex2bin</a>
+ decodes the hex <code>tools/shade.sh</code> writes.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -308,7 +321,7 @@ sudo lunatik run hello.dark
 <a href="../../modules/lighten.html">5.1 docs</a> ·
 <a href="../../5.0/modules/lighten.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 13:53:53</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 13:57:29</span>
 </div>
 </footer>
 </body>
