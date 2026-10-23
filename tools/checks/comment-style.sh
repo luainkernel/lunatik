@@ -11,9 +11,10 @@
 # internal static inline helper and a function's signature line carry none; in all
 # three, no comment names the file or function that reads a value. #1358, #1421 and
 # #1383 each carried one of the three until the maintainer asked. A comment above
-# an is_ or has_ predicate is named too: the rule allows the one reason its name and
-# expression cannot give, and #1502's walked through what each arm of
-# lunatik_isclosing reads, which its commit body already said. The file
+# an internal function-like macro, a predicate among them, is named too: the rule
+# allows the one reason its name and expansion cannot give. #1502's walked through
+# what each arm of lunatik_isclosing reads, which its commit body already said, and
+# #2095's told what luasocket_addr's _Generic does. The file
 # header, LDoc blocks and doc-only comments are outside the rules; so are the
 # unindented notes between Lua functions, and a shell script's narrative, which
 # the Tests rules ask for.
@@ -111,8 +112,8 @@ for file in "$@"; do
 			if (whole(line) && line ~ /\*\//) cend = NR
 			if (line ~ /^static inline / && cend == NR - 1 && !cdoc)
 				flag(cstart, "a comment above an internal static inline helper: the name says what it does, the commit body why")
-			if (line ~ /^#define [a-z0-9_]*_(is|has)[a-z0-9_]*\(/ && cend == NR - 1 && !cdoc)
-				flag(cstart, "a comment above a predicate: one reason its name and expression cannot give; how its arms read the state goes in the commit body")
+			if (line ~ /^#define [a-z][a-z0-9_]*\(/ && cend == NR - 1 && cstart > 1 && !cdoc)
+				flag(cstart, "a comment above an internal helper macro: one reason its name and expansion cannot give, never what it does; how it reads the state goes in the commit body")
 		}
 
 		# a comment of more than one line inside code (the header and doc blocks are skipped)

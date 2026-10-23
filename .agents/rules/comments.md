@@ -59,12 +59,15 @@ paths:
   `luanotifier_isreplay(notifier)`, not `if (in_task() && notifier->registrant == current) /* the
   replay... */`. So is a condition of three tests or more, or one that runs onto the next line,
   comment or not, as `luaskb_iswhole4` names one; `tools/checks/idioms.sh` names them.
-* A comment on a definition says what the definition is, not what its one caller concludes from it;
-  when the name already says the subject, it takes no comment at all.
-* An internal `static inline` helper carries no block comment — `lunatik.h` keeps none on any of its
-  own. A comment describing what such a helper does restates the code; the fix is removing it, not
-  trimming it. A block survives only for a reason the code cannot state, as `checkkey`'s zero-size
-  note does.
+* A comment on a definition gives the one reason its name and body cannot state, never what the
+  definition does or what its one caller concludes from it; when the name says what it does, it takes
+  no comment at all. `/* addr cast to the address type the prototype of fn takes */` above
+  `luasocket_addr` told what the `_Generic` under it does; `/* these families spell an address with
+  two arguments, the rest with one */` above `luasocket_ispair` gives what its name cannot.
+* An internal `static inline` helper or function-like macro carries no block comment — `lunatik.h`
+  keeps none on any of its own. A comment describing what such a helper does restates the code; the
+  fix is removing it, not trimming it. A block survives only for a reason the code cannot state, as
+  `checkkey`'s zero-size note does.
 * Public functions and object types get LDoc comments. Use `@type <class>` names that do not collide
   with a function name, or LDoc will attach the wrong things.
 * LDoc does not surface a method a class inherits. To show it on the subclass's page, add a doc-only
