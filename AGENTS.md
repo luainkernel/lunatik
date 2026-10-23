@@ -380,7 +380,11 @@ named, not one discovered at that consumer's build.
   he takes in one read: `Decision:` and the question in a line, the options lettered `A)`, `B)`, each
   with what it changes, and `Recommendation:` with the option and its reason; "the maintainer's call"
   names who decides and not what. The options include the smallest change that makes the defect
-  unreachable, and each larger one says what it buys over it.
+  unreachable, and each larger one says what it buys over it. Each decision carries an ID, `D1`, `D2`,
+  kept until it is answered, so the answer is `D3 B`; a text that brings two or more opens with a table
+  of them, the ID, the question, the options and the recommendation in a few words each, and gives below
+  each ID what its options change. `tools/checks/decision.sh` names a decision without its ID, and two
+  without the table.
 * A recommendation's reason is what the option buys. That an option leaves an API as it stands is
   not one: the break is a cost of the option that makes it, weighed with the API's users counted, in
   the tree and in the known consumers, against what that option buys. A reason that holds for every
