@@ -29,6 +29,16 @@
 # four data objects; a build whose skb leaves its views registered frees one. The
 # case skips where the kprobe cannot be placed.
 #
+# The copy case sends four pings, and copy.lua takes a step on each echo reply: on the
+# first the callback keeps a copy, which names the device the hook's skb does; on the
+# second that copy has no ifindex(), its forward() raises "skb has no device" and its
+# data() reads the first echo reply. On the third it keeps another copy, calls tc.detach(),
+# attaches a second callback and collects: the detach unregisters the hook's skb, so the
+# collection finalizes it while the copy holds its object, as a weak table shows. The
+# fourth reaches the second callback, where that copy has no device either. A build whose
+# copies read the hook's device in a later callback fails at the second echo reply; the
+# device such a copy reads is the veth, which outlives the script.
+#
 # The verdict cases send one ping each, whose payload size picks what the callback
 # of verdict.lua answers to the echo reply: nothing, a value that is not a number, an
 # action as a string, a number past the TC actions, one below them, one whose low 32
@@ -70,6 +80,9 @@ PAYLOAD=1024             # PAYLOAD in nonlinear.lua
 PRIORITY=$((0x13690000)) # PRIORITY in nonlinear.lua
 REFUSED="tc nonlinear: data, copy and resize refuse a non-linear skb"
 PULLED="tc nonlinear: a pulled skb is read, copied and resized whole"
+COPIED="tc copy: a copy kept past its callback has no device, forward() raises and its bytes read"
+DETACHED="tc copy: a copy made before tc.detach() and a collection in its callback loses its device as it returns"
+COPY_REPLIES=4 # the echo replies copy.lua takes a step on
 REPLACED="tc reattach: the replaced context frees its skb's views and its argument"
 FREED="lunatik_tc/luadata_release"
 REPLACED_OBJECTS=4 # the replaced context's three views and its argument
@@ -123,7 +136,7 @@ tc_unload()
 peer_tc() { nsenter --net="/run/netns/$NETNS" tc "$@"; }
 
 ktap_header
-ktap_plan 21
+ktap_plan 23
 
 skip_all()
 {
@@ -138,6 +151,8 @@ skip_all()
 	ktap_skip "tc data: \"net\" starts at the IP header, and the views end at the frame's tail"
 	ktap_skip "$REFUSED"
 	ktap_skip "$PULLED"
+	ktap_skip "$COPIED"
+	ktap_skip "$DETACHED"
 	ktap_skip "tc compiled pass: a compiled program lets the ping through"
 	ktap_skip "tc compiled drop: a compiled program blocks the ping"
 	for title in "${VERDICT_TITLES[@]}"; do
@@ -166,6 +181,7 @@ cleanup()
 	lunatik stop tests/tc/attach_sleepable > /dev/null 2>&1
 	lunatik stop tests/tc/data > /dev/null 2>&1
 	lunatik stop tests/tc/nonlinear > /dev/null 2>&1
+	lunatik stop tests/tc/copy > /dev/null 2>&1
 	lunatik stop tests/tc/verdict > /dev/null 2>&1
 	lunatik stop tests/tc/compiled_pass > /dev/null 2>&1
 	lunatik stop tests/tc/compiled_drop > /dev/null 2>&1
@@ -289,12 +305,13 @@ zerokey_case()
 	ktap_pass "tc zero-key: a zero-sized key is rejected without a crash"
 }
 
-nonlinear_verdict()
+# cells_verdict <script> <title> <cell>...: tests/tc/<script> reported each cell, and none of them FAIL
+cells_verdict()
 {
-	local title="$1" cell lines
-	shift
+	local script="$1" title="$2" cell lines
+	shift 2
 	for cell in "$@"; do
-		lines=$(dmesg_since | grep -F "tc nonlinear: $cell ")
+		lines=$(dmesg_since | grep -F "tc $script: $cell ")
 		if [ -z "$lines" ] || echo "$lines" | grep -q " FAIL "; then
 			ktap_fail "$title"
 			comment "${lines:-no $cell report}"
@@ -340,8 +357,27 @@ nonlinear_case()
 	kill "$listener" 2>/dev/null
 
 	check_dmesg || { ktap_fail "$REFUSED"; ktap_fail "$PULLED"; return 1; }
-	nonlinear_verdict "$REFUSED" data copy resize
-	nonlinear_verdict "$PULLED" pulled
+	cells_verdict nonlinear "$REFUSED" data copy resize
+	cells_verdict nonlinear "$PULLED" pulled
+}
+
+copy_case()
+{
+	tc_load tc_copy.bpf.o ||
+		{ ktap_fail "$COPIED: failed to load/attach TC program"; ktap_fail "$DETACHED"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/tc/copy"
+	for _ in $(seq "$COPY_REPLIES"); do
+		ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
+	done
+
+	tc_unload
+	lunatik stop tests/tc/copy > /dev/null 2>&1
+
+	check_dmesg || { ktap_fail "$COPIED"; ktap_fail "$DETACHED"; return 1; }
+	cells_verdict copy "$COPIED" inside past
+	cells_verdict copy "$DETACHED" detach detached
 }
 
 verdict_fail()
@@ -489,6 +525,7 @@ run_case tc_data.bpf.o data.lua yes "tc data" \
 	"tc data: \"net\" starts at the IP header, and the views end at the frame's tail" --context=softirq
 
 nonlinear_case
+copy_case
 verdict_case
 compiled_case compiled_pass yes "tc compiled pass: a compiled program lets the ping through"
 compiled_case compiled_drop no "tc compiled drop: a compiled program blocks the ping"
