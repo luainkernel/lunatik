@@ -7,6 +7,12 @@
 # attaching it to a veth pair whose peer sits in a network namespace, so a
 # ping from the namespace traverses the hook regardless of the host setup.
 #
+# The detach callback detaches on the first ping, then holds its context only in a
+# weak table, drops its parameter and collects: the dispatcher clears that context
+# after the callback returns, so the collection must leave it, and the callback
+# reports a failure when the weak table lost it. Its verdict drops the first ping,
+# and the second passes with the kfunc logging no callback attached.
+#
 # The verdict cases send one ping each, whose payload size picks what the callback
 # of verdict.lua answers: nothing, a value that is not a number, an action as a
 # string, a number past the XDP actions, one below them, one whose low 32 bits are
@@ -172,6 +178,7 @@ detach_case()
 	lunatik stop tests/xdp/detach > /dev/null 2>&1
 
 	check_dmesg || { ktap_fail "xdp detach: script raised an error"; return 1; }
+	dmesg_since | grep -qF "xdp detach test fail" && { ktap_fail "xdp detach: the context was collected inside its callback"; return 1; }
 	[ "$dropped" -ne 0 ] || { ktap_fail "xdp detach: the first ping should have been dropped"; return 1; }
 	[ "$resumed" -eq 0 ] || { ktap_fail "xdp detach: traffic did not resume after detach"; return 1; }
 	dmesg_since | grep -qF "xdp detach test pass" || { ktap_fail "xdp detach: callback did not run"; return 1; }

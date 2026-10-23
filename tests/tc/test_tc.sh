@@ -17,6 +17,12 @@
 # SO_PRIORITY picks the segment, a value outside 0..6, which only a process with
 # CAP_NET_ADMIN or CAP_NET_RAW may set. The case skips without socat.
 #
+# The detach callback detaches on the first echo reply, then holds its context only
+# in a weak table, drops its parameter and collects: the dispatcher clears that
+# context after the callback returns, so the collection must leave it, and the
+# callback reports a failure when the weak table lost it. Its verdict drops the
+# first ping, and the second passes with the kfunc logging no callback attached.
+#
 # The reattach script also runs without a program, with a kprobe on luadata_release
 # counting the data objects freed: its body attaches twice and collects twice, and
 # the context the second attach replaces frees its skb's three views and its argument,
@@ -211,6 +217,7 @@ detach_case()
 	lunatik stop tests/tc/detach > /dev/null 2>&1
 
 	check_dmesg || { ktap_fail "tc detach: script raised an error"; return 1; }
+	dmesg_since | grep -qF "tc detach test fail" && { ktap_fail "tc detach: the context was collected inside its callback"; return 1; }
 	[ "$dropped" -ne 0 ] || { ktap_fail "tc detach: the first ping should have been dropped"; return 1; }
 	[ "$resumed" -eq 0 ] || { ktap_fail "tc detach: traffic did not resume after detach"; return 1; }
 	dmesg_since | grep -qF "tc detach test pass" || { ktap_fail "tc detach: callback did not run"; return 1; }
