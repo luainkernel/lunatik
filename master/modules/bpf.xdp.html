@@ -190,7 +190,11 @@
 <p class="lead">Declares an XDP program in a program file.</p>
  The file body runs on the host under <code>lunatik bpf</code>; the function it hands here is the
  program, compiled to eBPF and held to the subset the verifier can check. The verdicts are
- <a href="../modules/linux.xdp.html#action">linux.xdp.action</a>, the table the kernel scripts already use.
+ <a href="../modules/linux.xdp.html#action">linux.xdp.action</a>, the table the kernel scripts already use.</p>
+
+<p> The program&rsquo;s argument is spelled as the kernel&rsquo;s XDP <code>ctx</code> object: <code>ctx:ingress()</code> is the
+ index of the device the packet arrived on and <code>ctx:queue()</code> the receive queue it arrived in,
+ neither writable; <code>ctx.data</code>/<code>ctx.data_end</code> are the packet&rsquo;s bounds rather than numbers.
     <h2 id="usage">Usage</h2>
         <pre class="example">local xdp    = require(&quot;bpf.xdp&quot;)
 local action = require(&quot;linux.xdp&quot;).action
@@ -262,7 +266,7 @@ end, {default = action.PASS})
 <a href="../../modules/bpf.xdp.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.xdp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 15:48:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 15:49:30</span>
 </div>
 </footer>
 </body>
