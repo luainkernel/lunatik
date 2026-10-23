@@ -60,7 +60,8 @@ burst_when_armed()
 		sleep 0.02
 	done
 	# preloaded: a flood's exit timer of two round trips can fire as ping exits, and crash iputils s20200821 to 20211215
-	ping -f -l $BURST -c $BURST -m $MARK 127.0.0.1 > /dev/null 2>&1
+	# ping exits 0 once any reply arrived, so the replies are counted in its summary, which LC_ALL=C keeps untranslated
+	LC_ALL=C ping -f -l $BURST -c $BURST -m $MARK 127.0.0.1 2> /dev/null | grep -qF "$BURST received"
 }
 
 late_refused()
