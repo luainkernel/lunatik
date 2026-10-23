@@ -200,6 +200,7 @@ usage: lunatik [-h | -V]
        lunatik list
        lunatik test [&lt;suite&gt;]
        lunatik compile [&lt;lunatic argument&gt;...]
+       lunatik bpf [-o &lt;object&gt;] &lt;program&gt;
 </pre>
 
 
@@ -210,7 +211,8 @@ usage: lunatik [-h | -V]
 <code>sudo lunatik -e &apos;return _VERSION&apos;</code> does; unlike a REPL line, an expression needs its <code>return</code></li>
 <li><code>-i</code>, <code>--interactive</code>: enter the REPL after <code>-e</code></li>
 <li><code>-c &lt;context&gt;</code>, <code>--context=&lt;context&gt;</code>: the context <code>run</code> creates the runtime in</li>
-<li><p><code>-p</code>, <code>--percpu</code>: <code>run</code> creates one runtime per CPU id</p></li>
+<li><code>-p</code>, <code>--percpu</code>: <code>run</code> creates one runtime per CPU id</li>
+<li><p><code>-o &lt;object&gt;</code>, <code>--output=&lt;object&gt;</code>: the object <a href="../modules/bpf.html#">bpf</a> writes</p></li>
 <li><p><code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
 <code>modprobe</code> prints its error on stderr and the load goes on, so read <code>lunatik status</code> and the kernel log</p></li>
 <li><code>unload</code>: stop every running script, then unload Lunatik kernel modules</li>
@@ -221,6 +223,8 @@ is not the installed file</li>
 is not the installed build</li>
 <li><code>test [suite]</code>: run installed test suites (see <a href="../topics/06-development.md.html">Development</a>)</li>
 <li><code>compile &lt;arguments&gt;</code>: run <code>lunatic</code> with the given arguments (see <a href="#lunatic">lunatic</a>)</li>
+<li><code>bpf [-o &lt;object&gt;] &lt;program&gt;</code>: compile a program file into a BPF object (see
+<a href="#program-files">Program files</a>)</li>
 <li><code>list</code>: show which runtime environments are currently running, one script a line, in order of name</li>
 <li><code>run [-c softirq | hardirq] [-p] &lt;script&gt;</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>--context=softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>--context=hardirq</code> for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass <code>--percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
 <li><code>spawn &lt;script&gt;</code>: create a new runtime environment for the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>,
@@ -352,6 +356,31 @@ sudo lunatik run hello
 <p><code>sudo make install BYTECODE=1</code>, after <code>make</code>, installs the kernel Lua libraries and the examples as stripped chunks
 instead of source, so an error raised from one of them reads <code>?:?:</code>. <a href="../modules/class.html#">class</a> stays source, since the CLI&rsquo;s Lua reads
 it too.</p>
+
+<p><a name="Program_files"></a></p>
+
+<h2 id="program-files">Program files</h2>
+
+<p><code>lunatik bpf</code> compiles a <strong>program file</strong> into a BPF ELF object, <code>&lt;program&gt;</code> with <code>.lua</code> replaced
+by <code>.o</code> unless <a href="../topics/02-running-scripts.md.html#dumbo">-o</a> names another, so <code>filter.bpf.lua</code> becomes <code>filter.bpf.o</code>. <code>lunatic</code> compiles
+the file, and its body is compile-time Lua: it runs once, here, from that bytecode in the CLI&rsquo;s Lua,
+so it computes as the kernel would, and hands the functions it declares to a program constructor.
+Those functions are the program: their bytecode is compiled to eBPF and held to the subset the
+verifier can check. Anything outside it is an error naming the Lua file and line, and no object is
+written.</p>
+
+<pre>
+lunatik bpf filter.bpf.lua
+sudo bpftool prog <span class="global">load</span> filter.bpf.o /sys/fs/bpf/filter <span class="global">type</span> xdp
+</pre>
+
+
+<p><a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> in the body finds the compile-time modules first, <a href="../modules/bpf.xdp.html#">bpf.xdp</a>, then the compiler&rsquo;s own
+<a href="../modules/luaebpf.html#">luaebpf</a> modules, then <code>/lib/modules/lua/</code>, whose modules <code>lunatic</code> compiles as it does the
+program file, installed as source or, with <code>BYTECODE=1</code>, as chunks. It finds nothing else the CLI&rsquo;s
+Lua would, so a Lua or C module the host installs never stands in for a kernel script. <code>10 / 4</code> is
+<code>2</code> in the body as in the kernel; the CLI&rsquo;s libraries can still return a float, as <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.sqrt">math.sqrt</a>
+does, and one reaching a compiled function is refused at the line that reaches it.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/01-getting-started.md.html"><span>Previous</span>Getting started</a>
     <a class="next" href="../topics/03-percpu.md.html"><span>Next</span>Per-CPU scripts</a>
@@ -372,7 +401,7 @@ it too.</p>
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 01:21:15</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 01:49:08</span>
 </div>
 </footer>
 </body>

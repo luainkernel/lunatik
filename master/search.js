@@ -517,6 +517,7 @@ window.LUNATIK_SEARCH = [
 ["Execution contexts","topics/02-running-scripts.md.html#execution-contexts","Guide · Running scripts"],
 ["Kernel threads","topics/02-running-scripts.md.html#kernel-threads","Guide · Running scripts"],
 ["lunatic","topics/02-running-scripts.md.html#lunatic","Guide · Running scripts"],
+["Program files","topics/02-running-scripts.md.html#program-files","Guide · Running scripts"],
 ["Per-CPU scripts","topics/03-percpu.md.html","Guide"],
 ["Lua in the kernel","topics/04-lua.md.html","Guide"],
 ["Floating-point numbers","topics/04-lua.md.html#floating-point-numbers","Guide · Lua in the kernel"],
