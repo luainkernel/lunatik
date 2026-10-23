@@ -283,6 +283,21 @@ print(events:pop())
 	<td class="summary">Inserts a value.</td>
 	</tr>
 </table></div>
+<h2 id="Declaring_a_map_in_a_program_file">Declaring a map in a program file </h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#bpf.map.array">bpf.map.array (name, spec)</a></td>
+	<td class="summary">Declares an array map in a program file, whose keys are its <code>u32</code> indices.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#bpf.map.hash">bpf.map.hash (name, spec)</a></td>
+	<td class="summary">Declares a hash map in a program file, which <code>lunatik bpf</code> compiles.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#bpf.map.lru_hash">bpf.map.lru_hash (name, spec)</a></td>
+	<td class="summary">Declares an LRU hash map in a program file.</td>
+	</tr>
+</table></div>
 
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
@@ -598,6 +613,104 @@ print(events:pop())
 
 </dd>
 </dl>
+    <h2 class="section-header" id="Declaring_a_map_in_a_program_file-details"><a name="Declaring_a_map_in_a_program_file"></a>Declaring a map in a program file  in detail</h2>
+
+    <dl class="function">
+    <dt id="bpf.map.array"><a name="bpf.map.array"></a><strong>bpf.map.array (name, spec)</strong></dt>
+    <dd>
+    Declares an array map in a program file, whose keys are its <code>u32</code> indices.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         what the object calls it, and what the loader pins it under
+        </li>
+        <li><span class="parameter">spec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <code>{key, value, entries}</code>, as <a href="../modules/bpf.map.html#hash">hash</a> takes, the key four bytes wide
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        the declared map
+    </ol>
+
+    <h3>Raises</h3>
+    as <a href="../modules/bpf.map.html#hash">hash</a> raises, plus <code>an array map is keyed by 4 bytes, not &lt;n&gt;</code>
+
+
+
+</dd>
+    <dt id="bpf.map.hash"><a name="bpf.map.hash"></a><strong>bpf.map.hash (name, spec)</strong></dt>
+    <dd>
+    Declares a hash map in a program file, which <code>lunatik bpf</code> compiles.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         what the object calls it, and what the loader pins it under
+        </li>
+        <li><span class="parameter">spec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <code>{key, value, entries}</code>; <code>key</code> and <code>value</code> are <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> formats of one
+   fixed-size integer each, and <code>entries</code> is the map&rsquo;s capacity
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        the declared map, a table proxy inside a compiled function
+    </ol>
+
+    <h3>Raises</h3>
+     <code>map.hash takes a name and a spec</code>, <code>a map name is a C identifier, not &apos;&lt;name&gt;&apos;</code>, <code>a
+   map key spec packs one value</code>, <code>a map value spec packs one value</code>, <code>a map is read in the
+   host&apos;s byte order, not &apos;&lt;spec&gt;&apos;</code>, <code>a map reads 1, 2, 4 or 8 bytes at a time, not &lt;n&gt;</code>, <code>a map
+   holds between 1 and 4294967295 entries, not &lt;n&gt;</code>, or <code>&apos;&lt;name&gt;&apos; is declared twice</code>
+
+
+
+</dd>
+    <dt id="bpf.map.lru_hash"><a name="bpf.map.lru_hash"></a><strong>bpf.map.lru_hash (name, spec)</strong></dt>
+    <dd>
+    Declares an LRU hash map in a program file.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         what the object calls it, and what the loader pins it under
+        </li>
+        <li><span class="parameter">spec</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+         <code>{key, value, entries}</code>, as <a href="../modules/bpf.map.html#hash">hash</a> takes
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        the declared map
+    </ol>
+
+    <h3>Raises</h3>
+    as <a href="../modules/bpf.map.html#hash">hash</a> raises
+
+
+
+</dd>
+</dl>
 
 
 </main>
@@ -614,7 +727,7 @@ print(events:pop())
 <a href="../../modules/bpf.map.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.map.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 23:26:00</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 23:42:38</span>
 </div>
 </footer>
 </body>

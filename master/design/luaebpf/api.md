@@ -136,17 +136,29 @@ than `tcx/ingress`, which is how libbpf reads the attach point back.
 
 ## Maps
 
-A program file declares the maps it uses with the specs `bpf.map` already takes in the kernel:
+A program file declares the maps it uses with the specs `bpf.map` already takes in the kernel,
+naming each one:
 
     local map = require("bpf.map")
 
-    local flows = map.hash{key = "I4", value = "I4", entries = 65536}
-    local hits  = map.array{key = "I4", value = "I8", entries = 1}
+    local flows = map.hash("flows", {key = "I4", value = "I4", entries = 65536})
+    local hits  = map.array("hits", {key = "I4", value = "I8", entries = 1})
+
+The name comes first, as it does in both siblings -- the kernel's `map.hash(pathname, ...)` opens
+by path, and `xdp.program(fn, opts)` takes the subject then a table. A map needs one whether or
+not a compiled function references it, since that is what the loader pins it under and what a
+kernel script opens it by, so it cannot be recovered from a reference.
 
 `bpf.map` on the host is the compile-time twin of `lib/bpf/map.lua`: the same spec strings, the
-same names, and it produces BTF-defined maps in the object instead of opening pinned ones. Inside
-a compiled function a map is a table proxy with `bpf.map`'s semantics: indexing looks up,
-assignment updates, assigning `nil` deletes.
+same names, and it produces BTF-defined maps in the object instead of opening pinned ones. What
+the twin takes and the object cannot carry is refused at the declaration: a name BTF cannot spell,
+an array keyed by anything but the four bytes the kernel creates one with, a width no eBPF load
+covers, and a spec naming a byte order other than the host's, which is the only one an eBPF load
+and store take. Inside a compiled function a map is a table proxy with `bpf.map`'s semantics:
+indexing looks up, assignment updates, assigning `nil` deletes. A key is a number, as the spec
+packs it, and one the spec does not pack is where the kernel's `bpf.map` raises in
+`string.pack`: a key the compiler holds is refused at its line, and one the program computes is
+tested where it is stored and takes the default verdict outside the spec's range.
 
     local cached = flows[key]
     if cached then
@@ -155,8 +167,12 @@ assignment updates, assigning `nil` deletes.
     end
 
 `flows[key]` has the type "value or nil", and the translator refuses to use it as a number until
-the function has tested it, which is what the verifier requires of the pointer underneath. A
-`struct` spec yields a proxy of fields rather than a scalar.
+the function has tested it, which is what the verifier requires of the pointer underneath. The
+test is `if cached then`, the form the verifier narrows the pointer at; `cached == nil` is
+refused with the same message, since a comparison does not reach that narrowing. A `struct` spec
+yields a proxy of fields rather than a scalar. A value is read with the spec of the map it came
+from, so a register that lookups in two different maps merge into is refused where it is read
+rather than lowered against one of them.
 
 The loader creates the maps and pins them under `/sys/fs/bpf/lunatik/<script>/<name>`, so the
 kernel script opens the same map by that path with the API it has today:
@@ -179,7 +195,7 @@ The escape hatch is a call the program writes, at the point it chooses:
 
     local HTTPS <const> = 443
 
-    local flows = map.hash{key = "I4", value = "I4", entries = 65536}
+    local flows = map.hash("flows", {key = "I4", value = "I4", entries = 65536})
     local lua   = tc.runtime()      -- the kernel script of the same name
 
     local function u16(packet, at)
