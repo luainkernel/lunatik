@@ -50,9 +50,11 @@ lunatik-objs += lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 	lunatik_aux.o lunatik_obj.o lunatik_val.o lunatik_core.o lunatik_percpu.o
 
 ifeq ($(CONFIG_64BIT),)
-lunatik-objs += $(KLIBC_LIBGCC)/__udivmoddi4.o	\
-	$(KLIBC_LIBGCC)/__divdi3.o $(KLIBC_LIBGCC)/__udivdi3.o \
-	$(KLIBC_LIBGCC)/__moddi3.o $(KLIBC_LIBGCC)/__umoddi3.o lunatik_libgcc.o
+# a helper the kernel exports is the kernel's: lunatik.ko links and exports klibc's for the others
+LUNATIK_LIBGCC := $(filter-out $(shell awk '$$3 == "vmlinux" { print $$2 }' $(objtree)/Module.symvers 2>/dev/null), \
+	__udivmoddi4 __divdi3 __udivdi3 __moddi3 __umoddi3)
+lunatik-objs += $(LUNATIK_LIBGCC:%=$(KLIBC_LIBGCC)/%.o) lunatik_libgcc.o
+CFLAGS_lunatik_libgcc.o += $(LUNATIK_LIBGCC:__%=-DLUNATIK_LIBGCC_%)
 endif
 
 obj-$(CONFIG_LUNATIK_RUN) += lunatik_run.o
