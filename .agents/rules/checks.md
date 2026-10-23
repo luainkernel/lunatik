@@ -13,7 +13,7 @@ paths:
 (`module-conventions.sh`), the comment rules of `.agents/rules/comments.md` read over C, Lua and shell, the history, a
 release named with what changed in it or above a table, the counterfactual, the multi-line note
 inside code, the trailing comment past the width, a comment on a signature line or above an internal
-`static inline` and one naming the file or function that reads a value
+`static inline` or function-like macro and one naming the file or function that reads a value
 (`comment-style.sh`), a comment a change adds to one definition of a block whose others carry none
 (`comment-siblings.sh`), a sequence of calls a change adds that another C file already makes
 (`core-helper.sh`), a deferral a change adds to the core or a binding (`deferral.sh`), the
