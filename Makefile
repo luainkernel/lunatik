@@ -191,14 +191,19 @@ scripts_uninstall:
 	${RM} -r ${LUAEBPF_INSTALL_PATH}
 	${RM} -r ${LUA_PATH}/lunatik
 
+# the running kernel's BTF, which vmlinux.h dumps, carries the sched_ext types only with sched_ext
+SCHED_EXT := $(wildcard /sys/kernel/sched_ext)
+
 ebpf:
 	${MAKE} -C examples/filter
 	${MAKE} -C examples/sniclassify
+	$(if ${SCHED_EXT},${MAKE} -C examples/workload)
 
 ebpf_install:
 	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
 	${INSTALL} -m 0644 examples/filter/https.o ${LUNATIK_EBPF_INSTALL_PATH}/
 	${INSTALL} -m 0644 examples/sniclassify/classify.o ${LUNATIK_EBPF_INSTALL_PATH}/
+	$(if ${SCHED_EXT},${INSTALL} -m 0644 examples/workload/scheduler.o ${LUNATIK_EBPF_INSTALL_PATH}/)
 
 ebpf_uninstall:
 	${RM} -r ${LUNATIK_EBPF_INSTALL_PATH}
