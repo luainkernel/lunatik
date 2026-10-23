@@ -275,14 +275,16 @@ netfilter.register{
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          Hook options: <code>hook</code> (function), <code>pf</code>, <code>hooknum</code>, <code>priority</code> (integers),
    and optionally <code>mark</code> (integer), a prefilter that keeps a packet out of Lua: given a
-   <code>mark</code>, 0 included, only a packet whose <code>skb:mark()</code> equals it reaches the callback, and
-   the hook accepts every other packet; without a <code>mark</code>, the callback runs for every
-   packet. <code>pf</code> takes a <a href="../modules/linux.nf.html#proto">linux.nf.proto</a> value, <code>hooknum</code> a hook of that family, as
-   <a href="../modules/linux.nf.html#inet">linux.nf.inet</a>, <a href="../modules/linux.nf.html#arp">linux.nf.arp</a> or <a href="../modules/linux.nf.html#br">linux.nf.br</a> list them, and <code>priority</code> a
-   <code>linux.nf.ip.pri</code> or <code>linux.nf.br.pri</code> value.</p>
+   <code>mark</code>, 0 included, only a packet whose <code>skb:mark() &amp; mask</code> equals it reaches the callback,
+   and the hook accepts every other packet; without a <code>mark</code>, the callback runs for every
+   packet. <code>mask</code> (integer, optional) names the bits of the packet mark the hook owns, the
+   whole mark when absent: the prefilter compares those bits alone, and a mark the callback
+   returns sets those bits alone. <code>pf</code> takes a <a href="../modules/linux.nf.html#proto">linux.nf.proto</a> value, <code>hooknum</code> a hook of
+   that family, as <a href="../modules/linux.nf.html#inet">linux.nf.inet</a>, <a href="../modules/linux.nf.html#arp">linux.nf.arp</a> or <a href="../modules/linux.nf.html#br">linux.nf.br</a> list them, and <code>priority</code>
+   a <code>linux.nf.ip.pri</code> or <code>linux.nf.br.pri</code> value.</p>
 
 <p>   <code>hook(skb)</code> returns the packet&rsquo;s verdict, <code>DROP</code>, <code>ACCEPT</code> or <code>QUEUE</code> of <a href="../modules/linux.nf.html#action">linux.nf.action</a>,
-   and optionally a mark to set on the packet. A callback that returns no verdict, or that
+   and optionally a mark to set under <code>mask</code>. A callback that returns no verdict, or that
    raises, accepts the packet; one that returns any other value, <code>STOLEN</code>, <code>REPEAT</code> and <code>STOP</code>
    included, accepts it too and logs <code>invalid verdict</code>. A mark that is not an integer from 0 to
    2<sup>32</sup> - 1 leaves the packet&rsquo;s mark as it was and logs <code>invalid mark</code>.
@@ -304,12 +306,13 @@ netfilter.register{
    outside a softirq runtime; <code>not allowed while the runtime closes</code> from a finalizer that runs at
    its close; <code>bad field &apos;hook&apos; (function expected, got &lt;type&gt;)</code> if <code>hook</code> is missing or not a
    function; <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> if <code>pf</code>, <code>hooknum</code> or
-   <code>priority</code> is missing or not a number, or if <code>mark</code> is present and not a number;
+   <code>priority</code> is missing or not a number, or if <code>mark</code> or <code>mask</code> is present and not a number;
    <code>bad field &apos;&lt;field&gt;&apos; (out of bounds)</code> if <code>pf</code> is not a family whose hooks netfilter keeps
-   in a table, <code>hooknum</code> is not a hook of that table, <code>mark</code> is negative or past 32 bits, or
-   <code>priority</code> is past an <code>int</code>; if the hook cannot be registered; in a
-   percpu script, if this runtime already registered the same <code>pf</code>, <code>hooknum</code>, <code>priority</code> and
-   <code>mark</code>, or the same three both times without a <code>mark</code>
+   in a table, <code>hooknum</code> is not a hook of that table, <code>mark</code> or <code>mask</code> is negative or past
+   32 bits, or <code>priority</code> is past an <code>int</code>; <code>bad field &apos;mark&apos; (bits outside &apos;mask&apos;)</code> if <code>mark</code>
+   sets a bit <code>mask</code> leaves out, which no packet could match; if the hook cannot be
+   registered; in a percpu script, if this runtime already registered the same <code>pf</code>,
+   <code>hooknum</code>, <code>priority</code> and <code>mask</code>, with the same <code>mark</code> or both times without one
 
 
     <h3>Usage</h3>
@@ -347,7 +350,7 @@ netfilter.<span class="function-name">register</span>{
 <a href="../../modules/netfilter.html">5.1 docs</a> ·
 <a href="../../5.0/modules/netfilter.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 15:49:30</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 16:20:15</span>
 </div>
 </footer>
 </body>
