@@ -25,23 +25,27 @@ message naming `make`.
 2. *The interpreter.* A compiled program is run with `bpftool prog run` (`BPF_PROG_TEST_RUN`,
    XDP and TC only) over a packet file, and the same Lua function is run on the host, from the
    bytecode `lunatic` compiled, in the CLI's Lua with a `data`-like proxy over the same bytes, so
-   the oracle divides as the kernel does. The verdicts must match on every
-   packet of a corpus. Where the interpreted side raises (an out-of-bounds read, a division by
-   zero), the compiled side must return the program's default verdict, and the test asserts that
-   pairing, not equality.
+   the oracle divides as the kernel does. The program file's own body is what runs it: it calls
+   each function it declares and writes the answer beside the object, so no compiler feature
+   exists for the tests and the two oracles stay the host VM and the kernel's JIT. The verdicts
+   must match on every packet of a corpus. Where the interpreted side raises (an out-of-bounds
+   read, a division by zero), the compiled side must return the program's default verdict, and
+   the test asserts that pairing, not equality.
 3. *The wire.* The existing `xdp` and `tc` harness: a veth pair with its peer in a namespace, a
    ping, and a verdict that either blocks it or lets it through.
 
-**Packet corpora, checked in.** Small hex files under `tests/luaebpf/packets/`: an ARP, an IPv4
-ICMP echo, a TCP SYN to 443, a TLS ClientHello with an SNI, a truncated ClientHello. Every
-differential test runs over the whole corpus so the failure paths are exercised, not only the
-happy one.
+**Packet corpora, checked in.** From phase 2, small hex files under `tests/luaebpf/packets/`: an
+ARP, an IPv4 ICMP echo, a TCP SYN to 443, a TLS ClientHello with an SNI, a truncated ClientHello.
+Every differential test runs over the whole corpus so the failure paths are exercised, not only
+the happy one. Phase 1 reads no packet, and its cases hand `prog run` the fourteen bytes
+`BPF_PROG_TEST_RUN` demands of an XDP program.
 
 **Proving the compiler discriminates.** Removing a mechanism from the emitter must fail the
-suite. The emitter exposes a test hook (an environment variable the CLI does not read) that drops
-one thing at a time: the bounds check before a packet load, the divisor test, the `line_info`
-records, the `may_goto` header. Each has a test that asserts the verifier rejects the program, or
-that the log lacks the Lua line. Commit first: restoring is a `git checkout --`.
+suite. The emitter exposes a test hook, `LUAEBPF_DROP`, an environment variable the CLI has no
+option for, naming one mechanism to drop: `divisor` (the test before a division), `maygoto` (the header
+a loop without a proven bound needs), `lineinfo` (the `.BTF.ext` records), `verdict` (the write to
+`R0`), and from phase 2 the bounds check before a packet load. Each has a test that asserts the
+verifier rejects the program, that the log lacks the Lua line, or that the arithmetic changes.
 
 **Pinned object cleanup.** Programs, maps and links pinned by a test outlive it. The cleanup
 removes everything under `/sys/fs/bpf/luaebpf/` and under `/sys/fs/bpf/lunatik/tests/luaebpf/`
@@ -66,6 +70,7 @@ matching and failing, not a list of features.
 
 | Test | Proves |
 |------|--------|
+| `host.sh` | the body runs from the chunk `lunatic` compiles, rewritten for the CLI's Lua, and computes as the kernel does, a module installed as a kernel chunk included; `luaebpf.proto.read` hands back a function's own bytecode, `/` read as integer division, and refuses a function the CLI's Lua compiled |
 | `pass.sh` | the constant-verdict program compiles, loads, and `prog run` returns the verdict |
 | `arith.sh` | every integer operator over a corpus of operand pairs, negative operands included, matches the interpreter (`//` and `%` floor semantics, shifts past 63) |
 | `divzero.sh` | a division by zero returns the default verdict where the interpreter raises |
@@ -73,7 +78,7 @@ matching and failing, not a list of features.
 | `forconst.sh` | a `for` with constant bounds runs the right count; a zero-trip and a descending loop included |
 | `forvar.sh` | a `for` whose bound is a program value verifies with `may_goto` and terminates; skips and asserts the refusal on a kernel without it |
 | `call.sh` | a call to a file-declared function becomes a subprogram; the object carries one `func_info` per subprogram |
-| `refuse.sh` | each refused construct (runtime table, closure, vararg, `pcall`, unknown global, recursion, six-argument call) fails with its message and line, and nothing is written |
+| `refuse.sh` | each refused construct (runtime table, closure, vararg, `pcall`, unknown global, tail call, `while`, `repeat`, a float the CLI's libraries return, a float literal `lunatic` refuses to parse, a function the CLI's Lua compiled from a string) fails with its message and line, and nothing is written; recursion and the six-argument call sit in `call.sh`, beside the calls they are the edges of |
 | `lineinfo.sh` | the object's `.BTF.ext` names the `.lua` file, and a program broken by the test hook is rejected with a log that quotes the Lua line |
 | `budget.sh` | the log's "processed N insns" line for the corpus programs, recorded and asserted under a ceiling, so a regression in emitted shape is caught before it reaches the 1M budget |
 
