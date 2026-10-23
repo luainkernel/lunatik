@@ -270,6 +270,14 @@ chain took a macro signature, two wrappers and an API newer than the tree's floo
 small shape down first, even when the larger one is chosen, so the choice is a comparison and not a
 default.
 
+What a mechanism past the small shape buys keeps it only when it is one of two things, with its
+source: a defect the small shape leaves reachable, traced, or a need the issue or the maintainer
+stated, quoted. Fewer reads, more robust, the kernel spells it so: none of them is either, and the
+review removes such a mechanism by a fixup. A kernel idiom comes with the reason the kernel has for it,
+which the body names. #2083 copied a device's name into a local array before `lua_pushstring`, which
+copies it already, for "a read that never walks past the array", which no trace showed; its review
+kept the copy for one read per byte, and the maintainer's review took it out.
+
 An issue states the need, its contract and the API the maintainer settled, the types, names and calls
 a script sees, and leaves the code's inner structure to whoever implements it: a sentence that
 prescribes a helper, a loop or a step two functions share is read as the spec, and weighed by no one.

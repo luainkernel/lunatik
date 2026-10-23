@@ -96,7 +96,8 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
   skipped is where the reader assumes it looked.
 * A review runs the passes of AGENTS.md, *Before opening a pull request*, over the diff as passes of its own, not
   only the rules it can cite: the simplification pass, field by field and helper by helper, asking
-  what each buys over the minimal shape, and the shape pass, grepping the file's own siblings for the
+  what each buys over the minimal shape and keeping it only for a reachable defect or a stated need,
+  with its source (AGENTS.md, *Deciding what to change*), and the shape pass, grepping the file's own siblings for the
   form the tree uses: a predicate written as a function in a header of macros, a comment on one
   member of a struct whose members carry none, a wrapper a vararg made unnecessary, a field the
   accessor could read from `current`. A guard added to the core for one binding is read against every binding with the

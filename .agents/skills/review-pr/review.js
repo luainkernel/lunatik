@@ -138,10 +138,14 @@ Look for the smallest shape first: for every mechanism the diff adds (a registra
 a helper, a name), write the smaller change that would leave the same defect unreachable and why it was not
 taken; where correctness is equal and the shape is smaller, that is a finding, shipped as the fixup that
 makes it. Your answer's smallest is that reading of the whole diff: the smallest shape, its size beside the
-diff's, and what each mechanism past it buys.${a.smallest ? `
+diff's, and what each mechanism past it buys. Each one, the implementer's included, is kept or removed: it
+stays only with a source, a defect the smallest shape leaves reachable, traced, or a need the issue or the
+maintainer stated, quoted (AGENTS.md, "Deciding what to change"), and one without is removed by a fixup and
+answered removed.${a.smallest ? `
 The implementer's own reading, which yours is not bound by: ${JSON.stringify(a.smallest)}` : ''}${a.body && !a.pr ? `
 The pull request opens with this body once the build passes; read it with the commit bodies, and your answer's
-body is this text with what the final diff, your fixups included, makes untrue corrected, the rest as it stands:
+body is this text with what the final diff, your fixups included, makes untrue corrected, the smallest shape
+named in a sentence and each mechanism you kept with its source in a clause, the rest as it stands:
 ${JSON.stringify(a.body)}` : ''}
 For every mechanism the diff builds over a kernel primitive, name the kernel's own answer to the problem it
 solves, from Documentation/ and the primitive's users in the kernel tree, and say why the diff's shape and not
@@ -207,7 +211,9 @@ const SMALLEST = { type: 'object', properties: {
   diff: { type: 'integer', description: 'the lines the pull request adds and removes' },
   beyond: { type: 'array', items: { type: 'object', properties: {
     mechanism: { type: 'string' }, buys: { type: 'string', description: 'what it buys that the smallest shape does not' },
-  }, required: ['mechanism', 'buys'] } },
+    source: { type: 'string', description: 'the defect the smallest shape leaves reachable, with its trace, or the need the issue or the maintainer stated, quoted with where; empty when it has neither' },
+    verdict: { type: 'string', enum: ['kept', 'removed'], description: 'removed by a fixup when it has no source' },
+  }, required: ['mechanism', 'buys', 'source', 'verdict'] } },
 }, required: ['shape', 'lines', 'diff', 'beyond'] }
 
 const FINDINGS = {
@@ -265,6 +271,12 @@ else if (!a.validated || changed || unrun.length) {
   log(`build skipped: head ${a.head} already validated (${a.validated.suite}, core ${a.validated.core}, examples ${(a.validated.examples || []).join(' ') || 'none'}) and no fixup changed it`)
 }
 
+const unsourced = (reviewer?.smallest?.beyond || []).filter(b => b.verdict === 'kept' && !(b.source || '').trim())
+if (unsourced.length) {
+  reviewer.ready = false
+  log(`not ready: kept without a source: ${unsourced.map(b => b.mechanism).join('; ')}`)
+}
+
 const findings_left = [reviewer, build].flatMap(p => p?.findings_left || [])
-return { checkpoint, reviewer, build, validated: build && !build.skipped ? null : a.validated, findings_left }
+return { checkpoint, reviewer, build, validated: build && !build.skipped ? null : a.validated, findings_left, unsourced }
 
