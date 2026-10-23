@@ -1,10 +1,27 @@
 ---
 name: merged
-description: After the maintainer reports a pull request merged, retarget the pull requests stacked on its branch to the default branch, restack them onto it, delete the merged branch, and report the queue and the issues the merge closed. Use when told a pull request was merged.
+description: After a pull request merges, the maintainer's or a harness one the session merged once an agent's review passed it, retarget the pull requests stacked on its branch to the default branch, restack them onto it, delete the merged branch, and report the queue and the issues the merge closed. Use when told a pull request was merged, or to merge a harness pull request review.js returned ready.
 ---
 
 AGENTS.md, "Patches and commits", and the review-pr skill's process.md, "Comments and the verdict", are the authority; this card orders
 the steps. A merge reported by the maintainer is taken as given.
+
+# 0. Merge a harness pull request
+
+A harness pull request the session opened merges without the maintainer (AGENTS.md, "Patches and
+commits") once `review.js`, the review-pr skill's workflow, ran over it at `xhigh` and returned it
+ready, its fixups folded and pushed, and the CI passed on the head that carries them. The review's
+pass goes on that head as a commit status, and the merge names the head, so a push after either is
+refused, by `merge-guard.sh` and by GitHub:
+
+    gh api -X POST repos/<owner>/<repo>/statuses/<head> -f state=success -f context=agent-review -f description='review.js: ready'
+    gh api -X PUT repos/<owner>/<repo>/pulls/<N>/merge -f merge_method=rebase -f sha=<head>
+
+A fold moves the head and not the tree: the status goes on the folded head when its tree is the one
+the review returned, `git rev-parse <tip>^{tree}` against `<head>^{tree}`. What the review left as
+issues is filed before the merge, as implement-issue's last stage files it. A pull request the
+maintainer orders merged in his own words takes `MERGE_OK=1`. The steps below follow either merge,
+and the report reaches him as it does for his own.
 
 # 1. Read the merge
 

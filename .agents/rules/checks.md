@@ -221,6 +221,17 @@ on that are the ones already rebased. `REWRITE_OK=1` runs it once that list is k
 pull request merged before its base from going into the base's branch. A pull request moved onto such a
 base is made a draft first, `gh pr ready --undo <n>`, which the guard asks GitHub.
 
+`merge-guard.sh`, wired before a shell call, refuses a merge the session runs unless GitHub answers
+that it is a harness pull request an agent's review passed: opened by the posting account on master,
+every file the harness as `harness-mixed.sh --outside` reads it, none removed and none of what the gate
+reads, `.claude/settings.json`, `.github/`, the guard and `harness-mixed.sh`, and a head that carries
+the `agent-review` status, which the merged skill sets once `review.js` returned that head ready, and
+passed every check run. It refuses a merge other than by rebase too, the way the maintainer's merges
+land and the merged skill reads them. A commit status is GitHub's answer to a merge gated on a reviewed
+head, the check branch protection requires; the guard reads it itself, since branch protection is the
+maintainer's setting and would gate his own merges. `MERGE_OK=1` merges one he ordered merged in his
+own words.
+
 `fixup-guard.sh`, wired before a shell call, refuses opening a pull request whose head, compared on GitHub
 with its base, carries a `fixup!`, `amend!` or `squash!` commit: a pull request reaches the maintainer's first
 review squashed, and a fixup is how he reads what changed after it. `FIXUPS_OK=1` opens one that is not the
