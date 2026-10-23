@@ -191,7 +191,8 @@ ${a.validated && !unrun.length ? `Before any of that: \`${a.head}\` already pass
 so ask what the branch changed since in what the host reads, \`(cd ${repo} && bash tools/checks/functional.sh ${a.head} ${tip})\`.
 When it names nothing, comments, spacing, documents or the harness alone having moved, run nothing: answer skipped
 true, with the tip as head, the validated totals and core, and \`git diff --name-only ${a.head} ${tip}\` in notes.` : ''}
-Remove your worktree when you are done (\`rm -rf <tree> && git -C ${repo} worktree prune\`).
+Remove your worktree when you are done (\`rm -rf <tree> && git -C ${repo} worktree prune\`), and nothing else
+under ${a.scratch}/, which holds every phase's checkpoints and defect patches.
 `
 
 const LEFT = { type: 'array', items: { type: 'object', properties: {

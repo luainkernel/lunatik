@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+block	rm -rf scratch/b2066
+block	rm -rf scratch/b2066/
+block	rm -rf /srv/tree/scratch/b2066
+block	rm -r scratch
+block	rm -fr scratch/*
+block	rm -rf scratch/b2066/*
+block	rm -rf scratch/b2066/w && git worktree prune; rm -rf scratch/b2066
+block	sudo -n rm -Rf "scratch/b2066"
+block	bash -c 'rm --recursive --force scratch/b2066'
+pass	rm -rf scratch/b2066/w && git worktree prune
+pass	rm -rf scratch/wt/ci618 && git worktree prune
+pass	rm scratch/b2066/issue2066/defect1.patch
+pass	rm -f scratch/b2066
+pass	rm -rf "$W"
+pass	SCRATCH_OK=1 rm -rf scratch/old
+pass	git rm -r --cached scratch/notes
+pass	ls scratch/b2066
+pass	rm -rf build/scratch/a/b
