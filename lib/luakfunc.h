@@ -65,7 +65,7 @@ static inline void *luakfunc_getctx(lua_State *L)
 static inline int luakfunc_invoke(lua_State *L, int cb, int nresults)
 {
 	lua_rawgeti(L, LUA_REGISTRYINDEX, cb);
-	lua_insert(L, -2);
+	lua_pushvalue(L, -2); /* ctx: a detach in the callback unregisters it */
 	if (lua_pcall(L, 1, nresults, 0) != LUA_OK) {
 		pr_err_ratelimited("%s\n", lunatik_errmsg(L));
 		lua_pop(L, 1);

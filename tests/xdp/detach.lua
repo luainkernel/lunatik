@@ -8,12 +8,21 @@ local xdp    = require("xdp")
 local action = require("linux.xdp").action
 local packet = require("tests.xdp.packet")
 
+local held = setmetatable({}, {__mode = "v"})
+
 local function drop_then_detach(ctx)
 	if not packet.isping(ctx:packet()) then
 		return action.PASS
 	end
 	xdp.detach()
-	print("xdp detach test pass: verdict returned and callback detached")
+	held.ctx = ctx
+	ctx = nil
+	collectgarbage()
+	if held.ctx == nil then
+		print("xdp detach test fail: the context was collected inside its callback")
+	else
+		print("xdp detach test pass: verdict returned and callback detached")
+	end
 	return action.DROP
 end
 

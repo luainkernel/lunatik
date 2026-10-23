@@ -2489,7 +2489,10 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   from inside the callback, letting other traffic through; traffic resumes
   because `bpf_luatc_run` then returns `-1` and the eBPF program falls back
   to `TC_ACT_OK`, and the kfunc, which reaches the runtime with nothing
-  attached, reports "no callback attached".
+  attached, reports "no callback attached". After detaching, the callback holds
+  its context only in a weak table, drops its parameter and collects: the
+  dispatcher clears that context after the callback returns, so it must survive
+  the collection, and the case fails when the weak table lost it.
 
 - **tc attach**: `tc.attach` refuses a sleepable runtime with "runtime
   context mismatch: tc.ctx needs softirq".
@@ -2688,7 +2691,10 @@ bound before, and a first attach, which finds nothing, logs nothing.
   from inside the callback, letting other traffic through; traffic resumes
   because `bpf_luaxdp_run` then returns `-1` and the eBPF program falls back
   to `XDP_PASS`, and the kfunc, which reaches the runtime with nothing
-  attached, reports "no callback attached".
+  attached, reports "no callback attached". After detaching, the callback holds
+  its context only in a weak table, drops its parameter and collects: the
+  dispatcher clears that context after the callback returns, so it must survive
+  the collection, and the case fails when the weak table lost it.
 
 - **xdp attach**: `xdp.attach` refuses a sleepable runtime with "runtime
   context mismatch: xdp.ctx needs softirq".

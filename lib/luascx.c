@@ -177,6 +177,7 @@ LUAKFUNC_DEFINE_SET(scx, bpf_luascx_run);
 * Unregisters the Lua callback function associated with the current Lunatik runtime.
 * After calling this, `bpf_luascx_run` calls targeting this runtime invoke no Lua function:
 * they log `no callback attached`, return -1 and leave the decision to the eBPF program.
+* It may be called from the callback, whose decision still applies to the task at hand.
 * @function detach
 * @treturn nil
 * @usage
