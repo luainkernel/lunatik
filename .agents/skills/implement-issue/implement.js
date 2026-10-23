@@ -92,7 +92,8 @@ An issue is a request, not a decision to implement it. Judge it before you shape
    leaving it undone costs.
 2. Its approach: the smallest shape that meets the need, written first, beside the one the issue proposes and
    the alternatives, each with what it buys and what it costs, the comparison starting in the kernel's own
-   answer (AGENTS.md, "Deciding what to change"). Read what the issue asks to be researched, in the kernel
+   answer, resource by resource for an object kept past the code that lent it (AGENTS.md, "Deciding what to
+   change"). Read what the issue asks to be researched, in the kernel
    source and on the web, and name what you read.
 3. Your verdict. implement settles, as text the issue takes under an Update: line, the API, the contract and
    whatever format the issue leaves open, and leaves helpers and loops to the implementer (AGENTS.md, on what
@@ -131,7 +132,9 @@ agent does for a workflow). If it exists, read it first and continue from it. Ap
 you take it, what you read, decided, committed and measured, and your answer before you return.
 
 1. Read the issue and its comments, and the code and the kernel source they name; a cause is traced
-   before it is written down (AGENTS.md rule 1). An issue whose stimulus is a script out of contract
+   before it is written down (AGENTS.md rule 1). An object the change keeps past the code that lent it is
+   read against each of the kernel's keepers of such an object, resource by resource
+   (AGENTS.md, "Deciding what to change"). An issue whose stimulus is a script out of contract
    (AGENTS.md, "Deciding what to change") closes as not a defect, with no pull request.
 2. Write the smallest shape that makes the defect unreachable, or meets the need, in the checkpoint
    before any other, and take a larger one, a helper or a loop the issue prescribes included, which is a

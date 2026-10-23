@@ -291,7 +291,12 @@ users under `lib/` and `kernel/`, and the commit body names the facility the sha
 or the page that offers none: a reader that must block has SRCU, a walk that drops the lock has the
 contract the comment on `rhashtable_walk_enter` states, and a deferral of frees while readers sleep,
 written by hand, is SRCU again. `tools/checks/kernel-answer.sh` names a commit whose body carries no
-such comparison.
+such comparison. An object the binding keeps past the code that lent it is compared resource by
+resource: each keeper the comparison reads, the kernel's own code that keeps such an object, is read
+for every resource the object carries, a device, a route, a conntrack entry, and the body names the
+line each keeper has for each. An earlier push of #2099 read `nf_queue` and the socket receive queue
+for the device alone and dropped the copy's route, as `ip_frag_queue` does, where those two force it
+with `skb_dst_force`, as the merged one does.
 
 Reshaping or renaming an API means updating every consumer, grepped for — including consumers in
 stacked or sibling pull requests that will rebase onto the change. A caller left on the old shape

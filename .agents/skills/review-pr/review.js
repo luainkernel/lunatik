@@ -150,7 +150,10 @@ ${JSON.stringify(a.body)}` : ''}
 For every mechanism the diff builds over a kernel primitive, name the kernel's own answer to the problem it
 solves, from Documentation/ and the primitive's users in the kernel tree, and say why the diff's shape and not
 that one. For every field the diff adds beside an embedded kernel object, say what the object already records.
-For every read the diff removes, name what was stored, sized or kept only for that read. Then residues of
+For every read the diff removes, name what was stored, sized or kept only for that read. For an object the
+diff keeps past the code that lent it, read each of the kernel's keepers of such an object for every resource
+the object carries and list the line each has for each; a resource the diff handles otherwise than a keeper
+does is a finding unless it says why. Then residues of
 the path: anything in the final diff that exists because of how the branch grew rather than because the final
 shape needs it, names first, then comments, LDoc, commit bodies, the pull request body, READMEs and
 doc/capi.md. Then what the change duplicates: a field that keeps its own copy of a value another field
