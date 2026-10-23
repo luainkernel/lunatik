@@ -110,12 +110,8 @@ static int luaskb_ifname(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct net_device *dev = lskb->skb->dev;
-
-	if (dev != NULL) {
-		char name[IFNAMSIZ];
-		strscpy(name, dev->name, IFNAMSIZ); /* unlocked: a rename writes it under locks that sleep or are static */
-		lua_pushstring(L, name);
-	}
+	if (dev != NULL)
+		lua_pushstring(L, dev->name);
 	else
 		lua_pushnil(L);
 	return 1;
