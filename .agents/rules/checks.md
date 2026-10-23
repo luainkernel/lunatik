@@ -98,7 +98,8 @@ a value a function computes before a check that raises and does not read it, whi
 validating, and a load of one mode, which refuses what `require` and `load` take. It names a refusal
 raised with the family's wording as a literal, `luaL_error(L, "not allowed ...")`, whose message is a
 `LUNATIK_ERR_*` constant and whose check a `lunatik_check*` helper beside the family, which
-`guards.sh` counts. It annotates rather than fails, since the release-then-throw shape is not `lunatik_try`'s and the line
+`guards.sh` counts, and a local array a copy fills only for `lua_pushstring` or `lua_pushlstring` to
+read, which copy the string themselves. It annotates rather than fails, since the release-then-throw shape is not `lunatik_try`'s and the line
 between the check and the throw is what the reader decides on.
 
 `function-shape.sh` reads a C file for the shapes of a function that is more than one job, in the functions the diff against `CHECK_BASE` touches: a lock taken at
