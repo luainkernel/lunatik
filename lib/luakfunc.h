@@ -31,7 +31,8 @@ static inline lunatik_object_t *luakfunc_lookupruntime(char *key, size_t key_sz)
 
 	lunatik_object_t *runtimes = luakfunc_getruntimes();
 	if (unlikely(runtimes == NULL)) {
-		pr_err_ratelimited("couldn't find _ENV.runtimes\n");
+		if (!lunatik_isrunqueue()) /* a printk under the scx runqueue lock wakes a console waiter */
+			pr_err_ratelimited("couldn't find _ENV.runtimes\n");
 		return NULL;
 	}
 	lunatik_object_t *runtime = luarcu_getobject(runtimes, key, keylen);
@@ -39,7 +40,8 @@ static inline lunatik_object_t *luakfunc_lookupruntime(char *key, size_t key_sz)
 	if (runtime == NULL || likely(lunatik_isirq(runtime->opt)))
 		return runtime;
 
-	pr_err_ratelimited("'%s' is a process-context runtime, not dispatched\n", key);
+	if (!lunatik_isrunqueue())
+		pr_err_ratelimited("'%s' is a process-context runtime, not dispatched\n", key);
 	lunatik_putobject(runtime);
 	return NULL;
 }
@@ -57,7 +59,7 @@ static inline void *luakfunc_getctx(lua_State *L)
 {
 	void *ctx = luakfunc_findctx(L);
 
-	if (ctx == NULL)
+	if (ctx == NULL && !lunatik_isrunqueue())
 		pr_err_ratelimited("no callback attached (cpu %d)\n", lunatik_getcpu(L));
 	return ctx;
 }
@@ -67,7 +69,8 @@ static inline int luakfunc_invoke(lua_State *L, int cb, int nresults)
 	lua_rawgeti(L, LUA_REGISTRYINDEX, cb);
 	lua_insert(L, -2);
 	if (lua_pcall(L, 1, nresults, 0) != LUA_OK) {
-		pr_err_ratelimited("%s\n", lunatik_errmsg(L));
+		if (!lunatik_isrunqueue())
+			pr_err_ratelimited("%s\n", lunatik_errmsg(L));
 		lua_pop(L, 1);
 		return -1;
 	}

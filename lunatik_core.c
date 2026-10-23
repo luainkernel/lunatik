@@ -36,6 +36,9 @@ lunatik_object_t __rcu *lunatik_env;
 EXPORT_SYMBOL(lunatik_env);
 struct task_struct *lunatik_rtnl;	/* one task holds RTNL at a time */
 EXPORT_SYMBOL(lunatik_rtnl);
+
+DEFINE_PER_CPU(unsigned int, lunatik_runqueue);	/* nested scx dispatches on this CPU, IRQs off */
+EXPORT_PER_CPU_SYMBOL(lunatik_runqueue);
 EXPORT_SYMBOL(luaS_hash);	/* required by luarcu */
 
 static inline void lunatik_setversion(lua_State *L)

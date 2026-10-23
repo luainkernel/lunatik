@@ -458,6 +458,18 @@ own task holds: `lunatik_checkarmed` refuses every call that may sleep there. It
 task only, which is what a softirq runtime leaves to see: nothing that holds its lock sleeps, so no
 second task waits for RTNL under it. Defined as macros.
 
+### lunatik\_isrunqueue
+```C
+bool lunatik_isrunqueue(void);
+DECLARE_PER_CPU(unsigned int, lunatik_runqueue);
+```
+Returns `true` if the calling CPU is dispatching an scx callback, which runs with that CPU's
+runqueue lock held and IRQs off. Unlike [`lunatik_isrtnl`](#lunatik_isrtnl), the marker is a per-CPU
+counter and not one task pointer: the runqueue lock is per-CPU, so several CPUs run a callback at
+once, each under its own, and no single pointer can hold them all. The scx dispatch raises it with
+IRQs off around the callback and lowers it after, counting so a nested dispatch keeps the outer
+one's, as the kernel's own `printk_context` does. Defined as a macro.
+
 ### lunatik\_iskthread
 ```C
 bool lunatik_iskthread(void);
@@ -545,6 +557,15 @@ void lunatik_checkrtnl(lua_State *L);
 Raises a Lua error, `"not allowed under RTNL"`, when [`lunatik_isrtnl`](#lunatik_isrtnl) holds: from
 a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs.
 [`lunatik_checkarmed`](#lunatik_checkarmed) calls it, so every entry point that may sleep refuses there.
+
+### lunatik\_checkrunqueue
+```C
+void lunatik_checkrunqueue(lua_State *L);
+```
+Raises a Lua error, `"not allowed under the runqueue lock"`, when
+[`lunatik_isrunqueue`](#lunatik_isrunqueue) holds: from an scx callback, whose wakeup of a task
+would take the runqueue lock the CPU already holds. `completion:complete` uses it, since a mailbox's
+`send` wakes its waiter through it.
 
 ### lunatik\_checkowner
 ```C
