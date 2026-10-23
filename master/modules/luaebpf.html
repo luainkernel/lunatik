@@ -194,8 +194,9 @@
  and returns an object <code>bpftool prog load</code> accepts. Anything the subset refuses is an error
  naming the Lua file and line.</p>
 
-<p> The compiler runs on the machine that loads what it emits, so it reads the running kernel
- rather than being told which kernel to target.
+<p> The compiler runs on the machine that loads what it emits, so it reads the running kernel&rsquo;s
+ types rather than being told which kernel to target, and the kernel&rsquo;s version from
+ <code>lunatik.config</code>, which <code>make</code> writes from the tree Lunatik is built against.
     <h2 id="usage">Usage</h2>
         <pre class="example">local luaebpf = require(&quot;luaebpf&quot;)
 
@@ -257,7 +258,7 @@ local object = luaebpf.compile(&quot;filter.bpf.lua&quot;)
 <a href="../../modules/luaebpf.html">5.1 docs</a> ·
 <a href="../../5.0/modules/luaebpf.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 16:20:15</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 23:09:54</span>
 </div>
 </footer>
 </body>
