@@ -222,6 +222,8 @@ window.LUNATIK_SEARCH = [
 ["action","modules/linux.xdp.html#action","linux.xdp · XDP verdicts (enum xdp_action), what an xdp callback returns."],
 ["luaebpf","modules/luaebpf.html","Module · Compiles a Lua program file into a BPF ELF object."],
 ["compile (path)","modules/luaebpf.html#compile","luaebpf · Compiles the program file at path."],
+["luaebpf.vmlinux","modules/luaebpf.vmlinux.html","Module · The running kernel's own type information, read from /sys/kernel/btf/vmlinux."],
+["luaebpf.vmlinux.layout (what)","modules/luaebpf.vmlinux.html#luaebpf.vmlinux.layout","luaebpf.vmlinux · The layout of a kernel struct."],
 ["lunatik","modules/lunatik.html","Module · Manages Lunatik runtimes — isolated Lua states running in the kernel."],
 ["_ENV","modules/lunatik.html#_ENV","lunatik · Shared rcu.table through which scripts exchange objects."],
 ["cpu ()","modules/lunatik.html#cpu","lunatik · Returns the CPU id a percpu runtime serves."],
