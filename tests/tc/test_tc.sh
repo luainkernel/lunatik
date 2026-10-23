@@ -50,6 +50,12 @@
 # one the runner emptied, and the callback never runs. The case runs last, since
 # the reload replaces every module nothing holds.
 #
+# The ifname case attaches the pass program on the peer's egress, in the namespace, so the skb the
+# callback reads holds a device of a namespace other than the initial one: on the echo reply to a
+# ping from the host, the line pass.lua prints carries skb:ifname() and skb:ifindex(), the name and
+# the index the peer carries there, where a lookup in the initial namespace finds no such device.
+# The case skips without nsenter, which runs tc in the namespace.
+#
 # Usage: sudo bash tests/tc/test_tc.sh
 
 MODULE="luatc"
@@ -72,6 +78,7 @@ INVALID="$MODULE: invalid action"
 RAISED="${PREFIX}raised"
 RELOADED="tc reload: the callback runs after lunatik_run reloads under an attached program"
 NOTCX="tcx needs libbpf 1.3.0"
+IFNAME="tc ifname: the callback reads the name and the index of a device of another namespace"
 
 # the verdict cases: the payload sizes verdict.lua reads, the case each picks, what it logs
 VERDICT_PAYLOADS=(101 102 103 104 105 106 107)
@@ -92,22 +99,31 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 # load with bpftool (current libbpf) and attach the pinned program, so the suite
-# does not depend on the distribution's iproute2 being new enough to load it
+# does not depend on the distribution's iproute2 being new enough to load it:
+# tc_load <object> [<device> <tc>] attaches it on the egress of IFACE, or of the
+# device given through the command given in place of tc, and tc_unload
+# [<device> <tc>] detaches it there
 tc_load()
 {
-	tc qdisc add dev "$IFACE" clsact 2>/dev/null
+	local dev="${2:-$IFACE}" tc="${3:-tc}"
+	$tc qdisc add dev "$dev" clsact 2>/dev/null
 	bpftool prog load "$DIR/$1" "$PIN" 2>/dev/null &&
-		tc filter add dev "$IFACE" egress bpf da object-pinned "$PIN"
+		$tc filter add dev "$dev" egress bpf da object-pinned "$PIN"
 }
 
 tc_unload()
 {
-	tc filter del dev "$IFACE" egress 2>/dev/null
+	local dev="${1:-$IFACE}" tc="${2:-tc}"
+	$tc filter del dev "$dev" egress 2>/dev/null
 	rm -f "$PIN"
 }
 
+# tc in the namespace, where the peer is: nsenter keeps the /sys/fs/bpf the program is
+# pinned on, which `ip netns exec` hides under a sysfs of its own
+peer_tc() { nsenter --net="/run/netns/$NETNS" tc "$@"; }
+
 ktap_header
-ktap_plan 20
+ktap_plan 21
 
 skip_all()
 {
@@ -127,6 +143,7 @@ skip_all()
 	for title in "${VERDICT_TITLES[@]}"; do
 		ktap_skip "$title"
 	done
+	ktap_skip "$IFNAME"
 	ktap_skip "$RELOADED"
 	ktap_totals
 	exit 0
@@ -399,6 +416,31 @@ compiled_case()
 	ktap_pass "$title"
 }
 
+ifname_case()
+{
+	local ifindex read
+
+	command -v nsenter > /dev/null 2>&1 ||
+		{ echo "# SKIP: nsenter not available"; ktap_skip "$IFNAME"; return 0; }
+	tc_load tc_pass.bpf.o "$PEER" peer_tc ||
+		{ tc_unload "$PEER" peer_tc; ktap_fail "$IFNAME: failed to load/attach TC program"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/tc/pass"
+	# the echo reply leaves the namespace by the peer's egress, where the classifier sits
+	ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
+
+	tc_unload "$PEER" peer_tc
+	lunatik stop tests/tc/pass > /dev/null 2>&1
+
+	check_dmesg || { ktap_fail "$IFNAME: script raised an error"; return 1; }
+	ifindex=$(ip netns exec "$NETNS" cat "/sys/class/net/$PEER/ifindex")
+	read=$(dmesg_since | sed -n 's/.*tc pass test pass: .* read back on //p' | sort -u)
+	[ "$read" = "$PEER $ifindex" ] ||
+		{ ktap_fail "$IFNAME"; comment "read: ${read:-nothing}, want: $PEER $ifindex"; return 1; }
+	ktap_pass "$IFNAME"
+}
+
 reload_case()
 {
 	local before reloaded
@@ -450,6 +492,7 @@ nonlinear_case
 verdict_case
 compiled_case compiled_pass yes "tc compiled pass: a compiled program lets the ping through"
 compiled_case compiled_drop no "tc compiled drop: a compiled program blocks the ping"
+ifname_case
 reload_case
 
 ktap_totals
