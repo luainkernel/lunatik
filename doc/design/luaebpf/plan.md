@@ -122,6 +122,9 @@ Two constraints shape everything. The first is where the compiler runs:
 > CO-RE, no "which kernel is this for": the object is built for this kernel and loaded into it by
 > the same command. `make install` compiles the program files beside the scripts they belong to.
 
+It holds through phase 6. Two phases after it lift it: a build host compiling for the one kernel an
+image ships (#2103), and one object for a range of kernels through CO-RE (#2106).
+
 The second is what a program is:
 
 > The program file's body is compile-time Lua: it runs once, on the host, in the CLI's Lua, from
@@ -290,8 +293,9 @@ from it on, a user runs one.
   (`kernel-notes.md`). Revisited only if that changes upstream.
 * **A C or LLVM back end.** The runtime library is the only C, compiled once. A second emitter is
   two mechanisms doing one job.
-* **Cross compilation.** The compiler runs on the machine that runs the program. A build host
-  that compiles for another kernel needs CO-RE and is a different tool.
+* **Cross compilation and CO-RE, through phase 6.** The compiler runs on the machine that runs the
+  program; a build host compiling for an image's kernel (#2103) and an object for a range of
+  kernels (#2106) come after it.
 * **Replacing the interpreter.** The kernel Lua VM stays the language for everything the subset
   refuses; the escape hatch is how a program reaches it.
 * **An interpreter as a BPF program.** See "Decisions".
