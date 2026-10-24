@@ -15,7 +15,10 @@
 # takes without an error. The final mark (0xba000000) is cross-checked from
 # userspace with `conntrack -L`, mirroring how tc act_ctinfo reads ct->mark. A
 # second, notrack'd flow checks that connmark returns nil (read and write) when
-# there is no conntrack, and still refuses a value past 32 bits.
+# there is no conntrack, and still refuses a value past 32 bits. On the tracked
+# flow, skb:copy() reads connmark nil while the skb it was made from reads its
+# mark: the copy carries no conntrack entry, which a held one would keep its
+# namespace's teardown waiting on.
 #
 # Conntrack is engaged via an nft `ct state` rule; the test skips cleanly if
 # nf_conntrack is unavailable.
@@ -44,12 +47,13 @@ skip_all() {
 	ktap_skip "connmark get/set masked update — $*"
 	ktap_skip "connmark visible in conntrack table — $*"
 	ktap_skip "no-conntrack returns — $*"
+	ktap_skip "a copy carries no conntrack entry — $*"
 	ktap_totals
 	exit 0
 }
 
 ktap_header
-ktap_plan 3
+ktap_plan 4
 mark_dmesg
 
 modprobe nf_conntrack 2>/dev/null
@@ -93,6 +97,13 @@ if echo "$out" | grep -q "connmark: notrack ok"; then
 	ktap_pass "connmark returns nil without conntrack"
 else
 	fail "no-conntrack returns wrong: $(echo "$out" | grep -oE 'connmark: notrack [A-Za-z]+' | head -1)"
+fi
+
+# 4) a copy made on the tracked flow carries no conntrack entry.
+if echo "$out" | grep -q "connmark: copy ok"; then
+	ktap_pass "a copy carries no conntrack entry"
+else
+	fail "copy keeps the conntrack entry: $(echo "$out" | grep -oE 'connmark: copy [A-Za-z]+' | head -1)"
 fi
 
 check_dmesg || { ktap_totals; exit 1; }

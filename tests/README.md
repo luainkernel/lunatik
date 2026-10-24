@@ -2158,8 +2158,10 @@ pid, what a valid call does, and where it refuses to run.
   Lua-composed masked set that preserves out-of-mask bits, and a clear —
   cross-checked in the conntrack table with `conntrack -L`; a second `notrack`'d
   flow asserts `connmark` returns nil for read and write without conntrack, and
-  still refuses a value past 32 bits. Conntrack is engaged via an nft `ct state`
-  rule; skips cleanly if `nf_conntrack` is unavailable.
+  still refuses a value past 32 bits. On the tracked flow, `skb:copy()` reads
+  `connmark` nil while the skb it was made from reads its mark: a copy carries no
+  conntrack entry. Conntrack is engaged via an nft `ct state` rule; skips cleanly
+  if `nf_conntrack` is unavailable.
 - **bounds**: a `LOCAL_OUT` netfilter hook sets `skb:mark` and `skb:priority` to 0
   and to 0xffffffff and reads each back, reads a value back given `nil` as given
   no argument, and asks each for -1, 2^32 and 2^32 plus
