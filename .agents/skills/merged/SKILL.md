@@ -9,7 +9,7 @@ the steps. A merge reported by the maintainer is taken as given.
 # 0. Merge a harness pull request
 
 A harness pull request the session opened merges without the maintainer (AGENTS.md, "Patches and
-commits") once `review.js`, the review-pr skill's workflow, ran over it at `xhigh` and returned it
+commits") once `review.js`, the review-pr skill's workflow, ran over it at `high` and returned it
 ready, its fixups folded and pushed, and the CI passed on the head that carries them. The review's
 pass goes on that head as a commit status, and the merge names the head, so a push after either is
 refused, by `merge-guard.sh` and by GitHub:
