@@ -39,6 +39,7 @@
 #include <net/dst.h>
 #include <net/ip.h>
 #include <net/ip6_checksum.h>
+#include <net/xfrm.h>
 #if defined(CONFIG_NF_CONNTRACK_MARK)
 #include <net/netfilter/nf_conntrack.h>
 #endif
@@ -88,10 +89,22 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *, &luaskb_class,
 */
 LUNATIK_INTEGERGETTER(luaskb_len, luaskb_check, private->skb->len);
 
+#define luaskb_hook(lskb)	((lskb)->hook != NULL ? (luaskb_t *)(lskb)->hook->private : (lskb))
+
 static inline struct net_device *luaskb_dev(luaskb_t *lskb)
 {
-	luaskb_t *hook = lskb->hook != NULL ? (luaskb_t *)lskb->hook->private : lskb;
+	luaskb_t *hook = luaskb_hook(lskb);
 	return hook->gen == lskb->gen ? hook->skb->dev : NULL;
+}
+
+static inline bool luaskb_isoffloaded(luaskb_t *lskb)
+{
+	struct sk_buff *skb = luaskb_hook(lskb)->skb;
+	struct xfrm_offload *xo = xfrm_offload(skb);
+	struct sec_path *sp = skb_sec_path(skb);
+
+	return lskb->hook != NULL && xo != NULL && !(xo->flags & XFRM_GRO) &&
+		sp->xvec[sp->len - 1]->xso.dir != XFRM_DEV_OFFLOAD_IN;
 }
 
 /***
@@ -301,7 +314,8 @@ static int luaskb_checksum(lua_State *L)
 * The original is untouched and still takes the hook's verdict, so a callback that forwards a
 * packet returns `DROP` to not send it twice.
 * @function forward
-* @raise if skb has no device, MAC header is not set or is past the data, or clone fails
+* @raise if skb has no device, is a copy that would leave unencrypted where its device encrypts
+* the original by IPsec offload, MAC header is not set or is past the data, or clone fails
 */
 static int luaskb_forward(lua_State *L)
 {
@@ -310,6 +324,7 @@ static int luaskb_forward(lua_State *L)
 	struct net_device *dev = luaskb_dev(lskb);
 
 	luaL_argcheck(L, dev != NULL, 1, "skb has no device");
+	luaL_argcheck(L, !luaskb_isoffloaded(lskb), 1, "copy would leave unencrypted");
 	luaL_argcheck(L, skb_mac_header_was_set(skb), 1, "MAC header not set");
 	luaL_argcheck(L, skb_mac_header(skb) <= skb->data, 1, "MAC header past the data");
 
@@ -444,8 +459,9 @@ static const lunatik_class_t luaskb_class = {
 * and is then cleared as a view of a callback's skb is when the callback returns.
 * The copy reads the device of the skb it was made from until the callback that received
 * the original returns, so `forward()` sends it out of that device until then; afterwards
-* it reads none, and neither does a copy made from it. A copy carries no route and no
-* conntrack entry, so its `connmark()` returns nil.
+* it reads none, and neither does a copy made from it. A copy carries no route, no
+* conntrack entry and no skb extension, so its `connmark()` returns nil and its `forward()`
+* raises where the device encrypts the original by IPsec offload.
 * @function copy
 * @treturn skb
 * @raise if skb is FRAGLIST GSO, if the skb is not linear, in a tc callback or after a failed
@@ -463,6 +479,7 @@ static int luaskb_copy(lua_State *L)
 	copy->skb->dev = NULL; /* skb_copy holds no reference on it */
 	skb_dst_drop(copy->skb); /* a route's dst_ops live in its namespace, which a kept copy can outlive */
 	nf_reset_ct(copy->skb); /* a held entry keeps its namespace from being torn down */
+	skb_ext_reset(copy->skb); /* xfrm states outlive their namespace, and an MCTP flow's socket holds it */
 	copy->hook = lskb->hook != NULL ? lskb->hook : lunatik_toobject(L, 1);
 	lunatik_getobject(copy->hook);
 	copy->gen = lskb->gen;
