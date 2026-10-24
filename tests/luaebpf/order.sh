@@ -6,7 +6,9 @@
 # Tests the byte order the compiler writes an object in, the one luaebpf.emit.bigendian names:
 # the kernel's that lunatik.config carries, or the one a program file's body sets it to. The
 # program files of call and mapget are copied into the scratch directory under a first line that
-# sets the order, once to the host's and once to the other, and each copy is compiled.
+# sets the order, once to the host's and once to the other, and each copy is compiled, the other's
+# through --btf against the kernel's BTF swapped into that order, where mapget's packet reads find
+# the layout of xdp_md.
 #   - readelf reads each object in the order its body set
 #   - llvm-objdump disassembles each object of the other order, for that order's target, to the
 #     instructions and relocations it reads in the host order's object for the host's: call's
@@ -51,11 +53,13 @@ keyed() {
 	} > "$LUAEBPF_WORK/$1.bpf.lua"
 }
 
+luaebpf_swapped /sys/kernel/btf/vmlinux "$LUAEBPF_WORK/swapped.btf" \
+	|| fail "luaebpf: the kernel BTF could not be swapped into the $other-endian order"
 for name in $PROGRAMS; do
-	for order in $host $other; do
-		output=$(luaebpf_ordered $order $name) \
-			|| { comment "$output"; fail "luaebpf: $name.bpf.lua did not compile $order-endian"; }
-	done
+	output=$(luaebpf_ordered $host $name) \
+		|| { comment "$output"; fail "luaebpf: $name.bpf.lua did not compile $host-endian"; }
+	output=$(luaebpf_ordered $other $name --btf="$LUAEBPF_WORK/swapped.btf") \
+		|| { comment "$output"; fail "luaebpf: $name.bpf.lua did not compile $other-endian"; }
 done
 ktap_pass "luaebpf: a body that sets luaebpf.emit.bigendian compiles in either order"
 

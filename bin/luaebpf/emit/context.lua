@@ -5,7 +5,7 @@
 
 ---
 -- The context proxy: a method reads the field of the context struct its program's constructor maps
--- it to, at the offset the running kernel lays that field out at, and a setter stores there first.
+-- it to, at the offset the kernel's BTF lays that field out at, and a setter stores there first.
 -- @module luaebpf.emit.context
 
 local insn    = require("luaebpf.insn")
@@ -22,7 +22,7 @@ local INT  <const> = frame.INT
 
 local context = {CTX = CTX}
 
--- the running kernel's own layout of the context struct, read once per program
+-- the kernel's own layout of the context struct, from its BTF, read once per program
 local function layout(f)
 	local unit = f.unit
 	if unit.layout == nil then

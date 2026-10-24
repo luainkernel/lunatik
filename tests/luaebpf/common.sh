@@ -4,9 +4,10 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Helpers the luaebpf cases share: the toolchain check that turns a missing tool into a skip,
-# the compile into a scratch directory, the load into a pin root, the differential run
-# against the oracle a program file's own body wrote while it compiled, and, for the loader
-# cases, the device they attach to and what a refused `lunatik run` may not leave behind.
+# the compile into a scratch directory, in either byte order, the kernel's BTF swapped into the
+# other, the load into a pin root, the differential run against the oracle a program file's own
+# body wrote while it compiled, and, for the loader cases, the device they attach to and what a
+# refused `lunatik run` may not leave behind.
 # Source this file, and tests/lib.sh, from each case.
 
 # the program files install beside the cases, out of the tree the kernel's require reads
@@ -118,12 +119,14 @@ luaebpf_differential() {
 	[ "$mismatch" -eq 0 ]
 }
 
-# a refused construct: the message names the file and the line, the CLI exits non-zero, and no
-# object is left behind
+# luaebpf_refuses <name> <pattern> [<option>...]: a refused construct, the program file compiled with
+# the options given: the message names the file and the line, the CLI exits non-zero, and no object
+# is left behind
 luaebpf_refuses() {
 	local name="$1" pattern="$2" out
+	shift 2
 	rm -f "$LUAEBPF_WORK/$name.bpf.o"
-	out=$(cd "$LUAEBPF_WORK" && lunatik bpf -o "$LUAEBPF_WORK/$name.bpf.o" \
+	out=$(cd "$LUAEBPF_WORK" && lunatik bpf "$@" -o "$LUAEBPF_WORK/$name.bpf.o" \
 		"$LUAEBPF_WORK/$name.bpf.lua" 2>&1)
 	if [ $? -eq 0 ]; then
 		echo "$name: compiled, and the construct should have been refused"
@@ -140,18 +143,56 @@ luaebpf_refuses() {
 	return 0
 }
 
-# luaebpf_ordered <order> <name>: the program file <name> compiled from a copy whose first line sets
-# luaebpf.emit.bigendian to <order>, little or big, in a directory of that order's own, so the copy
-# carries the name the object takes
+# luaebpf_ordered <order> <name> [<option>...]: the program file <name> compiled, with the options
+# given, from a copy whose first line sets luaebpf.emit.bigendian to <order>, little or big, in a
+# directory of that order's own, so the copy carries the name the object takes
 luaebpf_ordered() {
 	local order="$1" name="$2" dir="$LUAEBPF_WORK/$1" bigendian=false
+	shift 2
 	[ "$order" = big ] && bigendian=true
 	mkdir -p "$dir"
 	{
 		echo "require(\"luaebpf.emit\").bigendian = $bigendian"
 		cat "$LUAEBPF_SRC/$name.bpf.lua"
 	} > "$dir/$name.bpf.lua"
-	( cd "$dir" && lunatik bpf -o "$dir/$name.bpf.o" "$dir/$name.bpf.lua" ) 2>&1
+	( cd "$dir" && lunatik bpf "$@" -o "$dir/$name.bpf.o" "$dir/$name.bpf.lua" ) 2>&1
+}
+
+# luaebpf_swapped <btf> <out>: the raw BTF <btf> written to <out> in the other byte order. Past the
+# magic, the version and the flags, every field of the header and of the types is a word, as
+# libbpf's btf_bswap_hdr and btf_bswap_type_rest swap them, and the strings are bytes
+luaebpf_swapped() {
+	lua5.5 - "$1" "$2" <<'LUA'
+local pack, unpack = string.pack, string.unpack
+local insert       = table.insert
+
+local MAGIC <const> = 0xeb9f
+local WORD  <const> = 4
+
+local file = assert(io.open(arg[1], "rb"))
+local bytes = file:read("a")
+file:close()
+
+local from = unpack("<I2", bytes) == MAGIC and "<" or ">"
+local to = from == "<" and ">" or "<"
+local hdrlen, typeoff, typelen = unpack(from .. "I4I4I4", bytes, 5)
+local types = hdrlen + typeoff
+local out = {pack(to .. "I2", MAGIC), bytes:sub(3, 4)}
+
+local function swap(first, last)
+	for at = first, last, WORD do
+		insert(out, pack(to .. "I4", (unpack(from .. "I4", bytes, at))))
+	end
+end
+
+swap(5, hdrlen)
+insert(out, bytes:sub(hdrlen + 1, types))
+swap(types + 1, types + typelen)
+insert(out, bytes:sub(types + typelen + 1))
+file = assert(io.open(arg[2], "wb"))
+assert(file:write(table.concat(out)))
+assert(file:close())
+LUA
 }
 
 # `make install` compiles no program file of this suite, so a loader case puts its own object
