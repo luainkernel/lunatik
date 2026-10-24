@@ -94,7 +94,7 @@ end
 -- @tparam integer bits
 -- @treturn integer its type id
 function types:integer(name, size, bits)
-	return self:add(pack("<I4I4I4I4", self:string(name), typeinfo(KIND_INT, 0), size,
+	return self:add(pack("=I4I4I4I4", self:string(name), typeinfo(KIND_INT, 0), size,
 		(SIGNED << 24) | bits))
 end
 
@@ -110,11 +110,11 @@ end
 function types:func(name, nparams, linkage, signature)
 	local params = {}
 	for i = 1, nparams do
-		insert(params, pack("<I4I4", self:string("a" .. i), signature.param))
+		insert(params, pack("=I4I4", self:string("a" .. i), signature.param))
 	end
-	local proto = self:add(pack("<I4I4I4", 0, typeinfo(KIND_FUNC_PROTO, nparams), signature.result)
+	local proto = self:add(pack("=I4I4I4", 0, typeinfo(KIND_FUNC_PROTO, nparams), signature.result)
 		.. concat(params))
-	return self:add(pack("<I4I4I4", self:string(name), typeinfo(KIND_FUNC, linkage), proto))
+	return self:add(pack("=I4I4I4", self:string(name), typeinfo(KIND_FUNC, linkage), proto))
 end
 
 ---
@@ -123,7 +123,7 @@ end
 -- @tparam integer id
 -- @treturn integer its type id
 function types:pointer(id)
-	return self:add(pack("<I4I4I4", 0, typeinfo(KIND_PTR, 0), id))
+	return self:add(pack("=I4I4I4", 0, typeinfo(KIND_PTR, 0), id))
 end
 
 ---
@@ -134,8 +134,8 @@ end
 -- @tparam integer n
 -- @treturn integer its type id
 function types:array(id, n)
-	return self:add(pack("<I4I4I4", 0, typeinfo(KIND_ARRAY, 0), 0)
-		.. pack("<I4I4I4", id, self.int, n))
+	return self:add(pack("=I4I4I4", 0, typeinfo(KIND_ARRAY, 0), 0)
+		.. pack("=I4I4I4", id, self.int, n))
 end
 
 ---
@@ -148,10 +148,10 @@ end
 function types:struct(name, members)
 	local fields, size = {}, #members * WORD
 	for i, member in ipairs(members) do
-		insert(fields, pack("<I4I4I4", self:string(member.name), member.type,
+		insert(fields, pack("=I4I4I4", self:string(member.name), member.type,
 			(i - 1) * WORD * BYTE))
 	end
-	return self:add(pack("<I4I4I4", self:string(name), typeinfo(KIND_STRUCT, #members), size)
+	return self:add(pack("=I4I4I4", self:string(name), typeinfo(KIND_STRUCT, #members), size)
 		.. concat(fields)), size
 end
 
@@ -162,8 +162,8 @@ end
 -- @tparam integer id
 -- @treturn integer its type id
 function types:var(name, id)
-	return self:add(pack("<I4I4I4", self:string(name), typeinfo(KIND_VAR, 0), id)
-		.. pack("<I4", ALLOCATED))
+	return self:add(pack("=I4I4I4", self:string(name), typeinfo(KIND_VAR, 0), id)
+		.. pack("=I4", ALLOCATED))
 end
 
 ---
@@ -175,10 +175,10 @@ end
 function types:datasec(name, entries)
 	local records, size = {}, 0
 	for _, entry in ipairs(entries) do
-		insert(records, pack("<I4I4I4", entry.type, entry.offset, entry.size))
+		insert(records, pack("=I4I4I4", entry.type, entry.offset, entry.size))
 		size = size + entry.size
 	end
-	return self:add(pack("<I4I4I4", self:string(name), typeinfo(KIND_DATASEC, #entries), size)
+	return self:add(pack("=I4I4I4", self:string(name), typeinfo(KIND_DATASEC, #entries), size)
 		.. concat(records))
 end
 
@@ -188,16 +188,16 @@ end
 -- @treturn string
 function types:pack()
 	local body, strings = concat(self.records), self.names:pack()
-	return pack("<I2I1I1I4I4I4I4I4", MAGIC, VERSION, 0, HDRLEN, 0, #body, #body, #strings)
+	return pack("=I2I1I1I4I4I4I4I4", MAGIC, VERSION, 0, HDRLEN, 0, #body, #body, #strings)
 		.. body .. strings
 end
 
 local function segment(self, sections, recsize, field)
-	local out = {pack("<I4", recsize)}
+	local out = {pack("=I4", recsize)}
 	for _, section in ipairs(sections) do
 		local records = section[field]
 		if #records > 0 then
-			insert(out, pack("<I4I4", self:string(section.name), #records))
+			insert(out, pack("=I4I4", self:string(section.name), #records))
 			for _, record in ipairs(records) do
 				insert(out, record)
 			end
@@ -213,7 +213,7 @@ end
 -- @tparam integer id
 -- @treturn string
 function btf.funcinfo(at, id)
-	return pack("<I4I4", at, id)
+	return pack("=I4I4", at, id)
 end
 
 ---
@@ -226,7 +226,7 @@ end
 -- @tparam integer column
 -- @treturn string
 function btf.lineinfo(at, file, text, line, column)
-	return pack("<I4I4I4I4", at, file, text, (line << 10) | column)
+	return pack("=I4I4I4I4", at, file, text, (line << 10) | column)
 end
 
 ---
@@ -237,7 +237,7 @@ end
 function types:ext(sections)
 	local funcs = segment(self, sections, FUNCREC, "funcs")
 	local lines = segment(self, sections, LINEREC, "lines")
-	return pack("<I2I1I1I4I4I4I4I4I4I4", MAGIC, VERSION, 0, EXTLEN, 0, #funcs, #funcs, #lines,
+	return pack("=I2I1I1I4I4I4I4I4I4I4", MAGIC, VERSION, 0, EXTLEN, 0, #funcs, #funcs, #lines,
 		#funcs + #lines, 0) .. funcs .. lines
 end
 

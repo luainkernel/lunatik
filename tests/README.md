@@ -1031,10 +1031,11 @@ interpreter raises, the compiled program owes its default verdict instead.
   XDP program of five instructions by hand with `luaebpf.insn`, a jump over
   one of them and a 64-bit immediate among them, and writes it with
   `luaebpf.elf` and `luaebpf.btf`. `readelf` reads a relocatable eBPF object
-  whose sections are `xdp`, `license`, `.BTF`, `.BTF.ext`, `.symtab` and
-  `.strtab`, the program a global `FUNC` symbol sized by its six slots, the
-  instructions as assembled, the jump's offset resolved and the immediate
-  split in two, and `Dual MIT/GPL` in `license`; `bpftool btf dump file`
+  in the host's byte order whose sections are `xdp`, `license`, `.BTF`,
+  `.BTF.ext`, `.symtab` and `.strtab`, the program a global `FUNC` symbol
+  sized by its six slots, the instructions as assembled in that order with the
+  register nibbles where it lays them out, the jump's offset resolved and the
+  immediate split in two, and `Dual MIT/GPL` in `license`; `bpftool btf dump file`
   reads the program's `FUNC` over its `FUNC_PROTO`, and the `.BTF.ext` header
   sizes one `func_info` and a `line_info` per source line, whose strings
   `.BTF` carries. Skips when `readelf` or `bpftool` is missing, or when

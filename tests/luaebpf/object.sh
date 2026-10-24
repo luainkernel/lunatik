@@ -7,11 +7,12 @@
 # with luaebpf.insn, a jump to a label placed past the instruction it skips and a 64-bit immediate
 # among its five instructions, writes it with luaebpf.elf and luaebpf.btf, and what reads an object
 # without loading it reads it back.
-#   - readelf reads a relocatable eBPF object whose sections are xdp, license, .BTF, .BTF.ext,
-#     .symtab and .strtab, in that order
+#   - readelf reads a relocatable eBPF object in the host's byte order, whose sections are xdp,
+#     license, .BTF, .BTF.ext, .symtab and .strtab, in that order
 #   - the program is a global FUNC symbol of the xdp section, sized by its six instruction slots
-#   - the xdp section holds the instructions as assembled: the jump's offset counts from the
-#     instruction after it, and the immediate is split across two slots
+#   - the xdp section holds the instructions as assembled, in the host's byte order with the
+#     register nibbles it lays out: the jump's offset counts from the instruction after it, and the
+#     immediate is split across two slots
 #   - the license section reads Dual MIT/GPL
 #   - bpftool reads the BTF: the program's FUNC over a FUNC_PROTO taking a long and returning an int
 #   - the .BTF.ext header, as Documentation/bpf/btf.rst lays it out, sizes one func_info record and
@@ -105,19 +106,28 @@ LUA
 [ -s "$OBJECT" ] || fail "luaebpf: the object is empty"
 ktap_pass "luaebpf: the CLI's Lua writes a program assembled by hand"
 
+order=$(host_order)
+if [ "$order" = little ]; then
+	expected="b700000001000000 0500010000000000 b700000000000000 1801000002000000 0000000001000000 9500000000000000"
+	exthdr="9feb0100200000000000000014000000140000003c000000"
+else
+	expected="b700000000000001 0500000100000000 b700000000000000 1810000000000002 0000000000000001 9500000000000000"
+	exthdr="eb9f0100000000200000000000000014000000140000003c"
+fi
+
 header=$(readelf -h "$OBJECT")
 grep -q "Type:.*REL" <<< "$header" && grep -q "Machine:.*Linux BPF" <<< "$header" \
-	|| { comment "$header"; fail "luaebpf: readelf does not read a relocatable eBPF object"; }
+	&& grep -q "Data:.*$order endian" <<< "$header" \
+	|| { comment "$header"; fail "luaebpf: readelf does not read a relocatable eBPF object in the host's order"; }
 sections=$(readelf -S -W "$OBJECT" | sed -n 's/^ *\[ *[1-9][0-9]*\] \([^ ]*\).*/\1/p' | tr '\n' ' ')
 [ "$sections" = "xdp license .BTF .BTF.ext .symtab .strtab " ] \
 	|| fail "luaebpf: the sections are '$sections'"
-ktap_pass "luaebpf: readelf reads a relocatable eBPF object with the sections the writer laid out"
+ktap_pass "luaebpf: readelf reads a relocatable eBPF object in the host's order with the sections the writer laid out"
 
 symbol=$(readelf -s -W "$OBJECT" | awk '$8 == "prog" { print $3, $4, $5, $7 }')
 [ "$symbol" = "48 FUNC GLOBAL 1" ] || fail "luaebpf: the program's symbol is '$symbol'"
 ktap_pass "luaebpf: the program is a global FUNC of its section, sized by its instructions"
 
-expected="b700000001000000 0500010000000000 b700000000000000 1801000002000000 0000000001000000 9500000000000000"
 code=$(section_hex xdp)
 [ "$code" = "${expected// /}" ] || fail "luaebpf: the xdp section holds $code"
 ktap_pass "luaebpf: the section holds the instructions as assembled, the jump resolved and the immediate split"
@@ -137,7 +147,7 @@ ktap_pass "luaebpf: bpftool reads the program's FUNC over its FUNC_PROTO"
 
 # magic and version, hdr_len 32, func_info at 0 for 4 + 8 + 8 bytes, line_info past it for 4 + 8 + 3 * 16
 ext=$(section_hex .BTF.ext)
-[ "${ext:0:48}" = "9feb0100200000000000000014000000140000003c000000" ] \
+[ "${ext:0:48}" = "$exthdr" ] \
 	|| fail "luaebpf: the .BTF.ext header reads ${ext:0:48}"
 btf=$(section_hex .BTF)
 for text in object.sh "r0 = 1" "r0 = 0" "r1 = 0x100000002"; do
