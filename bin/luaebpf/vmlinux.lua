@@ -4,7 +4,8 @@
 --
 
 ---
--- The running kernel's own type information, read from `/sys/kernel/btf/vmlinux`.
+-- The kernel's own type information, read from a raw BTF file: `/sys/kernel/btf/vmlinux`, the
+-- running kernel's, unless `luaebpf.compile` is handed the BTF of the kernel it compiles for.
 --
 -- A layout comes back in the shape `autogen` emits and `struct` consumes, so a kernel struct
 -- becomes a codec, a map value spec or a set of context offsets with nothing transcribed from a
@@ -23,6 +24,7 @@ local insert = table.insert
 
 local VMLINUX  <const> = "/sys/kernel/btf/vmlinux"
 local MAGIC    <const> = 0xeb9f
+local SWAPPED  <const> = 0x9feb -- the magic read in the other byte order, as libbpf's btf_parse_hdr tells it
 local HDRLEN   <const> = 24
 local TYPESIZE <const> = 12
 local MEMBER   <const> = 12
@@ -61,35 +63,47 @@ local qualifiers = {[TYPEDEF] = true, [VOLATILE] = true, [CONST] = true, [RESTRI
 -- only an INT says where its bits sit in their word
 local integers = {[INT] = true, [ENUM] = true, [ENUM64] = true}
 
+-- the byte order a refusal names for each prefix string.unpack reads a BTF with
+local endianness = {["<"] = "little", [">"] = "big"}
+
 local vmlinux = {}
 
--- one scan of a five-megabyte file answers every struct a compilation asks for
-local cached
-
-local function read(path)
-	local file = io.open(path, "rb")
-	if file == nil then
-		return nil
-	end
-	local bytes = file:read("a")
-	file:close()
-	return bytes
-end
+-- the file the layouts are read from, and one scan of it, which answers every struct a
+-- compilation asks for
+local source, cached = VMLINUX, nil
 
 local function name(self, at)
 	return (unpack("z", self.bytes, self.strings + at))
 end
 
--- one pass over the type section: where each id starts, and the id of each named struct
-local function index(bytes)
-	local magic, _, _, hdrlen, typeoff, typelen, stroff = unpack("=I2I1I1I4I4I4I4", bytes)
-	if magic ~= MAGIC or hdrlen < HDRLEN then
+-- the prefix string.unpack reads a BTF with, which its magic says
+local function order(bytes)
+	if #bytes < HDRLEN then
 		return nil
 	end
-	local self = {bytes = bytes, strings = hdrlen + stroff + 1, offsets = {}, structs = {}}
+	local magic = unpack("<I2", bytes)
+	return magic == MAGIC and "<" or magic == SWAPPED and ">" or nil
+end
+
+-- one pass over the type section: where each id starts, and the id of each named struct; or nil and
+-- what the bytes are not
+local function index(bytes)
+	local endian = order(bytes)
+	if endian == nil then
+		return nil, "carries no BTF header"
+	end
+	local _, _, _, hdrlen, typeoff, typelen, stroff, strlen = unpack(endian .. "I2I1I1I4I4I4I4I4", bytes)
+	if hdrlen < HDRLEN then
+		return nil, "carries no BTF header"
+	end
+	-- the bounds btf_parse_hdr checks, so a file cut short is refused rather than read past its end
+	if typeoff + typelen > stroff or hdrlen + stroff + strlen > #bytes then
+		return nil, "is shorter than its BTF header says"
+	end
+	local self = {bytes = bytes, order = endian, strings = hdrlen + stroff + 1, offsets = {}, structs = {}}
 	local at, last, id = hdrlen + typeoff + 1, hdrlen + typeoff + typelen, 0
 	while at <= last do
-		local nameoff, info = unpack("=I4I4", bytes, at)
+		local nameoff, info = unpack(endian .. "I4I4", bytes, at)
 		local kind, vlen = (info >> 24) & 0x1f, info & 0xffff
 		id = id + 1
 		self.offsets[id] = at
@@ -108,7 +122,7 @@ local function resolve(self, id)
 		if at == nil then
 			return nil
 		end
-		local _, info, size = unpack("=I4I4I4", self.bytes, at)
+		local _, info, size = unpack(self.order .. "I4I4I4", self.bytes, at)
 		local kind = (info >> 24) & 0x1f
 		if not qualifiers[kind] then
 			return kind, size, at
@@ -126,10 +140,10 @@ local function scalar(self, id)
 		return nil
 	end
 	if kind ~= INT then
-		local _, info = unpack("=I4I4", self.bytes, at)
+		local _, info = unpack(self.order .. "I4I4", self.bytes, at)
 		return size, info >> 31 == 1
 	end
-	local encoding = unpack("=I4", self.bytes, at + TYPESIZE)
+	local encoding = unpack(self.order .. "I4", self.bytes, at + TYPESIZE)
 	local bits, offset = encoding & 0xff, (encoding >> 16) & 0xff
 	if offset ~= 0 or bits ~= size * BYTE then
 		return nil
@@ -140,7 +154,7 @@ end
 local function members(self, at, vlen, kflag)
 	local fields = {}
 	for i = 0, vlen - 1 do
-		local nameoff, typeid, offset = unpack("=I4I4I4", self.bytes, at + TYPESIZE + i * MEMBER)
+		local nameoff, typeid, offset = unpack(self.order .. "I4I4I4", self.bytes, at + TYPESIZE + i * MEMBER)
 		local bitfield = kflag == 1 and offset >> 24 or 0
 		local bit = kflag == 1 and offset & 0xffffff or offset
 		local size, signed = scalar(self, typeid)
@@ -154,10 +168,46 @@ end
 
 local function reader()
 	if cached == nil then
-		local bytes = read(VMLINUX)
-		cached = bytes ~= nil and index(bytes) or false
+		local file, err = io.open(source, "rb")
+		if file == nil then
+			error(err, 0)
+		end
+		local bytes = file:read("a")
+		file:close()
+		local reason
+		cached, reason = index(bytes or "")
+		if cached == nil then
+			error(("%s %s"):format(source, reason), 0)
+		end
 	end
-	return cached or nil
+	return cached
+end
+
+---
+-- Reads the layouts from the raw BTF file at `path` from then on, the bytes
+-- `/sys/kernel/btf/vmlinux` serves, in the byte order its magic is written in. The file is read
+-- when a layout is first asked for.
+-- @function luaebpf.vmlinux.open
+-- @tparam[opt] string path the file, `/sys/kernel/btf/vmlinux` when absent
+function vmlinux.open(path)
+	path = path or VMLINUX
+	if path ~= source then
+		source, cached = path, nil
+	end
+end
+
+---
+-- Refuses the BTF a layout was read from when it is not in the object's byte order, since it then
+-- describes another kernel than the one the object is for.
+-- @function luaebpf.vmlinux.check
+-- @tparam boolean bigendian whether the object is big-endian
+-- @raise `<path> is a <order>-endian BTF, for a <order>-endian object`
+function vmlinux.check(bigendian)
+	local expected = bigendian and ">" or "<"
+	if cached ~= nil and cached.order ~= expected then
+		error(("%s is a %s-endian BTF, for a %s-endian object"):format(source, endianness[cached.order],
+			endianness[expected]), 0)
+	end
 end
 
 ---
@@ -170,19 +220,16 @@ end
 -- @tparam string what the struct's name, as `bpftool btf dump` prints it
 -- @treturn table `{size = bytes, fields = {{name, offset, size, signed}, ...}}`, offsets and
 --   sizes in bytes
--- @raise `the kernel publishes no BTF`, when `/sys/kernel/btf/vmlinux` cannot be read or carries
---   no BTF header, and `the kernel BTF has no struct '<what>'`
+-- @raise `<path>: <reason>`, when the BTF file cannot be read, `<path> carries no BTF header`,
+--   `<path> is shorter than its BTF header says`, and `the kernel BTF has no struct '<what>'`
 function vmlinux.layout(what)
 	local self = reader()
-	if self == nil then
-		error("the kernel publishes no BTF", 0)
-	end
 	local id = self.structs[what]
 	if id == nil then
 		error(("the kernel BTF has no struct '%s'"):format(what), 0)
 	end
 	local at = self.offsets[id]
-	local _, info, size = unpack("=I4I4I4", self.bytes, at)
+	local _, info, size = unpack(self.order .. "I4I4I4", self.bytes, at)
 	return {size = size, fields = members(self, at, info & 0xffff, info >> 31)}
 end
 

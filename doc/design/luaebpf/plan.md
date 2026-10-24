@@ -115,15 +115,16 @@ The kernel modules are unchanged. `lib/luakfunc.h`, `lib/luaxdp.c` and `lib/luat
 they are and gain a caller: generated code instead of hand-written C. `lib/luabpf.c` and
 `lib/bpf/map.lua` stay the control plane.
 
-Two constraints shape everything. The first is where the compiler runs:
+Two constraints shape everything. The first is which kernel the compiler compiles for:
 
-> The compiler runs on the machine that runs the program, reading `/sys/kernel/btf/vmlinux` for
-> types and probing the kernel for the loop forms it accepts. There is no cross compilation, no
-> CO-RE, no "which kernel is this for": the object is built for this kernel and loaded into it by
-> the same command. `make install` compiles the program files beside the scripts they belong to.
+> The compiler compiles for one kernel, the one `lunatik.config` describes, reading its BTF from
+> `/sys/kernel/btf/vmlinux` on the machine that runs the program, or from the file `--btf` names on
+> a build host compiling for the one kernel an image ships (#2103). There is no CO-RE and no "which
+> kernels is this for": the object is built for that kernel and loads into it alone. `make install`
+> compiles the program files beside the scripts they belong to.
 
-It holds through phase 6. Two phases after it lift it: a build host compiling for the one kernel an
-image ships (#2103), and one object for a range of kernels through CO-RE (#2106).
+It holds through phase 6. One phase after it lifts it: one object for a range of kernels through
+CO-RE (#2106).
 
 The second is what a program is:
 
@@ -310,9 +311,9 @@ from it on, a user runs one.
   (`kernel-notes.md`). Revisited only if that changes upstream.
 * **A C or LLVM back end.** The runtime library is the only C, compiled once. A second emitter is
   two mechanisms doing one job.
-* **Cross compilation and CO-RE, through phase 6.** The compiler runs on the machine that runs the
-  program; a build host compiling for an image's kernel (#2103) and an object for a range of
-  kernels (#2106) come after it.
+* **CO-RE, through phase 6.** An object is compiled for one kernel, the running one or the one a
+  build host is handed for an image (#2103); an object for a range of kernels (#2106) comes after
+  it.
 * **Replacing the interpreter.** The kernel Lua VM stays the language for everything the subset
   refuses; the escape hatch is how a program reaches it.
 * **An interpreter as a BPF program.** See "Decisions".

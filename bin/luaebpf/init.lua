@@ -12,14 +12,17 @@
 -- and returns an object `bpftool prog load` accepts. Anything the subset refuses is an error
 -- naming the Lua file and line.
 --
--- The compiler runs on the machine that loads what it emits, so it reads the running kernel's
--- types rather than being told which kernel to target, and the kernel's version and byte order
--- from `lunatik.config`, which `make` writes from the tree Lunatik is built against.
+-- The compiler compiles for the kernel `lunatik.config` describes, which `make` writes from the
+-- tree Lunatik is built against: that kernel's version and byte order. It reads that kernel's types
+-- from the BTF file it is handed, or from `/sys/kernel/btf/vmlinux`, the running kernel's, so a
+-- build host compiles for the kernel an image ships when `make` was handed that kernel's tree and
+-- the compiler its BTF.
 -- @module luaebpf
 -- @usage
 -- local luaebpf = require("luaebpf")
 --
 -- local object = luaebpf.compile("filter.bpf.lua")
+-- local image = luaebpf.compile("filter.bpf.lua", "build/vmlinux.btf")
 
 local maps     = require("luaebpf.maps")
 local programs = require("luaebpf.programs")
@@ -28,6 +31,7 @@ local emit     = require("luaebpf.emit")
 local insn     = require("luaebpf.insn")
 local elf      = require("luaebpf.elf")
 local btf      = require("luaebpf.btf")
+local vmlinux  = require("luaebpf.vmlinux")
 
 local insert = table.insert
 local concat = table.concat
@@ -250,13 +254,20 @@ end
 -- Compiles the program file at `path`.
 -- @function luaebpf.compile
 -- @tparam string path the program file, usually named `<something>.bpf.lua`
+-- @tparam[opt] string btffile the kernel's BTF as a raw BTF file, the bytes
+--   `/sys/kernel/btf/vmlinux` serves, read once a layout is asked for; that file when absent
 -- @treturn string the BPF ELF object
--- @raise `<file>:<line>: <reason>` for every construct the subset refuses, and
---   `<path>: no program declared` when the body hands nothing to a constructor
-function luaebpf.compile(path)
+-- @raise `<file>:<line>: <reason>` for every construct the subset refuses,
+--   `<path>: no program declared` when the body hands nothing to a constructor,
+--   `<btffile>: <reason>`, `<btffile> carries no BTF header` and `<btffile> is shorter than its
+--   BTF header says` when a layout is asked of a file that cannot be read, holds no BTF or is cut
+--   short, and `<btffile> is a <order>-endian BTF, for a <order>-endian object` when the BTF a
+--   layout was read from is not in the object's byte order
+function luaebpf.compile(path, btffile)
 	local chunk = proto.load(path)
 	programs.reset()
 	maps.reset()
+	vmlinux.open(btffile)
 	local host, cpath = package.path, package.cpath
 	package.path, package.cpath = LIBPATH, "" -- no host module, Lua or C, stands in for a kernel script
 	local ok, message = pcall(chunk)
@@ -271,7 +282,9 @@ function luaebpf.compile(path)
 	for _, program in ipairs(declared) do
 		program.name = name(program, path)
 	end
-	return write(declared, getenv(DROP))
+	local object = write(declared, getenv(DROP))
+	vmlinux.check(emit.bigendian)
+	return object
 end
 
 return luaebpf

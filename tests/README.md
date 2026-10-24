@@ -375,10 +375,10 @@ REPL and the builds `status` and `reload` compare.
   with a command, an option on the wrong side of the verb, `-c` without a
   context, a value given to `--percpu`, a context or percpu given to `stop` or
   `list`, `bpf` without its program file or with a word after it, `-c` given
-  to `bpf`, `-o` without an object, `-o` given to `run`, `--dev` without a
-  device, `--dev` given to `stop`, and `--dev` given to `run` for a script with
-  no compiled program each exit 2 with a line naming it and the usage on
-  stderr; `-V`
+  to `bpf`, `-o` without an object, `-o` given to `run`, `--btf` without a
+  file, `--btf` given to `run`, `--dev` without a device, `--dev` given to
+  `stop`, and `--dev` given to `run` for a script with no compiled program each
+  exit 2 with a line naming it and the usage on stderr; `-V`
   and `--version` print the loaded version, `Lunatik <major>.<minor>`, and with the modules unloaded `-V`
   exits 1, not loaded; each module `status` reports as loaded carries as its
   version the release `-V` prints, which gives it the srcversion `reload`
@@ -1052,13 +1052,14 @@ interpreter raises, the compiled program owes its default verdict instead.
   `luaebpf` is not installed.
 - **order**: the program files of **call** and **mapget**, copied under a
   first line that sets `luaebpf.emit.bigendian`, once to the host's order and
-  once to the other, compile in either: `readelf` reads each object in the
-  order its body set, `llvm-objdump` reads the other order's objects for its
-  target as the host order's for the host's, relocations included, and
-  `bpftool` reads the same BTF out of both. With the body set to the other
-  order, a map keyed in the host's explicit order is refused with its line,
-  and one keyed in the other's, in `=` or in none compiles. The `llvm-objdump`
-  case skips where it is not installed.
+  once to the other, compile in either, the other's against the kernel's BTF
+  swapped into that order, where mapget's packet reads find `xdp_md`: `readelf`
+  reads each object in the order its body set, `llvm-objdump` reads the other
+  order's objects for its target as the host order's for the host's,
+  relocations included, and `bpftool` reads the same BTF out of both. With the
+  body set to the other order, a map keyed in the host's explicit order is
+  refused with its line, and one keyed in the other's, in `=` or in none
+  compiles. The `llvm-objdump` case skips where it is not installed.
 - **pass**: a file declaring two programs; `loadall` pins one per
   `xdp.program` call, `prog run` returns each verdict, the `license` section
   reads `Dual MIT/GPL`, and the BTF carries one `FUNC` per program; a program
@@ -1105,7 +1106,16 @@ interpreter raises, the compiled program owes its default verdict instead.
   the byte offset and four-byte width of every field the context proxies
   expose, `iphdr`'s whole-byte members, its bitfields and its anonymous union
   absent from the layout though the dump names them, and a struct the kernel
-  does not publish raising a message that names it.
+  does not publish raising a message that names it. `lunatik bpf --btf` on a
+  copy of the kernel's BTF answers the same layouts and writes the same object;
+  the kernel's BTF swapped into the byte order the host does not use, which
+  `bpftool` reads as it reads the kernel's, answers the same layouts through
+  `--btf` to a copy of the program file that sets `luaebpf.emit.bigendian` to
+  that order. A BTF of another order than the object's is refused naming both,
+  the swapped one for an object in the host's order and the kernel's for one in
+  the other, and so are a `--btf` that cannot be read, one that holds no BTF
+  header, an ELF object, and one cut short of what its header sizes, each
+  naming the path.
 - **ctx**: one program file declares both kinds, so the object carries an `xdp`,
   a `tcx/ingress` and a `tcx/egress` section and `loadall` reads each program's
   type off the section it sits in, the egress one answering `#skb` as the
