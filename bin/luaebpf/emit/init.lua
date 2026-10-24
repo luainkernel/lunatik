@@ -70,6 +70,13 @@ emit.maygoto = config.kernel_version >= MAYGOTO
 -- @field luaebpf.emit.unaligned
 emit.unaligned = config.efficient_unaligned_access
 
+---
+-- Whether the kernel Lunatik is built for is big-endian, as its `CONFIG_CPU_BIG_ENDIAN`, which
+-- `lunatik.config` carries, says. The object is written in that byte order, and a map spec is read
+-- in it.
+-- @field luaebpf.emit.bigendian
+emit.bigendian = config.cpu_big_endian
+
 --- @section the walk
 
 local refusals = {

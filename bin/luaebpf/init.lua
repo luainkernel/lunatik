@@ -13,8 +13,8 @@
 -- naming the Lua file and line.
 --
 -- The compiler runs on the machine that loads what it emits, so it reads the running kernel's
--- types rather than being told which kernel to target, and the kernel's version from
--- `lunatik.config`, which `make` writes from the tree Lunatik is built against.
+-- types rather than being told which kernel to target, and the kernel's version and byte order
+-- from `lunatik.config`, which `make` writes from the tree Lunatik is built against.
 -- @module luaebpf
 -- @usage
 -- local luaebpf = require("luaebpf")
@@ -83,7 +83,7 @@ local function funcinfo(types, frame, at)
 	local signature = frame.isprogram and {result = types.int, param = types.long}
 		or {result = types.long, param = types.long}
 	local linkage = frame.isprogram and btf.linkage.GLOBAL or btf.linkage.STATIC
-	return btf.funcinfo(at, types:func(frame.name, #frame.params, linkage, signature))
+	return types:funcinfo(at, types:func(frame.name, #frame.params, linkage, signature))
 end
 
 local function lineinfo(types, frame, at, cache)
@@ -92,7 +92,7 @@ local function lineinfo(types, frame, at, cache)
 	local text = sources(frame.chunk, cache)
 	for i = 1, #lines do
 		if lines[i] ~= previous then
-			insert(records, btf.lineinfo(at + (i - 1) * insn.SIZE, file,
+			insert(records, types:lineinfo(at + (i - 1) * insn.SIZE, file,
 				types:string(text[lines[i]] or ""), lines[i], 1))
 			previous = lines[i]
 		end
@@ -119,7 +119,7 @@ end
 
 local function place(types, unit, frame, cache, subprograms)
 	local at = unit.at
-	insert(unit.code, frame.code:pack())
+	insert(unit.code, frame.code:pack(emit.bigendian))
 	insert(unit.funcs, funcinfo(types, frame, at))
 	for _, record in ipairs(lineinfo(types, frame, at, cache)) do
 		insert(unit.lines, record)
@@ -177,7 +177,7 @@ local function maplayout(object, types, declared)
 end
 
 local function write(declared, hook)
-	local object, types, cache = elf.new(), btf.new(), {}
+	local object, types, cache = elf.new(emit.bigendian), btf.new(emit.bigendian), {}
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
 	local names, subprograms, order = {}, {}, {}
