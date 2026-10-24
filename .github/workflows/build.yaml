@@ -39,14 +39,23 @@ jobs:
         SERIES="${{ matrix.kernel-version }}"
         # kernel.org publishes only the latest point release of each
         # maintained series: resolve it from releases.json (empty for an EOL
-        # series) and fetch its git.kernel.org snapshot
+        # series) and fetch its tarball from the CDN, checked against the
+        # series' sha256sums.asc, which names a truncated download as one
         ESC=$(echo "$SERIES" | sed 's/\./\\./g')
         VERSION=$(curl -sSL --retry 3 https://www.kernel.org/releases.json \
           | grep -oE '"'"$ESC"'\.[0-9]+"' | tr -d '"' | head -1)
         test -n "$VERSION" || { echo "no maintained release for kernel series $SERIES"; exit 1; }
-        echo "Fetching linux-$VERSION"
-        wget -q --tries=3 --timeout=60 "https://git.kernel.org/stable/t/linux-${VERSION}.tar.gz"
-        tar xf "linux-${VERSION}.tar.gz"
+        CDN="https://cdn.kernel.org/pub/linux/kernel/v${VERSION%%.*}.x"
+        TARBALL="linux-${VERSION}.tar.xz"
+        SUM=$(curl -sSL --retry 3 "$CDN/sha256sums.asc" | awk -v f="$TARBALL" '$2 == f')
+        test -n "$SUM" || { echo "no checksum for $TARBALL"; exit 1; }
+        echo "Fetching $TARBALL"
+        for try in 1 2 3; do
+          curl -sSL --retry 3 -o "$TARBALL" "$CDN/$TARBALL" && echo "$SUM" | sha256sum -c --quiet - && break
+          test "$try" -lt 3 || { echo "$TARBALL does not match its checksum"; exit 1; }
+          sleep 60
+        done
+        tar xf "$TARBALL"
         cd "linux-${VERSION}"
         make mrproper
         make defconfig
