@@ -34,6 +34,9 @@ paths:
   the call is the one the fact is about: `%pe keeps the sign` is about the `snprintf` that formats
   the errno, and the `buf + 1` on the line below reads on from it; put on the `lua_pushstring`
   instead, it reads as a note about pushing a string.
+* Which value a call is about takes one word, the name the code carries, and the rest of the comment
+  is the reason: `lua_pushvalue(L, -2); /* ctx: a detach in the callback unregisters it */`, where
+  #2114 first wrote `the ctx stays for the handler:`, a clause spent naming the value the push copies.
 * Code that serves a range of kernels says the range, above the line it applies to: `-- v6.11 and
   later: sk_skb_reason_drop(sk, skb, reason)` above that entry of a table, `-- v6.10 and earlier:
   kfree_skb_reason(skb, reason)` above the other. What changed at the release, `v6.11 turned
