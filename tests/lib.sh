@@ -50,6 +50,9 @@ awaited() { for _ in $(seq "${TRIES:-50}"); do "$@" && return 0; sleep 0.1; done
 # builds the C peer <source> into <binary>; fails where there is no gcc or it does not build
 build_peer() { command -v gcc > /dev/null 2>&1 && gcc -O2 -o "$2" "$1" 2>/dev/null; }
 
+# the host's byte order, little or big: od reads the bytes 01 00 as 1 only where the low byte comes first
+host_order() { [ "$(printf '\001\000' | od -An -td2 | tr -d ' ')" = 1 ] && echo little || echo big; }
+
 # KMALLOC_MAX_SIZE, the page size shifted by the largest page order, the last of the orders
 # /proc/buddyinfo lists: kvmalloc takes a block past it from vmalloc whatever memory is free
 kmalloc_max() { echo $(( $(getconf PAGESIZE) << ($(awk 'NR == 1 {print NF - 4}' /proc/buddyinfo) - 1) )); }
