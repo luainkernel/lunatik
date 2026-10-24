@@ -43,7 +43,7 @@ command -v lunatic >/dev/null || skip "luac: lunatic not installed"
 ktap_header
 ktap_plan 16
 
-if [ "$(printf '\001\000' | od -An -td2 | tr -d ' ')" = 1 ]; then
+if [ "$(host_order)" = little ]; then
 	HOST_ORDER=little FOREIGN_ORDER=big
 else
 	HOST_ORDER=big FOREIGN_ORDER=little
