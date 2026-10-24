@@ -2281,6 +2281,15 @@ pid, what a valid call does, and where it refuses to run.
   same. A build whose copies keep the device fails at the later callback, before
   the test deletes the veth, and one that clears it as the copy is made fails
   inside the callback. Skips without veth.
+- **copy_offload**: a copy carries no skb extension, so its `forward()` refuses a
+  packet its device encrypts by IPsec offload. A netdevsim port offloads an
+  outbound ESP state in transport mode, and a ping its policy covers reaches
+  `POST_ROUTING` as the ESP packet carrying the state's offload: a copy's
+  `forward()` raises "copy would leave unencrypted", where the packet's own
+  reaches "MAC header past the data", the next refusal, and a build without the
+  refusal fails on the copy's. A ping to an address no policy covers leaves the
+  same port with no state, and a copy's `forward()` passes the refusal to raise
+  "MAC header not set". Skips without netdevsim or its ESP offload.
 
 ### socket
 
