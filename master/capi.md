@@ -1955,14 +1955,19 @@ enum {
 typedef struct {
 	struct sk_buff *skb;
 	lunatik_object_t *view[LUASKB_VIEWS];
+	lunatik_object_t *hook;
+	u64 gen;
 	bool kfunc;
 } luaskb_t;
 ```
 The private of an skb object: the packet, `NULL` outside a callback; the data object `skb:data()`
-returns for each start, at the network header, at the MAC header and at `skb->data`; and whether the
-packet comes through a kfunc, where `skb:data()`, `resize` and `copy` refuse a non-linear skb rather
-than linearize it. Its release frees `skb`, so a binding clears the packet it does not own before
-the last reference goes, with [`luaskb_clear`](#luaskb_reset) or `luaskb_close`.
+returns for each start, at the network header, at the MAC header and at `skb->data`; for a copy,
+the hook's skb object it was copied from, which it holds and reads its device from, `NULL` for that
+object; the callbacks the object was cleared after, which a copy takes from the skb it is copied
+from, so it reads its hook's device only while that callback runs; and whether the packet comes
+through a kfunc, where `skb:data()`, `resize` and `copy` refuse a non-linear skb rather than
+linearize it. Its release frees `skb` and drops `hook`, so a binding clears the packet it does not
+own before the last reference goes, with [`luaskb_clear`](#luaskb_reset) or `luaskb_close`.
 
 ### luaskb\_foreachlayer
 ```C
@@ -1992,7 +1997,9 @@ void luaskb_close(lunatik_object_t *object);
 `luaskb_reset` points the skb object at `skb` for the callback about to run, taking no reference and
 no lock, and is a macro; a view reads the packet once `skb:data()` points it there. `luaskb_clear`
 clears each view, so one kept past the callback reads nothing, and the packet, so every method
-raises `skb is not set`: a binding calls it once the callback returns. `luaskb_close` clears the
+raises `skb is not set`, and counts the callback in `gen`, so a copy made while it ran reads no
+device past it: a binding calls it once the callback returns, before it releases the runtime's lock.
+`luaskb_close` clears the
 object and drops a reference the caller holds, as a binding's `release` does. None sleeps, so a
 handler calls them in any context.
 

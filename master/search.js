@@ -374,7 +374,7 @@ window.LUNATIK_SEARCH = [
 ["skb:forward ()","modules/skb.html#skb:forward","skb · Transmits a clone of the skb out of skb->dev, the device skb:ifindex() names."],
 ["skb:hash ()","modules/skb.html#skb:hash","skb · Reads the flow hash the skb carries (skb->hash), the value an eBPF program reads as __sk_buff.hash."],
 ["skb:ifindex ()","modules/skb.html#skb:ifindex","skb · "],
-["skb:ifname ()","modules/skb.html#skb:ifname","skb · Reads the name skb->dev carries when called, the device skb:ifindex() indexes: a device created or renamed after the script loaded reads its current name."],
+["skb:ifname ()","modules/skb.html#skb:ifname","skb · Reads, when called, the name of the device skb:ifindex() indexes: a device created or renamed after the script loaded reads its current name."],
 ["skb:mark ([value])","modules/skb.html#skb:mark","skb · Gets or sets the packet mark: with no argument or nil reads it, with value sets it."],
 ["skb:priority ([value])","modules/skb.html#skb:priority","skb · Gets or sets the packet priority: with no argument or nil reads it, with value sets it."],
 ["skb:resize (n)","modules/skb.html#skb:resize","skb · Expands (skb_put_zero) or shrinks (pskb_trim_rcsum) the skb data area; the bytes an expansion adds read as zeros, and a shrink keeps the checksum a received skb carries."],

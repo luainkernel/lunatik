@@ -255,7 +255,7 @@ netfilter.register{
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:ifname">skb:ifname ()</a></td>
-	<td class="summary">Reads the name <code>skb-&gt;dev</code> carries when called, the device <code>skb:ifindex()</code> indexes: a device
+	<td class="summary">Reads, when called, the name of the device <code>skb:ifindex()</code> indexes: a device
  created or renamed after the script loaded reads its current name.</td>
 	</tr>
 	<tr>
@@ -287,7 +287,8 @@ netfilter.register{
 
 <p> A <a href="../modules/netfilter.html#">netfilter</a> hook callback receives one and <code>tc_ctx:skb()</code> returns one, valid only while that
  callback runs: once it returns, every method raises <code>skb is not set</code>, and the views that
- <code>skb:data()</code> returned are cleared too. <code>skb:copy()</code> keeps a packet past the callback.
+ <code>skb:data()</code> returned are cleared too. <code>skb:copy()</code> keeps a packet past the callback, but not its
+ device: once the callback returns, a copy&rsquo;s <code>ifindex()</code> returns nil and its <code>forward()</code> raises.
           </div>
     <dl class="function">
     <dt id="skb:__len"><a name="skb:__len"></a><strong>skb:__len ()</strong></dt>
@@ -361,6 +362,9 @@ netfilter.register{
  linearized, and a non-linear one raises.
  A view of the copy that <code>data()</code> returns is valid until the copy is collected,
  and is then cleared as a view of a callback&rsquo;s skb is when the callback returns.
+ The copy reads the device of the skb it was made from until the callback that received
+ the original returns, so <code>forward()</code> sends it out of that device until then; afterwards
+ it reads none, and neither does a copy made from it.
 
 
 
@@ -471,7 +475,7 @@ netfilter.register{
 </dd>
     <dt id="skb:ifname"><a name="skb:ifname"></a><strong>skb:ifname ()</strong></dt>
     <dd>
-    Reads the name <code>skb-&gt;dev</code> carries when called, the device <code>skb:ifindex()</code> indexes: a device
+    Reads, when called, the name of the device <code>skb:ifindex()</code> indexes: a device
  created or renamed after the script loaded reads its current name.  A frame that races a rename
  of its device may read a mix of the two names, and the first frame after the rename completes
  reads the new one.
@@ -609,7 +613,7 @@ netfilter.register{
 <a href="../../modules/skb.html">5.1 docs</a> ·
 <a href="../../5.0/modules/skb.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-23 23:58:30</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-24 00:01:23</span>
 </div>
 </footer>
 </body>
