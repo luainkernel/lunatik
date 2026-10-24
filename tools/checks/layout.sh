@@ -14,7 +14,10 @@
 # named as the directory that holds it, a file the Makefile installs into SCRIPTS_INSTALL_PATH, or into a
 # variable it defines over it, from outside the trees that run in the kernel, and a file it installs or
 # links into the host's Lua path, LUA_PATH, LUA_CPATH or a variable it defines over them, from a tree that
-# runs only in the kernel; exits 1 when it names one. Run from the top of the tree.
+# runs only in the kernel, and, in a C file, a libgcc helper defined outside lunatik_libgcc.c or a C source
+# of klibc included, since the compiler's runtime a module of the tree calls lives in the core, klibc's
+# objects Kbuild links into lunatik.ko and lunatik_libgcc.c, which exports them; exits 1 when it names one.
+# Run from the top of the tree.
 #
 # Usage: bash tools/checks/layout.sh
 
@@ -84,6 +87,20 @@ while read -r line source; do
 	echo "$makefile:$line: puts $source in the host's Lua path, from a tree that runs only in the kernel; what both sides run lives in common/"
 	status=1
 done < <(installs "$(trees LUA_PATH LUA_CPATH)")
+
+libgcc='(^|[[:space:]*])__(u?(div|mod)|u?divmod|ashl|ashr|lshr|mul|neg|u?cmp)[dt]i[0-9][[:space:]]*\('
+klibcsource='^[[:space:]]*#[[:space:]]*include[[:space:]]*["<][^">]*klibc/[^">]*\.c[">]'
+while IFS=: read -r file line text; do
+	if grep -qE "$klibcsource" <<< "$text"; then
+		echo "$file:$line: includes a C source of klibc, whose helpers Kbuild links into lunatik.ko as objects"
+	elif [ "$file" != lunatik_libgcc.c ]; then
+		echo "$file:$line: defines a libgcc helper outside lunatik_libgcc.c, which writes the ones klibc lacks"
+	else
+		continue
+	fi
+	status=1
+done < <(git ls-files '*.c' '*.h' | xargs grep -nE "$libgcc|$klibcsource" /dev/null |
+	grep -v ';[[:space:]]*$') # a declaration or a call closes with ;, a definition does not
 
 exit $status
 

@@ -258,7 +258,11 @@ it runs (AGENTS.md, *Layout*), and the luaebpf compiler, which runs only in the 
 after review at the root of the tree, installing into `/lib/modules/lua/`; once in `bin/`, it required
 `class` from `lib/` through a copy installed in its own root, from a package at `bin/luaebpf/luaebpf/`. A
 source spelled through a variable is not read, so a table the build writes under a variable's name passes
-unread, and so does a link whose source is an installed copy, as `lunatik/config.lua`'s is.
+unread, and so does a link whose source is an installed copy, as `lunatik/config.lua`'s is. It also
+names, in a tracked C file, a libgcc helper defined outside `lunatik_libgcc.c` and a C source of klibc
+included: the compiler's runtime a module of the tree calls lives in the core, klibc's objects `Kbuild`
+links into `lunatik.ko` and `lunatik_libgcc.c`, which exports them, and #2132 first took klibc's helpers
+into `lib/lualinux.c` and defined `__divmoddi4` in `lunatik_aux.c`.
 
 `discard-guard.sh`, wired before a shell call, refuses a command that writes over a file holding a
 change nobody committed, a checkout or a restore of a path, `git reset --hard`, and a checkout or a
