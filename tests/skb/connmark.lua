@@ -74,12 +74,22 @@ local function notrack_seq(skb)
 	end
 end
 
+-- A copy carries no conntrack entry, while the skb it was made from still has one.
+local function copy_seq(skb)
+	if skb:copy():connmark() == nil and skb:connmark() ~= nil then
+		print("connmark: copy ok")
+	else
+		print("connmark: copy FAIL")
+	end
+end
+
 local function connmark_hook(skb)
 	local pkt = skb:data()
 	if pkt:getuint8(IP_PROTO) == ipproto.UDP then
 		local ihl = (pkt:getuint8(0) & 0x0F) * 4
 		local dport = byteorder.ntoh16(pkt:getuint16(ihl + UDP_DPORT))
 		if dport == PORT then
+			copy_seq(skb)
 			tracked_seq(skb)
 		elseif dport == PORT_NOTRACK then
 			notrack_seq(skb)
