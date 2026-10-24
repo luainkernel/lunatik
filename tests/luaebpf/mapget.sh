@@ -207,7 +207,7 @@ declared badname 4 "a map name is a C identifier, not '9flows'" \
 declared arraykey 4 "an array map is keyed by 4 bytes, not 8" \
 	'local counts = map.array("counts", {key = "I8", value = "I4", entries = 4})'
 if [ "$(host_order)" = little ]; then foreign='>'; else foreign='<'; fi
-declared byteorder 4 "a map is read in the host's byte order, not '${foreign}I4'" \
+declared byteorder 4 "a map is read in the kernel's byte order, not '${foreign}I4'" \
 	"local wire = map.hash(\"wire\", {key = \"${foreign}I4\", value = \"I4\", entries = 4})"
 declared twice 5 "'flows' is declared twice" \
 	"local a = map.hash(\"flows\", $spec)"$'\n'"local b = map.hash(\"flows\", $spec)"

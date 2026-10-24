@@ -26,7 +26,6 @@ local EM_BPF      <const> = 247
 local ET_REL      <const> = 1
 local ELFDATA2LSB <const> = 1
 local ELFDATA2MSB <const> = 2
-local LITTLE      <const> = pack("=I2", 1) == pack("<I2", 1)
 
 local elf = {}
 
@@ -59,10 +58,12 @@ local object = class{}
 ---
 -- A fresh object, with its null section and null symbol already in place.
 -- @function luaebpf.elf.new
+-- @tparam boolean bigendian whether the object is written big-endian
 -- @treturn luaebpf.elf.object
-function elf.new()
-	return object:new{sections = {{name = "", data = ""}}, indexes = {}, nlocals = 1,
-		symbols = {pack("=I4I1I1I2I8I8", 0, 0, 0, 0, 0, 0)}, names = strtab.new()}
+function elf.new(bigendian)
+	local order = bigendian and ">" or "<"
+	return object:new{sections = {{name = "", data = ""}}, indexes = {}, nlocals = 1, order = order,
+		symbols = {pack(order .. "I4I1I1I2I8I8", 0, 0, 0, 0, 0, 0)}, names = strtab.new()}
 end
 
 ---
@@ -100,7 +101,7 @@ function object:symbol(symbol)
 		end
 		self.nlocals = self.nlocals + 1
 	end
-	insert(self.symbols, pack("=I4I1I1I2I8I8", self:string(symbol.name),
+	insert(self.symbols, pack(self.order .. "I4I1I1I2I8I8", self:string(symbol.name),
 		(symbol.bind << 4) | symbol.type, 0, self.indexes[symbol.section], symbol.value,
 		symbol.size))
 	return #self.symbols - 1
@@ -115,7 +116,7 @@ end
 function object:relocations(name, entries)
 	local records = {}
 	for _, entry in ipairs(entries) do
-		insert(records, pack("=I8I8", entry.at, (entry.symbol << 32) | entry.type))
+		insert(records, pack(self.order .. "I8I8", entry.at, (entry.symbol << 32) | entry.type))
 	end
 	self:section{name = ".rel" .. name, type = elf.section.REL, flags = 0, data = concat(records),
 		link = ".symtab", info = name, align = 8, entsize = RELSIZE}
@@ -134,12 +135,12 @@ local function place(self)
 end
 
 local function headers(self)
-	local out = {pack("=I4I4I8I8I8I8I4I4I8I8", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)}
+	local out = {pack(self.order .. "I4I4I8I8I8I8I4I4I8I8", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)}
 	for i = 2, #self.sections do
 		local section = self.sections[i]
 		local link = section.link ~= nil and self.indexes[section.link] or 0
 		local info = type(section.info) == "string" and self.indexes[section.info] or (section.info or 0)
-		insert(out, pack("=I4I4I8I8I8I8I4I4I8I8", self:string(section.name), section.type,
+		insert(out, pack(self.order .. "I4I4I8I8I8I8I4I4I8I8", self:string(section.name), section.type,
 			section.flags, 0, section.offset, #section.data, link, info,
 			section.align or 1, section.entsize or 0))
 	end
@@ -159,8 +160,9 @@ function object:pack()
 
 	local shoff = place(self)
 	shoff = shoff + (8 - shoff % 8) % 8
-	local out = {"\x7fELF", pack("=I1I1I1I1I1", 2, LITTLE and ELFDATA2LSB or ELFDATA2MSB, 1, 0, 0), ("\0"):rep(7),
-		pack("=I2I2I4I8I8I8I4I2I2I2I2I2I2", ET_REL, EM_BPF, 1, 0, 0, shoff, 0,
+	local data = self.order == ">" and ELFDATA2MSB or ELFDATA2LSB
+	local out = {"\x7fELF", pack("=I1I1I1I1I1", 2, data, 1, 0, 0), ("\0"):rep(7),
+		pack(self.order .. "I2I2I4I8I8I8I4I2I2I2I2I2I2", ET_REL, EM_BPF, 1, 0, 0, shoff, 0,
 			EHSIZE, 0, 0, SHENTSIZE, #self.sections, shstrndx)}
 	local at = EHSIZE
 	for i = 2, #self.sections do

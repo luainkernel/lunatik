@@ -26,6 +26,7 @@
 -- local hits  = map.array("hits", {key = "I4", value = "I8", entries = 1})
 
 local maps     = require("luaebpf.maps")
+local emit     = require("luaebpf.emit")
 local map_type = require("linux.bpf").map_type
 
 local pack, packsize, unpack = string.pack, string.packsize, string.unpack
@@ -70,8 +71,9 @@ local function scalar(spec)
 		return nil
 	end
 	local signed = value < 0
-	-- an eBPF load and store take the host's byte order, and nothing here swaps
-	local native = pack(spec, 1) == pack((signed and "=i" or "=I") .. size, 1)
+	-- an eBPF load and store take the kernel's byte order, and nothing here swaps; "=" or none names it there
+	local order = emit.bigendian and ">" or "<"
+	local native = pack(order .. spec:gsub("=", order), 1) == pack(order .. (signed and "i" or "I") .. size, 1)
 	return {format = spec, size = size, signed = signed, native = native}
 end
 
@@ -120,7 +122,7 @@ end
 local function readable(spec, key, value)
 	local foreign = not key.native and spec.key or not value.native and spec.value
 	if foreign then
-		error(("a map is read in the host's byte order, not '%s'"):format(foreign), CHECK)
+		error(("a map is read in the kernel's byte order, not '%s'"):format(foreign), CHECK)
 	end
 	local width = unreadable(key) or unreadable(value)
 	if width ~= nil then
@@ -163,7 +165,7 @@ end
 -- @treturn table the declared map, a table proxy inside a compiled function
 -- @raise `map.hash takes a name and a spec`, `a map name is a C identifier, not '<name>'`, `a
 --   map key spec packs one value`, `a map value spec packs one value or is a struct codec`, `a
---   map is read in the host's byte order, not '<spec>'`, `a map reads 1, 2, 4 or 8 bytes at a
+--   map is read in the kernel's byte order, not '<spec>'`, `a map reads 1, 2, 4 or 8 bytes at a
 --   time, not <n>`, `a map holds between 1 and 4294967295 entries, not <n>`, or `'<name>' is
 --   declared twice`
 function map.hash(name, spec)

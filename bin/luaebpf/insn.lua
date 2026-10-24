@@ -37,9 +37,7 @@ local SIZE  <const> = 8
 local WORD  <const> = 8
 
 -- bpf_insn's dst_reg and src_reg share a byte as bitfields, the first declared low on a little-endian machine
-local LITTLE   <const> = pack("=I2", 1) == pack("<I2", 1)
-local DSTSHIFT <const> = LITTLE and 0 or 4
-local SRCSHIFT <const> = LITTLE and 4 or 0
+local NIBBLE <const> = 4
 
 -- the field an access of that many bytes carries, BPF_B and friends
 local widths = {[1] = B, [2] = H, [4] = W, [8] = DW}
@@ -270,8 +268,12 @@ end
 -- The buffer as object bytes, with every jump resolved. A call keeps the `-1` its relocation
 -- replaces, as the compiler libbpf was built for leaves it.
 -- @function luaebpf.insn.code:pack
+-- @tparam boolean bigendian whether the bytes are written big-endian
 -- @treturn string
-function code:pack()
+function code:pack(bigendian)
+	local format = (bigendian and ">" or "<") .. "I1I1i2i4"
+	local dstshift = bigendian and NIBBLE or 0
+	local srcshift = NIBBLE - dstshift
 	local bytes = {}
 	for i = 1, self.n do
 		local record = self.records[i]
@@ -279,8 +281,7 @@ function code:pack()
 		if record.target ~= nil then
 			off = self.labels[record.target] - i
 		end
-		insert(bytes, pack("=I1I1i2i4", record.code, (record.dst << DSTSHIFT) | (record.src << SRCSHIFT), off,
-			record.imm))
+		insert(bytes, pack(format, record.code, (record.dst << dstshift) | (record.src << srcshift), off, record.imm))
 	end
 	return concat(bytes)
 end

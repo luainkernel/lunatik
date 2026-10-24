@@ -140,6 +140,20 @@ luaebpf_refuses() {
 	return 0
 }
 
+# luaebpf_ordered <order> <name>: the program file <name> compiled from a copy whose first line sets
+# luaebpf.emit.bigendian to <order>, little or big, in a directory of that order's own, so the copy
+# carries the name the object takes
+luaebpf_ordered() {
+	local order="$1" name="$2" dir="$LUAEBPF_WORK/$1" bigendian=false
+	[ "$order" = big ] && bigendian=true
+	mkdir -p "$dir"
+	{
+		echo "require(\"luaebpf.emit\").bigendian = $bigendian"
+		cat "$LUAEBPF_SRC/$name.bpf.lua"
+	} > "$dir/$name.bpf.lua"
+	( cd "$dir" && lunatik bpf -o "$dir/$name.bpf.o" "$dir/$name.bpf.lua" ) 2>&1
+}
+
 # `make install` compiles no program file of this suite, so a loader case puts its own object
 # where `lunatik run` looks for it, beside the installed script
 luaebpf_stage() {

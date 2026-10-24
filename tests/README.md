@@ -1030,22 +1030,35 @@ interpreter raises, the compiled program owes its default verdict instead.
 - **object**: no program file and no translator: the CLI's Lua assembles an
   XDP program of five instructions by hand with `luaebpf.insn`, a jump over
   one of them and a 64-bit immediate among them, and writes it with
-  `luaebpf.elf` and `luaebpf.btf`. `readelf` reads a relocatable eBPF object
-  in the host's byte order whose sections are `xdp`, `license`, `.BTF`,
+  `luaebpf.elf` and `luaebpf.btf`, once little-endian and once big-endian,
+  whatever the host's order. For each, `readelf` reads a relocatable eBPF
+  object in that byte order whose sections are `xdp`, `license`, `.BTF`,
   `.BTF.ext`, `.symtab` and `.strtab`, the program a global `FUNC` symbol
   sized by its six slots, the instructions as assembled in that order with the
-  register nibbles where it lays them out, the jump's offset resolved and the
-  immediate split in two, and `Dual MIT/GPL` in `license`; `bpftool btf dump file`
-  reads the program's `FUNC` over its `FUNC_PROTO`, and the `.BTF.ext` header
-  sizes one `func_info` and a `line_info` per source line, whose strings
-  `.BTF` carries. Skips when `readelf` or `bpftool` is missing, or when
-  `luaebpf` is not installed.
+  register nibbles where `bpf_insn`'s bitfields take them in it, the jump's
+  offset resolved and the immediate split in two, and `Dual MIT/GPL` in
+  `license`; `bpftool btf dump file` reads the program's `FUNC` over its
+  `FUNC_PROTO`, and the `.BTF.ext` header sizes one `func_info` and a
+  `line_info` per source line, whose strings `.BTF` carries. The big-endian
+  `.BTF.ext` is the little-endian one with every field swapped, and
+  `llvm-objdump` reads the big-endian object for `bpfeb` as it reads the
+  little-endian one for `bpfel`. Skips when `readelf` or `bpftool` is missing,
+  or when `luaebpf` is not installed, and the `llvm-objdump` case where it is.
 - **types**: no program: the CLI's Lua loads `luaebpf.emit.frame` alone and
   declares types through `frame.type`. One declared into `word` and `untested`
   takes a bit of its own, under its name, in those two classes and not in
   `proxy`, and one declared into no class sits in none; a class the frame does
   not read is refused at the declaring line, naming the class. Skips when
   `luaebpf` is not installed.
+- **order**: the program files of **call** and **mapget**, copied under a
+  first line that sets `luaebpf.emit.bigendian`, once to the host's order and
+  once to the other, compile in either: `readelf` reads each object in the
+  order its body set, `llvm-objdump` reads the other order's objects for its
+  target as the host order's for the host's, relocations included, and
+  `bpftool` reads the same BTF out of both. With the body set to the other
+  order, a map keyed in the host's explicit order is refused with its line,
+  and one keyed in the other's, in `=` or in none compiles. The `llvm-objdump`
+  case skips where it is not installed.
 - **pass**: a file declaring two programs; `loadall` pins one per
   `xdp.program` call, `prog run` returns each verdict, the `license` section
   reads `Dual MIT/GPL`, and the BTF carries one `FUNC` per program; a program
