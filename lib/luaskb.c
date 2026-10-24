@@ -444,7 +444,7 @@ static const lunatik_class_t luaskb_class = {
 * and is then cleared as a view of a callback's skb is when the callback returns.
 * The copy reads the device of the skb it was made from until the callback that received
 * the original returns, so `forward()` sends it out of that device until then; afterwards
-* it reads none, and neither does a copy made from it.
+* it reads none, and neither does a copy made from it. A copy carries no route.
 * @function copy
 * @treturn skb
 * @raise if skb is FRAGLIST GSO, if the skb is not linear, in a tc callback or after a failed
@@ -460,7 +460,7 @@ static int luaskb_copy(lua_State *L)
 	luaskb_t *copy = (luaskb_t *)object->private;
 	copy->skb = lunatik_checknull(L, skb_copy(lskb->skb, GFP_ATOMIC));
 	copy->skb->dev = NULL; /* skb_copy holds no reference on it */
-	skb_dst_force(copy->skb); /* a NOREF route is valid only while the callback runs */
+	skb_dst_drop(copy->skb); /* a route's dst_ops live in its namespace, which a kept copy can outlive */
 	copy->hook = lskb->hook != NULL ? lskb->hook : lunatik_toobject(L, 1);
 	lunatik_getobject(copy->hook);
 	copy->gen = lskb->gen;
