@@ -14,10 +14,10 @@ local frame = require("luaebpf.emit.frame")
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local abort, constant, into, isinteger = frame.abort, frame.constant, frame.into, frame.isinteger
 local refuse, resolve, setreg, typename = frame.refuse, frame.resolve, frame.setreg, frame.typename
+local classes = frame.classes
 
 local BOOL  <const> = frame.BOOL
 local INT   <const> = frame.INT
-local MAYBE <const> = frame.MAYBE
 local NBITS <const> = frame.NBITS
 local NIL   <const> = frame.NIL
 
@@ -231,7 +231,7 @@ local function truth(f, pc, state, i)
 	if mask == NIL then
 		return false
 	end
-	if mask == 0 or (mask & ~(BOOL | NIL | MAYBE)) ~= 0 then
+	if mask == 0 or (mask & ~(BOOL | NIL | classes.untested)) ~= 0 then
 		refuse(f, pc, "a %s has no truth value in a compiled function", typename(value))
 	end
 	return nil
