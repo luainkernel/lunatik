@@ -470,7 +470,7 @@ named, not one discovered at that consumer's build.
   and a maintainer who wants the fix and not the rule has nothing to pick.
   `tools/checks/harness-mixed.sh` names a commit that mixes them.
 * A harness pull request the session opened, one whose every file `harness-mixed.sh` reads as the
-  harness, merges without waiting for the maintainer once `review.js` ran over its head at `xhigh`
+  harness, merges without waiting for the maintainer once `review.js` ran over its head at `high`
   and returned it ready and its CI passed: what a correction teaches binds the next session that
   day, and the maintainer reads it on master, in the report the merged skill hands him. One that
   removes a file or changes what the gate reads, the guard, the list of what the harness is, the CI
