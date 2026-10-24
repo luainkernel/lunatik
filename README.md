@@ -55,6 +55,7 @@ Dependencies, OpenWRT and the first steps are in [Getting started](doc/guide/01-
 * [Running scripts](doc/guide/02-running-scripts.md): the command line tool, execution contexts, `lunatic`, program files
 * [Per-CPU scripts](doc/guide/03-percpu.md): one runtime per CPU, and where state belongs
 * [Lua in the kernel](doc/guide/04-lua.md): what differs from userspace Lua
+* [Compiling Lua to eBPF](doc/guide/08-luaebpf.md): the compiler's pipeline, the subset, and where the translation keeps Lua's semantics
 * [Examples](doc/guide/05-examples.md): device drivers, packet filters, probes, filesystem guards
 * [Lua API reference](https://luainkernel.github.io/lunatik/#api-reference) and [C API](doc/capi.md)
 * [Development](doc/guide/06-development.md) and [Resources](doc/guide/07-resources.md): tests, contributing, talks and papers

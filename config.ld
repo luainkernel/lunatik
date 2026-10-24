@@ -116,6 +116,7 @@ topics = {
 	'./doc/guide/02-running-scripts.md',
 	'./doc/guide/03-percpu.md',
 	'./doc/guide/04-lua.md',
+	'./doc/guide/08-luaebpf.md',
 	'./doc/guide/05-examples.md',
 	'./doc/guide/06-development.md',
 	'./doc/guide/07-resources.md',
