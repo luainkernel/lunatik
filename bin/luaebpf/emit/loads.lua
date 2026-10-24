@@ -23,24 +23,23 @@ local format     = string.format
 local getupvalue = debug.getupvalue
 local constant, fetch, labelof, reach = frame.constant, frame.fetch, frame.labelof, frame.reach
 local refuse, resolve, setreg = frame.refuse, frame.resolve, frame.setreg
+local classes = frame.classes
 local contextfield, contextlen = context.contextfield, context.contextlen
 local packetlen = packet.packetlen
 local mapfield, maplookup, mapnumber, mapof = map.mapfield, map.maplookup, map.mapnumber, map.mapof
 local mapread, mapstore, packable, packed = map.mapread, map.mapstore, map.packable, map.packed
 
-local CTX     <const> = frame.CTX
-local MAYBE   <const> = frame.MAYBE
-local METHOD  <const> = frame.METHOD
-local PACKET  <const> = frame.PACKET
-local PROXY   <const> = frame.PROXY
-local RECORD  <const> = frame.RECORD
-local RUNTIME <const> = frame.RUNTIME
+local CTX    <const> = context.CTX
+local MAYBE  <const> = map.MAYBE
+local METHOD <const> = frame.type("method")
+local PACKET <const> = packet.PACKET
+local RECORD <const> = map.RECORD
 
-local loads = {}
+local loads = {METHOD = METHOD}
 
 local function moveslot(f, state, a, b)
 	local value = state[b]
-	if value ~= nil and (value.t & (RUNTIME | PROXY)) ~= 0 then
+	if value ~= nil and (value.t & (classes.word | classes.proxy)) ~= 0 then
 		setreg(f, a, fetch(f, b, reg.R1))
 	end
 	state[a] = value
@@ -215,7 +214,7 @@ end
 -- the receiver goes to A+1 and the method to A, which the call then reads back
 function loads.SELF(f, pc, ins, state)
 	local recv = state[ins.b]
-	if recv == nil or (recv.t & PROXY) == 0 then
+	if recv == nil or (recv.t & classes.proxy) == 0 then
 		refuse(f, pc, "a method call cannot be compiled")
 	end
 	moveslot(f, state, ins.a + 1, ins.b)

@@ -19,10 +19,10 @@ local isinteger, refuse, setreg, typename = frame.isinteger, frame.refuse, frame
 local contextcall, layout = context.contextcall, context.layout
 
 local BYTE   <const> = frame.BYTE
-local CTX    <const> = frame.CTX
+local CTX    <const> = context.CTX
 local INT    <const> = frame.INT
 local NBITS  <const> = frame.NBITS
-local PACKET <const> = frame.PACKET
+local PACKET <const> = frame.type("packet", "proxy")
 
 -- MAX_PACKET_OFF: the verifier refuses arithmetic between a packet pointer and a register whose
 -- range it does not know, and find_good_pkt_pointers leaves a pointer no range at all once the
@@ -47,7 +47,7 @@ local accessors = {
 -- an accessor is called with the receiver and the offset, both of which OP_CALL counts
 local ACCESSARGS <const> = 2
 
-local packet = {}
+local packet = {PACKET = PACKET}
 
 -- data and data_end, which the kernel rewrites a four-byte context load of into a full pointer
 local function bounds(f)

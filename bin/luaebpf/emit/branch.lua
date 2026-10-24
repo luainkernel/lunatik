@@ -24,7 +24,7 @@ local testlookup = map.testlookup
 
 local BOOL  <const> = frame.BOOL
 local INT   <const> = frame.INT
-local MAYBE <const> = frame.MAYBE
+local MAYBE <const> = map.MAYBE
 local NIL   <const> = frame.NIL
 local OTHER <const> = frame.OTHER
 

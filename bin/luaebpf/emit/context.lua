@@ -17,9 +17,10 @@ local fetch, fitsunsigned, getreg, isinteger = frame.fetch, frame.fitsunsigned, 
 local refuse, setreg, typename = frame.refuse, frame.setreg, frame.typename
 
 local BYTE <const> = frame.BYTE
+local CTX  <const> = frame.type("context", "proxy")
 local INT  <const> = frame.INT
 
-local context = {}
+local context = {CTX = CTX}
 
 -- the running kernel's own layout of the context struct, read once per program
 local function layout(f)

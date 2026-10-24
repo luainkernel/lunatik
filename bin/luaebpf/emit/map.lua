@@ -24,10 +24,10 @@ local refuse, setreg, tested = frame.refuse, frame.setreg, frame.tested
 local BYTE   <const> = frame.BYTE
 local INT    <const> = frame.INT
 local KEY    <const> = frame.KEY
-local MAYBE  <const> = frame.MAYBE
+local MAYBE  <const> = frame.type("map value", "proxy", "untested") -- a map value the program has not tested yet
 local NBITS  <const> = frame.NBITS
 local NIL    <const> = frame.NIL
-local RECORD <const> = frame.RECORD
+local RECORD <const> = frame.type("struct map value", "proxy") -- a struct map value, read a field at a time
 local VALUE  <const> = frame.VALUE
 
 local LOOKUP <const> = 1 -- BPF_FUNC_map_lookup_elem
@@ -36,7 +36,7 @@ local DELETE <const> = 3 -- BPF_FUNC_map_delete_elem
 local ANY    <const> = 0 -- BPF_ANY, the flags an unconditional update takes
 local ENOENT <const> = -2 -- what a delete of a key the map does not hold answers
 
-local map = {}
+local map = {MAYBE = MAYBE, RECORD = RECORD}
 
 -- a map holds what its spec packs, and a compiled function has only numbers to pack
 local function mapnumber(f, pc, what)

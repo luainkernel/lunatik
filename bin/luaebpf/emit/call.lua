@@ -10,6 +10,7 @@
 
 local insn   = require("luaebpf.insn")
 local frame  = require("luaebpf.emit.frame")
+local loads  = require("luaebpf.emit.loads")
 local packet = require("luaebpf.emit.packet")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
@@ -20,9 +21,9 @@ local method = packet.method
 
 local ABORTED <const> = frame.ABORTED
 local INT     <const> = frame.INT
-local METHOD  <const> = frame.METHOD
+local METHOD  <const> = loads.METHOD
 local NIL     <const> = frame.NIL
-local PACKET  <const> = frame.PACKET
+local PACKET  <const> = packet.PACKET
 
 local MAXARGS <const> = 4 -- MAX_BPF_FUNC_REG_ARGS, less the register the abort pointer takes
 
