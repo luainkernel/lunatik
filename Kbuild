@@ -53,7 +53,8 @@ ifeq ($(CONFIG_64BIT),)
 # a helper the kernel exports is the kernel's: lunatik.ko links and exports klibc's for the others
 LUNATIK_LIBGCC := $(filter-out $(shell awk '$$3 == "vmlinux" { print $$2 }' $(objtree)/Module.symvers 2>/dev/null), \
 	__udivmoddi4 __divdi3 __udivdi3 __moddi3 __umoddi3)
-lunatik-objs += $(LUNATIK_LIBGCC:%=$(KLIBC_LIBGCC)/%.o) lunatik_libgcc.o
+# lunatik_libgcc.c defines __moddi3 itself
+lunatik-objs += $(patsubst %,$(KLIBC_LIBGCC)/%.o,$(filter-out __moddi3,$(LUNATIK_LIBGCC))) lunatik_libgcc.o
 CFLAGS_lunatik_libgcc.o += $(LUNATIK_LIBGCC:__%=-DLUNATIK_LIBGCC_%)
 endif
 

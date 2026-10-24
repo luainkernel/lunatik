@@ -28,6 +28,11 @@ EXPORT_SYMBOL(__divdi3);
 EXPORT_SYMBOL(__udivdi3);
 #endif
 #ifdef LUNATIK_LIBGCC_moddi3
+/* klibc's gives the remainder the quotient's sign, where luaV_mod corrects from C's, the dividend's */
+int64_t __moddi3(int64_t num, int64_t den)
+{
+	return num - __divdi3(num, den) * den;
+}
 EXPORT_SYMBOL(__moddi3);
 #endif
 #ifdef LUNATIK_LIBGCC_umoddi3
