@@ -659,8 +659,8 @@ print(events:pop())
         </li>
         <li><span class="parameter">spec</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-         <code>{key, value, entries}</code>; <code>key</code> and <code>value</code> are <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> formats of one
-   fixed-size integer each, and <code>entries</code> is the map&rsquo;s capacity
+         <code>{key, value, entries}</code>; <code>key</code> is a <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format of one fixed-size
+   integer, <code>value</code> is one of those or a <a href="../modules/struct.html#">struct</a> codec, and <code>entries</code> is the map&rsquo;s capacity
         </li>
     </ul>
 
@@ -673,9 +673,10 @@ print(events:pop())
 
     <h3>Raises</h3>
      <code>map.hash takes a name and a spec</code>, <code>a map name is a C identifier, not &apos;&lt;name&gt;&apos;</code>, <code>a
-   map key spec packs one value</code>, <code>a map value spec packs one value</code>, <code>a map is read in the
-   host&apos;s byte order, not &apos;&lt;spec&gt;&apos;</code>, <code>a map reads 1, 2, 4 or 8 bytes at a time, not &lt;n&gt;</code>, <code>a map
-   holds between 1 and 4294967295 entries, not &lt;n&gt;</code>, or <code>&apos;&lt;name&gt;&apos; is declared twice</code>
+   map key spec packs one value</code>, <code>a map value spec packs one value or is a struct codec</code>, <code>a
+   map is read in the host&apos;s byte order, not &apos;&lt;spec&gt;&apos;</code>, <code>a map reads 1, 2, 4 or 8 bytes at a
+   time, not &lt;n&gt;</code>, <code>a map holds between 1 and 4294967295 entries, not &lt;n&gt;</code>, or <code>&apos;&lt;name&gt;&apos; is
+   declared twice</code>
 
 
 
@@ -727,7 +728,7 @@ print(events:pop())
 <a href="../../modules/bpf.map.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.map.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-24 00:31:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-24 01:04:59</span>
 </div>
 </footer>
 </body>
