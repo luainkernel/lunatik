@@ -65,6 +65,15 @@ through a copy `make install` put in its own root, from a package at `bin/luaebp
 in the kernel's script tree from outside the trees that run there, one it puts in the host's Lua path
 from a tree that runs only in the kernel, and a directory named as the one that holds it.
 
+A definition goes where the tree keeps its kind, and that place is read before the definition is
+written: the declarations of its siblings point at it, as `include/stdint.h` declares the libgcc helpers
+a module of the tree calls on a 32-bit kernel. That compiler's runtime lives in the core, which exports
+each helper the kernel does not: klibc's in the objects `Kbuild` links into `lunatik.ko`, and the ones
+the tree writes in `lunatik_libgcc.c`, never in a binding or in `lunatik_aux.c`. #2132 first took
+klibc's `__umoddi3.c` into `lib/lualinux.c` and defined `__divmoddi4` in `lunatik_aux.c`, beside nothing
+of their kind. `tools/checks/layout.sh` names a libgcc helper defined outside `lunatik_libgcc.c`, and a C
+source of klibc included anywhere.
+
 A module or an example that needs a second file gets a directory, not a prefixed sibling:
 `examples/systrack/probe.lua` beside `device.lua`, never `systrack_device.lua` beside `systrack.lua`. The
 directory is named for what it holds, never as the directory that holds it: a reader takes `x/x/` for a
