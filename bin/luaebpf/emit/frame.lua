@@ -4,8 +4,9 @@
 --
 
 ---
--- What every lowering shares: the types a Lua register may hold, the words each frame reserves,
--- the abstract state the walk carries along each edge, where a Lua register lives, and the jumps.
+-- What every lowering shares: the declaration of a type a Lua register may hold, and the four
+-- `resolve` gives, the words each frame reserves, the abstract state the walk carries along each
+-- edge, where a Lua register lives, and the jumps.
 -- @module luaebpf.emit.frame
 
 local insn  = require("luaebpf.insn")
@@ -31,28 +32,44 @@ local CALLER   <const> = -SLOT * 2
 local KEY      <const> = -SLOT * 3
 local VALUE    <const> = -SLOT * 4
 
--- what a Lua register may hold; OTHER is a value the compiler knows and the kernel never sees
-local INT     <const> = 1
-local BOOL    <const> = 2
-local NIL     <const> = 4
-local CTX     <const> = 8
-local OTHER   <const> = 16
-local METHOD  <const> = 32
-local PACKET  <const> = 64
-local MAYBE   <const> = 128              -- a map value the program has not tested yet
-local RECORD  <const> = 256              -- a struct map value, read a field at a time
-local RUNTIME <const> = INT | BOOL | NIL -- a value the kernel holds as a word
-local PROXY   <const> = CTX | PACKET | MAYBE | RECORD -- a pointer the kernel holds, read through a proxy
+local typenames = {}
 
-local typenames = {[INT] = "number", [BOOL] = "boolean", [NIL] = "nil", [CTX] = "context",
-	[METHOD] = "method", [PACKET] = "packet", [MAYBE] = "map value",
-	[RECORD] = "struct map value"}
+-- the masks the frame's checks read, widened by each lowering that declares a type into one, so a
+-- reader takes the field where it uses it and never copies it into a local
+local classes = {
+	word     = 0, -- a value the kernel holds as a word
+	proxy    = 0, -- a pointer the kernel holds, read through a proxy
+	untested = 0, -- a word the program must test before the kernel reads it
+}
+
+local nextbit = 1
+
+-- what a Lua register may hold, a bit each, declared by the lowering whose code first gives a
+-- register that type, so a construct adds its own without editing a list every lowering shares
+local function newtype(name, ...)
+	local bit = nextbit
+	nextbit = bit << 1
+	typenames[bit] = name
+	for _, class in ipairs({...}) do
+		if classes[class] == nil then
+			error(format("'%s' is not a class the frame reads", class), 2)
+		end
+		classes[class] = classes[class] | bit
+	end
+	return bit
+end
+
+local INT  <const> = newtype("number", "word")
+local BOOL <const> = newtype("boolean", "word")
+local NIL  <const> = newtype("nil", "word")
+
+-- a value the compiler knows and the kernel never sees
+local OTHER <const> = newtype("value")
 
 local frame = {
 	NREGS = NREGS, SLOT = SLOT, NBITS = NBITS, BYTE = BYTE, RESERVED = RESERVED, ABORTED = ABORTED,
-	CALLER = CALLER, KEY = KEY, VALUE = VALUE, INT = INT, BOOL = BOOL, NIL = NIL, CTX = CTX, OTHER = OTHER,
-	METHOD = METHOD, PACKET = PACKET, MAYBE = MAYBE, RECORD = RECORD, RUNTIME = RUNTIME, PROXY = PROXY,
-	typenames = typenames,
+	CALLER = CALLER, KEY = KEY, VALUE = VALUE, INT = INT, BOOL = BOOL, NIL = NIL, OTHER = OTHER,
+	classes = classes, type = newtype, typenames = typenames,
 }
 
 local function typename(value)
@@ -153,7 +170,7 @@ frame.fetch = fetch
 
 -- the verifier lets a lookup's pointer be used only where the program has tested it
 local function tested(f, pc, value)
-	if value ~= nil and (value.t & MAYBE) ~= 0 then
+	if value ~= nil and (value.t & classes.untested) ~= 0 then
 		local name = value.name and format("'%s'", value.name) or "a value"
 		refuse(f, pc, "%s may be nil here; test it first", name)
 	end
@@ -164,7 +181,7 @@ local function getreg(f, pc, state, i, scratch)
 	local value = state[i]
 	local mask = value ~= nil and value.t or 0
 	tested(f, pc, value)
-	if mask == 0 or (mask & ~RUNTIME) ~= 0 then
+	if mask == 0 or (mask & ~classes.word) ~= 0 then
 		refuse(f, pc, "a %s has no value in the kernel here", typename(value))
 	end
 	return fetch(f, i, scratch)

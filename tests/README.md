@@ -1040,6 +1040,12 @@ interpreter raises, the compiled program owes its default verdict instead.
   sizes one `func_info` and a `line_info` per source line, whose strings
   `.BTF` carries. Skips when `readelf` or `bpftool` is missing, or when
   `luaebpf` is not installed.
+- **types**: no program: the CLI's Lua loads `luaebpf.emit.frame` alone and
+  declares types through `frame.type`. One declared into `word` and `untested`
+  takes a bit of its own, under its name, in those two classes and not in
+  `proxy`, and one declared into no class sits in none; a class the frame does
+  not read is refused at the declaring line, naming the class. Skips when
+  `luaebpf` is not installed.
 - **pass**: a file declaring two programs; `loadall` pins one per
   `xdp.program` call, `prog run` returns each verdict, the `license` section
   reads `Dual MIT/GPL`, and the BTF carries one `FUNC` per program; a program

@@ -23,6 +23,7 @@ local config     = require("lunatik.config")
 local insn       = require("luaebpf.insn")
 local proto      = require("luaebpf.proto")
 local frame      = require("luaebpf.emit.frame")
+local context    = require("luaebpf.emit.context")
 local loads      = require("luaebpf.emit.loads")
 local arithmetic = require("luaebpf.emit.arithmetic")
 local branch     = require("luaebpf.emit.branch")
@@ -41,7 +42,7 @@ local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
 local MAYGOTO  <const> = 6 << 16 | 9 << 8 -- KERNEL_VERSION(6, 9, 0): v6.9 and later take may_goto
 
 local CALLER   <const> = frame.CALLER
-local CTX      <const> = frame.CTX
+local CTX      <const> = context.CTX
 local NREGS    <const> = frame.NREGS
 local RESERVED <const> = frame.RESERVED
 local SLOT     <const> = frame.SLOT
