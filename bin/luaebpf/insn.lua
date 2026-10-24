@@ -36,6 +36,11 @@ local MAY_GOTO    <const> = 0
 local SIZE  <const> = 8
 local WORD  <const> = 8
 
+-- bpf_insn's dst_reg and src_reg share a byte as bitfields, the first declared low on a little-endian machine
+local LITTLE   <const> = pack("=I2", 1) == pack("<I2", 1)
+local DSTSHIFT <const> = LITTLE and 0 or 4
+local SRCSHIFT <const> = LITTLE and 4 or 0
+
 -- the field an access of that many bytes carries, BPF_B and friends
 local widths = {[1] = B, [2] = H, [4] = W, [8] = DW}
 
@@ -274,7 +279,8 @@ function code:pack()
 		if record.target ~= nil then
 			off = self.labels[record.target] - i
 		end
-		insert(bytes, pack("<I1I1i2i4", record.code, record.dst | (record.src << 4), off, record.imm))
+		insert(bytes, pack("=I1I1i2i4", record.code, (record.dst << DSTSHIFT) | (record.src << SRCSHIFT), off,
+			record.imm))
 	end
 	return concat(bytes)
 end

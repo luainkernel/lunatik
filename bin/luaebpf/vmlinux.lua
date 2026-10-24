@@ -82,14 +82,14 @@ end
 
 -- one pass over the type section: where each id starts, and the id of each named struct
 local function index(bytes)
-	local magic, _, _, hdrlen, typeoff, typelen, stroff = unpack("<I2I1I1I4I4I4I4", bytes)
+	local magic, _, _, hdrlen, typeoff, typelen, stroff = unpack("=I2I1I1I4I4I4I4", bytes)
 	if magic ~= MAGIC or hdrlen < HDRLEN then
 		return nil
 	end
 	local self = {bytes = bytes, strings = hdrlen + stroff + 1, offsets = {}, structs = {}}
 	local at, last, id = hdrlen + typeoff + 1, hdrlen + typeoff + typelen, 0
 	while at <= last do
-		local nameoff, info = unpack("<I4I4", bytes, at)
+		local nameoff, info = unpack("=I4I4", bytes, at)
 		local kind, vlen = (info >> 24) & 0x1f, info & 0xffff
 		id = id + 1
 		self.offsets[id] = at
@@ -108,7 +108,7 @@ local function resolve(self, id)
 		if at == nil then
 			return nil
 		end
-		local _, info, size = unpack("<I4I4I4", self.bytes, at)
+		local _, info, size = unpack("=I4I4I4", self.bytes, at)
 		local kind = (info >> 24) & 0x1f
 		if not qualifiers[kind] then
 			return kind, size, at
@@ -126,10 +126,10 @@ local function scalar(self, id)
 		return nil
 	end
 	if kind ~= INT then
-		local _, info = unpack("<I4I4", self.bytes, at)
+		local _, info = unpack("=I4I4", self.bytes, at)
 		return size, info >> 31 == 1
 	end
-	local encoding = unpack("<I4", self.bytes, at + TYPESIZE)
+	local encoding = unpack("=I4", self.bytes, at + TYPESIZE)
 	local bits, offset = encoding & 0xff, (encoding >> 16) & 0xff
 	if offset ~= 0 or bits ~= size * BYTE then
 		return nil
@@ -140,7 +140,7 @@ end
 local function members(self, at, vlen, kflag)
 	local fields = {}
 	for i = 0, vlen - 1 do
-		local nameoff, typeid, offset = unpack("<I4I4I4", self.bytes, at + TYPESIZE + i * MEMBER)
+		local nameoff, typeid, offset = unpack("=I4I4I4", self.bytes, at + TYPESIZE + i * MEMBER)
 		local bitfield = kflag == 1 and offset >> 24 or 0
 		local bit = kflag == 1 and offset & 0xffffff or offset
 		local size, signed = scalar(self, typeid)
@@ -182,7 +182,7 @@ function vmlinux.layout(what)
 		error(("the kernel BTF has no struct '%s'"):format(what), 0)
 	end
 	local at = self.offsets[id]
-	local _, info, size = unpack("<I4I4I4", self.bytes, at)
+	local _, info, size = unpack("=I4I4I4", self.bytes, at)
 	return {size = size, fields = members(self, at, info & 0xffff, info >> 31)}
 end
 
