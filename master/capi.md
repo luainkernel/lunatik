@@ -1771,7 +1771,7 @@ void *luakfunc_getctx(lua_State *L);
 Return the private of the context object [`luakfunc_bind`](#luakfunc_bind) stored in `L`'s registry
 at `&luakfunc_env_key`, a key of each module that includes the header, so two kfunc bindings in one
 runtime keep a context each. They leave the object's userdata on the stack, where a handler's
-[`luakfunc_invoke`](#luakfunc_invoke) takes it as the callback's argument and `detach`'s
+[`luakfunc_invoke`](#luakfunc_invoke) passes a copy of it to the callback and `detach`'s
 [`luakfunc_unbind`](#luakfunc_bind) pops it. With no callback attached they leave the stack as
 they found it and return `NULL`, and `luakfunc_getctx`, the handler's, logs
 `no callback attached (cpu <n>)`, rate limited.
@@ -1781,11 +1781,14 @@ they found it and return `NULL`, and `luakfunc_getctx`, the handler's, logs
 int luakfunc_invoke(lua_State *L, int cb, int nresults);
 int luakfunc_action(lua_State *L, int cb, lua_Integer min, lua_Integer max);
 ```
-`luakfunc_invoke` calls the callback `luakfunc_bind` referenced at `cb`, with the value on top of
-the stack, the context `luakfunc_getctx` left there, as its argument, and returns `0` with
+`luakfunc_invoke` calls the callback `luakfunc_bind` referenced at `cb`, with a copy of the value on
+top of the stack, the context `luakfunc_getctx` left there, as its argument, and returns `0` with
 `nresults` results on the stack; when the callback raises, it logs the error through
-[`lunatik_errmsg`](#lunatik_errmsg), rate limited, pops it and returns `-1`. The call is protected
-and nothing before it raises, so a handler calls it outside a protected call of its own.
+[`lunatik_errmsg`](#lunatik_errmsg), rate limited, pops it and returns `-1`. The context stays below
+the call, so the collector keeps it, its private included, until
+[`lunatik_handle`](#lunatik_handle) restores the stack after the handler, whatever the callback did
+with its argument or with `detach`. The call is protected and nothing before it raises, so a handler
+calls it outside a protected call of its own.
 `luakfunc_action` invokes the callback for one result, a verdict, and returns it when it is an
 integer from `min` to `max`; it returns `-1` for a raise or nil, and for any other result, which it
 logs as `invalid action`.

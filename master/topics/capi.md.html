@@ -2438,7 +2438,7 @@ for a process-context runtime, whose lock is a mutex, logging
 <p>Return the private of the context object <a href="#luakfunc_bind"><code>luakfunc_bind</code></a> stored in <code>L</code>&rsquo;s registry
 at <code>&amp;luakfunc_env_key</code>, a key of each module that includes the header, so two kfunc bindings in one
 runtime keep a context each. They leave the object&rsquo;s userdata on the stack, where a handler&rsquo;s
-<a href="#luakfunc_invoke"><code>luakfunc_invoke</code></a> takes it as the callback&rsquo;s argument and <code>detach</code>&rsquo;s
+<a href="#luakfunc_invoke"><code>luakfunc_invoke</code></a> passes a copy of it to the callback and <code>detach</code>&rsquo;s
 <a href="#luakfunc_bind"><code>luakfunc_unbind</code></a> pops it. With no callback attached they leave the stack as
 they found it and return <code>NULL</code>, and <code>luakfunc_getctx</code>, the handler&rsquo;s, logs
 <code>no callback attached (cpu &lt;n&gt;)</code>, rate limited.</p>
@@ -2451,11 +2451,14 @@ they found it and return <code>NULL</code>, and <code>luakfunc_getctx</code>, th
 </pre>
 
 
-<p><code>luakfunc_invoke</code> calls the callback <code>luakfunc_bind</code> referenced at <code>cb</code>, with the value on top of
-the stack, the context <code>luakfunc_getctx</code> left there, as its argument, and returns <code>0</code> with
+<p><code>luakfunc_invoke</code> calls the callback <code>luakfunc_bind</code> referenced at <code>cb</code>, with a copy of the value on
+top of the stack, the context <code>luakfunc_getctx</code> left there, as its argument, and returns <code>0</code> with
 <code>nresults</code> results on the stack; when the callback raises, it logs the error through
-<a href="#lunatik_errmsg"><code>lunatik_errmsg</code></a>, rate limited, pops it and returns <code>-1</code>. The call is protected
-and nothing before it raises, so a handler calls it outside a protected call of its own.
+<a href="#lunatik_errmsg"><code>lunatik_errmsg</code></a>, rate limited, pops it and returns <code>-1</code>. The context stays below
+the call, so the collector keeps it, its private included, until
+<a href="#lunatik_handle"><code>lunatik_handle</code></a> restores the stack after the handler, whatever the callback did
+with its argument or with <code>detach</code>. The call is protected and nothing before it raises, so a handler
+calls it outside a protected call of its own.
 <code>luakfunc_action</code> invokes the callback for one result, a verdict, and returns it when it is an
 integer from <code>min</code> to <code>max</code>; it returns <code>-1</code> for a raise or nil, and for any other result, which it
 logs as <code>invalid action</code>.</p>
@@ -2777,7 +2780,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-24 12:24:59</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-24 12:30:38</span>
 </div>
 </footer>
 </body>

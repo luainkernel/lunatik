@@ -391,6 +391,7 @@ xdp.<span class="function-name">attach</span>(my_packet_processor)
     Unregisters the Lua callback function associated with the current Lunatik runtime.
  After calling this, <code>bpf_luaxdp_run</code> calls targeting this runtime invoke no Lua function:
  they log <code>no callback attached</code>, return <code>-1</code> and leave the verdict to the eBPF program.
+ It may be called from the callback, whose verdict still applies to the packet at hand.
 
 
 
@@ -424,7 +425,7 @@ xdp.<span class="function-name">attach</span>(my_packet_processor)
 <a href="../../modules/xdp.html">5.1 docs</a> ·
 <a href="../../5.0/modules/xdp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-24 12:24:59</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-24 12:30:38</span>
 </div>
 </footer>
 </body>
