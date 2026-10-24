@@ -4,14 +4,17 @@
 Install dependencies (here for Debian/Ubuntu, to be adapted to one's distribution):
 
 ```sh
-sudo apt install git build-essential lua5.5 dwarves clang llvm libelf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
+sudo apt install git build-essential lua5.5 dwarves clang llvm libelf-dev libbpf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
 ```
 
 Install dependencies (here for Arch Linux):
 
 ```sh
-sudo pacman -S git lua clang llvm m4 libpcap pkg-config base-devel pahole libelf linux-tools linux-headers
+sudo pacman -S git lua clang llvm m4 libbpf libpcap pkg-config base-devel pahole libelf linux-tools linux-headers
 ```
+
+`make` builds `luaebpf.loader`, which loads the compiled programs, against libbpf 1.0 or later,
+which Ubuntu packages from 23.04.
 
 The command line tool runs under `/usr/bin/lua5.5`, and the build calls `lua5.5`. Ubuntu packages
 Lua 5.5 from 26.04 and Debian from testing. Where the distribution does not carry it yet, build the

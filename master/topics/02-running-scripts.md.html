@@ -196,8 +196,8 @@
 usage: lunatik [-h | -V]
        lunatik [-i] [-e &lt;chunk&gt;]
        lunatik <span class="global">load</span> | unload | reload | status
-       lunatik run [-c process | softirq | hardirq] [-p] &lt;script&gt;
-       lunatik spawn &lt;script&gt;
+       lunatik run [-c process | softirq | hardirq] [-p] [<span class="comment">--dev=&lt;ifname&gt;] &lt;script&gt;
+</span>       lunatik spawn &lt;script&gt;
        lunatik stop &lt;script&gt;...
        lunatik list
        lunatik test [&lt;suite&gt;]
@@ -214,11 +214,15 @@ usage: lunatik [-h | -V]
 <li><code>-i</code>, <code>--interactive</code>: enter the REPL after <code>-e</code></li>
 <li><code>-c &lt;context&gt;</code>, <code>--context=&lt;context&gt;</code>: the context <code>run</code> creates the runtime in</li>
 <li><code>-p</code>, <code>--percpu</code>: <code>run</code> creates one runtime per CPU id</li>
+<li><code>--dev=&lt;ifname&gt;</code>: the device <code>run</code> attaches the script&rsquo;s compiled program to (see
+<a href="#compiled-programs">Compiled programs</a>)</li>
 <li><p><code>-o &lt;object&gt;</code>, <code>--output=&lt;object&gt;</code>: the object <a href="../modules/bpf.html#">bpf</a> writes</p></li>
 <li><p><code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
 <code>modprobe</code> prints its error on stderr and the load goes on, so read <code>lunatik status</code> and the kernel log</p></li>
-<li><code>unload</code>: stop every running script, then unload Lunatik kernel modules</li>
-<li><code>reload</code>: stop every running script and reload Lunatik kernel modules, failing with
+<li><code>unload</code>: take down every compiled program a <code>run</code> attached, stop every running script, then
+unload Lunatik kernel modules</li>
+<li><code>reload</code>: take down every compiled program, stop every running script and reload Lunatik kernel
+modules, failing with
 <code>couldn&apos;t replace &lt;modules&gt;: loaded from another build</code> when a module that could not be unloaded
 is not the installed file</li>
 <li><code>status</code>: show which Lunatik kernel modules are currently loaded, and name a loaded module that
@@ -228,11 +232,12 @@ is not the installed build</li>
 <li><code>bpf [-o &lt;object&gt;] &lt;program&gt;</code>: compile a program file into a BPF object (see
 <a href="#program-files">Program files</a>)</li>
 <li><code>list</code>: show which runtime environments are currently running, one script a line, in order of name</li>
-<li><code>run [-c softirq | hardirq] [-p] &lt;script&gt;</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>--context=softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>--context=hardirq</code> for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass <code>--percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+<li><code>run [-c softirq | hardirq] [-p] [--dev=&lt;ifname&gt;] &lt;script&gt;</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>--context=softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>--context=hardirq</code> for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass <code>--percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a>. Where <code>/lib/modules/lua/&lt;script&gt;.bpf.o</code> exists, <code>run</code> also loads and attaches that program: see <a href="#compiled-programs">Compiled programs</a></li>
 <li><code>spawn &lt;script&gt;</code>: create a new runtime environment for the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>,
 always in process context, and run the function it returns in a kernel thread; it takes no
 context and no percpu, and the function follows the rules of <em>Kernel threads</em> below</li>
-<li><code>stop &lt;script&gt;...</code>: stop the runtime environment created to run each script, failing on a script nothing runs</li>
+<li><code>stop &lt;script&gt;...</code>: stop the runtime environment created to run each script and take down the
+compiled program its run attached, failing on a script nothing runs</li>
 <li>no command, <code>sudo lunatik</code>: start a <em>REPL (Read–Eval–Print Loop)</em>, with its banner and prompts on
 a terminal; on a pipe it runs each line it reads and prints only what the lines return. Each
 entry is a chunk of its own, so a <code>local</code> is gone on the next line while a global stays; an entry
@@ -373,9 +378,10 @@ written.</p>
 
 <pre>
 lunatik bpf filter.bpf.lua
-sudo bpftool prog <span class="global">load</span> filter.bpf.o /sys/fs/bpf/filter <span class="global">type</span> xdp
 </pre>
 
+
+<p><code>lunatik run</code> is what loads and attaches the object: see <a href="#compiled-programs">Compiled programs</a>.</p>
 
 <p><a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> in the body finds the compile-time modules first, <a href="../modules/bpf.xdp.html#">bpf.xdp</a>, <a href="../modules/bpf.tc.html#">bpf.tc</a> and <a href="../modules/bpf.map.html#">bpf.map</a>,
 which declares a map rather than opening the kernel&rsquo;s, then the compiler&rsquo;s own <a href="../modules/luaebpf.html#">luaebpf</a> modules,
@@ -384,6 +390,57 @@ as source or, with <code>BYTECODE=1</code>, as chunks. It finds nothing else the
 C module the host installs never stands in for a kernel script. <code>10 / 4</code> is <code>2</code> in the body as in
 the kernel; the CLI&rsquo;s libraries can still return a float, as <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.sqrt">math.sqrt</a> does, and one reaching a
 compiled function is refused at the line that reaches it.</p>
+
+<p><a name="Compiled_programs"></a></p>
+
+<h2 id="compiled-programs">Compiled programs</h2>
+
+<p>When <code>/lib/modules/lua/&lt;script&gt;.bpf.o</code> exists, the object compiled from <code>&lt;script&gt;.bpf.lua</code>,
+<code>lunatik run --dev=&lt;ifname&gt; &lt;script&gt;</code>:</p>
+
+<ol>
+<li>takes down what a previous run of the script left under <code>/sys/fs/bpf/lunatik/&lt;script&gt;/</code>, then
+creates the maps the program file declares and pins each there under its name;</li>
+<li>starts the runtime for <code>&lt;script&gt;.lua</code>, when there is one, whose script opens those maps by that
+path;</li>
+<li>attaches every program the object declares to <code>&lt;ifname&gt;</code>, an XDP program to the device and a TC
+one to its tcx ingress or egress, and pins each link at
+<code>/sys/fs/bpf/lunatik/&lt;script&gt;/&lt;program&gt;-link</code>, which keeps the program attached once the command
+has exited. bpffs refuses a dot in a name, so the suffix takes a hyphen, which no map name
+carries.</li>
+</ol>
+
+
+<p>The maps exist before the script opens them, and the programs attach once the runtime is up. A
+failure at any step undoes the steps before it and exits 1 with that step&rsquo;s message, the verifier&rsquo;s
+own log when the kernel rejects a program, which quotes the Lua line; libbpf&rsquo;s own warnings, which
+name what failed where the kernel logs nothing, print on stderr before it. <code>lunatik stop &lt;script&gt;</code>
+runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each
+directory above it the root leaves empty. A root holds pins and nothing else, so a stop of a name
+that only parents other scripts' roots leaves them alone. <code>lunatik unload</code>, and <code>reload</code> and <code>test</code>
+with it, detaches every link under <code>/sys/fs/bpf/lunatik/</code> and removes the tree before it stops the
+runtimes, so no program outlives it, not even one with no runtime to stop.</p>
+
+<p>A run of a script that is already running is refused before anything is touched. A script with an
+object and no <code>&lt;script&gt;.lua</code> runs the program alone, with no runtime: it takes no <code>--context</code> and no
+<code>--percpu</code>, and with no runtime to refuse it, a second run redeploys it. <code>--dev</code> is required where
+there is an object and refused where there is none, both exiting 2 with the usage. A name with a
+dot has no root, since bpffs refuses the dot, and neither has one with an empty component, a leading
+or a doubled <code>/</code>, which would spell the root of a run registered under the other spelling: its run
+is refused, and its stop reaches no root. A TC program needs a libbpf
+of 1.3.0 or later, where tcx begins; below it <code>run</code> refuses with <code>tcx needs libbpf 1.3.0</code>.</p>
+
+<pre>
+sudo lunatik bpf -o /lib/modules/lua/filter.bpf.o filter.bpf.lua
+sudo lunatik run <span class="comment">--dev=eth0 filter
+</span>sudo lunatik stop filter
+</pre>
+
+
+<p><code>sudo make install</code> compiles every program file of <code>examples/</code> and <code>tests/</code>, but the <a href="../modules/luaebpf.html#">luaebpf</a>
+suite&rsquo;s, whose cases compile their own, and puts the object beside the script it belongs to, where
+the kernel publishes the BTF the compiler reads. The program file itself stays out of
+<code>/lib/modules/lua/</code>: its body runs on the host, and the kernel&rsquo;s <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> never loads it.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/01-getting-started.md.html"><span>Previous</span>Getting started</a>
     <a class="next" href="../topics/03-percpu.md.html"><span>Next</span>Per-CPU scripts</a>
@@ -404,7 +461,7 @@ compiled function is refused at the line that reaches it.</p>
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-24 01:04:59</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-24 02:28:48</span>
 </div>
 </footer>
 </body>
