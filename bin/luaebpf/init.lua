@@ -10,7 +10,9 @@
 -- on the host, from that bytecode in the CLI's Lua, and hands the functions it declares to a
 -- program constructor. Those functions are the program: `compile` reads their bytecode, lowers it,
 -- and returns an object `bpftool prog load` accepts. Anything the subset refuses is an error
--- naming the Lua file and line.
+-- naming the Lua file and line. `lunatik bpf` calls `compile` and writes the object, which
+-- `lunatik run --dev` loads and attaches; the guide page *Compiling Lua to eBPF* says what a
+-- program file may hold, what a program returns and when it stops.
 --
 -- The compiler compiles for the kernel `lunatik.config` describes, which `make` writes from the
 -- tree Lunatik is built against: that kernel's version and byte order. It reads that kernel's types
