@@ -60,7 +60,9 @@ static u64 turn;
 
 void BPF_STRUCT_OPS(workload_dispatch, s32 cpu, struct task_struct *prev)
 {
-	if (scx_min_dsq_move_to_local(leads[turn++ % NR_LEADS]))
+	u64 index = __sync_fetch_and_add(&turn, 1) % NR_LEADS;
+
+	if (scx_min_dsq_move_to_local(leads[index]))
 		return;
 	if (!scx_min_dsq_move_to_local(DSQ_REALTIME) && !scx_min_dsq_move_to_local(DSQ_DEFAULT))
 		scx_min_dsq_move_to_local(DSQ_BATCH);
