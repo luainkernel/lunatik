@@ -136,6 +136,9 @@ it too.
 
 ## Program files
 
+Program files and their compiler are experimental: what this section and the next describe may
+change in a minor release, as [Compiling Lua to eBPF](08-luaebpf.md) says.
+
 `lunatik bpf` compiles a **program file** into a BPF ELF object, `<program>` with `.lua` replaced
 by `.o` unless `-o` names another, so `filter.bpf.lua` becomes `filter.bpf.o`. `lunatic` compiles
 the file, and its body is compile-time Lua: it runs once, here, from that bytecode in the CLI's Lua,
