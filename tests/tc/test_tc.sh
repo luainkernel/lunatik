@@ -56,6 +56,11 @@
 # reply's conntrack entry holds the second deletion until the script stops, which collects the
 # copy and lets both go. It skips without nft or conntrack.
 #
+# The route case probes luaskb_copy's entry and return and dst_release, and counts the routes
+# released on a CPU between a copy's entry and its return: copy.lua's first step keeps a copy of
+# one echo reply, whose route the copy drops as it is made, one release. A build whose copy keeps
+# the route releases none there. It skips where the probes cannot be placed.
+#
 # The verdict cases send one ping each, whose payload size picks what the callback
 # of verdict.lua answers to the echo reply: nothing, a value that is not a number, an
 # action as a string, a number past the TC actions, one below them, one whose low 32
@@ -122,6 +127,8 @@ CT_HOST2="lunatikct2"
 CT_PEER="lunatikctp"
 CT_NET="10.199.11"
 CT_BOUND=100 # tenths of a second the second namespace's veth end has to go in
+ROUTED="tc route: a copy drops the route the echo reply carries as it is made"
+ROUTE_GROUP="lunatik_tcdst"
 
 # the verdict cases: the payload sizes verdict.lua reads, the case each picks, what it logs
 VERDICT_PAYLOADS=(101 102 103 104 105 106 107)
@@ -169,8 +176,22 @@ peer_tc() { nsenter --net="/run/netns/$NETNS" tc "$@"; }
 ct_tc() { nsenter --net="/run/netns/$CT_NS1" tc "$@"; }
 gone() { ! ip link show "$1" > /dev/null 2>&1; }
 
+# the route case's probes, in a tracing instance named for their group: route_probe arms them,
+# route_unprobe takes them down, and copy_releases counts the dst_release lines that fall on a
+# CPU between a luaskb_copy entry and its return
+route_probe() {
+	kprobe_place "$ROUTE_GROUP/copy" luaskb_copy && kprobe_place "$ROUTE_GROUP/copied" luaskb_copy r &&
+		kprobe_place "$ROUTE_GROUP/release" dst_release
+}
+route_unprobe() { local event; for event in copy copied release; do kprobe_remove "$ROUTE_GROUP/$event"; done; }
+copy_releases() {
+	awk 'match($0, /\[[0-9]+\]/) { cpu = substr($0, RSTART, RLENGTH) }
+		/ copy: / { inside[cpu] = 1 } / copied: / { inside[cpu] = 0 }
+		/ release: / && inside[cpu] { n++ } END { print n + 0 }' "$TRACING/instances/$ROUTE_GROUP/trace"
+}
+
 ktap_header
-ktap_plan 25
+ktap_plan 26
 
 skip_all()
 {
@@ -189,6 +210,7 @@ skip_all()
 	ktap_skip "$DETACHED"
 	ktap_skip "$MACSEC"
 	ktap_skip "$TEARDOWN"
+	ktap_skip "$ROUTED"
 	ktap_skip "tc compiled pass: a compiled program lets the ping through"
 	ktap_skip "tc compiled drop: a compiled program blocks the ping"
 	for title in "${VERDICT_TITLES[@]}"; do
@@ -230,6 +252,7 @@ cleanup()
 	ip netns del "$CT_NS1" 2>/dev/null
 	ip netns del "$CT_NS2" 2>/dev/null
 	kprobe_remove "$FREED"
+	route_unprobe
 }
 
 trap cleanup EXIT
@@ -491,6 +514,28 @@ teardown_case()
 	ktap_pass "$TEARDOWN"
 }
 
+route_case()
+{
+	local released
+	route_probe || { route_unprobe; echo "# SKIP: couldn't probe luaskb_copy and dst_release"; ktap_skip "$ROUTED"; return 0; }
+	tc_load tc_copy.bpf.o ||
+		{ tc_unload; route_unprobe; ktap_fail "$ROUTED: failed to load/attach TC program"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/tc/copy"
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
+	released=$(copy_releases)
+
+	tc_unload
+	lunatik stop tests/tc/copy > /dev/null 2>&1
+	route_unprobe
+
+	check_dmesg || { ktap_fail "$ROUTED"; return 1; }
+	dmesg_since | grep -q "tc copy: inside" || { ktap_fail "$ROUTED: no copy was kept"; return 1; }
+	[ "$released" -eq 1 ] || { ktap_fail "$ROUTED: making the copy released $released routes, not one"; return 1; }
+	ktap_pass "$ROUTED"
+}
+
 verdict_fail()
 {
 	local title
@@ -639,6 +684,7 @@ nonlinear_case
 copy_case
 macsec_case
 teardown_case
+route_case
 verdict_case
 compiled_case compiled_pass yes "tc compiled pass: a compiled program lets the ping through"
 compiled_case compiled_drop no "tc compiled drop: a compiled program blocks the ping"
