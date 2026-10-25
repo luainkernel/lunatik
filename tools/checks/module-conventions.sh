@@ -62,7 +62,7 @@ check() {
 
 	# a function past thirty lines of body hides a step that wants a name.
 	awk '
-		/^[a-zA-Z].*\)$/ && !/;$/ { name=$0; signature=NR; next }
+		/^[a-zA-Z][^;]*\(/ && !/;$/ { name=$0; signature=NR; next }
 		/^\{$/ && name != "" { start=NR; next }
 		/^\}$/ && start { if (NR-start-1 > 30) { sub(/\(.*/, "", name); sub(/.* /, "", name); print signature, name, NR-start-1 } start=0; name="" }
 	' "$file" 2>/dev/null | while read -r signature name body; do
