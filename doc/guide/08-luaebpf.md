@@ -119,8 +119,9 @@ return xdp.program(filter, {default = action.DROP})
 ```
 
 With the default, a packet the program cannot read goes through; a filter that must drop what it
-cannot check names `DROP`. A value the program computes reaches a kernel script through a map,
-not through the verdict.
+cannot check names `DROP`. A value the program computes reaches a kernel script through a map, or
+as the argument of a [call into a runtime](#calls-into-a-kernel-lua-runtime), not through the
+verdict.
 
 ## When a program cannot be compiled or computed
 
@@ -151,7 +152,9 @@ fails in one of three places.
 * **Refused at load.** The kernel's verifier checks the object again when `lunatik run` loads it.
   A program past the verifier's limits, most often a loop of many passes, is refused there:
   `lunatik run` prints the verifier's log, which quotes the Lua lines, exits 1 and leaves nothing
-  attached.
+  attached. A call into a runtime whose module carries no BTF is refused there too, by libbpf,
+  whose warning names the kfunc
+  ([Calls into a kernel Lua runtime](#calls-into-a-kernel-lua-runtime)).
 * **Stops.** In the kernel, on a packet, the program returns its default verdict at once, and
   nothing is logged (#2098). A program stops at a read past the packet, a division or a modulo by
   0, a `for` step of 0 it computed, a map key or value its spec cannot pack, a map update or delete
@@ -179,6 +182,8 @@ that line. Each construct links to its listing.
 | [`for i = a, b, s do`](09-luaebpf-by-example.md#loops) | the passes Lua makes | `s` is 0 | `s` is a known 0; a bound or a step is computed, before Linux 6.9 ([Loops](#loops)) |
 | [`local v = f(x)`](09-luaebpf-by-example.md#calls) | the value `f` returns | `f` stops | [Calls](#calls) says |
 | [`return f(x)`](09-luaebpf-by-example.md#calls) | | | always: a tail call |
+| [`local v = lua(a, b)`, `lua` a runtime](09-luaebpf-by-example.md#calls-into-a-kernel-lua-runtime) | the verdict the runtime's callback returns, or nil | never | an argument is not a number; the call is in a function the program calls |
+| [`if v then`, `v == nil`, `v` what `lua` answered](09-luaebpf-by-example.md#calls-into-a-kernel-lua-runtime) | the branch Lua takes: `v` is the verdict on one, nil on the other | never | `v` is used before one of these tests reads it; `v` is the answer on one path and another value on another |
 | [`p:getuint16(n)` and the other reads](09-luaebpf-by-example.md#the-packet) | the bytes at `n`, in the kernel's byte order | the read passes the end of the packet | [The packet](#the-packet) says |
 | [`#p`](09-luaebpf-by-example.md#the-packet) | the length of the packet | never | never |
 | [`skb:data()`](09-luaebpf-by-example.md#the-context) | the packet | the skb is not linear | a layer is given |
@@ -271,6 +276,106 @@ it.
   `local y = g(x)` and then `f(y)`.
 * `return f(x)` is a tail call, which is refused: write `local v = f(x)`, then `return v`.
 
+## Calls into a kernel Lua runtime
+
+A program hands a packet to Lua by calling a kernel Lua runtime, a kernel script run in softirq
+context whose callback decides the packet. The body names the runtime by the script it runs, its
+path below `/lib/modules/lua/` without `.lua`, as `lunatik run` takes it: `xdp.runtime(name)` or
+`tc.runtime(name)`, the two alike. This program file hands Lua the UDP frames, and the kernel
+script drops one to port 53 longer than 512 bytes:
+
+`ports.bpf.lua`:
+
+```Lua
+local xdp    = require("bpf.xdp")
+local action = require("linux.xdp").action
+
+local ETHERTYPE <const> = 12 -- 0x0800 for IPv4, in network order
+local PROTOCOL  <const> = 23 -- the protocol byte of the IPv4 header
+local PORT      <const> = 36 -- the UDP destination port, past an IPv4 header with no options
+local UDP       <const> = 17
+
+local lua = xdp.runtime("ports")
+
+return xdp.program(function(ctx)
+	local p = ctx:packet()
+	if p:getbyte(ETHERTYPE) ~= 0x08 or p:getbyte(ETHERTYPE + 1) ~= 0x00 or p:getbyte(PROTOCOL) ~= UDP then
+		return action.PASS
+	end
+	local port = p:getbyte(PORT) << 8 | p:getbyte(PORT + 1)
+	local verdict = lua(port, #p)
+	if verdict then
+		return verdict
+	end
+	return action.PASS
+end)
+```
+
+`ports.lua`, the kernel script:
+
+```Lua
+local xdp    = require("xdp")
+local action = require("linux.xdp").action
+
+local WORD <const> = 8
+
+local limits = {[53] = 512} -- the longest frame a port takes
+
+local function callback(ctx)
+	local argument = ctx:argument()
+	local port, length = argument:getint64(0), argument:getint64(WORD)
+	local limit = limits[port]
+	if limit and length > limit then
+		return action.DROP
+	end
+end
+
+xdp.attach(callback)
+```
+
+```Shell
+sudo install -m 0644 ports.lua /lib/modules/lua/ports.lua
+sudo lunatik bpf -o /lib/modules/lua/ports.bpf.o ports.bpf.lua
+sudo lunatik run --dev=eth0 --context=softirq ports
+```
+
+`lunatik run` starts the runtime before it attaches the program. The callback returns nothing for
+any other frame, so the call answers nil there, and the program passes the frame.
+
+* `lua(a, b)`, in the program's own function, runs the callback with the context of the packet the
+  program runs on, `ctx:packet()` in an XDP callback and `ctx:skb()` in a TC one, and with the
+  arguments, each a number, as 64-bit integers in order: `ctx:argument()` holds 8 bytes for each,
+  which `ctx:argument():getint64(0)`, `getint64(8)` and on read, and is empty for `lua()`. A call
+  from an XDP program reaches the callback `xdp.attach` registered, and one from a TC program the
+  callback of `tc.attach`, whichever of `xdp.runtime` and `tc.runtime` named the runtime.
+* The call answers the callback's verdict, a value of `linux.xdp.action` or `linux.tc.action`, or
+  nil where none comes back: no runtime of that name runs in softirq with a callback attached, or
+  the callback raises, returns nil or nothing, or returns what is not one of the hook's actions,
+  `UNSPEC` included in a TC one. A runtime of process context is never called, and the module logs
+  "'ports' is a process-context runtime, not dispatched"; a value that is not an action is logged
+  as "invalid action". The call never stops the program.
+* The answer is used only after `if v then`, `if not v then`, `v == nil` or `v ~= nil` tests it,
+  which gives the verdict on one branch and nil on the other, a nil the program may return as its
+  default verdict. `v = v or action.PASS` is such a test, since Lua compiles it as one. Any other
+  use is refused, "'lua' may be nil here; test it first", and an ordered comparison "attempt to
+  compare a runtime answer with a number".
+* A call in a function the program calls is refused, "'lua' can only be called from the program's
+  own function", since only the program's own function holds the context, and so is one in a
+  program whose parameter does not hold it, "a call into the runtime passes the context, which the
+  program's parameter does not hold". An argument that is not a number is refused, "argument #1 is
+  a boolean, and a call into the runtime passes numbers", and so is a runtime declared with no
+  name, at that line, "xdp.runtime takes a name".
+* The name and the arguments are written on the program's stack while the call runs, 512 bytes it
+  shares with the function's own values; a call they do not fit is refused, "the function needs 528
+  bytes of stack, over the 512 eBPF allows", one with a name of 480 bytes among them.
+* Each call runs the kernel's Lua interpreter on the packet path, the cost of a Lua call on every
+  packet that reaches it: a program decides what it can by itself, a map in front, and calls Lua
+  for the rest.
+* The object loads where the module of its call, `luaxdp` or `luatc`, carries BTF, which a module
+  built after `sudo make btf_install` does. Where it carries none, `lunatik run` prints libbpf's
+  "extern (func ksym) 'bpf_luaxdp_run': not found in kernel or module BTFs", exits 1 and leaves
+  nothing attached.
+
 ## Loops
 
 A numeric `for` is the only loop compiled. It makes the passes Lua makes.
@@ -307,6 +412,11 @@ Give the variable one type on every path: `local v = 0`. These are refused too:
   The kernel lets the program read the value only past that test.
 * A variable that holds a lookup in one map on one path and in another map on the other: "a map
   value here comes from more than one map". Which map it came from decides how its value is read.
+* A variable that holds the answer of a call into a runtime on one path and another value on the
+  other, tested where the two paths meet: "a runtime answer joined another value here, whose nil is
+  0 and not -1; test it before the paths join". The kernel holds the answer's nil as -1 and every
+  other nil as 0, and the word does not say which path it came from. Tested on the path of the
+  call, the answer is a verdict or the nil every other path holds, and the paths join as any two do.
 * A verdict that may be nil: "the verdict may be nil here; test it first". The kernel would read
   nil as 0, which is an action.
 * Arithmetic on nil or a boolean, and an ordered comparison of a value that is not a number:
@@ -335,7 +445,14 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | the packet has no method 'getuint64' | `getuint64`, `setbyte` | the reads of [The packet](#the-packet) |
 | the context has no method 'mark' | `skb:mark()`, `ctx:argument()` | the methods of [The packet](#the-packet) |
 | 'data_end' is a packet bound, not a number; '#' on the packet is its length | `ctx.data_end - ctx.data` | `#p` |
-| 'flows' may be nil here; test it first | a lookup used untested | `if v then` |
+| 'flows' may be nil here; test it first | a lookup, or the answer of a call into a runtime, used untested | `if v then` |
+| attempt to compare a runtime answer with a number | `lua(1) < 5` | `if v then`, then `v < 5` |
+| a runtime answer joined another value here, whose nil is 0 and not -1; test it before the paths join | `if v then`, `v` the answer on one path and nil on another | `if v then` on the path of the call |
+| 'lua' can only be called from the program's own function | a call into a runtime in a function the program calls | the call in the program's function |
+| a call into the runtime passes the context, which the program's parameter does not hold | `xdp.program(function() ... end)` calling `lua(1)` | `function(ctx)` |
+| argument #1 is a boolean, and a call into the runtime passes numbers | `lua(true)`, `lua(p)` | a number |
+| xdp.runtime takes a name | `xdp.runtime()` | `xdp.runtime("ports")` |
+| the function needs 528 bytes of stack, over the 512 eBPF allows | a call into a runtime named by 480 bytes | a shorter name |
 | a value cannot be compared with a number here | `==` on a variable nil on one path | `local v = 0` |
 | a value has no truth value in a compiled function | `if v then`, `v` a number or nil | `local v = 0`, then `if v ~= 0 then` |
 | the verdict may be nil here; test it first | `return v`, `v` nil on one path | a verdict on every path |

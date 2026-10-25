@@ -32,7 +32,7 @@ end
 -- @function luaebpf.programs.declare
 -- @tparam string constructor the constructor the program file called, `xdp.program` or its peer
 -- @tparam function fn the program
--- @tparam table program `{section, default, name, context}`
+-- @tparam table program `{section, default, name, context, kfunc}`
 -- @treturn table the program, with `fn`
 -- @raise `<constructor> takes a Lua function`, or `<file>:<line>: <constructor>'s default verdict
 --   is not an integer`, the line where `fn` is defined

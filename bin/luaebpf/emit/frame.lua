@@ -16,12 +16,14 @@ local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local opcodes    = proto.opcodes
 local format     = string.format
 local mathtype   = math.type
+local max        = math.max
 
 local NREGS    <const> = 4   -- Lua registers 0..3 live in r6..r9; the rest spill to the frame
 local FIRST    <const> = reg.R6
 local SLOT     <const> = 8
 local NBITS    <const> = 64
 local BYTE     <const> = 8   -- bits
+local MAXSTACK <const> = 512 -- MAX_BPF_STACK
 
 -- the words every frame reserves: the flag a callee raises through the pointer its caller
 -- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
@@ -157,6 +159,20 @@ end
 local function offset(i)
 	return -SLOT * (i - NREGS + 1 + RESERVED)
 end
+
+-- the bytes a frame holds: the words it reserves and the Lua registers that spill below them
+local function depth(f)
+	return (max(f.proto.maxstacksize - NREGS, 0) + RESERVED) * SLOT
+end
+frame.depth = depth
+
+-- a frame deeper than eBPF allows is refused at the line that needs it
+local function stack(f, pc, bytes)
+	if bytes > MAXSTACK then
+		refuse(f, pc, "the function needs %d bytes of stack, over the %d eBPF allows", bytes, MAXSTACK)
+	end
+end
+frame.stack = stack
 
 -- the word a Lua register holds, whatever its type
 local function fetch(f, i, scratch)

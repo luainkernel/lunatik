@@ -205,7 +205,7 @@ The escape hatch is a call the program writes, at the point it chooses:
     local HTTPS <const> = 443
 
     local flows = map.hash("flows", {key = "I4", value = "I4", entries = 65536})
-    local lua   = tc.runtime()      -- the kernel script of the same name
+    local lua   = tc.runtime("examples/sniclassify/sni")
 
     local function u16(packet, at)
         return packet:getbyte(at) << 8 | packet:getbyte(at + 1)
@@ -236,13 +236,21 @@ The escape hatch is a call the program writes, at the point it chooses:
     end)
 
 That is `examples/sniclassify/classify.c` in Lua, its cache keyed per flow by `skb->hash` as the C
-is. `tc.runtime(name)` names a kernel runtime by
-the key the kfunc looks up, defaulting to the script this program file belongs to; the call
-lowers to `bpf_luatc_run(key, key__sz, skb, &args, sizeof(args))`, with each argument packed as
-a native 64-bit integer in order. The kernel side is what it is today: `tc.attach(callback)`,
-`ctx:argument():getint64(0)` for the first argument, `ctx:skb()` for the packet, and the verdict
-the callback returns. A verdict of `-1` from the kfunc (no runtime under that name, a callback that
-returns `nil` or a value outside `linux.tc.action`, or one that raises) becomes `nil`.
+is. `tc.runtime(name)` names a kernel runtime by the key the kfunc looks up, the script's path
+below `/lib/modules/lua/` as `lunatik run` takes it, and a declaration without one is refused at
+its line. The call, in the program's own function, lowers to
+`bpf_luatc_run(key, key__sz, skb, &args, sizeof(args))`, the key NUL-terminated in the frame and
+each argument a native 64-bit integer in order, a call with none passing a null pointer and a zero
+size. The kernel side is what it is today: `tc.attach(callback)`, `ctx:argument():getint64(0)` for
+the first argument, `ctx:skb()` for the packet, and the verdict the callback returns. A verdict of
+`-1` from the kfunc (no runtime under that name, a callback that returns `nil` or a value outside
+`linux.tc.action`, or one that raises) becomes `nil`. The program tests the answer before it reads
+it: `if v then`, `if not v then`, `v == nil` and `v ~= nil` compare it with `-1`, and any other read
+before that is refused at its line, as a test of it joined with another value is.
+
+The example stays C for now: an egress TCP segment keeps its payload in page fragments, where
+`skb:data()` takes the default verdict, and #2190 asks for reading such an skb's bytes without
+pulling it.
 
 The compiler reports every such call in its summary, with the line, so a program that calls Lua
 on every packet is visible for what it is: the trampoline, generated.
@@ -339,9 +347,9 @@ but the CLI's libraries can still return one, as `math.sqrt` does.
 3. Whether `getstring` into a fixed buffer should be spelled as today (`packet:getstring(at,
    len)`, with `len` bounded by the buffer) or as a new method that names the bound. The proposal
    keeps the name so `examples/common/sni.lua` compiles unchanged.
-4. Whether the per-argument marshalling of the runtime call (native 64-bit integers, in order)
+4. ~~Whether the per-argument marshalling of the runtime call (native 64-bit integers, in order)
    should instead take a `string.pack` format, so the kernel side can keep `getuint32(0)` where it
-   has it.
+   has it.~~ Settled in phase 4 as the proposal: native 64-bit integers, which `getint64` reads.
 5. ~~Whether `lunatik run` should refuse a program file without a kernel script, or run the
    program alone with an empty runtime.~~ Settled in phase 3 as the proposal, with no runtime at
    all: a program that calls no Lua needs no script, and a context given to such a run is refused.
