@@ -117,7 +117,7 @@ static inline bool luaskb_isoffloaded(luaskb_t *lskb)
 {
 	struct sk_buff *skb = luaskb_hook(lskb)->skb;
 
-	return lskb->hook != NULL && (luaskb_isipsec(skb) || luaskb_ismacsec(skb));
+	return lskb->hook != NULL && (luaskb_isipsec(skb) || (luaskb_ismacsec(skb) && !netif_is_macsec(skb->dev)));
 }
 
 /***
