@@ -13,6 +13,8 @@
 base=$1
 head=$2
 [ -n "$base" ] && [ -n "$head" ] || { echo "usage: review-packet.sh <base> <head>" >&2; exit 2; }
+# a base past the fork point, master's tip once it moved, would show its later commits reversed
+base=$(git merge-base "$base" "$head") || exit 2
 dir=$(dirname "$0")
 
 echo "# Commits"

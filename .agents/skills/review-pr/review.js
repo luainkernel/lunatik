@@ -85,7 +85,8 @@ review pushes, and your answer names every SHA it made.`
 worktree, detached at the head of \`${a.branch}\`, pushed as soon as made (\`git push origin HEAD:refs/heads/${a.branch}\`;
 where \`origin\` is not writable from this machine, CLAUDE.local.md says how it pushes).`
   : `A finding you can fix is \`git commit --fixup=<the commit that introduced it>\` in your own worktree, detached at
-\`${a.head}\`, folded into that commit before you return (\`git rebase -i --autosquash ${a.base}\`), since no pull request exists yet
+\`${a.head}\`, folded into that commit before you return (\`git rebase -i --autosquash --keep-base ${a.base}\`, which keeps the
+fork point, so a base that moved past it does not carry the branch onto it), since no pull request exists yet
 and the maintainer's first review reads it squashed; push it with \`git push origin HEAD:refs/heads/${a.branch}
 --force-with-lease=refs/heads/${a.branch}:<the head you started from>\` (where \`origin\` is not writable from
 this machine, CLAUDE.local.md says how it pushes), and your answer's tip is the head after the fold.`
