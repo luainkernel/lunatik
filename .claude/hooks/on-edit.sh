@@ -15,6 +15,8 @@ file=$(printf '%s' "$input" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\
 # the checks of the tree the file belongs to, which in a worktree is not the session's
 dir=$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2>/dev/null)
 [ -n "$dir" ] && [ -d "$dir/tools/checks" ] || exit 0
+# an ignored file reaches no commit, and CLAUDE.local.md, one, is where a machine's paths and credentials belong
+git -C "$dir" check-ignore -q "$file" && exit 0
 
 # a tree older than a check lacks it, and runs the checks it has
 findings=$(for check in machine-leak module-conventions comment-style comment-siblings idioms core-helper deferral lua-style luals kthread test-harness cppcheck-tests extraspace guard-removed; do
