@@ -195,19 +195,22 @@
  and returns an object <code>bpftool prog load</code> accepts. Anything the subset refuses is an error
  naming the Lua file and line.</p>
 
-<p> The compiler runs on the machine that loads what it emits, so it reads the running kernel&rsquo;s
- types rather than being told which kernel to target, and the kernel&rsquo;s version from
- <code>lunatik.config</code>, which <code>make</code> writes from the tree Lunatik is built against.
+<p> The compiler compiles for the kernel <code>lunatik.config</code> describes, which <code>make</code> writes from the
+ tree Lunatik is built against: that kernel&rsquo;s version and byte order. It reads that kernel&rsquo;s types
+ from the BTF file it is handed, or from <code>/sys/kernel/btf/vmlinux</code>, the running kernel&rsquo;s, so a
+ build host compiles for the kernel an image ships when <code>make</code> was handed that kernel&rsquo;s tree and
+ the compiler its BTF.
     <h2 id="usage">Usage</h2>
         <pre class="example">local luaebpf = require(&quot;luaebpf&quot;)
 
 local object = luaebpf.compile(&quot;filter.bpf.lua&quot;)
+local image = luaebpf.compile(&quot;filter.bpf.lua&quot;, &quot;build/vmlinux.btf&quot;)
 </pre>
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#compile">compile (path)</a></td>
+	<td class="name"><a href="#compile">compile (path[, btffile])</a></td>
 	<td class="summary">Compiles the program file at <code>path</code>.</td>
 	</tr>
 </table></div>
@@ -215,7 +218,7 @@ local object = luaebpf.compile(&quot;filter.bpf.lua&quot;)
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
-    <dt id="compile"><a name="compile"></a><strong>compile (path)</strong></dt>
+    <dt id="compile"><a name="compile"></a><strong>compile (path[, btffile])</strong></dt>
     <dd>
     Compiles the program file at <code>path</code>.
 
@@ -225,6 +228,12 @@ local object = luaebpf.compile(&quot;filter.bpf.lua&quot;)
         <li><span class="parameter">path</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
          the program file, usually named <code>&lt;something&gt;.bpf.lua</code>
+        </li>
+        <li><span class="parameter">btffile</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         the kernel&rsquo;s BTF as a raw BTF file, the bytes
+   <code>/sys/kernel/btf/vmlinux</code> serves, read once a layout is asked for; that file when absent
+         (<em>optional</em>)
         </li>
     </ul>
 
@@ -236,8 +245,12 @@ local object = luaebpf.compile(&quot;filter.bpf.lua&quot;)
     </ol>
 
     <h3>Raises</h3>
-    <code>&lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code> for every construct the subset refuses, and
-   <code>&lt;path&gt;: no program declared</code> when the body hands nothing to a constructor
+     <code>&lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code> for every construct the subset refuses,
+   <code>&lt;path&gt;: no program declared</code> when the body hands nothing to a constructor,
+   <code>&lt;btffile&gt;: &lt;reason&gt;</code>, <code>&lt;btffile&gt; carries no BTF header</code> and <code>&lt;btffile&gt; is shorter than its
+   BTF header says</code> when a layout is asked of a file that cannot be read, holds no BTF or is cut
+   short, and <code>&lt;btffile&gt; is a &lt;order&gt;-endian BTF, for a &lt;order&gt;-endian object</code> when the BTF a
+   layout was read from is not in the object&rsquo;s byte order
 
 
 
@@ -259,7 +272,7 @@ local object = luaebpf.compile(&quot;filter.bpf.lua&quot;)
 <a href="../../modules/luaebpf.html">5.1 docs</a> ·
 <a href="../../5.0/modules/luaebpf.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 11:59:56</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 12:14:10</span>
 </div>
 </footer>
 </body>

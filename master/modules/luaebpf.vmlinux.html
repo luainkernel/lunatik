@@ -188,7 +188,8 @@
 
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-other">Other</a></div>
 <h1>luaebpf.vmlinux<span class="kind">Module</span></h1>
-<p class="lead">The running kernel&rsquo;s own type information, read from <code>/sys/kernel/btf/vmlinux</code>.</p>
+<p class="lead">The kernel&rsquo;s own type information, read from a raw BTF file: <code>/sys/kernel/btf/vmlinux</code>, the
+ running kernel&rsquo;s, unless <a href="../modules/luaebpf.html#compile">luaebpf.compile</a> is handed the BTF of the kernel it compiles for.</p>
  A layout comes back in the shape <code>autogen</code> emits and <a href="../modules/struct.html#">struct</a> consumes, so a kernel struct
  becomes a codec, a map value spec or a set of context offsets with nothing transcribed from a
  header. BTF records no member&rsquo;s byte offset directly: the file is a flat stream of
@@ -204,14 +205,45 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
+	<td class="name"><a href="#luaebpf.vmlinux.check">luaebpf.vmlinux.check (bigendian)</a></td>
+	<td class="summary">Refuses the BTF a layout was read from when it is not in the object&rsquo;s byte order, since it then
+ describes another kernel than the one the object is for.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#luaebpf.vmlinux.layout">luaebpf.vmlinux.layout (what)</a></td>
 	<td class="summary">The layout of a kernel struct.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#luaebpf.vmlinux.open">luaebpf.vmlinux.open ([path])</a></td>
+	<td class="summary">Reads the layouts from the raw BTF file at <code>path</code> from then on, the bytes
+ <code>/sys/kernel/btf/vmlinux</code> serves, in the byte order its magic is written in.</td>
 	</tr>
 </table></div>
 
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
+    <dt id="luaebpf.vmlinux.check"><a name="luaebpf.vmlinux.check"></a><strong>luaebpf.vmlinux.check (bigendian)</strong></dt>
+    <dd>
+    Refuses the BTF a layout was read from when it is not in the object&rsquo;s byte order, since it then
+ describes another kernel than the one the object is for.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">bigendian</span>
+            <span class="types"><span class="type">boolean</span></span>
+         whether the object is big-endian
+        </li>
+    </ul>
+
+
+    <h3>Raises</h3>
+    <code>&lt;path&gt; is a &lt;order&gt;-endian BTF, for a &lt;order&gt;-endian object</code>
+
+
+
+</dd>
     <dt id="luaebpf.vmlinux.layout"><a name="luaebpf.vmlinux.layout"></a><strong>luaebpf.vmlinux.layout (what)</strong></dt>
     <dd>
     The layout of a kernel struct.</p>
@@ -238,8 +270,29 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
     </ol>
 
     <h3>Raises</h3>
-    <code>the kernel publishes no BTF</code>, when <code>/sys/kernel/btf/vmlinux</code> cannot be read or carries
-   no BTF header, and <code>the kernel BTF has no struct &apos;&lt;what&gt;&apos;</code>
+    <code>&lt;path&gt;: &lt;reason&gt;</code>, when the BTF file cannot be read, <code>&lt;path&gt; carries no BTF header</code>,
+   <code>&lt;path&gt; is shorter than its BTF header says</code>, and <code>the kernel BTF has no struct &apos;&lt;what&gt;&apos;</code>
+
+
+
+</dd>
+    <dt id="luaebpf.vmlinux.open"><a name="luaebpf.vmlinux.open"></a><strong>luaebpf.vmlinux.open ([path])</strong></dt>
+    <dd>
+    Reads the layouts from the raw BTF file at <code>path</code> from then on, the bytes
+ <code>/sys/kernel/btf/vmlinux</code> serves, in the byte order its magic is written in.  The file is read
+ when a layout is first asked for.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         the file, <code>/sys/kernel/btf/vmlinux</code> when absent
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+
 
 
 
@@ -261,7 +314,7 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
 <a href="../../modules/luaebpf.vmlinux.html">5.1 docs</a> ·
 <a href="../../5.0/modules/luaebpf.vmlinux.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 11:59:56</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 12:14:10</span>
 </div>
 </footer>
 </body>

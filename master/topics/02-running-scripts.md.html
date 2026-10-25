@@ -202,7 +202,7 @@ usage: lunatik [-h | -V]
        lunatik list
        lunatik test [&lt;suite&gt;]
        lunatik compile [&lt;lunatic argument&gt;...]
-       lunatik bpf [-o &lt;object&gt;] &lt;program&gt;
+       lunatik bpf [<span class="comment">--btf=&lt;file&gt;] [-o &lt;object&gt;] &lt;program&gt;</span>
 </pre>
 
 
@@ -216,7 +216,9 @@ usage: lunatik [-h | -V]
 <li><code>-p</code>, <code>--percpu</code>: <code>run</code> creates one runtime per CPU id</li>
 <li><code>--dev=&lt;ifname&gt;</code>: the device <code>run</code> attaches the script&rsquo;s compiled program to (see
 <a href="#compiled-programs">Compiled programs</a>)</li>
-<li><p><code>-o &lt;object&gt;</code>, <code>--output=&lt;object&gt;</code>: the object <a href="../modules/bpf.html#">bpf</a> writes</p></li>
+<li><code>-o &lt;object&gt;</code>, <code>--output=&lt;object&gt;</code>: the object <a href="../modules/bpf.html#">bpf</a> writes</li>
+<li><p><code>--btf=&lt;file&gt;</code>: the kernel BTF <a href="../modules/bpf.html#">bpf</a> reads the types of, <code>/sys/kernel/btf/vmlinux</code> by default
+(see <a href="#program-files">Program files</a>)</p></li>
 <li><p><code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
 <code>modprobe</code> prints its error on stderr and the load goes on, so read <code>lunatik status</code> and the kernel log</p></li>
 <li><code>unload</code>: take down every compiled program a <code>run</code> attached, stop every running script, then
@@ -229,7 +231,7 @@ is not the installed file</li>
 is not the installed build</li>
 <li><code>test [suite]</code>: run installed test suites (see <a href="../topics/06-development.md.html">Development</a>)</li>
 <li><code>compile &lt;arguments&gt;</code>: run <code>lunatic</code> with the given arguments (see <a href="#lunatic">lunatic</a>)</li>
-<li><code>bpf [-o &lt;object&gt;] &lt;program&gt;</code>: compile a program file into a BPF object (see
+<li><code>bpf [--btf=&lt;file&gt;] [-o &lt;object&gt;] &lt;program&gt;</code>: compile a program file into a BPF object (see
 <a href="#program-files">Program files</a>)</li>
 <li><code>list</code>: show which runtime environments are currently running, one script a line, in order of name</li>
 <li><code>run [-c softirq | hardirq] [-p] [--dev=&lt;ifname&gt;] &lt;script&gt;</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>--context=softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>--context=hardirq</code> for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass <code>--percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a>. Where <code>/lib/modules/lua/&lt;script&gt;.bpf.o</code> exists, <code>run</code> also loads and attaches that program: see <a href="#compiled-programs">Compiled programs</a></li>
@@ -383,6 +385,27 @@ lunatik bpf filter.bpf.lua
 
 <p><code>lunatik run</code> is what loads and attaches the object: see <a href="#compiled-programs">Compiled programs</a>.</p>
 
+<p>The object is compiled for the kernel <code>lunatik.config</code> describes, which <code>make</code> writes from the tree
+it builds the modules against: that kernel&rsquo;s version and whether it reads a word at any address
+decide what a program may emit, and its byte order is the object&rsquo;s. The types a program reads, its
+context&rsquo;s struct and any layout <a href="../modules/luaebpf.vmlinux.html#">luaebpf.vmlinux</a> answers, come from that kernel&rsquo;s BTF:
+<code>/sys/kernel/btf/vmlinux</code> unless <code>--btf</code> names a raw BTF file, the bytes that path serves. So a
+build host compiles for the kernel an image ships: the CLI reads the <code>lunatik.config</code> <code>make</code> wrote
+from that kernel&rsquo;s tree, <code>autogen/lunatik/config.lua</code>, ahead of the one <code>make install</code> links into
+its Lua path, <code>--btf</code> hands it the <code>.BTF</code> section of the image&rsquo;s <code>vmlinux</code>, which an <code>objcopy</code> that
+reads the image&rsquo;s architecture dumps, and the image only loads the object.</p>
+
+<pre>
+objcopy <span class="comment">--dump-section .BTF=vmlinux.btf vmlinux /dev/null
+</span>LUA_PATH=<span class="string">"$PWD/autogen/?.lua;;"</span> lunatik bpf <span class="comment">--btf=vmlinux.btf filter.bpf.lua</span>
+</pre>
+
+
+<p>A BTF of the other byte order than the object&rsquo;s is refused, naming both, since it describes another
+kernel: the build host&rsquo;s own, read by default, in a compile for a kernel of the other order. A kernel
+script the body requires is still read from the build host&rsquo;s <code>/lib/modules/lua/</code>, so its <code>linux.*</code>
+tables are the ones last installed there.</p>
+
 <p><a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> in the body finds the compile-time modules first, <a href="../modules/bpf.xdp.html#">bpf.xdp</a>, <a href="../modules/bpf.tc.html#">bpf.tc</a> and <a href="../modules/bpf.map.html#">bpf.map</a>,
 which declares a map rather than opening the kernel&rsquo;s, then the compiler&rsquo;s own <a href="../modules/luaebpf.html#">luaebpf</a> modules,
 then <code>/lib/modules/lua/</code>, whose modules <code>lunatic</code> compiles as it does the program file, installed
@@ -461,7 +484,7 @@ the kernel publishes the BTF the compiler reads. The program file itself stays o
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 11:59:56</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 12:14:10</span>
 </div>
 </footer>
 </body>
