@@ -14,6 +14,7 @@ and why the compiler runs on the host that runs the program.
 | [api.md](api.md) | What a Lua program that becomes eBPF looks like, how it is compiled, loaded and attached, how it reaches maps and the kernel Lua runtime, with worked examples |
 | [kernel-notes.md](kernel-notes.md) | Verified kernel and toolchain facts the design rests on, cited at tags: verifier limits, program types, BTF, kfuncs, who may load a program, what is exported |
 | [testing.md](testing.md) | Test strategy and the matrix: a compiler is tested by what it emits and by what the verifier accepts |
+| [compiler.md](compiler.md) | How `bin/luaebpf` is built: the pipeline from the program file to the object, the translator, the branches, and the reasons behind the limits |
 
 Start with `plan.md`. Read `kernel-notes.md` before writing the emitter or the loader: the first
 two sections settle where the loader lives and why.
