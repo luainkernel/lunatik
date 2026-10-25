@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 
-ifeq ($(ARCH), x86)
+ifeq ($(SRCARCH), x86)
 	ifdef CONFIG_X86_32
 		KLIBC_ARCH := i386
 		asflags-y += -D_REGPARM
