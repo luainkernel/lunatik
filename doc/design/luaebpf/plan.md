@@ -265,13 +265,25 @@ before the runtime starts; the existing `xdp` and `tc` cases pass with a compile
 
 ### Phase 4: the escape hatch
 
-The callable proxy over the kernel runtime: `runtime(args...)` lowers to the kfunc call with the
-arguments packed into `arg`, the return value mapped to `nil` on `-1`. The kernel side is what
-`xdp.attach` and `tc.attach` are today, over `bpf_luaxdp_run` and `bpf_luatc_run`; the callback
-reads `ctx:argument()` as it does now. `btf_install` becomes a requirement of this phase only.
+The callable proxy over the kernel runtime: `xdp.runtime(name)` and `tc.runtime(name)` name a
+runtime by the script it runs, the name required, and `runtime(args...)`, in the program's own
+function, lowers to the kfunc of the program's type, the name NUL-terminated in the frame and each
+argument a native 64-bit integer in order. The answer is a type the program tests before it reads,
+`nil` where the kfunc returns `-1`. The object carries each kfunc a call names as libbpf reads one
+out of clang's: an extern `FUNC` in a `.ksyms` DATASEC and an undefined symbol the call relocates
+against. The kernel side is what `xdp.attach` and `tc.attach` are today, over `bpf_luaxdp_run`
+and `bpf_luatc_run`; the callback reads `ctx:argument()` as it does now. `btf_install` becomes a
+requirement of a program that calls a runtime, and of nothing else. The programs of
+`callback.bpf.lua`, each a call and the test of its answer, verify in 31 processed instructions at
+most on 6.8, as `budget.sh` records them.
+
+`examples/sniclassify` stays C into phase 6: an egress TCP segment keeps its payload in page
+fragments, where a compiled `skb:data()` takes the default verdict, and #2190 asks for reading such
+an skb's bytes without pulling it.
 
 Tests: a compiled program that defers to Lua on a miss sees the callback's verdict; the callback
-receives the packed arguments; a program whose runtime is not loaded takes the default verdict.
+receives the packed arguments; a program whose runtime is not loaded takes its nil branch; a
+program in the classifier's shape calls Lua once per flow under `BPF_PROG_TEST_RUN`.
 
 ### Phase 5: the runtime library, strings and loops beyond `for`
 

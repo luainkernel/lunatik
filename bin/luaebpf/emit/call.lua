@@ -4,14 +4,17 @@
 --
 
 ---
--- The returns, CALL and the invocation of a subprogram: a call is a method of a proxy, or a BPF-to-BPF
--- call to a Lua function the file declares, whose abort comes back through a flag in the caller's frame.
+-- The returns, CALL and the invocation of a subprogram: a call is a method of a proxy, a call into the
+-- kernel Lua runtime, or a BPF-to-BPF call to a Lua function the file declares, whose abort comes back
+-- through a flag in the caller's frame.
 -- @module luaebpf.emit.call
 
-local insn   = require("luaebpf.insn")
-local frame  = require("luaebpf.emit.frame")
-local loads  = require("luaebpf.emit.loads")
-local packet = require("luaebpf.emit.packet")
+local insn     = require("luaebpf.insn")
+local runtimes = require("luaebpf.runtimes")
+local frame    = require("luaebpf.emit.frame")
+local loads    = require("luaebpf.emit.loads")
+local packet   = require("luaebpf.emit.packet")
+local runtime  = require("luaebpf.emit.runtime")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local getinfo = debug.getinfo
@@ -114,6 +117,10 @@ function call.CALL(f, pc, ins, state)
 	end
 	if callee ~= nil and callee.t == METHOD then
 		method(f, pc, ins, state, callee)
+		return filled(f, pc, ins, state)
+	end
+	if callee ~= nil and runtimes.declares(callee.k) then
+		runtime.call(f, pc, ins, state, callee)
 		return filled(f, pc, ins, state)
 	end
 	callable(f, pc, callee)

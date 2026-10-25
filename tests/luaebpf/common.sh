@@ -3,11 +3,12 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Helpers the luaebpf cases share: the toolchain check that turns a missing tool into a skip,
-# the compile into a scratch directory, in either byte order, the kernel's BTF swapped into the
-# other, the load into a pin root, the differential run against the oracle a program file's own
-# body wrote while it compiled, and, for the loader cases, the device they attach to and what a
-# refused `lunatik run` may not leave behind.
+# Helpers the luaebpf cases share: the toolchain check that turns a missing tool into a skip, the
+# module BTF check that does the same for a case calling the kernel Lua runtime, the compile into a
+# scratch directory, in either byte order, the kernel's BTF swapped into the other, the load into a
+# pin root, the differential run against the oracle a program file's own body wrote while it
+# compiled, and, for the loader cases, the device they attach to and what a refused `lunatik run`
+# may not leave behind.
 # Source this file, and tests/lib.sh, from each case.
 
 # the program files install beside the cases, out of the tree the kernel's require reads
@@ -42,6 +43,12 @@ luaebpf_reason() {
 	mountpoint -q /sys/fs/bpf      || { echo "/sys/fs/bpf is not mounted"; return; }
 	[ -r /sys/kernel/btf/vmlinux ] || { echo "the kernel publishes no BTF"; return; }
 	[ -r "$LUAEBPF_SRC/pass.bpf.lua" ] || { echo "the program files are not installed"; return; }
+}
+
+# why a case cannot load a program calling the kernel Lua runtime through <module>'s kfunc, which
+# libbpf resolves in the module's BTF, or nothing at all
+luaebpf_kfunc() {
+	[ -r "/sys/kernel/btf/$1" ] || echo "$1 publishes no BTF; run make btf_install, then make install"
 }
 
 # whether the running kernel takes the may_goto header a loop without a proven bound needs

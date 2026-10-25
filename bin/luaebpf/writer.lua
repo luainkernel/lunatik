@@ -9,8 +9,9 @@
 --
 -- Each program is lowered by `luaebpf.emit` and laid out with `luaebpf.elf` and `luaebpf.btf`, in
 -- the byte order `luaebpf.emit.bigendian` says: its entry in the section its kind names, every
--- subprogram in `.text`, the maps `luaebpf.maps` holds in `.maps`, the license, each function's
--- BTF, and the line info that quotes the Lua line each instruction came from.
+-- subprogram in `.text`, the maps `luaebpf.maps` holds in `.maps`, the kfunc a call into the kernel Lua
+-- runtime names in `.ksyms`, the license, each function's BTF, and the line info that quotes the Lua line
+-- each instruction came from.
 -- @module luaebpf.writer
 
 local maps = require("luaebpf.maps")
@@ -24,6 +25,7 @@ local concat = table.concat
 
 local TEXT    <const> = ".text"
 local MAPS    <const> = ".maps"
+local KSYMS   <const> = ".ksyms"
 local LICENSE <const> = "Dual MIT/GPL"
 
 local writer = {}
@@ -51,10 +53,13 @@ local function sources(chunk, cache)
 end
 
 local function funcinfo(types, frame, at)
-	local signature = frame.isprogram and {result = types.int, param = types.long}
-		or {result = types.long, param = types.long}
+	local params = {}
+	for _ = 1, #frame.params do
+		table.insert(params, types.long)
+	end
+	local signature = {result = frame.isprogram and types.int or types.long, params = params}
 	local linkage = frame.isprogram and btf.linkage.GLOBAL or btf.linkage.STATIC
-	return types:funcinfo(at, types:func(frame.name, #frame.params, linkage, signature))
+	return types:funcinfo(at, types:func(frame.name, linkage, signature))
 end
 
 local function lineinfo(types, frame, at, cache)
@@ -103,6 +108,10 @@ local function place(types, unit, frame, cache, subprograms)
 		insert(unit.relocations, {at = at + (use.at - 1) * insn.SIZE, name = use.name,
 			type = elf.relocation.IMM64})
 	end
+	for _, call in ipairs(frame.code:relocations("kfunc")) do
+		table.insert(unit.relocations, {at = at + (call.at - 1) * insn.SIZE, name = call.name,
+			type = elf.relocation.IMM32})
+	end
 	unit.at = at + frame.code:len() * insn.SIZE
 	if not frame.isprogram then
 		insert(subprograms, {name = frame.name, section = TEXT, value = at,
@@ -147,6 +156,43 @@ local function maplayout(object, types, declared)
 	return symbols
 end
 
+-- The prototype libbpf compares with the kernel's kind by kind, names and integer widths aside
+-- (tools/lib/bpf/relo_core.c): a pointer to an empty struct of the context's name stands for the
+-- context, and a pointer to type 0 for the void the argument goes as.
+local function prototype(types, context)
+	return {result = types.int, params = {types:pointer(types.int), types.long,
+		types:pointer((types:struct(context, {}))), types:pointer(0), types.long}}
+end
+
+-- each kfunc a call names: a FUNC of extern linkage listed in a DATASEC named ".ksyms", whose bytes
+-- libbpf never looks for in the ELF, and the undefined symbol the call's relocation names
+local function ksyms(object, types, externs, hook, indexes)
+	local entries = {}
+	for _, extern in ipairs(externs) do
+		local func = types:func(extern.name, btf.linkage.EXTERN, prototype(types, extern.context))
+		table.insert(entries, {type = func, offset = 0, size = 0})
+		indexes[extern.name] = object:symbol{name = extern.name, value = 0, size = 0, bind = elf.bind.GLOBAL,
+			type = elf.type.NOTYPE}
+	end
+	if #entries > 0 and hook ~= "ksyms" then
+		types:datasec(KSYMS, entries)
+	end
+end
+
+local function reserve(names, declared)
+	for _, program in ipairs(declared) do
+		names[program.kfunc] = true
+	end
+end
+
+-- the kfunc a program's functions call the runtime through, listed once however many of them do
+local function extern(externs, called, program, frame)
+	if not called[program.kfunc] and #frame.code:relocations("kfunc") > 0 then
+		called[program.kfunc] = true
+		table.insert(externs, {name = program.kfunc, context = program.context.struct})
+	end
+end
+
 ---
 -- Lowers the programs and writes the object that carries them.
 -- @function luaebpf.writer.write
@@ -158,11 +204,12 @@ function writer.write(declared, hook)
 	local object, types, cache = elf.new(emit.bigendian), btf.new(emit.bigendian), {}
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
-	local names, subprograms, order = {}, {}, {}
-	-- a map's name is taken before any function is named, so a relocation names exactly one symbol
+	local names, subprograms, order, externs, called = {}, {}, {}, {}, {}
+	-- maps and kfuncs take their names before any function does, so a relocation names one symbol
 	for _, map in ipairs(maps.declared()) do
 		names[map.name] = true
 	end
+	reserve(names, declared)
 	for _, program in ipairs(declared) do
 		program.drop = hook
 		program.names = names
@@ -170,6 +217,7 @@ function writer.write(declared, hook)
 		for i, frame in ipairs(emit.program(program)) do
 			local unit = i == 1 and entries or text
 			local at = place(types, unit, frame, cache, subprograms)
+			extern(externs, called, program, frame)
 			if i == 1 then
 				insert(order, {name = frame.name, section = program.section, value = at,
 					size = frame.code:len() * insn.SIZE, bind = elf.bind.GLOBAL,
@@ -195,6 +243,7 @@ function writer.write(declared, hook)
 	for _, symbol in ipairs(mapsymbols) do
 		indexes[symbol.name] = object:symbol(symbol)
 	end
+	ksyms(object, types, externs, hook, indexes)
 	for _, unit in ipairs(units) do
 		local records = {}
 		for _, call in ipairs(unit.relocations) do
