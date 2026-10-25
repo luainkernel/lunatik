@@ -221,7 +221,7 @@ local function write(declared, hook)
 	local object, types, cache = elf.new(emit.bigendian), btf.new(emit.bigendian), {}
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
-	local names, subprograms, order, externs, called = {}, {}, {}, {}, {}
+	local names, subprograms, order, externs, called, calls = {}, {}, {}, {}, {}, {}
 	-- maps and kfuncs take their names before any function does, so a relocation names one symbol
 	for _, map in ipairs(maps.declared()) do
 		names[map.name] = true
@@ -236,6 +236,9 @@ local function write(declared, hook)
 		for i, frame in ipairs(emit.program(program)) do
 			local unit = i == 1 and entries or text
 			local at = place(types, unit, frame, cache, subprograms)
+			for _, call in ipairs(frame.calls) do
+				insert(calls, format("%s:%d: calls the runtime '%s'", frame.chunk, call.line, call.key))
+			end
 			if not called[program.kfunc] and #frame.code:relocations("kfunc") > 0 then
 				called[program.kfunc] = true
 				insert(externs, {name = program.kfunc, context = program.context.struct})
@@ -291,7 +294,7 @@ local function write(declared, hook)
 	local ext = types:ext(described) -- it interns the section names in .BTF's strings, so before pack
 	btfsection(object, ".BTF", types:pack())
 	btfsection(object, ".BTF.ext", ext)
-	return object:pack()
+	return object:pack(), calls
 end
 
 local function name(program, chunk)
@@ -305,6 +308,8 @@ end
 -- @tparam[opt] string btffile the kernel's BTF as a raw BTF file, the bytes
 --   `/sys/kernel/btf/vmlinux` serves, read once a layout is asked for; that file when absent
 -- @treturn string the BPF ELF object
+-- @treturn table a line per call into the kernel Lua runtime the compiler met, in that order,
+--   `<file>:<line>: calls the runtime '<name>'`
 -- @raise `<file>:<line>: <reason>` for every construct the subset refuses,
 --   `<path>: no program declared` when the body hands nothing to a constructor,
 --   `<btffile>: <reason>`, `<btffile> carries no BTF header` and `<btffile> is shorter than its
@@ -330,9 +335,9 @@ function luaebpf.compile(path, btffile)
 	for _, program in ipairs(declared) do
 		program.name = name(program, path)
 	end
-	local object = write(declared, getenv(DROP))
+	local object, calls = write(declared, getenv(DROP))
 	vmlinux.check(emit.bigendian)
-	return object
+	return object, calls
 end
 
 return luaebpf

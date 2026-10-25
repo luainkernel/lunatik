@@ -151,6 +151,11 @@ written.
 lunatik bpf filter.bpf.lua
 ```
 
+A program that [calls a kernel Lua runtime](08-luaebpf.md#calls-into-a-kernel-lua-runtime), named
+by `bpf.xdp.runtime` or `bpf.tc.runtime`, runs the interpreter on the packet path at each call, so
+`lunatik bpf` prints on stdout a line per call it compiled,
+`<file>:<line>: calls the runtime '<name>'`, and nothing for a file with none.
+
 `lunatik run` is what loads and attaches the object: see [Compiled programs](#compiled-programs).
 
 The object is compiled for the kernel `lunatik.config` describes, which `make` writes from the tree

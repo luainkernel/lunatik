@@ -94,6 +94,7 @@ function runtime.call(f, pc, ins, state, callee)
 	end
 	code:set(reg.R5, nargs * SLOT)
 	code:kfunc(f.unit.kfunc)
+	insert(f.calls, {line = f.proto.lines[pc], key = key})
 	if ins.c > 1 then
 		extend(f, reg.R0, INTSIZE)
 		setreg(f, ins.a, reg.R0)

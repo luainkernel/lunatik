@@ -1322,6 +1322,10 @@ publishes no BTF for the module whose kfunc its programs call.
   same drop over a program with no call leaves the object loadable. Compiled
   whole, the program deploys through `lunatik run`, whose libbpf resolves the
   kfunc in the module's BTF, and answers its nil branch on the device.
+- **report**: compiles only. `lunatik bpf` prints on stdout one line per call
+  into the runtime, with its file, its line and the runtime's name, in the
+  order it met them, over two programs of one file, and nothing for a program
+  file with no call.
 
 ### monitor
 

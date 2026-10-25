@@ -213,7 +213,9 @@ The kfunc answers an `int`, the callback's verdict or `-1` where Lua has none to
 runtime of the name with a callback attached, or a callback that raises, returns `nil` or a value
 outside the hook's actions. Only R0's low 32 bits are defined after the call, so the answer is
 sign-extended from them, into a type of its own, which the program tests before it reads, as a
-lookup is: [Branches](#branches).
+lookup is: [Branches](#branches). Each call runs the interpreter on the packet path, so the
+lowering records its line and the runtime's name, and `compile` returns a line per call,
+`<file>:<line>: calls the runtime '<name>'`, in the order it met them, which `lunatik bpf` prints.
 
 ### The lowerings
 

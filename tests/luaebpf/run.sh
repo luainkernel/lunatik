@@ -13,7 +13,7 @@ FAILED=0
 SEP=""
 CASES="host object types order pass lineinfo arith divzero branch forconst forvar call"
 CASES="$CASES btfview ctx packet bounds nonlinear mapget mapset struct refuse budget"
-CASES="$CASES load stop unload undo notarget verifierlog callback miss partition nobtf"
+CASES="$CASES load stop unload undo notarget verifierlog callback miss partition nobtf report"
 
 for t in $CASES; do
 	echo "${SEP}# --- $t.sh ---"
