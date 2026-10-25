@@ -9,7 +9,9 @@ paths:
 
 # The API a script sees
 
-The public API freezes at each major release: a minor only adds. These are the rules the v5.0 freeze
+The public API freezes at each major release: a minor only adds. The Lua to eBPF compiler is outside
+the freeze while its guide page marks it experimental: `lunatik bpf`, `lunatik run --dev`, the
+modules a program file's body requires and the part of Lua it compiles may change in a minor. These are the rules the v5.0 freeze
 settled; a binding or a Lua module follows them whichever language it is written in.
 
 They serve a smaller API and a smaller core, never a larger one. A reading of one of them that
