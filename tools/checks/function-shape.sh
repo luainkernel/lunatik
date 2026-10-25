@@ -7,7 +7,7 @@
 # then called out: a lock taken at more than one site of one function, where the section
 # between is a helper of its own; one buffer freed at more than one site of one function, the
 # end and each raise path, where a userdata the collector frees is the shape; a function past
-# forty lines or nested past two blocks, which is more than one job;
+# thirty lines or nested past two blocks, which is more than one job;
 # a per-item buffer sized by a maximum, n * LUARCU_MAXKEY, which is packed by each
 # item's length; a function that existed at CHECK_BASE and that the diff grows by five lines or
 # more, whose new step is a helper of its own, as #1879's hook clear grew lunatik_pcallobject; and
@@ -42,7 +42,7 @@ for file in "$@"; do
 		n = split(changed, ranges, "\n")
 		for (i = 1; i <= n; i++) { split(ranges[i], p, " "); from[i] = p[1]; to[i] = p[1] + p[2] - 1 }
 		m = split(existed, names, "\n"); for (i = 1; i <= m; i++) { split(names[i], p, " "); old[p[1]] = p[2] }
-		LINES = 40; DEPTH = 3; SITES = 2; GROWS = 5
+		LINES = 30; DEPTH = 3; SITES = 2; GROWS = 5
 	}
 	function touched(s, e,   i) {
 		if (n == 0) return 1

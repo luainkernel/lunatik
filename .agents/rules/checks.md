@@ -105,7 +105,7 @@ between the check and the throw is what the reader decides on.
 `function-shape.sh` reads a C file for the shapes of a function that is more than one job, in the functions the diff against `CHECK_BASE` touches: a lock taken at
 more than one site of one function, where the section between is a helper of its own; an allocation
 and a raise in one function, where a buffer a raise passes is freed on every raise path and a
-userdata the collector frees is the shape; a function past forty lines or nested past two blocks,
+userdata the collector frees is the shape; a function past thirty lines or nested past two blocks,
 which is more than one job; a per-item buffer sized by a maximum, `n * LUARCU_MAXKEY`, which is packed by each item's length;
 a function that existed before the change and grows by five lines or more of it, whose new step is
 a helper of its own; and one condition tested at two sites of one function, the bracket of a guard,
