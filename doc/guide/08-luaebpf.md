@@ -281,32 +281,62 @@ chain of calls and the chain's depth ([Limits](../design/luaebpf/kernel-notes.md
 
 ## The translation
 
-A construct the compiler lowers computes what the kernel's Lua computes, or is refused at its line.
-Where the eBPF instruction alone computes something else, the compiler emits what lies between:
+A compiled program gives what the kernel's Lua gives. Where Lua would raise, the program stops
+there and returns its default verdict, `XDP_PASS` or `TC_ACT_OK` unless its constructor names
+another, since a program has no error to raise; where the compiler knows the value when it
+compiles the file, it refuses the file at that line instead. Each row takes its operands at run time, where `lunatic`
+folds none of them:
 
-| Lua | Lua computes | The instruction alone | The compiler emits |
-|-----|--------------|-----------------------|--------------------|
-| `-7 // 2` | `-4`, the floor | `-3`: `BPF_SDIV` truncates | the quotient less one where the remainder is not zero and the signs differ, as `luaV_idiv` |
-| `-7 % 2` | `1`, the divisor's sign | `-1`: `BPF_SMOD` truncates | the divisor added where the remainder is not zero and its sign is not the divisor's, as `luaV_mod` |
-| `x // -1`, `x % -1` | `-x` and `0`, so `math.mininteger // -1` is `math.mininteger` | the same, where the overflow of `math.mininteger` over -1 wraps, as the instruction set says it does | a test for -1, then a negation or a zero, as `luaV_idiv` and `luaV_mod` take it, so the signed division never meets that overflow |
-| `x // 0`, `x % 0` | raises | `0` and `x` | a test of the divisor, which takes the default verdict |
-| `1 << 64` | `0` | `1`: the count is masked to 63 | the count tested against 64 and -64, past which the result is zero |
-| `1 << -1` | `0`: a negative count shifts the other way | `math.mininteger`: -1 masked is 63 | a negative count negated into the other shift; `x >> n` is `x << -n`, as in Lua |
-| `x & 0xffffffff` | the low 32 bits of `x` | `x`: a 32-bit immediate, sign-extended, reads -1 | the constant in a register, by a `MOV` of its immediate where it fits 32 bits and by `LD_IMM64` otherwise |
-| `x + y`, `x - y`, `x * y`, `-x`, `~x`, the bitwise operators | the result wrapped to 64 bits | the same | one `ALU64` instruction; `-x` a subtraction from zero, `~x` an exclusive or with -1 |
-| `x < 1` with `x` at -1 | `true` | `false` under `BPF_JLT`, which reads -1 as the largest value | the signed jump, `BPF_JSLT`, and its kin for `<=`, `>` and `>=` |
-| `if n then`, `n` a number at `0` | taken: `0` is true | not taken: the word is zero | the jump or nothing, from the register's type ([Branches](#branches)) |
-| `for i = 1, n, s` | the iterations counted up front, so the loop never passes `n` by overflowing | a back edge, which the verifier walks iteration by iteration or refuses | the count as `forprep` computes it, with an unsigned division; a bounded loop where the compiler holds the three values, a `may_goto` header otherwise |
-| `for` with a step of `0` | raises | `BPF_DIV` by zero gives a count of 0, one pass through the body | a step the compiler holds refused, "'for' step is zero", and one the program computes tested, which takes the default verdict |
-| `f(x)` | the callee's value, and its raise | a call, which answers R0 and nothing else | the arguments in R1 to R4, the address of the caller's flag after them, and the flag read after the call |
-| `p:getint16(n)` | two bytes at `n`, signed; raises past the packet | a load the verifier refuses until the program tests the end | the offset tested unsigned against 65535 less the width, the end against `data_end`, and the sign extended by a shift left and an arithmetic shift right, where `BPF_MEMSX` would extend it |
-| `#p` | the bytes the `data` object views | no instruction: the context holds the two bounds | `data_end` less `data`, both read from the context |
-| `skb:data()` on an skb that is not linear | raises in a tc callback | `data_end` ends the linear head, short of the packet | `len` compared with the head's length, which takes the default verdict where they differ |
-| `skb:priority(v)` | raises outside 0 to `U32_MAX` | a four-byte store keeps the low 32 bits | a value the compiler holds checked against the field's width, and one the program computes tested, which takes the default verdict |
-| `m[k]` | the value, or nil | the helper answers a pointer, or NULL, which the verifier lets the program read only past a test | the helper, and a value typed "value or nil" until `if v then` reads it, on the branch that found it |
-| `m[k] = v`, `m[k] = nil` | the kernel's `bpf.map` raises when the map refuses the update, or refuses the delete for any reason but an absent key | the helper's return code | the helper, and the default verdict on any code but zero, or `-ENOENT` from a delete |
-| `m[k]` with `k` outside the key's spec | `string.pack` raises | a store that keeps the low bytes | a key the compiler holds packed when the function is compiled, and one the program computes tested, which takes the default verdict; a value alike |
-| `v.field` of a struct value | the field the codec decodes | a load the verifier refuses until the program tests the lookup | a load at the field's offset and width, the sign extended where the field is signed |
+| Lua | Lua computes | The instruction alone | The compiled program gives |
+|-----|--------------|-----------------------|----------------------------|
+| `-7 // 2` | `-4`, the floor | `-3`: `BPF_SDIV` truncates | `-4` |
+| `-7 % 2` | `1`, the divisor's sign | `-1`: `BPF_SMOD` truncates | `1` |
+| `x // -1`, `x % -1` | `-x` and `0`, so `math.mininteger // -1` is `math.mininteger` | the same, where the overflow of `math.mininteger` over -1 wraps, as the instruction set says it does | `-x` and `0`, `math.mininteger // -1` included |
+| `x // 0`, `x % 0` | raises | `0` and `x` | no value: the program stops with its default verdict |
+| `1 << 64` | `0` | `1`: the count is masked to 63 | `0` |
+| `1 << -1` | `0`: a negative count shifts the other way | `math.mininteger`: -1 masked is 63 | `0` |
+| `x & 0xffffffff` | the low 32 bits of `x` | `x`: a 32-bit immediate, sign-extended, reads -1 | the low 32 bits of `x` |
+| `x + y`, `x - y`, `x * y`, `-x`, `~x`, the bitwise operators | the result wrapped to 64 bits | the same | the result wrapped to 64 bits |
+| `x < 1` with `x` at -1 | `true` | `false` under `BPF_JLT`, which reads -1 as the largest value | `true` |
+| `if n then`, `n` a number at `0` | taken: `0` is true | not taken: the word is zero | taken |
+| `for i = 1, n, s` | the iterations counted up front, so the loop never passes `n` by overflowing | a back edge, which the verifier walks iteration by iteration or refuses | the same iterations |
+| `for` with a step of `0` | raises | `BPF_DIV` by zero gives a count of 0, one pass through the body | a step known when the file is compiled refused at its line, "'for' step is zero"; one the program computes stops it with its default verdict |
+| `f(x)` | the callee's value, and its raise | a call, which answers R0 and nothing else | the callee's value; a callee that would raise stops the program with its default verdict |
+| `p:getint16(n)` | two bytes at `n`, signed; raises past the packet | a load the verifier refuses until the program tests the end | the two bytes, signed; past the packet, the program stops with its default verdict |
+| `#p` | the bytes the `data` object views | no instruction: the context holds the two bounds | the bytes the `data` object views |
+| `skb:data()` on an skb that is not linear | raises in a tc callback | `data_end` ends the linear head, short of the packet | no value: the program stops with its default verdict |
+| `skb:priority(v)` | raises outside 0 to `U32_MAX` | a four-byte store keeps the low 32 bits | `v` stored; outside the range, a value known when the file is compiled refused at its line, one the program computes stopping it with its default verdict |
+| `m[k]` | the value, or nil | the helper answers a pointer, or NULL, which the verifier lets the program read only past a test | the value, or nil, read on the branch where `if v then` found it |
+| `m[k] = v`, `m[k] = nil` | the kernel's `bpf.map` raises when the map refuses the update, or refuses the delete for any reason but an absent key | the helper's return code | the update or the delete; where `bpf.map` would raise, the program stops with its default verdict |
+| `m[k]` with `k` outside the key's spec | `string.pack` raises | a store that keeps the low bytes | a key known when the file is compiled refused at its line; one the program computes stops it with its default verdict; a value alike |
+| `v.field` of a struct value | the field the codec decodes | a load the verifier refuses until the program tests the lookup | the field |
+
+What the compiler emits between the instruction and that answer, by group:
+
+* `//` and `%` divide with `BPF_SDIV` and `BPF_SMOD` and correct what they truncate, as `luaV_idiv`
+  and `luaV_mod` do: the quotient less one, or the remainder plus the divisor, where the remainder
+  is not zero and the signs differ. A divisor of -1 is a negation or a zero, so the signed division
+  never meets `math.mininteger` over -1, and a divisor of 0 jumps to the default verdict.
+* A shift tests its count against 64 and -64, past which the result is zero, and turns a negative
+  count into the other shift, `x >> n` being `x << -n` as in Lua.
+* A constant that a sign-extended 32-bit immediate does not hold is loaded by `LD_IMM64`; the other
+  operators are one `ALU64` instruction each, `-x` a subtraction from zero and `~x` an exclusive or
+  with -1.
+* An ordered comparison takes the signed jump, `BPF_JSLT` and its kin, and a truth test is decided
+  by the register's type ([Branches](#branches)).
+* A `for` counts its iterations as `forprep` does, with an unsigned division, and is a bounded loop
+  where the compiler holds the three values, a `may_goto` header otherwise.
+* A call passes its arguments in R1 to R4 and the address of the caller's flag after them, and reads
+  the flag after the call.
+* A packet read tests the offset, unsigned, against 65535 less the width, and the end against
+  `data_end`, both re-read from the context, and extends the sign by a shift left and an arithmetic
+  shift right; `#p` is `data_end` less `data`, and `skb:data()` compares `len` with the head's
+  length.
+* A context field a program writes is checked against the field's width.
+* A lookup calls the helper and types its answer "value or nil" until `if v then` tests it; an
+  update or a delete calls the helper and takes the default verdict on any code but zero, or
+  `-ENOENT` from a delete; a key or a value the program computes is tested against its spec; a
+  struct field is a load at its offset and width, the sign extended where the field is signed.
 
 The shift pair stands for `BPF_MEMSX`, which the s390 JIT of 6.6 does not take. A read is of the
 kernel's byte order on both sides: the kernel's `data` object reads one so, and a map spec of another
