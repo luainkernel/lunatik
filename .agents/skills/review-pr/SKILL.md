@@ -104,6 +104,12 @@ branches carry the commits. Editing only the failing unit's arguments in the per
 relaunching with `resumeFromRunId` replays the rest from the cache; a phase that completed is not run
 again to be safe, which is the cost the checkpoint exists to avoid.
 
+A live run is not stopped to make way for a merge or a restack: a reviewer writes its findings as it
+closes them, so one stopped while it reads takes its reading with it, and the run launched after pays it
+again. The restack waits for the run's answer, and an approval the maintainer gives meanwhile is merged
+after it. #2189's first review was stopped this way, an empty checkpoint and some 25 thousand tokens of
+reading gone, and the maintainer asked for the review back.
+
 A fan-out of agents is bounded before it is launched, not after: one unit as a pilot and timed, a
 wall-clock cap, and an inactivity monitor over the agents' own logs with the launching session left
 idle so it can stop them. Report what a run cost before launching another, since the workflow runner
