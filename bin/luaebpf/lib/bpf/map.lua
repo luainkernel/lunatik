@@ -6,18 +6,8 @@
 ---
 -- Declares a map in a program file.
 --
--- The compile-time twin of the kernel `bpf.map`: the same names and the same spec vocabulary,
--- producing a BTF-defined map in the object instead of opening a pinned one. A map needs a name
--- whether or not a compiled function references it, since that is what the loader pins it under
--- and what a kernel script opens it by.
---
--- Inside a compiled function a map is a table proxy with the kernel module's semantics:
--- indexing looks up, assignment updates, assigning `nil` deletes. A lookup has the type "value
--- or nil", and the translator refuses to use it as a number until the function has tested it,
--- which is what the verifier requires of the pointer underneath. A `struct` value spec yields a
--- read-only proxy of fields rather than a number, read by field name, as the kernel module decodes
--- such a value into a table keyed by the layout's names; an index into it is refused, and so is a
--- field wider than a byte on a kernel without efficient unaligned access, as a packet read is.
+-- The compile-time twin of the kernel `bpf.map`: constructors of the same names and the same spec
+-- vocabulary, producing a BTF-defined map in the object instead of opening a pinned one.
 -- @module bpf.map
 -- @usage
 -- local map = require("bpf.map")
@@ -154,6 +144,23 @@ end
 
 ---
 -- Declaring a map in a program file.
+--
+-- These constructors run in the body of a program file, under `lunatik bpf`, and declare a map
+-- the object carries. A map needs a name whether or not a compiled function references it:
+-- `lunatik run` creates the map and pins it at `/sys/fs/bpf/lunatik/<script>/<name>`, where a
+-- kernel script opens it with the kernel's constructor of the same name, which takes the path and
+-- the two specs, `map.hash(path, keyspec, valuespec)`.
+--
+-- In a compiled function a map reads as a table: `m[k]` gives the value or nil, `m[k] = v`
+-- inserts or replaces, `m[k] = nil` deletes. A lookup's value is used only after `if v then` tests
+-- it, which is what the verifier requires of the pointer underneath; any other use is refused,
+-- "'<name>' may be nil here; test it first". A lookup in an array within its entries always finds
+-- a value, 0 where nothing was written. A key or a value its spec cannot pack, and an update or a
+-- delete the map refuses, a full hash map, an index past an array, a delete from an array, stop
+-- the program with its default verdict. A `struct` value spec gives a read-only value read by field
+-- name, `v.ttl`, as the kernel module decodes such a value into a table keyed by the layout's
+-- names; an index into it is refused, and so is a field wider than a byte on a kernel without
+-- efficient unaligned access, as a packet read is.
 -- @section declare
 
 ---

@@ -6,24 +6,31 @@
 ---
 -- Declares a TC program in a program file.
 --
--- The file body runs on the host under `lunatik bpf`; the function it hands here is the
--- program, compiled to eBPF and held to the subset the verifier can check. The verdicts are
--- `linux.tc.action`, the table the kernel scripts already use.
+-- The body of a program file runs on the host under `lunatik bpf`; the function it hands to
+-- `program` is compiled to eBPF and runs in the kernel on each packet the device receives, or
+-- sends. It takes one argument, the context, and returns a verdict, a value of `linux.tc.action`,
+-- of which the kernel reads the low 32 bits: `OK`, `SHOT` and `REDIRECT` act, and any other value
+-- reads as `UNSPEC`, which decides nothing. Where Lua would raise, at a read past the packet or a
+-- division by 0, the program stops and returns its default verdict.
 --
 -- The program's argument is spelled as the kernel's `skb` object: `#skb` is the packet's length,
 -- `skb:ifindex()` its device's index, `skb:hash()` its flow hash and `skb:priority()` its
 -- priority, which `skb:priority(v)` sets to a value from 0 up to `U32_MAX`, returning it. A value
--- outside them is refused where the compiler holds it, and takes the default verdict where the
--- program computes it. `skb.data`/`skb.data_end` are the packet's bounds rather than numbers, and
--- `skb:data()` is the packet from `skb->data`; a layer is refused, and an skb that is not linear,
--- where the kernel's `skb:data()` raises in a tc callback, takes the default verdict.
+-- outside them is refused where the compiler holds it, and stops the program where the program
+-- computes it. Any other method is refused, `skb:mark()` among them. `skb.data`/`skb.data_end` are
+-- the packet's bounds rather than numbers, and `skb:data()` is the packet from `skb->data`, read as
+-- `ctx:packet()` is in `bpf.xdp`; a layer is refused, and an skb that is not linear, where the
+-- kernel's `skb:data()` raises in a tc callback, stops the program.
 -- @module bpf.tc
 -- @usage
 -- local tc     = require("bpf.tc")
 -- local action = require("linux.tc").action
 --
 -- return tc.program(function(skb)
---     return action.SHOT
+--     if #skb > 1500 then
+--         skb:priority(1)
+--     end
+--     return action.OK
 -- end, {egress = true})
 
 local programs = require("luaebpf.programs")
@@ -57,9 +64,9 @@ local tc = {}
 -- @function bpf.tc.program
 -- @tparam function fn the program; it takes the context and returns a verdict.
 -- @tparam[opt] table opts `egress`, which attaches the program on the way out rather than in,
---   `default`, the verdict taken where the interpreter would raise (`linux.tc.action.OK`), and
---   `name`, what the program is called in the object, cut to the fifteen characters
---   `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken.
+--   `default`, the verdict the program returns where it stops, where Lua would raise
+--   (`linux.tc.action.OK`), and `name`, what the program is called in the object, cut to the
+--   fifteen characters `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken.
 -- @treturn table the declared program
 -- @raise `tc.program takes a Lua function`, or `<file>:<line>: tc.program's default verdict is not
 --   an integer`, the line where `fn` is defined
