@@ -48,6 +48,14 @@
 # port's own frame goes out. A build whose forward() reads no metadata dst sends the first
 # copy. It skips without netdevsim or its MACsec offload.
 #
+# The teardown case puts the copy program on the egress of a veth end in a namespace of its own
+# whose conntrack an nft rule engages, where copy.lua's first step keeps a copy of the echo reply
+# to a ping from the host, deletes that namespace, then a second one, and reads that the second's
+# veth end goes while the script still holds the copy. A namespace's teardown runs on one
+# workqueue, and conntrack's loops while an entry of it is held, so a build whose copy keeps the
+# reply's conntrack entry holds the second deletion until the script stops, which collects the
+# copy and lets both go. It skips without nft or conntrack.
+#
 # The verdict cases send one ping each, whose payload size picks what the callback
 # of verdict.lua answers to the echo reply: nothing, a value that is not a number, an
 # action as a string, a number past the TC actions, one below them, one whose low 32
@@ -106,6 +114,14 @@ NSIM_ID=1321
 MACSEC_DEV="lunatikmacsec0"
 SECURED="10.199.9"   # the subnet macsec.lua's secured cell reads
 PLAIN="10.199.10"    # the subnet macsec.lua's plain cell reads
+TEARDOWN="tc teardown: a copy kept from a namespace's conntrack holds no later namespace's deletion"
+CT_NS1="lunatik_tcct1"
+CT_NS2="lunatik_tcct2"
+CT_HOST1="lunatikct1"
+CT_HOST2="lunatikct2"
+CT_PEER="lunatikctp"
+CT_NET="10.199.11"
+CT_BOUND=100 # tenths of a second the second namespace's veth end has to go in
 
 # the verdict cases: the payload sizes verdict.lua reads, the case each picks, what it logs
 VERDICT_PAYLOADS=(101 102 103 104 105 106 107)
@@ -149,8 +165,12 @@ tc_unload()
 # pinned on, which `ip netns exec` hides under a sysfs of its own
 peer_tc() { nsenter --net="/run/netns/$NETNS" tc "$@"; }
 
+# tc in the teardown case's first namespace, as peer_tc is in the suite's
+ct_tc() { nsenter --net="/run/netns/$CT_NS1" tc "$@"; }
+gone() { ! ip link show "$1" > /dev/null 2>&1; }
+
 ktap_header
-ktap_plan 24
+ktap_plan 25
 
 skip_all()
 {
@@ -168,6 +188,7 @@ skip_all()
 	ktap_skip "$COPIED"
 	ktap_skip "$DETACHED"
 	ktap_skip "$MACSEC"
+	ktap_skip "$TEARDOWN"
 	ktap_skip "tc compiled pass: a compiled program lets the ping through"
 	ktap_skip "tc compiled drop: a compiled program blocks the ping"
 	for title in "${VERDICT_TITLES[@]}"; do
@@ -206,6 +227,8 @@ cleanup()
 	ip link del "$IFACE" 2>/dev/null
 	ip link del "$MACSEC_DEV" 2>/dev/null
 	nsim_del "$NSIM_ID"
+	ip netns del "$CT_NS1" 2>/dev/null
+	ip netns del "$CT_NS2" 2>/dev/null
 	kprobe_remove "$FREED"
 }
 
@@ -427,6 +450,47 @@ macsec_case()
 	cells_verdict macsec "$MACSEC" secured plain
 }
 
+teardown_case()
+{
+	ip netns add "$CT_NS1"
+	ip netns add "$CT_NS2"
+	ip link add "$CT_HOST1" type veth peer name "$CT_PEER" netns "$CT_NS1"
+	ip link add "$CT_HOST2" type veth peer name "$CT_PEER" netns "$CT_NS2"
+	ip addr add "$CT_NET.1/30" dev "$CT_HOST1"
+	ip link set "$CT_HOST1" up
+	ip link set "$CT_HOST2" up
+	ip -n "$CT_NS1" addr add "$CT_NET.2/30" dev "$CT_PEER"
+	ip -n "$CT_NS1" link set "$CT_PEER" up
+	ip -n "$CT_NS2" link set "$CT_PEER" up
+	{ ip netns exec "$CT_NS1" nft add table ip lunatik_tcct &&
+		ip netns exec "$CT_NS1" nft add chain ip lunatik_tcct out '{ type filter hook output priority 0 ; }' &&
+		ip netns exec "$CT_NS1" nft add rule ip lunatik_tcct out ct state new,established counter; } 2>/dev/null ||
+		{ echo "# SKIP: no nft or conntrack"; ktap_skip "$TEARDOWN"; return 0; }
+	tc_load tc_copy.bpf.o "$CT_PEER" ct_tc ||
+		{ tc_unload "$CT_PEER" ct_tc; ktap_fail "$TEARDOWN: failed to load/attach TC program"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/tc/copy"
+	# a request a second until one is answered: the host's network management can take the first
+	# on a veth that just came up
+	ping -c 1 -w 5 "$CT_NET.2" > /dev/null 2>&1
+	tc_unload "$CT_PEER" ct_tc
+	dmesg_since | grep -q "tc copy: inside" ||
+		{ lunatik stop tests/tc/copy > /dev/null 2>&1; ktap_fail "$TEARDOWN: the callback kept no copy"; return 1; }
+
+	ip netns del "$CT_NS1"
+	awaited gone "$CT_HOST1" ||
+		{ lunatik stop tests/tc/copy > /dev/null 2>&1; ktap_fail "$TEARDOWN: $CT_NS1 kept its devices"; return 1; }
+	ip netns del "$CT_NS2"
+	TRIES=$CT_BOUND awaited gone "$CT_HOST2" ||
+		{ lunatik stop tests/tc/copy > /dev/null 2>&1
+		ktap_fail "$TEARDOWN: deleting $CT_NS2 waited over $((CT_BOUND / 10)) s with the copy kept"; return 1; }
+	lunatik stop tests/tc/copy > /dev/null 2>&1
+
+	check_dmesg || { ktap_fail "$TEARDOWN"; return 1; }
+	ktap_pass "$TEARDOWN"
+}
+
 verdict_fail()
 {
 	local title
@@ -574,6 +638,7 @@ run_case tc_data.bpf.o data.lua yes "tc data" \
 nonlinear_case
 copy_case
 macsec_case
+teardown_case
 verdict_case
 compiled_case compiled_pass yes "tc compiled pass: a compiled program lets the ping through"
 compiled_case compiled_drop no "tc compiled drop: a compiled program blocks the ping"

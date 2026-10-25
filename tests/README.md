@@ -2581,6 +2581,15 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   reads no metadata dst sends the first copy. Skips without netdevsim or its MACsec
   offload.
 
+- **tc teardown**: the copy program on the egress of a veth end in a namespace of
+  its own, whose conntrack an nft rule engages; its first step keeps a copy of the
+  echo reply to a ping from the host, and the case deletes that namespace, then a
+  second one, and reads that the second's veth end goes within ten seconds while
+  the script still holds the copy. A namespace's teardown runs on one workqueue
+  and conntrack's loops while an entry of it is held, so a build whose copy keeps
+  the reply's conntrack entry holds the second deletion until the script stops,
+  which collects the copy. Skips without nft or conntrack.
+
 - **tc verdict**: one ping per case, whose payload size picks what the callback
   returns for its echo reply: nothing, a value that is not a number, an action
   as a string, a number past `TRAP` or below `UNSPEC`, one whose low 32 bits
