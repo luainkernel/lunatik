@@ -4,9 +4,10 @@
 --
 -- Kernel-side script for the tc copy cases (see test_tc.sh).
 
-local tc     = require("tc")
-local action = require("linux.tc").action
-local packet = require("tests.tc.packet")
+local tc      = require("tc")
+local action  = require("linux.tc").action
+local packet  = require("tests.tc.packet")
+local forward = require("tests.tc.forward")
 
 local format = string.format
 
@@ -36,11 +37,9 @@ local function answers(kept)
 	if index ~= nil then
 		return "ifindex " .. index
 	end
-	local ok, err = pcall(copy.forward, copy)
-	if ok then
-		return "forward() sent it"
-	elseif not err:find(REFUSAL, 1, true) then
-		return err
+	local failure = forward.refuses(copy, REFUSAL)
+	if failure then
+		return failure
 	end
 	local data = copy:data()
 	local size = #data

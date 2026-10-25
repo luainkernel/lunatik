@@ -47,6 +47,23 @@ comment() { while IFS= read -r line; do echo "# $line"; done <<< "$1"; }
 # callback or release: awaited <command...> runs it ten times a second, up to $TRIES times (50)
 awaited() { for _ in $(seq "${TRIES:-50}"); do "$@" && return 0; sleep 0.1; done; return 1; }
 
+# a netdevsim device of one port, for a case on an offload veth has not: nsim_add <id> creates it,
+# loading the module where it is not, nsim_port <id> names its port and nsim_del <id> undoes both
+NSIM="/sys/bus/netdevsim"
+NSIM_LOADED=0
+nsim_port() { ls "$NSIM/devices/netdevsim$1/net/" 2>/dev/null; }
+nsim_hasport() { [ -n "$(nsim_port "$1")" ]; }
+nsim_add() {
+	{ lsmod | grep -q "^netdevsim " || { modprobe netdevsim 2>/dev/null && NSIM_LOADED=1; }; } &&
+		echo "$1 1" > "$NSIM/new_device" 2>/dev/null && awaited nsim_hasport "$1" || return 1
+	udevadm settle 2>/dev/null # the port is renamed once udev reads it
+	return 0
+}
+nsim_del() {
+	[ -e "$NSIM/devices/netdevsim$1" ] && echo "$1" > "$NSIM/del_device"
+	[ "$NSIM_LOADED" = 1 ] && modprobe -r netdevsim 2>/dev/null
+}
+
 # builds the C peer <source> into <binary>; fails where there is no gcc or it does not build
 build_peer() { command -v gcc > /dev/null 2>&1 && gcc -O2 -o "$2" "$1" 2>/dev/null; }
 

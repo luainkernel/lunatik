@@ -2540,6 +2540,16 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   device too. A build whose copies read the hook's device in a later callback
   fails at the second echo reply.
 
+- **tc macsec**: the program on the egress of a netdevsim port a MACsec SecY
+  offloads to, set up as the kernel's rtnetlink selftest sets one; one ping goes
+  through the SecY and one out of the port itself, each to an address a permanent
+  neighbor entry resolves. The SecY hands its frame to the port with its metadata
+  dst, the one mlx5 encrypts from; netdevsim encrypts nothing, so the case reads
+  `forward()` and not the wire: a copy's raises "copy would leave unencrypted"
+  there, while a copy of the port's own frame goes out. A build whose `forward()`
+  reads no metadata dst sends the first copy. Skips without netdevsim or its MACsec
+  offload.
+
 - **tc verdict**: one ping per case, whose payload size picks what the callback
   returns for its echo reply: nothing, a value that is not a number, an action
   as a string, a number past `TRAP` or below `UNSPEC`, one whose low 32 bits
