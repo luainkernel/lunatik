@@ -81,7 +81,10 @@ jobs:
         make -C "$GITHUB_WORKSPACE" clean MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
         # a table an earlier build left and no spec generates, which make must not install
         touch "$GITHUB_WORKSPACE/autogen/linux/stale.lua"
-        make -j$(nproc) -C "$GITHUB_WORKSPACE" MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
+        # with no PWD at all, as sudo make runs it
+        env -u PWD make -j$(nproc) -C "$GITHUB_WORKSPACE" MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
+        # kbuild handed an empty M= builds its own tree and passes
+        test -f "$GITHUB_WORKSPACE/lunatik.ko" || { echo "make built no lunatik.ko"; exit 1; }
     - name: Check lock contexts
       # sparse reads lock contexts through 6.19; doc/capi.md says why lunatik_lockkillable's callers stay
       if: matrix.kernel-version == '6.6'
