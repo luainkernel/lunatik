@@ -74,6 +74,12 @@ and failed the lease in the restack under #1879.
 
 The report names the ref it moved and, apart, what it was rebased onto.
 
+The body of each moved pull request is read again: a sentence that names the merged base as the one it
+stacks on now names a dependency already on master, which a reviewer reads as still pending, so it goes
+or says the base is in, through `gh api -X PATCH repos/<owner>/<repo>/pulls/<M> -F body=@<file>`, and the
+report says the body was edited. #2119 and #2129 kept their "stacks on #N" after the retargets of
+2026-10-23.
+
 # 4. Delete the merged branch
 
 Once no open pull request is based on it, the merged branch goes, from this repository and from the
