@@ -364,8 +364,9 @@ netfilter.register{
  and is then cleared as a view of a callback&rsquo;s skb is when the callback returns.
  The copy reads the device of the skb it was made from until the callback that received
  the original returns, so <code>forward()</code> sends it out of that device until then; afterwards
- it reads none, and neither does a copy made from it. A copy carries no route and no
- conntrack entry, so its <code>connmark()</code> returns nil.
+ it reads none, and neither does a copy made from it. A copy carries no route, no
+ conntrack entry and no skb extension, so its <code>connmark()</code> returns nil and its <code>forward()</code>
+ raises where the device encrypts the original by IPsec or MACsec offload.
 
 
 
@@ -433,7 +434,8 @@ netfilter.register{
 
 
     <h3>Raises</h3>
-    if skb has no device, MAC header is not set or is past the data, or clone fails
+    if skb has no device, is a copy that would leave unencrypted where its device encrypts
+ the original by IPsec or MACsec offload, MAC header is not set or is past the data, or clone fails
 
 
 
@@ -614,7 +616,7 @@ netfilter.register{
 <a href="../../modules/skb.html">5.1 docs</a> ·
 <a href="../../5.0/modules/skb.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 11:55:55</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 11:59:56</span>
 </div>
 </footer>
 </body>
