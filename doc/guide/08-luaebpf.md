@@ -1,5 +1,9 @@
 # Compiling Lua to eBPF
 
+**Experimental.** The compiler and what a program file reaches through it, `lunatik bpf`,
+`lunatik run --dev`, the modules a program file's body requires and the part of Lua it compiles,
+may change in a minor release.
+
 `lunatik bpf` compiles a program file into a BPF ELF object, and `lunatik run` loads it, as
 [Program files](02-running-scripts.md#program-files) and
 [Compiled programs](02-running-scripts.md#compiled-programs) describe. This page is the compiler

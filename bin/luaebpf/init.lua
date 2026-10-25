@@ -17,6 +17,9 @@
 -- from the BTF file it is handed, or from `/sys/kernel/btf/vmlinux`, the running kernel's, so a
 -- build host compiles for the kernel an image ships when `make` was handed that kernel's tree and
 -- the compiler its BTF.
+--
+-- Experimental: the compiler, `lunatik bpf`, `lunatik run --dev` and the modules a program file's
+-- body requires may change in a minor release.
 -- @module luaebpf
 -- @usage
 -- local luaebpf = require("luaebpf")
