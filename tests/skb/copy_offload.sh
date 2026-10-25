@@ -19,7 +19,6 @@
 # Usage: sudo bash tests/skb/copy_offload.sh
 
 SCRIPT="tests/skb/copy_offload"
-NSIM="/sys/bus/netdevsim"
 NSIM_ID=1320
 SOURCE="10.199.8.1"
 PEER="10.199.8.2"
@@ -34,13 +33,11 @@ PLAIN="copy_offload: a copy's forward() passes the refusal on a packet the devic
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
-NSIM_LOADED=0
 cleanup() {
 	lunatik stop "$SCRIPT" 2>/dev/null
 	ip xfrm policy delete dir out src "$SOURCE/32" dst "$PEER/32" 2>/dev/null
 	ip xfrm state delete src "$SOURCE" dst "$PEER" proto esp spi "$SPI" 2>/dev/null
-	[ -e "$NSIM/devices/netdevsim$NSIM_ID" ] && echo "$NSIM_ID" > "$NSIM/del_device"
-	[ "$NSIM_LOADED" = 1 ] && modprobe -r netdevsim 2>/dev/null
+	nsim_del "$NSIM_ID"
 }
 trap cleanup EXIT
 cleanup
@@ -66,17 +63,11 @@ verdict() {
 	fi
 }
 
-port() { ls "$NSIM/devices/netdevsim$NSIM_ID/net/" 2>/dev/null; }
-hasport() { [ -n "$(port)" ]; }
-
 ktap_header
 ktap_plan 3
 
-lsmod | grep -q "^netdevsim " || { modprobe netdevsim 2>/dev/null && NSIM_LOADED=1; } || skip_all "no netdevsim"
-echo "$NSIM_ID 1" > "$NSIM/new_device" 2>/dev/null || skip_all "cannot create a netdevsim device"
-awaited hasport || skip_all "the netdevsim device has no port"
-udevadm settle 2>/dev/null # the port is renamed once udev reads it
-IFACE=$(port)
+nsim_add "$NSIM_ID" || skip_all "no netdevsim"
+IFACE=$(nsim_port "$NSIM_ID")
 ip addr add "$SOURCE/24" dev "$IFACE"
 ip link set "$IFACE" up
 ip xfrm state add src "$SOURCE" dst "$PEER" proto esp spi "$SPI" mode transport reqid "$REQID" $ALGO \

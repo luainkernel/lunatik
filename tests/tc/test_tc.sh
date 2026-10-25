@@ -39,6 +39,15 @@
 # copies read the hook's device in a later callback fails at the second echo reply; the
 # device such a copy reads is the veth, which outlives the script.
 #
+# The macsec case puts the program on the egress of a netdevsim port that a MACsec SecY
+# offloads to, set up as the kernel's own rtnetlink selftest sets one, and sends a ping
+# through the SecY and one out of the port itself, each to an address a permanent
+# neighbor entry resolves. The SecY hands its frame to the port with its metadata dst,
+# the one mlx5 encrypts from; netdevsim encrypts nothing, so the case reads forward() and
+# not the wire: a copy's raises "copy would leave unencrypted" there, while a copy of the
+# port's own frame goes out. A build whose forward() reads no metadata dst sends the first
+# copy. It skips without netdevsim or its MACsec offload.
+#
 # The verdict cases send one ping each, whose payload size picks what the callback
 # of verdict.lua answers to the echo reply: nothing, a value that is not a number, an
 # action as a string, a number past the TC actions, one below them, one whose low 32
@@ -92,6 +101,11 @@ RAISED="${PREFIX}raised"
 RELOADED="tc reload: the callback runs after lunatik_run reloads under an attached program"
 NOTCX="tcx needs libbpf 1.3.0"
 IFNAME="tc ifname: the callback reads the name and the index of a device of another namespace"
+MACSEC="tc macsec: a copy's forward() refuses a frame its device encrypts by MACsec offload, and sends one it does not"
+NSIM_ID=1321
+MACSEC_DEV="lunatikmacsec0"
+SECURED="10.199.9"   # the subnet macsec.lua's secured cell reads
+PLAIN="10.199.10"    # the subnet macsec.lua's plain cell reads
 
 # the verdict cases: the payload sizes verdict.lua reads, the case each picks, what it logs
 VERDICT_PAYLOADS=(101 102 103 104 105 106 107)
@@ -136,7 +150,7 @@ tc_unload()
 peer_tc() { nsenter --net="/run/netns/$NETNS" tc "$@"; }
 
 ktap_header
-ktap_plan 23
+ktap_plan 24
 
 skip_all()
 {
@@ -153,6 +167,7 @@ skip_all()
 	ktap_skip "$PULLED"
 	ktap_skip "$COPIED"
 	ktap_skip "$DETACHED"
+	ktap_skip "$MACSEC"
 	ktap_skip "tc compiled pass: a compiled program lets the ping through"
 	ktap_skip "tc compiled drop: a compiled program blocks the ping"
 	for title in "${VERDICT_TITLES[@]}"; do
@@ -182,12 +197,15 @@ cleanup()
 	lunatik stop tests/tc/data > /dev/null 2>&1
 	lunatik stop tests/tc/nonlinear > /dev/null 2>&1
 	lunatik stop tests/tc/copy > /dev/null 2>&1
+	lunatik stop tests/tc/macsec > /dev/null 2>&1
 	lunatik stop tests/tc/verdict > /dev/null 2>&1
 	lunatik stop tests/tc/compiled_pass > /dev/null 2>&1
 	lunatik stop tests/tc/compiled_drop > /dev/null 2>&1
 	pkill -f "TCP-LISTEN:$PORT," 2>/dev/null
 	ip netns del "$NETNS" 2>/dev/null
 	ip link del "$IFACE" 2>/dev/null
+	ip link del "$MACSEC_DEV" 2>/dev/null
+	nsim_del "$NSIM_ID"
 	kprobe_remove "$FREED"
 }
 
@@ -380,6 +398,35 @@ copy_case()
 	cells_verdict copy "$DETACHED" detach detached
 }
 
+macsec_case()
+{
+	local port
+	nsim_add "$NSIM_ID" || { echo "# SKIP: no netdevsim"; ktap_skip "$MACSEC"; return 0; }
+	port=$(nsim_port "$NSIM_ID")
+	ip link set "$port" up
+	ip link add link "$port" "$MACSEC_DEV" type macsec port 4 offload mac 2>/dev/null ||
+		{ echo "# SKIP: $port offloads no MACsec"; ktap_skip "$MACSEC"; return 0; }
+	ip macsec add "$MACSEC_DEV" tx sa 0 pn 1 on key 01 12345678901234567890123456789012
+	ip addr add "$SECURED.1/24" dev "$MACSEC_DEV"
+	ip link set "$MACSEC_DEV" up
+	ip neigh replace "$SECURED.2" lladdr 02:00:00:00:09:02 dev "$MACSEC_DEV" nud permanent
+	ip addr add "$PLAIN.1/24" dev "$port"
+	ip neigh replace "$PLAIN.2" lladdr 02:00:00:00:0a:02 dev "$port" nud permanent
+	tc_load tc_macsec.bpf.o "$port" ||
+		{ tc_unload "$port"; ktap_fail "$MACSEC: failed to load/attach TC program"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/tc/macsec"
+	ping -c 1 -W 1 -I "$MACSEC_DEV" "$SECURED.2" > /dev/null 2>&1
+	ping -c 1 -W 1 -I "$port" "$PLAIN.2" > /dev/null 2>&1
+
+	tc_unload "$port"
+	lunatik stop tests/tc/macsec > /dev/null 2>&1
+
+	check_dmesg || { ktap_fail "$MACSEC"; return 1; }
+	cells_verdict macsec "$MACSEC" secured plain
+}
+
 verdict_fail()
 {
 	local title
@@ -526,6 +573,7 @@ run_case tc_data.bpf.o data.lua yes "tc data" \
 
 nonlinear_case
 copy_case
+macsec_case
 verdict_case
 compiled_case compiled_pass yes "tc compiled pass: a compiled program lets the ping through"
 compiled_case compiled_drop no "tc compiled drop: a compiled program blocks the ping"

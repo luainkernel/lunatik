@@ -11,12 +11,19 @@ local IPPROTO   <const> = 23
 local ICMPTYPE  <const> = 34
 local ICMP      <const> = 1
 local ECHOREPLY <const> = 0
+local ECHO      <const> = 8
 
 local packet = {}
 
 function packet.isping(data)
 	return data:getuint8(ETH_HI) == 0x08 and data:getuint8(ETH_LO) == 0x00 and data:getuint8(IPPROTO) == ICMP and
 		data:getuint8(ICMPTYPE) == ECHOREPLY
+end
+
+-- spelled whole as isping is: the programs luaebpf compiles take this module, and a tail call does not compile
+function packet.isecho(data)
+	return data:getuint8(ETH_HI) == 0x08 and data:getuint8(ETH_LO) == 0x00 and data:getuint8(IPPROTO) == ICMP and
+		data:getuint8(ICMPTYPE) == ECHO
 end
 
 return packet

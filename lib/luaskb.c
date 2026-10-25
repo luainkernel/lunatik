@@ -37,6 +37,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <net/dst.h>
+#include <net/dst_metadata.h>
 #include <net/ip.h>
 #include <net/ip6_checksum.h>
 #include <net/xfrm.h>
@@ -97,14 +98,26 @@ static inline struct net_device *luaskb_dev(luaskb_t *lskb)
 	return hook->gen == lskb->gen ? hook->skb->dev : NULL;
 }
 
-static inline bool luaskb_isoffloaded(luaskb_t *lskb)
+static inline bool luaskb_isipsec(struct sk_buff *skb)
 {
-	struct sk_buff *skb = luaskb_hook(lskb)->skb;
 	struct xfrm_offload *xo = xfrm_offload(skb);
 	struct sec_path *sp = skb_sec_path(skb);
 
-	return lskb->hook != NULL && xo != NULL && !(xo->flags & XFRM_GRO) &&
-		sp->xvec[sp->len - 1]->xso.dir != XFRM_DEV_OFFLOAD_IN;
+	return xo != NULL && !(xo->flags & XFRM_GRO) && sp->xvec[sp->len - 1]->xso.dir != XFRM_DEV_OFFLOAD_IN;
+}
+
+static inline bool luaskb_ismacsec(struct sk_buff *skb)
+{
+	struct metadata_dst *md = skb_metadata_dst(skb);
+
+	return md != NULL && md->type == METADATA_MACSEC;
+}
+
+static inline bool luaskb_isoffloaded(luaskb_t *lskb)
+{
+	struct sk_buff *skb = luaskb_hook(lskb)->skb;
+
+	return lskb->hook != NULL && (luaskb_isipsec(skb) || luaskb_ismacsec(skb));
 }
 
 /***
@@ -315,7 +328,7 @@ static int luaskb_checksum(lua_State *L)
 * packet returns `DROP` to not send it twice.
 * @function forward
 * @raise if skb has no device, is a copy that would leave unencrypted where its device encrypts
-* the original by IPsec offload, MAC header is not set or is past the data, or clone fails
+* the original by IPsec or MACsec offload, MAC header is not set or is past the data, or clone fails
 */
 static int luaskb_forward(lua_State *L)
 {
@@ -461,7 +474,7 @@ static const lunatik_class_t luaskb_class = {
 * the original returns, so `forward()` sends it out of that device until then; afterwards
 * it reads none, and neither does a copy made from it. A copy carries no route, no
 * conntrack entry and no skb extension, so its `connmark()` returns nil and its `forward()`
-* raises where the device encrypts the original by IPsec offload.
+* raises where the device encrypts the original by IPsec or MACsec offload.
 * @function copy
 * @treturn skb
 * @raise if skb is FRAGLIST GSO, if the skb is not linear, in a tc callback or after a failed
