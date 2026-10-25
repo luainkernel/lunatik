@@ -2303,7 +2303,9 @@ pid, what a valid call does, and where it refuses to run.
   `ifindex()` and `ifname()`, and `forward()` sends each back out through `lo`,
   where a hook sees it arrive, while a third copy dropped and collected in the
   callback goes; on a veth of the test's own, a copy names the veth inside the
-  callback; from a later callback the three copies have no `ifindex()` nor
+  callback, the ping from its namespace sent with a deadline, a request a second
+  until one is answered, since the host's own network management can take the
+  first; from a later callback the three copies have no `ifindex()` nor
   `ifname()`, their `forward()` raises "skb has
   no device" and their `data()` reads the echo request, as a copy made of each
   then does; and once the veth is deleted, which waits on no copy, they answer the
