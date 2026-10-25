@@ -91,6 +91,8 @@ end
 -- @tparam[opt] string scripts the directory the body's `require` reads the kernel scripts from, laid
 --   out as `/lib/modules/lua` is; that directory when absent
 -- @treturn string the BPF ELF object
+-- @treturn table a line per call into the kernel Lua runtime the compiler met, in that order,
+--   `<file>:<line>: calls the runtime '<name>'`
 -- @raise `<file>:<line>: <reason>` for every construct the subset refuses,
 --   `<path>: no program declared` when the body hands nothing to a constructor,
 --   `<btffile>: <reason>`, `<btffile> carries no BTF header` and `<btffile> is shorter than its
@@ -118,9 +120,9 @@ function luaebpf.compile(path, btffile, scripts)
 	for _, program in ipairs(declared) do
 		program.name = name(program, path)
 	end
-	local object = writer.write(declared, getenv(DROP))
+	local object, calls = writer.write(declared, getenv(DROP))
 	vmlinux.check(emit.bigendian)
-	return object
+	return object, calls
 end
 
 return luaebpf

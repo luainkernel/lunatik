@@ -271,11 +271,11 @@ function, lowers to the kfunc of the program's type, the name NUL-terminated in 
 argument a native 64-bit integer in order. The answer is a type the program tests before it reads,
 `nil` where the kfunc returns `-1`. The object carries each kfunc a call names as libbpf reads one
 out of clang's: an extern `FUNC` in a `.ksyms` DATASEC and an undefined symbol the call relocates
-against. The kernel side is what `xdp.attach` and `tc.attach` are today, over `bpf_luaxdp_run`
-and `bpf_luatc_run`; the callback reads `ctx:argument()` as it does now. `btf_install` becomes a
-requirement of a program that calls a runtime, and of nothing else. The programs of
-`callback.bpf.lua`, each a call and the test of its answer, verify in 31 processed instructions at
-most on 6.8, as `budget.sh` records them.
+against, and `lunatik bpf` lists every call it compiled with its line. The kernel side is what
+`xdp.attach` and `tc.attach` are today, over `bpf_luaxdp_run` and `bpf_luatc_run`; the callback
+reads `ctx:argument()` as it does now. `btf_install` becomes a requirement of a program that calls
+a runtime, and of nothing else. The programs of `callback.bpf.lua`, each a call and the test of its
+answer, verify in 31 processed instructions at most on 6.8, as `budget.sh` records them.
 
 `examples/sniclassify` stays C into phase 6: an egress TCP segment keeps its payload in page
 fragments, where a compiled `skb:data()` takes the default verdict, and #2190 asks for reading such
