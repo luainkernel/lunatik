@@ -2,7 +2,8 @@
 
 How `bin/luaebpf` takes a program file to a program attached to a device, for whoever changes the
 compiler. What the author of a program file reads is the guide page,
-[Compiling Lua to eBPF](../../guide/08-luaebpf.md).
+[Compiling Lua to eBPF](../../guide/08-luaebpf.md), and what each construct compiles to is listed
+in [Lua to eBPF by example](../../guide/09-luaebpf-by-example.md).
 
 ## The pipeline
 
