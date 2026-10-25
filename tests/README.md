@@ -2590,6 +2590,12 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   the reply's conntrack entry holds the second deletion until the script stops,
   which collects the copy. Skips without nft or conntrack.
 
+- **tc route**: probes on `luaskb_copy`'s entry and return and on `dst_release`
+  count the routes released on a CPU between a copy's entry and its return. The
+  copy program's first step keeps a copy of one echo reply, whose route the copy
+  drops as it is made: one release. A build whose copy keeps the route releases
+  none there. Skips where the probes cannot be placed.
+
 - **tc verdict**: one ping per case, whose payload size picks what the callback
   returns for its echo reply: nothing, a value that is not a number, an action
   as a string, a number past `TRAP` or below `UNSPEC`, one whose low 32 bits
