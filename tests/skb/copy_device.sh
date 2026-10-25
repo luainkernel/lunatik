@@ -14,7 +14,9 @@
 #   does with ifindex() and ifname(), and forward() sends each back out through lo under a
 #   mark of its own, whose hook sees it arrive; a third copy, dropped and collected in the
 #   callback, goes;
-# - held: on IFACE, a copy names IFACE inside the callback;
+# - held: on IFACE, a copy names IFACE inside the callback; the ping leaves the namespace a moment
+#   after the veth came up, where the host's own network management can take it, so it runs with a
+#   deadline, which sends a request a second until one is answered, and the hook takes one;
 # - past: from a later callback on lo, the three copies kept have no ifindex() nor ifname(),
 #   their forward() raises "skb has no device", and their data() reads the echo request, and so
 #   do a copy of each made then;
@@ -94,7 +96,7 @@ run_script --context=softirq "$SCRIPT"
 step inside ping -c 1 -W 1 -m "$STEP_MARK" "$LOCAL"
 awaited reported "sent copy" || fail "the copy forward() sent never arrived"
 awaited reported "sent inner" || fail "the copy of the copy forward() sent never arrived"
-step held ip netns exec "$NETNS" ping -c 1 -W 1 "$TARGET"
+step held ip netns exec "$NETNS" ping -c 1 -w 5 "$TARGET"
 ktap_pass "$INSIDE"
 
 step past ping -c 1 -W 1 -m "$STEP_MARK" "$LOCAL"

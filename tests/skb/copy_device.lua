@@ -116,8 +116,13 @@ local function lo(skb)
 	return isecho(skb) and take(skb) or nf.action.ACCEPT
 end
 
+-- the held step's echo, taken once: copy_device.sh's ping sends another until one is answered
+local function isheld(skb)
+	return order[step + 1] == "held" and skb:ifindex() == ifindex and isecho(skb)
+end
+
 local function veth(skb)
-	return skb:ifindex() == ifindex and isecho(skb) and take(skb) or nf.action.ACCEPT
+	return isheld(skb) and take(skb) or nf.action.ACCEPT
 end
 
 local function sent(skb)
