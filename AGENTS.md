@@ -285,7 +285,10 @@ stated, quoted. Fewer reads, more robust, the kernel spells it so: none of them 
 review removes such a mechanism by a fixup. A kernel idiom comes with the reason the kernel has for it,
 which the body names. #2083 copied a device's name into a local array before `lua_pushstring`, which
 copies it already, for "a read that never walks past the array", which no trace showed; its review
-kept the copy for one read per byte, and the maintainer's review took it out.
+kept the copy for one read per byte, and the maintainer's review took it out. What a convention of
+this file or of `.agents/rules/` asks of the code, quoted, the helper a grown function's new step is
+or the predicate a condition of three tests names, is part of the small shape and not past it, so no
+review is asked to make and remove the same helper.
 
 An issue states the need, its contract and the API the maintainer settled, the types, names and calls
 a script sees, and leaves the code's inner structure to whoever implements it: a sentence that
