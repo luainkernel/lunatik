@@ -58,6 +58,7 @@
   <li><a href="../topics/06-development.md.html">Development</a></li>
   <li><a href="../topics/07-resources.md.html">Resources</a></li>
   <li><a href="../topics/08-luaebpf.md.html">Compiling Lua to eBPF</a></li>
+  <li><a href="../topics/09-luaebpf-by-example.md.html">Lua to eBPF by example</a></li>
   <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
@@ -616,6 +617,24 @@ print(events:pop())
 </dl>
     <h2 class="section-header" id="Declaring_a_map_in_a_program_file-details"><a name="Declaring_a_map_in_a_program_file"></a>Declaring a map in a program file  in detail</h2>
 
+          <div class="section-description">
+           These constructors run in the body of a program file, under <code>lunatik bpf</code>, and declare a map
+ the object carries. A map needs a name whether or not a compiled function references it:
+ <code>lunatik run</code> creates the map and pins it at <code>/sys/fs/bpf/lunatik/&lt;script&gt;/&lt;name&gt;</code>, where a
+ kernel script opens it with the kernel&rsquo;s constructor of the same name, which takes the path and
+ the two specs, <code>map.hash(path, keyspec, valuespec)</code>.</p>
+
+<p> In a compiled function a map reads as a table: <code>m[k]</code> gives the value or nil, <code>m[k] = v</code>
+ inserts or replaces, <code>m[k] = nil</code> deletes. A lookup&rsquo;s value is used only after <code>if v then</code> tests
+ it, which is what the verifier requires of the pointer underneath; any other use is refused,
+ &ldquo;&lsquo;<name>&rsquo; may be nil here; test it first&rdquo;. A lookup in an array within its entries always finds
+ a value, 0 where nothing was written. A key or a value its spec cannot pack, and an update or a
+ delete the map refuses, a full hash map, an index past an array, a delete from an array, stop
+ the program with its default verdict. A <a href="../modules/struct.html#">struct</a> value spec gives a read-only value read by field
+ name, <code>v.ttl</code>, as the kernel module decodes such a value into a table keyed by the layout&rsquo;s
+ names; an index into it is refused, and so is a field wider than a byte on a kernel without
+ efficient unaligned access, as a packet read is.
+          </div>
     <dl class="function">
     <dt id="bpf.map.array"><a name="bpf.map.array"></a><strong>bpf.map.array (name, spec)</strong></dt>
     <dd>
@@ -729,7 +748,7 @@ print(events:pop())
 <a href="../../modules/bpf.map.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.map.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 14:26:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-26 11:51:28</span>
 </div>
 </footer>
 </body>

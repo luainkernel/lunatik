@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Lua to eBPF by example · Lunatik</title>
+    <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+    <script>try { var t = localStorage.getItem('lunatik-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) { }</script>
+    <script src="../search.js" defer=""></script>
+    <script src="../site.js" defer=""></script>
+</head>
+<body data-root="../">
+
+<header class="topbar">
+    <button class="icon-btn nav-toggle" id="nav" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="../index.html">
+        <svg viewBox="0 0 98 100" aria-hidden="true"><circle class="logo-orbit" cx="36.2" cy="63.8" r="34.7"/><path class="logo-mark" fill-rule="evenodd" d="M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z"/><circle class="logo-mark" cx="36.2" cy="61.5" r="8.9"/></svg>
+        <span>Lunatik</span>
+    </a>
+    <nav class="versions" aria-label="Documentation version">
+        <a href="../../topics/09-luaebpf-by-example.md.html" title="This page in release 5.1">5.1</a>
+        <a href="../../5.0/topics/09-luaebpf-by-example.md.html" title="This page in release 5.0">5.0</a>
+        <span aria-current="page">master</span>
+    </nav>
+    <div class="search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
+        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <kbd>/</kbd>
+        <ul class="results" id="results" hidden=""></ul>
+    </div>
+    <nav class="top-links" aria-label="Site">
+        <a href="../topics/01-getting-started.md.html">Guide</a>
+        <a href="../index.html#api-reference">API</a>
+        <a class="star" href="https://github.com/luainkernel/lunatik" title="Star Lunatik on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>Star on GitHub</a>
+        <a class="donate" href="../index.html#support"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>Donate</a>
+        <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark">
+            <svg class="theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <svg class="theme-icon-dark" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+    </nav>
+</header>
+
+
+<div class="layout">
+
+<aside class="sidebar" id="sidebar" aria-label="Documentation">
+<h2>Guide</h2>
+<ul>
+  <li><a href="../topics/01-getting-started.md.html">Getting started</a></li>
+  <li><a href="../topics/02-running-scripts.md.html">Running scripts</a></li>
+  <li><a href="../topics/03-percpu.md.html">Per-CPU scripts</a></li>
+  <li><a href="../topics/04-lua.md.html">Lua in the kernel</a></li>
+  <li><a href="../topics/05-examples.md.html">Examples</a></li>
+  <li><a href="../topics/06-development.md.html">Development</a></li>
+  <li><a href="../topics/07-resources.md.html">Resources</a></li>
+  <li><a href="../topics/08-luaebpf.md.html">Compiling Lua to eBPF</a></li>
+  <li><a href="../topics/09-luaebpf-by-example.md.html" aria-current="page">Lua to eBPF by example</a></li>
+  <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
+</ul>
+<h2>Lua API</h2>
+<h3>Runtime</h3>
+<ul class="mono">
+  <li><a href="../modules/completion.html">completion</a></li>
+  <li><a href="../modules/fifo.html">fifo</a></li>
+  <li><a href="../modules/lunatik.html">lunatik</a></li>
+  <li><a href="../modules/lunatik.runner.html">lunatik.runner</a></li>
+  <li><a href="../modules/mailbox.html">mailbox</a></li>
+  <li><a href="../modules/thread.html">thread</a></li>
+</ul>
+<h3>Packets and eBPF</h3>
+<ul class="mono">
+  <li><a href="../modules/bpf.html">bpf</a></li>
+  <li><a href="../modules/bpf.map.html">bpf.map</a></li>
+  <li><a href="../modules/bpf.tc.html">bpf.tc</a></li>
+  <li><a href="../modules/bpf.xdp.html">bpf.xdp</a></li>
+  <li><a href="../modules/netfilter.html">netfilter</a></li>
+  <li><a href="../modules/skb.html">skb</a></li>
+  <li><a href="../modules/tc.html">tc</a></li>
+  <li><a href="../modules/xdp.html">xdp</a></li>
+</ul>
+<h3>Sockets and netlink</h3>
+<ul class="mono">
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netlink.html">netlink</a></li>
+  <li><a href="../modules/netlink.channel.html">netlink.channel</a></li>
+  <li><a href="../modules/netlink.genl.html">netlink.genl</a></li>
+  <li><a href="../modules/netlink.message.html">netlink.message</a></li>
+  <li><a href="../modules/netlink.nl80211.html">netlink.nl80211</a></li>
+  <li><a href="../modules/netlink.nl80211.ap.html">netlink.nl80211.ap</a></li>
+  <li><a href="../modules/netlink.nl80211.interface.html">netlink.nl80211.interface</a></li>
+  <li><a href="../modules/netlink.nl80211.station.html">netlink.nl80211.station</a></li>
+  <li><a href="../modules/netlink.nl80211.wiphy.html">netlink.nl80211.wiphy</a></li>
+  <li><a href="../modules/netlink.rt.html">netlink.rt</a></li>
+  <li><a href="../modules/netlink.rt.addr.html">netlink.rt.addr</a></li>
+  <li><a href="../modules/netlink.rt.link.html">netlink.rt.link</a></li>
+  <li><a href="../modules/netlink.rt.route.html">netlink.rt.route</a></li>
+  <li><a href="../modules/netlink.rt.rule.html">netlink.rt.rule</a></li>
+  <li><a href="../modules/netlink.session.html">netlink.session</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/socket.inet.html">socket.inet</a></li>
+  <li><a href="../modules/socket.raw.html">socket.raw</a></li>
+  <li><a href="../modules/socket.unix.html">socket.unix</a></li>
+</ul>
+<h3>Tracing and scheduling</h3>
+<ul class="mono">
+  <li><a href="../modules/probe.html">probe</a></li>
+  <li><a href="../modules/scx.html">scx</a></li>
+  <li><a href="../modules/syscall.html">syscall</a></li>
+  <li><a href="../modules/syscall.table.html">syscall.table</a></li>
+</ul>
+<h3>Devices and events</h3>
+<ul class="mono">
+  <li><a href="../modules/device.html">device</a></li>
+  <li><a href="../modules/fsnotify.html">fsnotify</a></li>
+  <li><a href="../modules/hid.html">hid</a></li>
+  <li><a href="../modules/notifier.html">notifier</a></li>
+</ul>
+<h3>Data</h3>
+<ul class="mono">
+  <li><a href="../modules/byteorder.html">byteorder</a></li>
+  <li><a href="../modules/class.html">class</a></li>
+  <li><a href="../modules/data.html">data</a></li>
+  <li><a href="../modules/rcu.html">rcu</a></li>
+  <li><a href="../modules/set.html">set</a></li>
+  <li><a href="../modules/struct.html">struct</a></li>
+</ul>
+<h3>Cryptography</h3>
+<ul class="mono">
+  <li><a href="../modules/crypto.html">crypto</a></li>
+  <li><a href="../modules/darken.html">darken</a></li>
+  <li><a href="../modules/lighten.html">lighten</a></li>
+  <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
+  <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
+  <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
+  <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_sig.html">crypto_sig</a></li>
+  <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
+</ul>
+<h3>System</h3>
+<ul class="mono">
+  <li><a href="../modules/cpu.html">cpu</a></li>
+  <li><a href="../modules/linux.html">linux</a></li>
+  <li><a href="../modules/signal.html">signal</a></li>
+  <li><a href="../modules/task.html">task</a></li>
+</ul>
+<h3>Constants</h3>
+<ul class="mono">
+  <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
+  <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.clock.html">linux.clock</a></li>
+  <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
+  <li><a href="../modules/linux.errno.html">linux.errno</a></li>
+  <li><a href="../modules/linux.eth.html">linux.eth</a></li>
+  <li><a href="../modules/linux.fsnotify.html">linux.fsnotify</a></li>
+  <li><a href="../modules/linux.genl.html">linux.genl</a></li>
+  <li><a href="../modules/linux.iff.html">linux.iff</a></li>
+  <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
+  <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
+  <li><a href="../modules/linux.nf.html">linux.nf</a></li>
+  <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
+  <li><a href="../modules/linux.notify.html">linux.notify</a></li>
+  <li><a href="../modules/linux.packet.html">linux.packet</a></li>
+  <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
+  <li><a href="../modules/linux.scx.html">linux.scx</a></li>
+  <li><a href="../modules/linux.signal.html">linux.signal</a></li>
+  <li><a href="../modules/linux.socket.html">linux.socket</a></li>
+  <li><a href="../modules/linux.stat.html">linux.stat</a></li>
+  <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
+  <li><a href="../modules/linux.task.html">linux.task</a></li>
+  <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.vt.html">linux.vt</a></li>
+  <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
+</ul>
+<h3>Other</h3>
+<ul class="mono">
+  <li><a href="../modules/luaebpf.html">luaebpf</a></li>
+  <li><a href="../modules/luaebpf.vmlinux.html">luaebpf.vmlinux</a></li>
+  <li><a href="../modules/set.image.html">set.image</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+</aside>
+
+<main class="content" id="content">
+
+    <h1 id="lua-to-ebpf-by-example">Lua to eBPF by example</h1>
+
+<p><strong>Experimental</strong>, as <a href="../topics/08-luaebpf.md.html">Compiling Lua to eBPF</a> is.</p>
+
+<p>What a compiled function computes, construct by construct. The table below says what Lua computes,
+what the eBPF instruction alone would compute and what the compiler emits between the two. Each
+section after it compiles a program file whose operands come from the packet, so that <code>lunatic</code>
+folds none of them, lists the object with each instruction annotated, and traces one input to the
+result. The rows of <a href="../topics/08-luaebpf.md.html#the-lua-a-program-may-use">The Lua a program may use</a> link to
+these sections.</p>
+
+<p><a name="What_the_compiler_emits"></a></p>
+
+<h2 id="what-the-compiler-emits">What the compiler emits</h2>
+
+<p>A construct the compiler lowers computes what the kernel&rsquo;s Lua computes, or is refused at its line.
+Where the eBPF instruction alone computes something else, the compiler emits what lies between:</p>
+
+<table>
+<thead>
+<tr>
+<th> Lua </th>
+<th> Lua computes </th>
+<th> The instruction alone </th>
+<th> The compiler emits </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> <code>-7 // 2</code> </td>
+<td> <code>-4</code>, the floor </td>
+<td> <code>-3</code>: <code>BPF_SDIV</code> truncates </td>
+<td> the quotient less one where the remainder is not zero and the signs differ, as <code>luaV_idiv</code> </td>
+</tr>
+<tr>
+<td> <code>-7 % 2</code> </td>
+<td> <code>1</code>, the divisor&rsquo;s sign </td>
+<td> <code>-1</code>: <code>BPF_SMOD</code> truncates </td>
+<td> the divisor added where the remainder is not zero and its sign is not the divisor&rsquo;s, as <code>luaV_mod</code> </td>
+</tr>
+<tr>
+<td> <code>x // -1</code>, <code>x % -1</code> </td>
+<td> <code>-x</code> and <code>0</code>, so <code>math.mininteger // -1</code> is <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.mininteger">math.mininteger</a> </td>
+<td> for <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.mininteger">math.mininteger</a>, a divide error on x86-64 before Linux 6.12, whose verifier patches the instruction to give <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.mininteger">math.mininteger</a> and <code>0</code>, as arm64 always gave </td>
+<td> a test for -1, then a negation or a zero, as <code>luaV_idiv</code> and <code>luaV_mod</code> take it, so the signed division never meets that case </td>
+</tr>
+<tr>
+<td> <code>x // 0</code>, <code>x % 0</code> </td>
+<td> raises </td>
+<td> <code>0</code> and <code>x</code> </td>
+<td> a test of the divisor, which takes the default verdict </td>
+</tr>
+<tr>
+<td> <code>1 &lt;&lt; 64</code> </td>
+<td> <code>0</code> </td>
+<td> <code>1</code>: the count is masked to 63 </td>
+<td> the count tested against 64 and -64, past which the result is zero </td>
+</tr>
+<tr>
+<td> <code>1 &lt;&lt; -1</code> </td>
+<td> <code>0</code>: a negative count shifts the other way </td>
+<td> <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.mininteger">math.mininteger</a>: -1 masked is 63 </td>
+<td> a negative count negated into the other shift; <code>x &gt;&gt; n</code> is <code>x &lt;&lt; -n</code>, as in Lua </td>
+</tr>
+<tr>
+<td> <code>x &amp; 0xffffffff</code> </td>
+<td> the low 32 bits of <code>x</code> </td>
+<td> <code>x</code>: a 32-bit immediate, sign-extended, reads -1 </td>
+<td> the constant in a register, by a <code>MOV</code> of its immediate where it fits 32 bits and by <code>LD_IMM64</code> otherwise </td>
+</tr>
+<tr>
+<td> <code>x + y</code>, <code>x - y</code>, <code>x * y</code>, <code>-x</code>, <code>~x</code>, the bitwise operators </td>
+<td> the result wrapped to 64 bits </td>
+<td> the same </td>
+<td> one <code>ALU64</code> instruction; <code>-x</code> a subtraction from zero, <code>~x</code> an exclusive or with -1 </td>
+</tr>
+<tr>
+<td> <code>x &lt; 1</code> with <code>x</code> at -1 </td>
+<td> <code>true</code> </td>
+<td> <code>false</code> under <code>BPF_JLT</code>, which reads -1 as the largest value </td>
+<td> the signed jump, <code>BPF_JSLT</code>, and its kin for <code>&lt;=</code>, <code>&gt;</code> and <code>&gt;=</code> </td>
+</tr>
+<tr>
+<td> <code>if n then</code>, <code>n</code> a number at <code>0</code> </td>
+<td> taken: <code>0</code> is true </td>
+<td> not taken: the word is zero </td>
+<td> the jump or nothing, from the register&rsquo;s type (<a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/compiler.md#branches">Branches</a>) </td>
+</tr>
+<tr>
+<td> <code>for i = 1, n, s</code> </td>
+<td> the iterations counted up front, so the loop never passes <code>n</code> by overflowing </td>
+<td> a back edge, which the verifier walks iteration by iteration or refuses </td>
+<td> the count as <code>forprep</code> computes it, with an unsigned division; a bounded loop where the compiler holds the three values, a <code>may_goto</code> header otherwise </td>
+</tr>
+<tr>
+<td> <code>for</code> with a step of <code>0</code> </td>
+<td> raises </td>
+<td> <code>BPF_DIV</code> by zero gives a count of 0, one pass through the body </td>
+<td> a step the compiler holds refused, &ldquo;&lsquo;for&rsquo; step is zero&rdquo;, and one the program computes tested, which takes the default verdict </td>
+</tr>
+<tr>
+<td> <code>f(x)</code> </td>
+<td> the callee&rsquo;s value, and its raise </td>
+<td> a call, which answers R0 and nothing else </td>
+<td> the arguments in R1 to R4, the address of the caller&rsquo;s flag after them, and the flag read after the call </td>
+</tr>
+<tr>
+<td> <code>p:getint16(n)</code> </td>
+<td> two bytes at <code>n</code>, signed; raises past the packet </td>
+<td> a load the verifier refuses until the program tests the end </td>
+<td> the offset tested unsigned against 65535 less the width, the end against <code>data_end</code>, and the sign extended by a shift left and an arithmetic shift right, where <code>BPF_MEMSX</code> would extend it </td>
+</tr>
+<tr>
+<td> <code>#p</code> </td>
+<td> the bytes the <a href="../modules/data.html#">data</a> object views </td>
+<td> no instruction: the context holds the two bounds </td>
+<td> <code>data_end</code> less <a href="../modules/data.html#">data</a>, both read from the context </td>
+</tr>
+<tr>
+<td> <code>skb:data()</code> on an skb that is not linear </td>
+<td> raises in a tc callback </td>
+<td> <code>data_end</code> ends the linear head, short of the packet </td>
+<td> <code>len</code> compared with the head&rsquo;s length, which takes the default verdict where they differ </td>
+</tr>
+<tr>
+<td> <code>skb:priority(v)</code> </td>
+<td> raises outside 0 to <code>U32_MAX</code> </td>
+<td> a four-byte store keeps the low 32 bits </td>
+<td> a value the compiler holds checked against the field&rsquo;s width, and one the program computes tested, which takes the default verdict </td>
+</tr>
+<tr>
+<td> <code>m[k]</code> </td>
+<td> the value, or nil </td>
+<td> the helper answers a pointer, or NULL, which the verifier lets the program read only past a test </td>
+<td> the helper, and a value typed &ldquo;value or nil&rdquo; until <code>if v then</code> reads it, on the branch that found it </td>
+</tr>
+<tr>
+<td> <code>m[k] = v</code>, <code>m[k] = nil</code> </td>
+<td> the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a> raises when the map refuses the update, or refuses the delete for any reason but an absent key </td>
+<td> the helper&rsquo;s return code </td>
+<td> the helper, and the default verdict on any code but zero, or <code>-ENOENT</code> from a delete </td>
+</tr>
+<tr>
+<td> <code>m[k]</code> with <code>k</code> outside the key&rsquo;s spec </td>
+<td> <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> raises </td>
+<td> a store that keeps the low bytes </td>
+<td> a key the compiler holds packed when the function is compiled, and one the program computes tested, which takes the default verdict; a value alike </td>
+</tr>
+<tr>
+<td> <code>v.field</code> of a struct value </td>
+<td> the field the codec decodes </td>
+<td> a load the verifier refuses until the program tests the lookup </td>
+<td> a load at the field&rsquo;s offset and width, the sign extended where the field is signed </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>The shift pair stands for <code>BPF_MEMSX</code>, which the s390 JIT of 6.6 does not take. A read is of the
+kernel&rsquo;s byte order on both sides: the kernel&rsquo;s <a href="../modules/data.html#">data</a> object reads one so, and a map spec of another
+order is refused when the body declares it.</p>
+
+<p>The sources are <code>lua/lvm.c</code>,
+<a href="https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L812-L824"><code>luaV_idiv</code></a>,
+<a href="https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L832-L844"><code>luaV_mod</code></a>,
+<a href="https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L866-L875"><code>luaV_shiftl</code></a>
+and <a href="https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L223-L262"><code>forprep</code></a>;
+<a href="https://github.com/torvalds/linux/blob/v6.8/Documentation/bpf/standardization/instruction-set.rst">the eBPF instruction set</a>,
+for <code>BPF_SDIV</code>, <code>BPF_SMOD</code>, the shift mask, the zero divisor and <code>BPF_MEMSX</code>;
+<a href="https://github.com/torvalds/linux/commit/7dd34d7b7dcf9309fc6224caf4dd5b35bedddcb7">bpf: Fix a sdiv overflow issue</a>,
+for <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.mininteger">math.mininteger</a> over -1; and <code>kernel-notes.md</code>,
+<a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/kernel-notes.md#rules-that-shape-the-subset">Rules that shape the subset</a> and
+<a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/kernel-notes.md#the-packet-a-network-program-reads">The packet a network program reads</a>.</p>
+
+<p><a name="Reading_a_listing"></a></p>
+
+<h2 id="reading-a-listing">Reading a listing</h2>
+
+<p>A listing is <code>llvm-objdump -d</code> of the object <code>lunatik bpf</code> writes, with the hexadecimal left out,
+each jump given its target, and the Lua line each instruction came from. That line is in the
+object&rsquo;s <code>.BTF.ext</code>, which <code>llvm-objdump</code> does not read: the verifier&rsquo;s log quotes the same lines,
+and so does <code>bpftool prog dump xlated</code> of a loaded program, after the kernel has rewritten its
+context reads. An <code>llvm-objdump</code> that predates the instructions Linux 6.6 added, LLVM 14&rsquo;s among
+them, prints a signed division as an unsigned <code>/=</code> and a signed modulo as <code>&lt;unknown&gt;</code>; the
+listings write them <code>s/=</code> and <code>s%=</code>.</p>
+
+<p>The registers:</p>
+
+<ul>
+<li><code>r1</code> holds the context when the program starts, and <code>r0</code> what it returns.</li>
+<li><code>r6</code> to <code>r9</code> hold Lua registers 0 to 3, the function&rsquo;s first locals, and a call leaves them
+alone. Lua registers 4 and up live in the frame, at <code>r10 - 40</code>, <code>r10 - 48</code> and on down.</li>
+<li><code>r10</code> is the frame. <code>r10 - 8</code> holds the flag a called function raises, <code>r10 - 16</code> the address of
+its caller&rsquo;s flag, and <code>r10 - 24</code> and <code>r10 - 32</code> the key and the value a map helper takes.</li>
+<li><code>r1</code> to <code>r5</code> hold what one line computes.</li>
+</ul>
+
+
+<p>Every listing ends with the instructions where the function stops: the default verdict, and the
+exit.</p>
+
+<p><a name="The_packet"></a></p>
+
+<h2 id="the-packet">The packet</h2>
+
+<p>A packet read, <code>p:getuint16(16)</code>, held to the bounds of the packet:</p>
+
+<pre>
+<span class="keyword">local</span> xdp = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">local</span> length = p:<span class="function-name">getuint16</span>(<span class="number">16</span>)
+    <span class="keyword">return</span> length
+<span class="keyword">end</span>)
+</pre>
+
+
+<p>Byte 16 of an Ethernet frame that carries IPv4 is the total length of the IPv4 packet, two bytes
+in network order.</p>
+
+<pre><code>      line 3: return xdp.program(function(ctx)
+   0  r6 = r1                       ctx
+      line 4: local p = ctx:packet()
+   1  r8 = r6                       the packet: the context register
+   2  r7 = r8                       p
+      line 5: local length = p:getuint16(16)
+   3  r9 = r7
+   4  r1 = 16
+   5  *(u64 *)(r10 -40) = r1
+   6  r4 = *(u64 *)(r10 -40)        the offset
+   7  r1 = *(u32 *)(r9 +0)          xdp_md.data
+   8  r2 = *(u32 *)(r9 +4)          xdp_md.data_end
+   9  if r4 &gt; 65533 goto 18         past 65535 less the width: stops
+  10  r1 += r4                      data + 16
+  11  r4 = r1
+  12  r4 += 2
+  13  if r4 &gt; r2 goto 18            past the end of the packet: stops
+  14  r1 = *(u16 *)(r1 +0)          two bytes, in the kernel byte order
+  15  r8 = r1                       length
+      line 6: return length
+  16  r0 = r8
+  17  exit
+      line 7: end)
+  18  r0 = 2                        XDP_PASS, the default verdict
+  19  exit
+</code></pre>
+
+<p>Instruction 13 is the test the verifier asks for before instruction 14 reads: it takes the load
+only on the path where <code>data + 16 + 2</code> is not past <code>data_end</code>. Instruction 9 stops the program at
+an offset no packet reaches, and at a negative one too, since the test is unsigned. A signed read,
+<code>p:getint16(n)</code>, adds a shift left and an arithmetic shift right after the load, as
+instructions 15 and 16 of <a href="#floor-division-and-modulo">Floor division and modulo</a> do for a byte.
+<code>#p</code> is <code>data_end</code> less <a href="../modules/data.html#">data</a>, both read from the context.</p>
+
+<table>
+<thead>
+<tr>
+<th> Frame </th>
+<th> Instructions </th>
+<th> What they compute </th>
+<th> The program returns </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 34 bytes, IPv4, total length <code>00 1c</code>, 28 </td>
+<td> 13, 14 </td>
+<td> 18 is within 34; <code>00 1c</code> read little-endian </td>
+<td> 7168, <code>0x1c00</code> </td>
+</tr>
+<tr>
+<td> 14 bytes, an Ethernet header alone </td>
+<td> 13 </td>
+<td> 18 is past 14 </td>
+<td> 2, <code>XDP_PASS</code> </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>The kernel&rsquo;s Lua reads the same 7168 from <code>p:getuint16(16)</code> on arm64 and x86. Read a byte at a
+time, <code>p:getbyte(16) &lt;&lt; 8 | p:getbyte(17)</code>, the length is 28 on every kernel.</p>
+
+<p><a name="Arithmetic"></a></p>
+
+<h2 id="arithmetic">Arithmetic</h2>
+
+<p><code>a + b</code>, <code>a - b</code>, <code>a * b</code> and the bitwise operators are one <code>ALU64</code> instruction each, as
+instruction 30 of <a href="#loops">Loops</a> adds a byte to <code>s</code>; <code>-a</code> is a subtraction from zero and <code>~a</code> an
+exclusive or with -1. A constant that does not fit 32 bits signed is loaded whole, by <code>LD_IMM64</code>.
+<code>//</code>, <code>%</code> and the shifts compute something else than the instruction alone, and the compiler emits
+what lies between.</p>
+
+<h3 id="floor-division-and-modulo">Floor division and modulo</h3>
+
+<pre>
+<span class="keyword">local</span> xdp = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">local</span> a = p:<span class="function-name">getint8</span>(<span class="number">14</span>)
+    <span class="keyword">local</span> b = p:<span class="function-name">getint8</span>(<span class="number">15</span>)
+    <span class="keyword">return</span> a // b
+<span class="keyword">end</span>)
+</pre>
+
+
+<p><code>a</code> and <code>b</code> are read from the packet, so <code>lunatic</code> folds nothing and the division is compiled. In
+the kernel&rsquo;s Lua <code>a / b</code> is <code>a // b</code>, and it compiles to the same instructions.</p>
+
+<pre><code>      line 3: return xdp.program(function(ctx)
+   0  r6 = r1                       ctx
+      line 4: local p = ctx:packet()
+   1  r8 = r6
+   2  r7 = r8                       p
+      line 5: local a = p:getint8(14)
+   3  r9 = r7
+   4  r1 = 14
+   5  *(u64 *)(r10 -40) = r1
+   6  r4 = *(u64 *)(r10 -40)        the offset
+   7  r1 = *(u32 *)(r9 +0)          xdp_md.data
+   8  r2 = *(u32 *)(r9 +4)          xdp_md.data_end
+   9  if r4 &gt; 65534 goto 54         past 65535 less the width: stops
+  10  r1 += r4
+  11  r4 = r1
+  12  r4 += 1
+  13  if r4 &gt; r2 goto 54            past the end of the packet: stops
+  14  r1 = *(u8 *)(r1 +0)           the byte
+  15  r1 &lt;&lt;= 56                     its sign extended by a shift pair
+  16  r1 s&gt;&gt;= 56
+  17  r8 = r1                       a
+      line 6: local b = p:getint8(15)
+  18  to 32: the same read at 15
+  33  r9 = r1                       b
+      line 7: return a // b
+  34  r1 = r8                       a
+  35  r2 = r9                       b
+  36  if r2 == 0 goto 54            Lua raises: stops
+  37  if r2 == -1 goto 47           a // -1 is -a
+  38  r3 = r1
+  39  r4 = r1
+  40  r4 s%= r2                     BPF_SMOD: the remainder, truncated
+  41  r1 s/= r2                     BPF_SDIV: the quotient, truncated
+  42  if r4 == 0 goto 50            exact: nothing to correct
+  43  r3 ^= r2                      negative where the signs differ
+  44  if r3 s&gt;= 0 goto 50           the same signs: nothing to correct
+  45  r1 += -1                      the floor: one less
+  46  goto 50
+  47  r3 = r1                       b is -1
+  48  r1 = 0
+  49  r1 -= r3                      0 - a, which wraps for math.mininteger
+  50  *(u64 *)(r10 -40) = r1        the result, in Lua register 4
+  51  r0 = *(u64 *)(r10 -40)
+  52  r0 = r0
+  53  exit
+      line 8: end)
+  54  r0 = 2                        XDP_PASS, the default verdict
+  55  exit
+</code></pre>
+
+<p>The correction is Lua&rsquo;s <code>luaV_idiv</code>: the quotient less one where the remainder is not zero and the
+signs differ. Bytes 14 and 15 at <code>f9 02</code>, so <code>a</code> is -7 and <code>b</code> is 2:</p>
+
+<table>
+<thead>
+<tr>
+<th> Instructions </th>
+<th> What they compute </th>
+<th> Value </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 9, 13 </td>
+<td> 14 is under 65535, and 15 is within the 16 bytes </td>
+<td> no jump </td>
+</tr>
+<tr>
+<td> 14 to 17 </td>
+<td> the byte <code>f9</code>, its sign extended </td>
+<td> <code>a</code> is -7 </td>
+</tr>
+<tr>
+<td> 33 </td>
+<td> the byte <code>02</code> </td>
+<td> <code>b</code> is 2 </td>
+</tr>
+<tr>
+<td> 36, 37 </td>
+<td> <code>b</code> is neither 0 nor -1 </td>
+<td> no jump </td>
+</tr>
+<tr>
+<td> 40 </td>
+<td> -7 s% 2 </td>
+<td> <code>r4</code> is -1 </td>
+</tr>
+<tr>
+<td> 41 </td>
+<td> -7 s/ 2 </td>
+<td> <code>r1</code> is -3, what <code>BPF_SDIV</code> alone gives </td>
+</tr>
+<tr>
+<td> 42 </td>
+<td> the remainder is not 0 </td>
+<td> no jump </td>
+</tr>
+<tr>
+<td> 43, 44 </td>
+<td> -7 ^ 2 is -5, negative: the signs differ </td>
+<td> no jump </td>
+</tr>
+<tr>
+<td> 45 </td>
+<td> -3 - 1 </td>
+<td> <code>r1</code> is -4 </td>
+</tr>
+<tr>
+<td> 50 to 53 </td>
+<td> <code>r0</code> is -4 </td>
+<td> the program returns -4 </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Lua computes <code>-7 // 2</code> as -4. As a verdict, -4 is read as its low 32 bits, 4294967292, which is no
+XDP action: attached to a device, this program would drop the packet (<a href="#the-verdict">The verdict</a>).
+With <code>b</code> at 0, instruction 36 jumps to 54, and the program returns 2, <code>XDP_PASS</code>.</p>
+
+<p><code>a % b</code> is the same program with <code>return a % b</code>; instructions 0 to 33 read <code>a</code> and <code>b</code> as above:</p>
+
+<pre><code>      line 7: return a % b
+  34  r1 = r8                       a
+  35  r2 = r9                       b
+  36  if r2 == 0 goto 50            Lua raises: stops
+  37  if r2 == -1 goto 45           a % -1 is 0
+  38  r1 s%= r2                     BPF_SMOD: the remainder, truncated
+  39  if r1 == 0 goto 46            exact: 0
+  40  r3 = r1
+  41  r3 ^= r2                      negative where the signs differ
+  42  if r3 s&gt;= 0 goto 46           the same signs: nothing to correct
+  43  r1 += r2                      the remainder takes the sign of b
+  44  goto 46
+  45  r1 = 0                        b is -1
+  46  *(u64 *)(r10 -40) = r1
+  47  r0 = *(u64 *)(r10 -40)
+  48  r0 = r0
+  49  exit
+      line 8: end)
+  50  r0 = 2                        XDP_PASS, the default verdict
+  51  exit
+</code></pre>
+
+<p>The correction is Lua&rsquo;s <code>luaV_mod</code>. With -7 and 2, instruction 38 gives -1, what <code>BPF_SMOD</code> alone
+gives; -1 ^ 2 is negative, so instruction 43 adds 2, and the program returns 1, as Lua computes
+<code>-7 % 2</code>.</p>
+
+<h3 id="shifts">Shifts</h3>
+
+<p>The same program with <code>return a &lt;&lt; n</code>, <code>n</code> read from byte 15; instructions 0 to 33 read <code>a</code> and
+<code>n</code>:</p>
+
+<pre><code>      line 7: return a &lt;&lt; n
+  34  r1 = r8                       a
+  35  r2 = r9                       n
+  36  if r2 s&lt; 0 goto 40            a negative count shifts right
+  37  if r2 s&gt;= 64 goto 44          64 or more: every bit shifted out
+  38  r1 &lt;&lt;= r2
+  39  goto 45
+  40  if r2 s&lt;= -64 goto 44         -64 or less: every bit shifted out
+  41  r2 = -r2
+  42  r1 &gt;&gt;= r2                     logical: Lua fills with zeros
+  43  goto 45
+  44  r1 = 0
+  45  *(u64 *)(r10 -40) = r1
+  46  r0 = *(u64 *)(r10 -40)
+  47  r0 = r0
+  48  exit
+      line 8: end)
+  49  r0 = 2                        XDP_PASS, the default verdict
+  50  exit
+</code></pre>
+
+<p>This is Lua&rsquo;s <code>luaV_shiftl</code>. <code>BPF_LSH</code> alone masks the count to its low six bits, so <code>1 &lt;&lt; 64</code>
+would give 1, and <code>3 &lt;&lt; -1</code>, a shift by 63, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.mininteger">math.mininteger</a>. Bytes 14 and 15 at <code>03 ff</code>, so <code>a</code>
+is 3 and <code>n</code> is -1:</p>
+
+<table>
+<thead>
+<tr>
+<th> Instructions </th>
+<th> What they compute </th>
+<th> Value </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 36 </td>
+<td> -1 is negative </td>
+<td> jump to 40 </td>
+</tr>
+<tr>
+<td> 40 </td>
+<td> -1 is above -64 </td>
+<td> no jump </td>
+</tr>
+<tr>
+<td> 41 </td>
+<td> the count negated </td>
+<td> <code>r2</code> is 1 </td>
+</tr>
+<tr>
+<td> 42 </td>
+<td> 3 >> 1 </td>
+<td> <code>r1</code> is 1 </td>
+</tr>
+<tr>
+<td> 45 to 48 </td>
+<td> <code>r0</code> is 1 </td>
+<td> the program returns 1 </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Lua computes <code>3 &lt;&lt; -1</code> as 1. With 1 and 64, instruction 37 jumps to 44, and the program returns 0.
+<code>a &gt;&gt; n</code> is <code>a &lt;&lt; -n</code>, as in Lua: the count is negated first, and the same tests follow.</p>
+
+<p><a name="Comparisons_and_truth"></a></p>
+
+<h2 id="comparisons-and-truth">Comparisons and truth</h2>
+
+<pre>
+<span class="keyword">local</span> xdp    = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">local</span> a = p:<span class="function-name">getint8</span>(<span class="number">14</span>)
+    <span class="keyword">local</span> small = a &lt; <span class="number">1</span>
+    <span class="keyword">local</span> n = p:<span class="function-name">getbyte</span>(<span class="number">15</span>)
+    <span class="keyword">if</span> n <span class="keyword">and</span> small <span class="keyword">then</span>
+        <span class="keyword">return</span> action.DROP
+    <span class="keyword">end</span>
+    <span class="keyword">return</span> action.PASS
+<span class="keyword">end</span>)
+</pre>
+
+
+<p><code>a &lt; 1</code> is signed, as every comparison of Lua integers is. <code>n</code> is a number, and a number is true in
+Lua, <code>0</code> included, so <code>n and small</code> is <code>small</code>: the compiler knows it from the type of <code>n</code>, and
+tests <code>small</code> alone. Instructions 0 to 17 read <code>a</code> into <code>r8</code>.</p>
+
+<pre><code>      line 7: local small = a &lt; 1
+  18  r1 = r8                       a
+  19  r2 = 1
+  20  if r1 s&lt; r2 goto 23           BPF_JSLT, the signed jump
+  21  r9 = 0                        small is false
+  22  goto 24
+  23  r9 = 1                        small is true
+      line 8: local n = p:getbyte(15)
+  24  to 36: the read of byte 15, unsigned, so with no shift pair
+  37  *(u64 *)(r10 -40) = r1        n, in Lua register 4
+      line 9: if n and small then
+                                    nothing for n: a number is true
+  38  r1 = r9                       small
+  39  r2 = 0
+  40  if r1 == r2 goto 46           false: to the PASS
+      line 10: return action.DROP
+  41  r1 = 1                        XDP_DROP, read from linux.xdp
+  42  to 45: r0 is 1, and the exit
+      line 12: return action.PASS
+  46  r1 = 2                        XDP_PASS
+  47  to 50: r0 is 2, and the exit
+      line 13: end)
+  51  r0 = 2                        XDP_PASS, the default verdict
+  52  exit
+</code></pre>
+
+<p>Bytes 14 and 15 at <code>ff 00</code>, so <code>a</code> is -1 and <code>n</code> is 0:</p>
+
+<table>
+<thead>
+<tr>
+<th> Instructions </th>
+<th> What they compute </th>
+<th> Value </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 20 </td>
+<td> -1 s&lt; 1 </td>
+<td> jump to 23 </td>
+</tr>
+<tr>
+<td> 23 </td>
+<td> </td>
+<td> <code>small</code> is true </td>
+</tr>
+<tr>
+<td> 37 </td>
+<td> the byte <code>00</code> </td>
+<td> <code>n</code> is 0 </td>
+</tr>
+<tr>
+<td> line 9 </td>
+<td> <code>n</code> is a number, so true, 0 included </td>
+<td> no instruction </td>
+</tr>
+<tr>
+<td> 40 </td>
+<td> <code>small</code> is not 0 </td>
+<td> no jump </td>
+</tr>
+<tr>
+<td> 41 to 45 </td>
+<td> <code>r0</code> is 1 </td>
+<td> the program returns <code>XDP_DROP</code> </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Lua takes both branches the same way. An unsigned <code>BPF_JLT</code> would read -1 as the largest value and
+leave <code>small</code> false, and a test of <code>n</code> as C makes it would read 0 as false: either one would pass
+the packet. A variable that holds a number on one path and nil on another has no such reading,
+since the kernel holds <code>nil</code>, <code>false</code> and <code>0</code> as the same word, and a test or an <code>==</code> of it is
+refused.</p>
+
+<p><a name="Values_of_the_body"></a></p>
+
+<h2 id="values-of-the-body">Values of the body</h2>
+
+<pre>
+<span class="keyword">local</span> xdp    = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+
+<span class="keyword">local</span> protocols = {tcp = <span class="number">6</span>, udp = <span class="number">17</span>}
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">local</span> protocol = p:<span class="function-name">getbyte</span>(<span class="number">23</span>)
+    <span class="keyword">if</span> protocol == protocols.udp <span class="keyword">then</span>
+        <span class="keyword">return</span> action.DROP
+    <span class="keyword">end</span>
+    <span class="keyword">return</span> action.PASS
+<span class="keyword">end</span>)
+</pre>
+
+
+<p><code>protocols</code> is a table the body built. The function reads <code>protocols.udp</code> when it is compiled, and
+the program holds 17, the value the body left there. Instructions 0 to 15 read byte 23 into <code>r8</code>.</p>
+
+<pre><code>      line 9: if protocol == protocols.udp then
+  16  r9 = 17                       protocols.udp, read at compile time
+  17  r1 = r8                       protocol
+  18  if r1 != r9 goto 22
+      line 10: return action.DROP
+  19  r9 = 1                        XDP_DROP
+  20  r0 = r9
+  21  exit
+      line 12: return action.PASS
+  22  r9 = 2                        XDP_PASS
+  23  r0 = r9
+  24  exit
+      line 13: end)
+  25  r0 = 2                        XDP_PASS, the default verdict
+  26  exit
+</code></pre>
+
+<p>An IPv4 frame whose byte 23 is 17, UDP, returns 1, <code>XDP_DROP</code>; one whose byte 23 is 6, TCP, returns
+2, and a 14-byte frame stops at the read and returns 2 too. An index the program computes,
+<code>protocols[name]</code> with <code>name</code> read from the packet, has no value the compiler can read, and is
+refused; so are <code>#protocols</code> and a write to the table.</p>
+
+<p><a name="The_verdict"></a></p>
+
+<h2 id="the-verdict">The verdict</h2>
+
+<pre>
+<span class="keyword">local</span> xdp = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">return</span> p:<span class="function-name">getbyte</span>(<span class="number">14</span>) == <span class="number">1</span>
+<span class="keyword">end</span>)
+</pre>
+
+
+<p>Instructions 0 to 15 read byte 14 into <code>r8</code>.</p>
+
+<pre><code>      line 5: return p:getbyte(14) == 1
+  16  r1 = r8
+  17  r2 = 1
+  18  if r1 == r2 goto 21
+  19  r8 = 0                        false
+  20  goto 22
+  21  r8 = 1                        true
+  22  r0 = r8                       the verdict: 1 or 0
+  23  exit
+      line 6: end)
+  24  r0 = 2                        XDP_PASS, the default verdict
+  25  exit
+</code></pre>
+
+<p>The function returns a boolean, and the kernel reads 1 or 0 as an action (#1945): a frame whose
+byte 14 is 1 returns 1, <code>XDP_DROP</code>, and any other returns 0, <code>XDP_ABORTED</code>. The kernel reads the
+low 32 bits of <code>r0</code>, so the -4 of <a href="#floor-division-and-modulo">Floor division and modulo</a> reaches it
+as 4294967292.</p>
+
+<p><a name="The_context"></a></p>
+
+<h2 id="the-context">The context</h2>
+
+<pre>
+<span class="keyword">local</span> tc     = <span class="global">require</span>(<span class="string">"bpf.tc"</span>)
+<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.tc"</span>).action
+
+<span class="keyword">return</span> tc.<span class="function-name">program</span>(<span class="keyword">function</span>(skb)
+    <span class="keyword">local</span> p = skb:<span class="function-name">data</span>()
+    <span class="keyword">local</span> class = p:<span class="function-name">getint8</span>(<span class="number">15</span>)
+    skb:<span class="function-name">priority</span>(class)
+    <span class="keyword">return</span> action.OK
+<span class="keyword">end</span>)
+</pre>
+
+
+<p>The context of a TC program is the kernel&rsquo;s <code>__sk_buff</code>, read at the offsets its BTF gives: <code>len</code>
+at 0, <code>priority</code> at 32, <a href="../modules/data.html#">data</a> at 76 and <code>data_end</code> at 80.</p>
+
+<pre><code>      line 4: return tc.program(function(skb)
+   0  r6 = r1                       skb
+      line 5: local p = skb:data()
+   1  r8 = r6
+   2  r1 = *(u32 *)(r8 +76)         __sk_buff.data
+   3  r2 = *(u32 *)(r8 +80)         __sk_buff.data_end
+   4  r2 -= r1                      the linear head
+   5  r1 = *(u32 *)(r8 +0)          __sk_buff.len, the whole packet
+   6  if r1 != r2 goto 37           not linear: stops
+   7  r7 = r8                       p
+      line 6: local class = p:getint8(15)
+   8  to 21: the read of byte 15, its sign extended
+  22  r8 = r1                       class
+      line 7: skb:priority(class)
+  23  *(u64 *)(r10 -40) = r6
+  24  *(u64 *)(r10 -48) = r8
+  25  r2 = *(u64 *)(r10 -48)        class
+  26  r5 = r2
+  27  r5 &gt;&gt;= 32
+  28  if r5 != 0 goto 37            outside 0 to 4294967295: stops
+  29  r1 = *(u64 *)(r10 -40)
+  30  *(u32 *)(r1 +32) = r2         __sk_buff.priority
+  31  r1 = *(u64 *)(r10 -40)
+  32  r2 = *(u32 *)(r1 +32)         what skb:priority returns
+  33  r9 = r2
+      line 8: return action.OK
+  34  r9 = 0                        TC_ACT_OK
+  35  r0 = r9
+  36  exit
+      line 9: end)
+  37  r0 = 0                        TC_ACT_OK, the default verdict
+  38  exit
+</code></pre>
+
+<p>A frame whose byte 15 is 3 leaves its priority at 3 and returns 0. One whose byte 15 is <code>ff</code>
+gives -1, which instruction 28 finds outside the range: the program stops before the store, and
+the priority stays where it was. The default verdict here is <code>TC_ACT_OK</code> too, so only the priority
+tells the two apart.</p>
+
+<p><a name="Maps"></a></p>
+
+<h2 id="maps">Maps</h2>
+
+<pre>
+<span class="keyword">local</span> map    = <span class="global">require</span>(<span class="string">"bpf.map"</span>)
+<span class="keyword">local</span> xdp    = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+
+<span class="keyword">local</span> seen = map.<span class="function-name">hash</span>(<span class="string">"seen"</span>, {key = <span class="string">"I4"</span>, value = <span class="string">"I8"</span>, entries = <span class="number">256</span>})
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">local</span> proto = p:<span class="function-name">getbyte</span>(<span class="number">23</span>)
+    <span class="keyword">local</span> n = seen[proto]
+    <span class="keyword">if</span> n <span class="keyword">then</span>
+        seen[proto] = n + <span class="number">1</span>
+    <span class="keyword">else</span>
+        seen[proto] = <span class="number">1</span>
+    <span class="keyword">end</span>
+    <span class="keyword">return</span> action.PASS
+<span class="keyword">end</span>)
+</pre>
+
+
+<p><code>seen[proto]</code> is a lookup, whose value is a number or nil until <code>if n then</code> tests it. The helpers
+are called by number: 1 is <code>bpf_map_lookup_elem</code>, 2 <code>bpf_map_update_elem</code>. <code>llvm-objdump -r</code>
+prints the map as a relocation, which libbpf fills in when it loads the object. Instructions 0 to
+15 read byte 23 into <code>r8</code>.</p>
+
+<pre><code>      line 10: local n = seen[proto]
+  16  r5 = r8                       proto
+  17  r5 &gt;&gt;= 32
+  18  if r5 != 0 goto 76            wider than I4: stops
+  19  *(u64 *)(r10 -24) = 0
+  20  *(u32 *)(r10 -24) = r8        the key, four bytes
+  21  r1 = map seen                 two slots, relocated by libbpf
+  23  r2 = r10
+  24  r2 += -24                     the key, by address
+  25  call 1                        bpf_map_lookup_elem
+  26  r9 = r0                       a pointer to the value, or NULL
+      line 11: if n then
+  27  if r9 == 0 goto 31            NULL: n is nil
+  28  r1 = *(u64 *)(r9 +0)          found: the value, eight bytes
+  29  r9 = r1                       n
+  30  goto 32
+  31  goto 54                       the else branch
+      line 12: seen[proto] = n + 1
+  32  to 35: n + 1, kept in Lua register 5
+  36  to 38: the key held to I4 again
+  39  to 43: the key at r10 -24, the value at r10 -32
+  44  to 49: r1 the map, r2 and r3 the key and the value, by address
+  50  r4 = 0                        BPF_ANY: insert or replace
+  51  call 2                        bpf_map_update_elem
+  52  if r0 != 0 goto 76            the map refuses: stops
+  53  goto 71
+      line 14: seen[proto] = 1
+  54  to 70: the same update, with the value 1
+      line 16: return action.PASS
+  71  to 75: r0 is 2, and the exit
+      line 17: end)
+  76  r0 = 2                        XDP_PASS, the default verdict
+  77  exit
+</code></pre>
+
+<p>Instruction 28 reads the value only past instruction 27: the verifier refuses a read through a
+pointer that may be NULL, and the compiler refuses to use <code>n</code> before <code>if n then</code> tests it. Four
+frames, one after the other, over a map that starts empty:</p>
+
+<table>
+<thead>
+<tr>
+<th> Frame </th>
+<th> Byte 23 </th>
+<th> Path </th>
+<th> <code>seen</code> after </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> IPv4, TCP </td>
+<td> 6 </td>
+<td> 27 jumps: nil, so 54 to 70 store 1 </td>
+<td> <code>{[6] = 1}</code> </td>
+</tr>
+<tr>
+<td> the same again </td>
+<td> 6 </td>
+<td> 27 goes on: 1, so 32 to 52 store 2 </td>
+<td> <code>{[6] = 2}</code> </td>
+</tr>
+<tr>
+<td> ARP, 42 bytes </td>
+<td> 0 </td>
+<td> nil, so 1 is stored </td>
+<td> <code>{[6] = 2, [0] = 1}</code> </td>
+</tr>
+<tr>
+<td> 14 bytes </td>
+<td> none </td>
+<td> the read of 23 jumps to 76 before the lookup </td>
+<td> unchanged </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Each run returns 2. A kernel script reads the same map with the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a>, as
+<code>map.hash(&quot;/sys/fs/bpf/lunatik/&lt;script&gt;/seen&quot;, &quot;I4&quot;, &quot;I8&quot;)</code>. A <a href="../modules/struct.html#">struct</a> value is read a field at
+a time, by a load at the field&rsquo;s offset and width.</p>
+
+<p><a name="Loops"></a></p>
+
+<h2 id="loops">Loops</h2>
+
+<pre>
+<span class="keyword">local</span> xdp = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">local</span> s = <span class="number">0</span>
+    <span class="keyword">for</span> i = <span class="number">14</span>, <span class="number">17</span> <span class="keyword">do</span>
+        s = s + p:<span class="function-name">getbyte</span>(i)
+    <span class="keyword">end</span>
+    <span class="keyword">return</span> s
+<span class="keyword">end</span>)
+</pre>
+
+
+<p>The compiler holds the three values, 14, 17 and 1, so it counts the passes when it compiles, as
+Lua&rsquo;s <code>forprep</code> counts them when it runs: (17 - 14) // 1 is 3 more after the first. The loop is a
+back edge, which the verifier walks pass by pass. In Lua 5.5 a loop takes three registers, the
+count, the step and <code>i</code>: here <code>r9</code>, <code>r10 - 40</code> and <code>r10 - 48</code>. Instructions 0 to 2 take <code>ctx</code> and
+<code>p</code>.</p>
+
+<pre><code>      line 5: local s = 0
+   3  r8 = 0                        s
+      line 6: for i = 14, 17 do
+   4  to 8: the three values, as the bytecode loads them
+   9  r9 = 3                        the count, known when compiled
+  10  to 11: r10 -40 is 1           the step
+  12  to 13: r10 -48 is 14          i
+      line 7: s = s + p:getbyte(i)
+  14  to 26: the read of byte i, held to the bounds of the packet
+  27  to 29: s in r1, the byte in r2
+  30  r1 += r2                      s + the byte
+  31  r8 = r1                       s
+      line 6: for i = 14, 17 do
+  32  r1 = r9
+  33  if r1 == 0 goto 41            no pass left
+  34  r1 += -1
+  35  r9 = r1
+  36  to 39: i + the step
+  40  goto 14                       the back edge
+      line 9: return s
+  41  r0 = r8
+  42  exit
+      line 10: end)
+  43  r0 = 2                        XDP_PASS, the default verdict
+  44  exit
+</code></pre>
+
+<p>Bytes 14 to 17 at <code>01 02 03 04</code> make four passes, i at 14, 15, 16 and 17, and the program returns
+10. A 16-byte frame stops at the third pass, whose read of byte 16 is past the packet, and returns
+2, <code>XDP_PASS</code>.</p>
+
+<p>With a bound the program computes, <code>for i = 1, n do</code>, the count is computed when the loop starts,
+with an unsigned division as <code>forprep</code> does, and the back edge passes through <code>may_goto</code>, which
+the kernel takes from Linux 6.9: the kernel leaves the loop there once the budget it gives the
+loop runs out (#1944). Compiled for an earlier kernel, the loop is refused: &ldquo;a &lsquo;for&rsquo; the compiler
+cannot bound needs may_goto, which this kernel lacks&rdquo;.</p>
+
+<p><a name="Calls"></a></p>
+
+<h2 id="calls">Calls</h2>
+
+<pre>
+<span class="keyword">local</span> xdp = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+
+<span class="keyword">local</span> <span class="keyword">function</span> <span class="function-name">half</span>(n, d)
+    <span class="keyword">return</span> n // d
+<span class="keyword">end</span>
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">local</span> a = p:<span class="function-name">getint8</span>(<span class="number">14</span>)
+    <span class="keyword">local</span> b = p:<span class="function-name">getint8</span>(<span class="number">15</span>)
+    <span class="keyword">local</span> v = <span class="function-name">half</span>(a, b)
+    <span class="keyword">return</span> v
+<span class="keyword">end</span>)
+</pre>
+
+
+<p><code>half</code> is compiled once, as a BPF-to-BPF function in the section <code>.text</code>. Its arguments go in <code>r1</code>
+and <code>r2</code>, and the address of the caller&rsquo;s flag in the register after them, <code>r3</code>. Instructions 0 to
+33 of the program read <code>a</code> and <code>b</code>.</p>
+
+<pre><code>   the program, in the section xdp
+      line 11: local v = half(a, b)
+  34  to 37: r1 is a, r2 is b
+  38  *(u64 *)(r10 -8) = 0          the flag, lowered
+  39  r3 = r10
+  40  r3 += -8                      its address, the third argument
+  41  call half                     relocated by libbpf
+  42  r1 = *(u64 *)(r10 -8)
+  43  if r1 != 0 goto 48            raised: stops
+  44  *(u64 *)(r10 -40) = r0        v
+      line 12: return v
+  45  to 47: r0 is v, and the exit
+      line 13: end)
+  48  r0 = 2                        XDP_PASS, the default verdict
+  49  exit
+
+   half, in the section .text
+      line 3: local function half(n, d)
+   0  *(u64 *)(r10 -16) = r3        the address of the flag
+   1  r6 = r1                       n
+   2  r7 = r2                       d
+      line 4: return n // d
+   3  to 18: the floor division above, its zero test jumping to 22
+  19  to 21: r0 is n // d, and the exit
+      line 5: end
+  22  r1 = *(u64 *)(r10 -16)
+  23  *(u64 *)(r1 +0) = 1           the flag, raised
+  24  r0 = 0                        the verifier reads r0 on every exit
+  25  exit
+</code></pre>
+
+<p>Bytes 14 and 15 at <code>07 00</code>: <code>a</code> is 7 and <code>b</code> is 0. In <code>half</code> the zero test jumps to 22, which
+raises the flag and returns; at 43 the program reads the flag and jumps to 48, so it returns 2,
+<code>XDP_PASS</code>, as if the division had been in the program&rsquo;s own function. With -7 and 2, <code>half</code>
+returns -4, and so does the program.</p>
+
+<p>The call returns to the program, which reads the flag before it goes on. <code>return half(a, b)</code> would
+be a tail call, which Lua runs without coming back, and is refused: &ldquo;a tail call cannot be
+compiled&rdquo;.</p>
+<nav class="pager" aria-label="Guide pages">
+    <a class="prev" href="../topics/08-luaebpf.md.html"><span>Previous</span>Compiling Lua to eBPF</a>
+    <a class="next" href="../topics/capi.md.html"><span>Next</span>Lunatik C API</a>
+</nav>
+<a class="edit" href="https://github.com/luainkernel/lunatik/edit/master/doc/guide/09-luaebpf-by-example.md">Edit this page on GitHub</a>
+
+</main>
+
+<aside class="toc" aria-label="On this page">
+<nav id="toc"><h2>On this page</h2></nav>
+</aside>
+
+</div>
+
+<footer class="site-footer">
+<div>
+<span>Lunatik master ·
+<a href="../../topics/09-luaebpf-by-example.md.html">5.1 docs</a> ·
+<a href="../../5.0/topics/09-luaebpf-by-example.md.html">5.0 docs</a> ·
+MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-26 11:51:28</span>
+</div>
+</footer>
+</body>
+</html>
+

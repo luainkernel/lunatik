@@ -58,6 +58,7 @@
   <li><a href="../topics/06-development.md.html">Development</a></li>
   <li><a href="../topics/07-resources.md.html">Resources</a></li>
   <li><a href="../topics/08-luaebpf.md.html" aria-current="page">Compiling Lua to eBPF</a></li>
+  <li><a href="../topics/09-luaebpf-by-example.md.html">Lua to eBPF by example</a></li>
   <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
@@ -193,522 +194,728 @@
 <code>lunatik run --dev</code>, the modules a program file&rsquo;s body requires and the part of Lua it compiles,
 may change in a minor release.</p>
 
-<p><code>lunatik bpf</code> compiles a program file into a BPF ELF object, and <code>lunatik run</code> loads it, as
-<a href="../topics/02-running-scripts.md.html#program-files">Program files</a> and
-<a href="../topics/02-running-scripts.md.html#compiled-programs">Compiled programs</a> describe. This page is the compiler
-under those commands: the steps that take a program file to a program attached to a device, the
-part of Lua it compiles, and how its translation keeps Lua&rsquo;s semantics where the eBPF instruction
-computes something else. The decisions behind it and the kernel references it rests on are in the
-<a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/README.md">design notes</a>, and its code is in <a href="https://github.com/luainkernel/lunatik/blob/master/bin/luaebpf">bin/luaebpf</a>.</p>
+<p>A program file is a Lua file whose functions become eBPF programs, which the kernel runs natively
+on each packet a device receives or sends. <code>lunatik bpf</code> compiles it on the host,
+<code>lunatik run --dev</code> attaches it, and a map it declares is shared with the kernel scripts. This page
+is for the author of a program file, who knows Lua: what a program computes, when it stops and when
+it is refused. <a href="../topics/09-luaebpf-by-example.md.html">Lua to eBPF by example</a> lists what each construct
+compiles to, and how the compiler is built is in its <a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/compiler.md">design notes</a>.</p>
 
-<p><a name="The_pipeline"></a></p>
+<p><a name="A_first_program"></a></p>
 
-<h2 id="the-pipeline">The pipeline</h2>
+<h2 id="a-first-program">A first program</h2>
 
-<p>The compiler and the loader run on the host, in the CLI&rsquo;s Lua, <code>lua5.5</code>. What reaches the kernel
-is the object, through libbpf, and the verifier is the last check a program passes.</p>
+<p>This program counts the IPv4 packets that reach a device, by protocol, in a map a kernel script
+reads.</p>
 
-<h3 id="the-program-file">The program file</h3>
+<p><code>protocols.bpf.lua</code>:</p>
 
-<p>A program file, <code>&lt;name&gt;.bpf.lua</code>, has two halves. Its body is compile-time Lua: it runs once, when
-the file is compiled, and every value it computes, a table of ports, an offset, a map declaration,
-is a constant of the program. The functions it hands to a program constructor, <a href="../modules/bpf.xdp.html#bpf.xdp.program">bpf.xdp.program</a>
-or <a href="../modules/bpf.tc.html#bpf.tc.program">bpf.tc.program</a>, are the program, and their bytecode is what the compiler translates. The body
-computes with the kernel&rsquo;s arithmetic, so a constant it leaves is the one a kernel script would
-compute: <code>10 / 4</code> is <code>2</code> there too.</p>
+<pre>
+<span class="keyword">local</span> map    = <span class="global">require</span>(<span class="string">"bpf.map"</span>)
+<span class="keyword">local</span> xdp    = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
 
-<h3 id="one-chunk-two-builds-of-lua">One chunk, two builds of Lua</h3>
+<span class="keyword">local</span> ETHERTYPE &lt;const&gt; = <span class="number">12</span> <span class="comment">-- 0x0800 for IPv4, in network order
+</span><span class="keyword">local</span> PROTOCOL  &lt;const&gt; = <span class="number">23</span> <span class="comment">-- the protocol byte of the IPv4 header
+</span>
+<span class="keyword">local</span> counts = map.<span class="function-name">array</span>(<span class="string">"counts"</span>, {key = <span class="string">"I4"</span>, value = <span class="string">"I8"</span>, entries = <span class="number">256</span>})
 
-<p><code>lunatic</code>, the <code>luac</code> built from <code>lua/</code> with the kernel&rsquo;s configuration, compiles the program file,
-and the CLI&rsquo;s Lua runs that chunk. It cannot load the chunk as <code>lunatic</code> writes it: the header
-carries an integer <code>lua_Number</code>, and the opcodes and the metamethod events are numbered without
-those <code>_KERNEL</code> leaves out, the opcodes of floats, <code>LOADF</code>, <code>DIV</code>, <code>DIVK</code>, <code>POW</code> and <code>POWK</code>, and the
-events of <code>/</code> and <code>^</code>. Three modules bridge the two builds:</p>
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">if</span> p:<span class="function-name">getbyte</span>(ETHERTYPE) == <span class="number">0x08</span> <span class="keyword">and</span> p:<span class="function-name">getbyte</span>(ETHERTYPE + <span class="number">1</span>) == <span class="number">0x00</span> <span class="keyword">then</span>
+        <span class="keyword">local</span> protocol = p:<span class="function-name">getbyte</span>(PROTOCOL)
+        <span class="keyword">local</span> n = counts[protocol]
+        <span class="keyword">if</span> n <span class="keyword">then</span>
+            counts[protocol] = n + <span class="number">1</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+    <span class="keyword">return</span> action.PASS
+<span class="keyword">end</span>)
+</pre>
+
+
+<p>The file has two parts. Its body, every line outside the function, runs once, on the host, when
+the file is compiled: it declares the map <code>counts</code> and the program. The function is the program:
+it is compiled to eBPF and runs in the kernel on each packet. It returns <code>XDP_PASS</code>, so every
+packet goes on to the network stack.</p>
+
+<p>Compile it into place and attach it to a device:</p>
+
+<pre>
+sudo lunatik bpf -o /lib/modules/lua/protocols.bpf.o protocols.bpf.lua
+sudo lunatik run <span class="comment">--dev=eth0 protocols</span>
+</pre>
+
+
+<p><code>lunatik run</code> creates the map and pins it at <code>/sys/fs/bpf/lunatik/protocols/counts</code>, where a
+kernel script opens it with the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a>. <code>lunatik -e</code> runs one such chunk, which prints
+the TCP and the UDP packets counted so far:</p>
+
+<pre>
+sudo lunatik -<span class="function-name">e</span> <span class="string">'local map = require("bpf.map")
+local counts &lt;close&gt; = map.array("/sys/fs/bpf/lunatik/protocols/counts", "I4", "I8")
+return counts[6], counts[17]'</span>
+</pre>
+
+
+<p>A frame that says IPv4 but is shorter than 24 bytes has no byte 23: its read stops the program,
+which returns its default verdict, <code>XDP_PASS</code>, and counts nothing. The lookup and the update are
+two steps, so two CPUs that count the same protocol at once can lose one of the increments.</p>
+
+<pre>
+sudo lunatik stop protocols
+</pre>
+
+
+<p><a name="What_a_program_returns"></a></p>
+
+<h2 id="what-a-program-returns">What a program returns</h2>
+
+<pre><code>                        a packet on eth0
+                               |
+                               v
+   +------------------------------------+     +----------------------------+
+   | the program, eBPF, in the kernel   |     | a kernel script, Lua       |
+   |   p = ctx:packet()   the bytes     |     |                            |
+   |   n = counts[k]      a lookup      | map |   counts[k] reads what     |
+   |   counts[k] = n + 1  an update ----+-----+-&gt; the program wrote        |
+   |   return action.PASS               |     |                            |
+   +-----------------+------------------+     +----------------------------+
+                     |
+                     | the low 32 bits of the value it returns
+                     v
+   XDP  PASS DROP TX REDIRECT ABORTED act as named; any other value
+        drops the packet, and the kernel warns once in its log
+   TC   OK SHOT REDIRECT act as named; any other value decides nothing,
+        and the packet goes on
+
+   where Lua would raise, at a read past the packet or x // 0, the
+   program stops and returns its default verdict
+</code></pre>
+
+<p>A program returns its verdict, which tells the kernel what to do with the packet: a value of
+<a href="../modules/linux.xdp.html#action">linux.xdp.action</a> in an XDP program, of <a href="../modules/linux.tc.html#action">linux.tc.action</a> in a TC one. The kernel reads the low
+32 bits of the value the function returns.</p>
 
 <ul>
-<li><code>bytecode.c</code> prints, as a Lua table, what reading a chunk takes from the build that wrote it: each
-opcode&rsquo;s number and argument mode, the metamethod events, the instruction layout and the chunk
-format. <code>make</code> builds it twice, with <code>lunatic</code>&rsquo;s configuration and with the CLI&rsquo;s, into
-<code>luaebpf.bytecode.kernel</code> and <code>luaebpf.bytecode.host</code>, so no opcode number is written in Lua.</li>
-<li><code>undump.lua</code> reads a chunk field by field, as <code>loadFunction</code> in <code>lua/lundump.c</code> does, and rewrites
-one in another build&rsquo;s numbering: the CLI&rsquo;s header on <code>lunatic</code>&rsquo;s chunk, and each opcode and
-metamethod event renumbered by name. The two headers are one size, and every opcode of the
-kernel&rsquo;s Lua is one of the CLI&rsquo;s, so nothing else in the chunk moves.</li>
-<li><code>proto.lua</code> runs <code>lunatic -o -</code> on the file and loads the rewritten chunk. <code>proto.read</code> hands the
-translator a function&rsquo;s prototype, read from the function&rsquo;s own <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.dump">string.dump</a> and numbered back
-as the kernel&rsquo;s Lua numbers its opcodes, so the translator reads the bytecode the body ran from,
-which is the bytecode the kernel&rsquo;s Lua would run.</li>
+<li>In an XDP program, <code>PASS</code>, <code>DROP</code>, <code>TX</code>, <code>REDIRECT</code> and <code>ABORTED</code> act as the kernel defines
+them. Any other value drops the packet, and the kernel warns once, in its log, of an illegal XDP
+return value.</li>
+<li>In a TC program, <code>OK</code> lets the packet go on, <code>SHOT</code> drops it and <code>REDIRECT</code> redirects it. Any
+other value decides nothing: <code>UNSPEC</code> hands the packet to the next TC program on the device, and
+every other value, the rest of <a href="../modules/linux.tc.html#action">linux.tc.action</a> included, skips those programs; either way the
+packet then goes on, through the device&rsquo;s tc filters if it has any.</li>
+<li>A boolean is returned as 1 or 0: <code>return p:getbyte(23) == 6</code> returns <code>XDP_DROP</code> for TCP and
+<code>XDP_ABORTED</code> for any other protocol (#1945).</li>
 </ul>
 
 
-<p>A refusal names a file and a line, so <code>proto.read</code> takes only a function of a chunk loaded this way
-with its source name. A function a module of the CLI&rsquo;s Lua defines, or one of a chunk <code>lunatic -s</code>
-stripped, is refused: &ldquo;a compiled function is defined in the program file or a kernel script it
-requires, installed as source&rdquo;.</p>
+<p>A <code>return</code> with no value, or with <code>nil</code>, returns the default verdict, and so does a program that
+stops. A verdict that may be nil is refused: &ldquo;the verdict may be nil here; test it first&rdquo;. The
+default verdict is <code>XDP_PASS</code> or <code>TC_ACT_OK</code>, unless the constructor names another:</p>
 
-<h3 id="what-the-body-requires">What the body requires</h3>
+<pre>
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(filter, {default = action.DROP})
+</pre>
 
-<p>The order in which <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> finds a module in the body is in
-<a href="../topics/02-running-scripts.md.html#program-files">Program files</a>. <code>compile</code>, in <code>init.lua</code>, builds it: while
-the body runs, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.path">package.path</a> is the compile-time modules in <code>bin/luaebpf/lib/</code> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-package.cpath">package.cpath</a>
-is empty, a searcher <code>init.lua</code> adds finds the compiler&rsquo;s own <code>luaebpf.*</code> through the host&rsquo;s path,
-and the last one, which <code>proto.lua</code> adds, loads a module under <code>/lib/modules/lua/</code> through
-<code>lunatic</code>, as the program file is loaded. <a href="../modules/linux.xdp.html#">linux.xdp</a> and <a href="../modules/struct.html#">struct</a> come from there, and a function
-a kernel script defines is compiled as one the program file defines.</p>
 
-<h3 id="programs-and-maps">Programs and maps</h3>
+<p>With the default, a packet the program cannot read goes through; a filter that must drop what it
+cannot check names <code>DROP</code>. A value the program computes reaches a kernel script through a map,
+not through the verdict.</p>
 
-<p>A program constructor leaves each program in <code>programs.lua</code>: its function, its default verdict, its
-name if the file gave one, the ELF section its kind names, <a href="../modules/xdp.html#">xdp</a>, <code>tcx/ingress</code> or <code>tcx/egress</code>,
-from which libbpf reads the program type and the attach point, and its context: the kernel struct
-the program reads, <code>xdp_md</code> or <code>__sk_buff</code>, the field each of its methods reads, the methods that
-write, and the method that opens the packet. <a href="../modules/bpf.map.html#hash">bpf.map.hash</a>, <a href="../modules/bpf.map.html#array">bpf.map.array</a> and <a href="../modules/bpf.map.html#lru_hash">bpf.map.lru_hash</a>
-check a map&rsquo;s spec and leave the map in <code>maps.lua</code>, and a table a compiled function reaches is a
-map exactly when <code>maps.lua</code> holds it.</p>
+<p><a name="When_a_program_cannot_be_compiled_or_computed"></a></p>
 
-<h3 id="lowering">Lowering</h3>
+<h2 id="when-a-program-cannot-be-compiled-or-computed">When a program cannot be compiled or computed</h2>
 
-<p><code>emit.program</code>, in <code>emit/init.lua</code>, translates one program: its function, and every function that
-function reaches, each compiled once for that program as a subprogram.
-<a href="#the-translator">The translator</a> is how.</p>
+<pre><code>   filter.bpf.lua           filter.bpf.o             a packet
+         |                        |                        |
+         | lunatik bpf            | lunatik run --dev      | on the device
+         v                        v                        v
+   REFUSED                  REFUSED AT LOAD          STOPS
+   lunatik: file:line:      the verifier log,        the default verdict
+   reason; exit 1, no       which quotes the Lua     for that packet;
+   object written           line; exit 1, nothing    nothing logged
+                            attached
 
-<h3 id="instructions">Instructions</h3>
+   what the subset does     a program past the       where Lua would raise:
+   not compile, and a       limits of the verifier,  x // 0, a read past
+   value the compiler       most often a loop of     the packet, an update
+   sees is wrong            many passes              the map refuses
+</code></pre>
 
-<p><code>insn.lua</code> is the buffer the translator writes into. It holds records rather than bytes, so a jump
-names a label placed later and a call names a function laid out afterwards, and every record
-carries the Lua line it came from. <code>pack</code> resolves the jumps; a call to a subprogram and a
-reference to a map keep the name the object relocates.</p>
-
-<h3 id="the-object">The object</h3>
-
-<p><code>write</code>, in <code>init.lua</code>, lays out the object with <code>elf.lua</code>, <code>btf.lua</code> and <code>strtab.lua</code>, in the
-byte order of the kernel <code>lunatik.config</code> describes:</p>
+<p>Where Lua would raise an error, and where the part of Lua the compiler takes ends, a program file
+fails in one of three places.</p>
 
 <ul>
-<li>each program&rsquo;s entry in the section its kind names, under a global symbol, and every subprogram
-in <code>.text</code>, under a local one, where libbpf resolves a call;</li>
-<li><code>.maps</code>, each map BTF-defined: a struct of pointer-to-array members whose element counts libbpf
-reads as the map&rsquo;s type, entries, key size and value size, a <code>VAR</code> of that struct, and a
-<code>DATASEC</code> holding them;</li>
-<li><code>license</code>, <code>Dual MIT/GPL</code>;</li>
-<li><code>.BTF</code>, a <code>FUNC</code> and its <code>FUNC_PROTO</code> for each compiled function, every parameter a <code>long</code>, a
-program&rsquo;s result an <code>int</code> and a subprogram&rsquo;s a <code>long</code>, a program global and a subprogram static;</li>
-<li><code>.BTF.ext</code>, each function&rsquo;s <code>func_info</code>, and the <code>line_info</code> that quotes the Lua line each
-instruction came from, which is how the verifier&rsquo;s log quotes the program file;</li>
-<li><code>.symtab</code>, <code>.strtab</code>, and a relocation section for each section that calls a subprogram or names
-a map.</li>
+<li><strong>Refused.</strong> <code>lunatik bpf</code> prints <code>lunatik: &lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code>, exits 1 and writes no
+object. What the subset does not compile is refused, and so is an operation the compiler can see
+is wrong because it knows the value: a <code>for</code> step of 0, a map key or value its spec cannot pack,
+a <a href="../modules/skb.html#skb:priority">skb:priority</a> outside 0 to 4294967295.</li>
+<li><strong>Refused at load.</strong> The kernel&rsquo;s verifier checks the object again when <code>lunatik run</code> loads it.
+A program past the verifier&rsquo;s limits, most often a loop of many passes, is refused there:
+<code>lunatik run</code> prints the verifier&rsquo;s log, which quotes the Lua lines, exits 1 and leaves nothing
+attached.</li>
+<li><strong>Stops.</strong> In the kernel, on a packet, the program returns its default verdict at once, and
+nothing is logged (#2098). A program stops at a read past the packet, a division or a modulo by
+0, a <code>for</code> step of 0 it computed, a map key or value its spec cannot pack, a map update or delete
+the map refuses, a <code>skb:data()</code> of an skb that is not linear, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside
+0 to 4294967295, and in a function it called that stops. A division by a 0 the compiler knows is
+not refused: the program stops on every packet that reaches it.</li>
 </ul>
 
 
-<h3 id="the-kernel-it-compiles-for">The kernel it compiles for</h3>
+<p><a name="The_Lua_a_program_may_use"></a></p>
 
-<p><code>vmlinux.lua</code> reads the kernel&rsquo;s BTF, the file <code>lunatik bpf --btf=</code> names or else
-<code>/sys/kernel/btf/vmlinux</code>, for the offset and the width of each context field a program reads, so
-no offset is copied from a header; it reads the file in the byte order its magic says and refuses
-one whose order is not the object&rsquo;s. Three facts come from <code>lunatik.config</code>, which <code>make</code> writes
-from the kernel tree Lunatik is built against: the kernel&rsquo;s version, which says whether a loop can
-take <code>may_goto</code>, 6.9 and later, whether the kernel has efficient unaligned access, which says
-whether a read wider than a byte is compiled, and whether it is big-endian, which says the object&rsquo;s
-byte order. A build host compiles for the kernel of the image it builds this way, with that tree&rsquo;s
-config and that kernel&rsquo;s BTF. A kernel that publishes no BTF gets no object: <code>make install</code> leaves
-the program files uncompiled there.</p>
+<h2 id="the-lua-a-program-may-use">The Lua a program may use</h2>
 
-<h3 id="the-loader">The loader</h3>
-
-<p><code>loader.c</code> is <code>luaebpf.loader</code>, a C module of the CLI&rsquo;s Lua over libbpf, 1.0 or later, and the half
-of <code>lunatik run</code> that takes the object to the kernel. It opens the object with a buffer for the
-verifier&rsquo;s log, gives each map a pin path under the script&rsquo;s root, loads the object, which creates
-and pins the maps, attaches every program to the device, by XDP or by tcx as its section says, the
-latter from libbpf 1.3.0, and pins each link; <code>detach</code> opens a pinned link and detaches it. What
-<code>run</code>, <code>stop</code> and <code>unload</code> do with these is in
-<a href="../topics/02-running-scripts.md.html#compiled-programs">Compiled programs</a>.</p>
-
-<h3 id="building-and-installing">Building and installing</h3>
-
-<p><code>make</code> builds <code>bin/lunatic</code>, the two bytecode tables and <code>bin/luaebpf/loader.so</code>. <code>make install</code>
-puts <code>lunatic</code> beside <a href="../modules/lunatik.html#">lunatik</a>, the compiler under the host&rsquo;s Lua path as <code>luaebpf/</code>, and the
-loader under its C path, and then runs <code>lunatik bpf</code> over the program files of <code>examples/</code> and
-<code>tests/</code>, but the <a href="../modules/luaebpf.html#">luaebpf</a> suite&rsquo;s, leaving each object beside its script, where <code>lunatik run</code>
-looks for it (<a href="../topics/02-running-scripts.md.html#compiled-programs">Compiled programs</a>).</p>
-
-<p><a name="The_translator"></a></p>
-
-<h2 id="the-translator">The translator</h2>
-
-<h3 id="types-and-the-walk">Types and the walk</h3>
-
-<p>A Lua register carries a type through the function besides its word, because Lua&rsquo;s truth cannot be
-read off the bits: <code>0</code> is true, and <code>false</code> and <code>nil</code> are both stored as zero. A number, a boolean
-and nil are words the kernel holds; the context, the packet, a map value the program has not tested
-yet and a struct map value are pointers the kernel holds, read through their proxy; a table, a
-function or a string the body computed, and the method a call on a proxy reads, are values only the
-compiler holds. Each type is a bit the module that makes it declares, through <code>frame.type</code>, with
-the classes <code>frame.lua</code>&rsquo;s checks read: <code>word</code>, a value the kernel holds as a word, <code>proxy</code>, a pointer
-read through its proxy, and <code>untested</code>, a word the program must test before the kernel reads it.</p>
-
-<p><code>emit/init.lua</code> walks a function&rsquo;s bytecode carrying an abstract state, the type of each register
-and the value the compiler holds for it, if any. Each edge leaves its state at the instruction it
-reaches, and where two paths meet, the join in <code>frame.lua</code> keeps the types of both and a value only
-where both agree. A numeric <code>for</code> jumps backwards, so the walk runs again until no state widens, at
-most 16 times, and the code of the last walk is the one kept; a function whose types do not settle
-is refused: &ldquo;the compiler did not settle on the types of this function&rdquo;.</p>
-
-<p>A value the body computed becomes a constant where a compiled function reads it: an integer, a
-boolean or nil is loaded into a register, a table, a function or a string stays with the compiler,
-and a float is refused: &ldquo;&lsquo;half&rsquo; is a float, which a compiled function cannot hold&rdquo;.</p>
-
-<h3 id="registers-and-the-frame">Registers and the frame</h3>
-
-<p>Lua registers 0 to 3 live in R6 to R9, which a call preserves, and the others in the frame, so a
-value survives a call without the translator tracking which are live. R0 to R5 hold what one
-instruction&rsquo;s lowering computes. Each frame reserves four words: the flag a callee raises, the
-address of its caller&rsquo;s flag, and a map key and a map value, which a helper takes by address. A
-frame has 512 bytes, so a function uses at most 64 Lua registers, and one that needs more is
-refused: &ldquo;the function needs 520 bytes of stack, over the 512 eBPF allows&rdquo;.</p>
-
-<h3 id="where-the-interpreter-would-raise">Where the interpreter would raise</h3>
-
-<p>A zero divisor, a read past the packet, a key or a value its map&rsquo;s spec cannot pack: where the
-interpreter would raise, the compiled function jumps to its abort tail. In the program&rsquo;s own frame
-the tail returns the program&rsquo;s default verdict. In a subprogram it stores a one through the address
-its caller passed and sets R0, which the verifier reads on every path out, and the caller, which
-reads the flag after every call, takes its own tail. A check that fails in any frame thus ends the
-program with its default verdict.</p>
-
-<h3 id="calls">Calls</h3>
-
-<p>A call compiles its callee, a Lua function of the program file or of a kernel script it requires,
-once per program, as a BPF-to-BPF subprogram, with the types of the arguments its first call passes;
-a later call with other types or another count is refused: &ldquo;&lsquo;f&rsquo; is called with a packet and
-compiled with a number&rdquo;. The arguments go in R1 to R4 and the address of the caller&rsquo;s flag in the
-register after them, so a function takes at most four: &ldquo;a compiled function takes at most 4
-arguments, not 5&rdquo;. An argument is a number or the packet: &ldquo;argument #1 is a context, and a compiled
-call passes numbers and packets&rdquo;. A call that closes a cycle is refused, &ldquo;recursion through
-&lsquo;walk&rsquo;&rdquo;, as the verifier refuses one. A callee answers one value, and Lua&rsquo;s nil fills every other
-result a caller asks for.</p>
-
-<h3 id="the-lowerings">The lowerings</h3>
-
-<p>Each instruction is lowered by the module of <code>emit/</code> whose member carries its opcode&rsquo;s name, over
-what <code>frame.lua</code> holds:</p>
-
-<ul>
-<li><code>loads.lua</code>: <code>MOVE</code>, the <code>LOAD</code> opcodes, <code>GETUPVAL</code>, the table and field opcodes, <code>SELF</code> and
-<code>LEN</code>. A global or an upvalue resolves to the value the body left, a field of a table the
-compiler holds to that field&rsquo;s value, read when the function is compiled, and an index into a
-map to the map&rsquo;s helpers; a field of the context or of a struct map value goes to <code>context.lua</code>
-or <code>map.lua</code>, and a method call on a proxy is read back by <code>CALL</code>.</li>
-<li><code>arithmetic.lua</code>: the arithmetic and bitwise opcodes and their forms with a constant, <code>UNM</code>,
-<code>BNOT</code> and <code>NOT</code>, with Lua&rsquo;s semantics over 64-bit integers. <code>MMBIN</code> and its kin, which the VM
-runs only when an operand is not a number, emit nothing, since an operand that is not a number is
-refused.</li>
-<li><code>branch.lua</code>: the comparisons, <code>TEST</code>, <code>TESTSET</code> and <code>JMP</code>. A test the types decide is the jump
-or nothing; any other is a conditional jump. See <a href="#branches">Branches</a>.</li>
-<li><code>forloop.lua</code>: <code>FORPREP</code> and <code>FORLOOP</code>, the numeric <code>for</code>, whose iterations are counted up front
-as <code>forprep</code> in <code>lua/lvm.c</code> counts them.</li>
-<li><code>call.lua</code>: <code>CALL</code>, the returns, and the invocation of a subprogram. A <code>return</code> with no value, or
-with nil, in a program returns its default verdict, as a hook reads both alike.</li>
-<li><code>context.lua</code>: a method of the context reads the field its constructor maps it to, after storing
-there the value a setter is called with, and <code>#skb</code> reads <code>len</code>.</li>
-<li><code>packet.lua</code>: the reads of the packet proxy, each held to the packet&rsquo;s bounds, its length, and the
-dispatch of a method called on either proxy.</li>
-<li><code>map.lua</code>: a lookup, an update and a delete through the kernel&rsquo;s helpers, the test that narrows
-a lookup, and the value or the struct field a lookup found.</li>
-</ul>
-
-
-<p>An opcode none of them lowers is refused with the reason <code>emit/init.lua</code> keeps for it, a table
-constructor&rsquo;s: &ldquo;a table constructor cannot run in the kernel; build it in the file body&rdquo;.</p>
-
-<p><code>LUAEBPF_DROP</code>, an environment variable the CLI has no option for, names one mechanism the
-compiler then leaves out, <code>divisor</code>, <code>bounds</code>, <code>maygoto</code>, <code>verdict</code> or <code>lineinfo</code>, so the suite
-shows each one is what a case rests on (<a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/testing.md">testing.md</a>).</p>
-
-<p><a name="Limits"></a></p>
-
-<h2 id="limits">Limits</h2>
-
-<h3 id="what-lua-writes-that-ebpf-cannot-run">What Lua writes that eBPF cannot run</h3>
-
-<p>eBPF has no heap, no call through a register and no recursion; its one exception, <code>bpf_throw</code>,
-never returns to the program; and a compiled function calls no metamethod. So each of these is
-refused at its line:</p>
-
-<ul>
-<li>a table constructor, and <code>..</code>: &ldquo;&lsquo;..&rsquo; cannot be applied in a compiled function&rdquo;;</li>
-<li>a closure made at run time, an assignment to an upvalue or a global, a generic <code>for</code>, a
-to-be-closed variable and a <code>global</code> declaration;</li>
-<li>a vararg function, and a call with a variable number of values;</li>
-<li>a tail call, <code>return f(x)</code>, which is written <code>local r = f(x)</code> and <code>return r</code>: &ldquo;a tail call cannot
-be compiled&rdquo;;</li>
-<li><a href="https://www.lua.org/manual/5.5/manual.html#pdf-pcall">pcall</a>, the coroutines, and every other function written in C: &ldquo;&lsquo;pcall&rsquo; is not a Lua function
-this program file declares&rdquo;;</li>
-<li>a call through a value the compiler cannot resolve, and recursion;</li>
-<li>a method call on a value that is not a proxy, and a function that returns more than one value;</li>
-<li><code>nil</code> or a boolean in arithmetic, &ldquo;attempt to perform arithmetic on a nil value&rdquo;, which Lua raises
-only when the line runs.</li>
-</ul>
-
-
-<p>The verifier&rsquo;s rules behind them are in <code>kernel-notes.md</code>,
-<a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/kernel-notes.md#rules-that-shape-the-subset">Rules that shape the subset</a>: no
-recursion; no call through a register; three loop forms, a bounded loop the verifier walks, an
-iterator and <code>may_goto</code>; <code>bpf_throw</code> unwinds one way; division and modulo by zero do not trap; no
-heap.</p>
-
-<h3 id="what-ebpf-offers-that-lua-does-not-reach">What eBPF offers that Lua does not reach</h3>
-
-<ul>
-<li>A packet pointer. Lua has no pointer, so the packet is read through the methods of the kernel&rsquo;s
-<a href="../modules/data.html#">data</a> object, and the bounds are refused as numbers: &ldquo;&lsquo;data&rsquo; is a packet bound, not a number;
-&lsquo;#&rsquo; on the packet is its length&rdquo;.</li>
-<li>An unsigned 64-bit integer. A Lua integer is signed, so the packet has no <code>getuint64</code>, &ldquo;the packet
-has no method &lsquo;getuint64&rsquo;&rdquo;, and every ordered comparison is signed.</li>
-</ul>
-
-
-<h3 id="what-the-design-gives-up-and-its-way-out">What the design gives up, and its way out</h3>
-
-<ul>
-<li>A fifth argument. The register after the arguments carries the address of the caller&rsquo;s flag, so
-a function takes four; #2094 asks for five.</li>
-<li>Every name the kernel&rsquo;s objects do not publish. A proxy offers the names the object a kernel
-script reads offers, <code>luadata</code>&rsquo;s reads, <code>luaxdp</code>&rsquo;s and <code>luaskb</code>&rsquo;s methods, since the interpreter
-running the same function is the oracle a compiled function is tested against
-(<a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/testing.md">testing.md</a>): a read the kernel&rsquo;s <a href="../modules/data.html#">data</a> object lacks enters
-<code>luadata</code> first.</li>
-<li>A view from a layer. <code>skb:data(layer)</code> starts where the header its layer names does, which no
-compiled read reaches yet: &ldquo;&lsquo;data&rsquo; with a layer is not compiled yet&rdquo;.</li>
-<li>A wide read the verifier would prove aligned, on a kernel without efficient unaligned access,
-where every read wider than a byte is refused (#2047): &ldquo;&lsquo;getuint16&rsquo; reads more than a byte, and
-this kernel lacks efficient unaligned access&rdquo;.</li>
-<li>A <code>for</code> the compiler cannot bound, on a kernel before 6.9, which has no <code>may_goto</code>: &ldquo;a &lsquo;for&rsquo; the
-compiler cannot bound needs may_goto, which this kernel lacks&rdquo;.</li>
-</ul>
-
-
-<p>The compiler does not price the verifier&rsquo;s own limits, the instructions it walks, the stack of a
-chain of calls and the chain&rsquo;s depth (<a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/kernel-notes.md#limits">Limits</a> in
-<code>kernel-notes.md</code>): a program past them is refused at load, with the verifier&rsquo;s log, which
-<code>lunatik run</code> prints and which quotes the Lua line.</p>
-
-<p><a name="The_translation"></a></p>
-
-<h2 id="the-translation">The translation</h2>
-
-<p>A construct the compiler lowers computes what the kernel&rsquo;s Lua computes, or is refused at its line.
-Where the eBPF instruction alone computes something else, the compiler emits what lies between:</p>
+<p>A compiled function computes what the kernel&rsquo;s Lua computes, or stops, or is refused. &ldquo;Stops&rdquo;
+means the program returns its default verdict; &ldquo;refused&rdquo; means <code>lunatik bpf</code> refuses the file at
+that line. Each construct links to its listing.</p>
 
 <table>
 <thead>
 <tr>
-<th> Lua </th>
-<th> Lua computes </th>
-<th> The instruction alone </th>
-<th> The compiler emits </th>
+<th> You write </th>
+<th> The program gives </th>
+<th> It stops when </th>
+<th> It is refused when </th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td> <code>-7 // 2</code> </td>
-<td> <code>-4</code>, the floor </td>
-<td> <code>-3</code>: <code>BPF_SDIV</code> truncates </td>
-<td> the quotient less one where the remainder is not zero and the signs differ, as <code>luaV_idiv</code> </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#floor-division-and-modulo"><code>a // b</code>, <code>a / b</code></a> </td>
+<td> the quotient, rounded towards minus infinity: <code>-7 // 2</code> is <code>-4</code> </td>
+<td> <code>b</code> is 0 </td>
+<td> an operand is not a number </td>
 </tr>
 <tr>
-<td> <code>-7 % 2</code> </td>
-<td> <code>1</code>, the divisor&rsquo;s sign </td>
-<td> <code>-1</code>: <code>BPF_SMOD</code> truncates </td>
-<td> the divisor added where the remainder is not zero and its sign is not the divisor&rsquo;s, as <code>luaV_mod</code> </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#floor-division-and-modulo"><code>a % b</code></a> </td>
+<td> the remainder, with the sign of <code>b</code>: <code>-7 % 2</code> is <code>1</code> </td>
+<td> <code>b</code> is 0 </td>
+<td> an operand is not a number </td>
 </tr>
 <tr>
-<td> <code>x // -1</code>, <code>x % -1</code> </td>
-<td> <code>-x</code> and <code>0</code>, so <code>math.mininteger // -1</code> is <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.mininteger">math.mininteger</a> </td>
-<td> the same, where the overflow of <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.mininteger">math.mininteger</a> over -1 wraps, as the instruction set says it does </td>
-<td> a test for -1, then a negation or a zero, as <code>luaV_idiv</code> and <code>luaV_mod</code> take it, so the signed division never meets that overflow </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#arithmetic"><code>a + b</code>, <code>a - b</code>, <code>a * b</code>, <code>-a</code></a> </td>
+<td> the result, wrapped around 64 bits: <code>math.maxinteger + 1</code> is <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.mininteger">math.mininteger</a> </td>
+<td> never </td>
+<td> an operand is not a number </td>
 </tr>
 <tr>
-<td> <code>x // 0</code>, <code>x % 0</code> </td>
-<td> raises </td>
-<td> <code>0</code> and <code>x</code> </td>
-<td> a test of the divisor, which takes the default verdict </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#arithmetic"><code>a &amp; b</code>, <code>a | b</code>, <code>a ~ b</code>, <code>~a</code></a> </td>
+<td> the bits, over 64 bits </td>
+<td> never </td>
+<td> an operand is not a number </td>
 </tr>
 <tr>
-<td> <code>1 &lt;&lt; 64</code> </td>
-<td> <code>0</code> </td>
-<td> <code>1</code>: the count is masked to 63 </td>
-<td> the count tested against 64 and -64, past which the result is zero </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#shifts"><code>a &lt;&lt; n</code>, <code>a &gt;&gt; n</code></a> </td>
+<td> a logical shift; <code>n</code> of 64 or more gives 0, a negative <code>n</code> shifts the other way: <code>3 &lt;&lt; -1</code> is <code>1</code> </td>
+<td> never </td>
+<td> an operand is not a number </td>
 </tr>
 <tr>
-<td> <code>1 &lt;&lt; -1</code> </td>
-<td> <code>0</code>: a negative count shifts the other way </td>
-<td> <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.mininteger">math.mininteger</a>: -1 masked is 63 </td>
-<td> a negative count negated into the other shift; <code>x &gt;&gt; n</code> is <code>x &lt;&lt; -n</code>, as in Lua </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#comparisons-and-truth"><code>a &lt; b</code>, <code>a &lt;= b</code>, <code>a &gt; b</code>, <code>a &gt;= b</code></a> </td>
+<td> a signed comparison: <code>-1 &lt; 1</code> is <code>true</code> </td>
+<td> never </td>
+<td> an operand is not a number </td>
 </tr>
 <tr>
-<td> <code>x &amp; 0xffffffff</code> </td>
-<td> the low 32 bits of <code>x</code> </td>
-<td> <code>x</code>: a 32-bit immediate, sign-extended, reads -1 </td>
-<td> the constant in a register, by a <code>MOV</code> of its immediate where it fits 32 bits and by <code>LD_IMM64</code> otherwise </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#comparisons-and-truth"><code>a == b</code>, <code>a ~= b</code></a> </td>
+<td> <code>false</code> between values of two types </td>
+<td> never </td>
+<td> an operand may hold two types, a number on one path and nil on another </td>
 </tr>
 <tr>
-<td> <code>x + y</code>, <code>x - y</code>, <code>x * y</code>, <code>-x</code>, <code>~x</code>, the bitwise operators </td>
-<td> the result wrapped to 64 bits </td>
-<td> the same </td>
-<td> one <code>ALU64</code> instruction; <code>-x</code> a subtraction from zero, <code>~x</code> an exclusive or with -1 </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#comparisons-and-truth"><code>if v then</code>, <code>and</code>, <code>or</code>, <code>not</code></a> </td>
+<td> <code>0</code> is true; only <code>nil</code> and <code>false</code> are false </td>
+<td> never </td>
+<td> <code>v</code> may be a number on one path and nil or a boolean on another </td>
 </tr>
 <tr>
-<td> <code>x &lt; 1</code> with <code>x</code> at -1 </td>
-<td> <code>true</code> </td>
-<td> <code>false</code> under <code>BPF_JLT</code>, which reads -1 as the largest value </td>
-<td> the signed jump, <code>BPF_JSLT</code>, and its kin for <code>&lt;=</code>, <code>&gt;</code> and <code>&gt;=</code> </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#values-of-the-body"><code>t.x</code>, <code>t[1]</code>, <code>t</code> a table of the body</a> </td>
+<td> the value the body left there </td>
+<td> never </td>
+<td> the index is computed; <code>#t</code>; a write to <code>t</code> </td>
 </tr>
 <tr>
-<td> <code>if n then</code>, <code>n</code> a number at <code>0</code> </td>
-<td> taken: <code>0</code> is true </td>
-<td> not taken: the word is zero </td>
-<td> the jump or nothing, from the register&rsquo;s type (<a href="#branches">Branches</a>) </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#loops"><code>for i = a, b, s do</code></a> </td>
+<td> the passes Lua makes </td>
+<td> <code>s</code> is 0 </td>
+<td> <code>s</code> is a known 0; a bound or a step is computed, before Linux 6.9 (<a href="#loops">Loops</a>) </td>
 </tr>
 <tr>
-<td> <code>for i = 1, n, s</code> </td>
-<td> the iterations counted up front, so the loop never passes <code>n</code> by overflowing </td>
-<td> a back edge, which the verifier walks iteration by iteration or refuses </td>
-<td> the count as <code>forprep</code> computes it, with an unsigned division; a bounded loop where the compiler holds the three values, a <code>may_goto</code> header otherwise </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#calls"><code>local v = f(x)</code></a> </td>
+<td> the value <code>f</code> returns </td>
+<td> <code>f</code> stops </td>
+<td> <a href="#calls">Calls</a> says </td>
 </tr>
 <tr>
-<td> <code>for</code> with a step of <code>0</code> </td>
-<td> raises </td>
-<td> <code>BPF_DIV</code> by zero gives a count of 0, one pass through the body </td>
-<td> a step the compiler holds refused, &ldquo;&lsquo;for&rsquo; step is zero&rdquo;, and one the program computes tested, which takes the default verdict </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#calls"><code>return f(x)</code></a> </td>
+<td> </td>
+<td> </td>
+<td> always: a tail call </td>
 </tr>
 <tr>
-<td> <code>f(x)</code> </td>
-<td> the callee&rsquo;s value, and its raise </td>
-<td> a call, which answers R0 and nothing else </td>
-<td> the arguments in R1 to R4, the address of the caller&rsquo;s flag after them, and the flag read after the call </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#the-packet"><code>p:getuint16(n)</code> and the other reads</a> </td>
+<td> the bytes at <code>n</code>, in the kernel&rsquo;s byte order </td>
+<td> the read passes the end of the packet </td>
+<td> <a href="#the-packet">The packet</a> says </td>
 </tr>
 <tr>
-<td> <code>p:getint16(n)</code> </td>
-<td> two bytes at <code>n</code>, signed; raises past the packet </td>
-<td> a load the verifier refuses until the program tests the end </td>
-<td> the offset tested unsigned against 65535 less the width, the end against <code>data_end</code>, and the sign extended by a shift left and an arithmetic shift right, where <code>BPF_MEMSX</code> would extend it </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#the-packet"><code>#p</code></a> </td>
+<td> the length of the packet </td>
+<td> never </td>
+<td> never </td>
 </tr>
 <tr>
-<td> <code>#p</code> </td>
-<td> the bytes the <a href="../modules/data.html#">data</a> object views </td>
-<td> no instruction: the context holds the two bounds </td>
-<td> <code>data_end</code> less <a href="../modules/data.html#">data</a>, both read from the context </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#the-context"><code>skb:data()</code></a> </td>
+<td> the packet </td>
+<td> the skb is not linear </td>
+<td> a layer is given </td>
 </tr>
 <tr>
-<td> <code>skb:data()</code> on an skb that is not linear </td>
-<td> raises in a tc callback </td>
-<td> <code>data_end</code> ends the linear head, short of the packet </td>
-<td> <code>len</code> compared with the head&rsquo;s length, which takes the default verdict where they differ </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#the-context"><code>skb:priority(v)</code></a> </td>
+<td> <code>v</code>, stored as the packet&rsquo;s priority </td>
+<td> <code>v</code> is outside 0 to 4294967295 </td>
+<td> a known <code>v</code> is outside it </td>
 </tr>
 <tr>
-<td> <code>skb:priority(v)</code> </td>
-<td> raises outside 0 to <code>U32_MAX</code> </td>
-<td> a four-byte store keeps the low 32 bits </td>
-<td> a value the compiler holds checked against the field&rsquo;s width, and one the program computes tested, which takes the default verdict </td>
-</tr>
-<tr>
-<td> <code>m[k]</code> </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#maps"><code>m[k]</code></a> </td>
 <td> the value, or nil </td>
-<td> the helper answers a pointer, or NULL, which the verifier lets the program read only past a test </td>
-<td> the helper, and a value typed &ldquo;value or nil&rdquo; until <code>if v then</code> reads it, on the branch that found it </td>
+<td> <code>k</code> does not fit the key&rsquo;s spec </td>
+<td> a known <code>k</code> does not fit it; the value is used before <code>if v then</code> tests it </td>
 </tr>
 <tr>
-<td> <code>m[k] = v</code>, <code>m[k] = nil</code> </td>
-<td> the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a> raises when the map refuses the update, or refuses the delete for any reason but an absent key </td>
-<td> the helper&rsquo;s return code </td>
-<td> the helper, and the default verdict on any code but zero, or <code>-ENOENT</code> from a delete </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#maps"><code>m[k] = v</code>, <code>m[k] = nil</code></a> </td>
+<td> the entry inserted or replaced, or deleted </td>
+<td> the map refuses; <code>k</code> or <code>v</code> does not fit its spec </td>
+<td> a known <code>k</code> or <code>v</code> does not fit it </td>
 </tr>
 <tr>
-<td> <code>m[k]</code> with <code>k</code> outside the key&rsquo;s spec </td>
-<td> <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> raises </td>
-<td> a store that keeps the low bytes </td>
-<td> a key the compiler holds packed when the function is compiled, and one the program computes tested, which takes the default verdict; a value alike </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#maps"><code>v.field</code>, <code>v</code> a struct value</a> </td>
+<td> the field </td>
+<td> never </td>
+<td> the field does not exist; a write </td>
 </tr>
 <tr>
-<td> <code>v.field</code> of a struct value </td>
-<td> the field the codec decodes </td>
-<td> a load the verifier refuses until the program tests the lookup </td>
-<td> a load at the field&rsquo;s offset and width, the sign extended where the field is signed </td>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#the-verdict"><code>return v</code>, the verdict</a> </td>
+<td> its low 32 bits; <code>true</code> as 1, <code>false</code> as 0 </td>
+<td> never </td>
+<td> <code>v</code> may be nil </td>
 </tr>
 </tbody>
 </table>
 
 
-<p>The shift pair stands for <code>BPF_MEMSX</code>, which the s390 JIT of 6.6 does not take. A read is of the
-kernel&rsquo;s byte order on both sides: the kernel&rsquo;s <a href="../modules/data.html#">data</a> object reads one so, and a map spec of another
-order is refused when the body declares it.</p>
+<p>Besides what the table refuses, these are refused: a table constructor, <code>..</code>, a closure, an
+assignment to an upvalue or a global, a generic <code>for</code>, <code>while</code>, <code>repeat</code>, a <code>goto</code> backwards, a
+vararg function and a to-be-closed variable. <a href="#messages">Messages</a> lists what each refusal says.</p>
 
-<p>The sources are <code>lua/lvm.c</code>,
-<a href="https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L812-L824"><code>luaV_idiv</code></a>,
-<a href="https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L832-L844"><code>luaV_mod</code></a>,
-<a href="https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L866-L875"><code>luaV_shiftl</code></a>
-and <a href="https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L223-L262"><code>forprep</code></a>;
-<a href="https://github.com/torvalds/linux/blob/v6.8/Documentation/bpf/standardization/instruction-set.rst">the eBPF instruction set</a>,
-for <code>BPF_SDIV</code>, <code>BPF_SMOD</code>, the shift mask, the zero divisor and <code>BPF_MEMSX</code>; and <code>kernel-notes.md</code>,
-<a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/kernel-notes.md#rules-that-shape-the-subset">Rules that shape the subset</a> and
-<a href="https://github.com/luainkernel/lunatik/blob/master/doc/design/luaebpf/kernel-notes.md#the-packet-a-network-program-reads">The packet a network program reads</a>.</p>
+<p><a name="The_packet"></a></p>
 
-<p><a name="Branches"></a></p>
+<h2 id="the-packet">The packet</h2>
 
-<h2 id="branches">Branches</h2>
+<p>A program&rsquo;s argument is its context, which offers the methods of the kernel&rsquo;s own object for the
+hook, and opens the packet:</p>
 
-<p>A comparison in Lua&rsquo;s bytecode is a test followed by a jump, which the VM takes when the condition
-equals the opcode&rsquo;s <code>k</code>. Each one lowers to one conditional jump, taken under the same condition,
-and an ordered one takes the signed jump, since an unsigned <code>BPF_JLT</code> reads a negative operand as
-the larger. A comparison with a constant loads the constant into a register first.</p>
+<table>
+<thead>
+<tr>
+<th> Program </th>
+<th> The context offers </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> XDP </td>
+<td> <code>ctx:packet()</code>, the packet; <code>ctx:ingress()</code>, the index of the device it arrived on; <code>ctx:queue()</code>, the receive queue it arrived in </td>
+</tr>
+<tr>
+<td> TC </td>
+<td> <code>skb:data()</code>, the packet; <code>#skb</code>, its length; <code>skb:ifindex()</code>, the index of its device; <code>skb:hash()</code>, its flow hash; <code>skb:priority()</code>, its priority, which <code>skb:priority(v)</code> sets and returns </td>
+</tr>
+</tbody>
+</table>
 
-<p>Truth is read from a register&rsquo;s type, not from its bits. Lua calls <code>0</code> true and only <code>false</code> and
-<code>nil</code> false, and a register holds <code>false</code>, <code>nil</code> and <code>0</code> as the same zero. So a number is true and
-nil false when the function is compiled, and the test is the jump or nothing; a register whose
-types are among boolean and nil is tested against zero at run time, since every zero it can hold is
-false there. <code>if</code>, <code>and</code>, <code>or</code> and <code>not</code> lower over that reading, <code>TESTSET</code>&rsquo;s copy of the value
-included, and <code>not</code> of a register the types leave open is a one or a zero computed at run time.</p>
 
-<p>An <code>==</code> between two registers of one type each is false where the types differ, as Lua makes it.
-Between two numbers or two booleans it is a <code>BPF_JEQ</code> or a <code>BPF_JNE</code>; between two other values the
-compiler holds, nil, a string, a table or a function, it is decided when the function is compiled.</p>
+<p>Any other method is refused: <code>skb:mark()</code> gives &ldquo;the context has no method &lsquo;mark&rsquo;&rdquo;. The packet
+is a read-only view of its bytes, with the reads of the kernel&rsquo;s <a href="../modules/data.html#">data</a> object. An offset counts
+from 0, the first byte of the Ethernet header.</p>
 
-<p>A lookup is narrowed where the program tests it: <code>if v then</code> jumps on the pointer the helper
-answered, reads the value on the branch that found it, and carries nil on the other, which is the
-only place the verifier lets the pointer be read.</p>
+<table>
+<thead>
+<tr>
+<th> Method </th>
+<th> Reads </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> <code>p:getbyte(n)</code>, <code>p:getuint8(n)</code> </td>
+<td> 1 byte, unsigned </td>
+</tr>
+<tr>
+<td> <code>p:getint8(n)</code> </td>
+<td> 1 byte, signed </td>
+</tr>
+<tr>
+<td> <code>p:getuint16(n)</code>, <code>p:getint16(n)</code> </td>
+<td> 2 bytes, unsigned or signed </td>
+</tr>
+<tr>
+<td> <code>p:getuint32(n)</code>, <code>p:getint32(n)</code> </td>
+<td> 4 bytes, unsigned or signed </td>
+</tr>
+<tr>
+<td> <code>p:getint64(n)</code> </td>
+<td> 8 bytes, signed </td>
+</tr>
+<tr>
+<td> <code>#p</code> </td>
+<td> the length of the packet </td>
+</tr>
+</tbody>
+</table>
 
-<p><a name="Where_a_compiled_function_parts_from_Lua"></a></p>
 
-<h2 id="where-a-compiled-function-parts-from-lua">Where a compiled function parts from Lua</h2>
+<p>A read wider than a byte is in the byte order of the kernel, as the kernel&rsquo;s <a href="../modules/data.html#">data</a> object reads
+it: little-endian on x86 and arm64, where <code>p:getuint16(16)</code> of an IPv4 header whose total length
+is 28 gives 7168. A field in network order is read a byte at a time:</p>
 
-<p>Each place a compiled function would answer otherwise than Lua is a refusal at its line, with the
-reason the bits cannot settle it:</p>
+<pre>
+<span class="keyword">local</span> length = p:<span class="function-name">getbyte</span>(<span class="number">16</span>) &lt;&lt; <span class="number">8</span> | p:<span class="function-name">getbyte</span>(<span class="number">17</span>) <span class="comment">--&gt; 28</span>
+</pre>
+
+
+<p>A read that passes the end of the packet, or starts past byte 65535 less its width, stops the
+program. There is no <code>getuint64</code>, since a Lua integer is signed, and no write: &ldquo;the packet has no
+method &lsquo;setbyte&rsquo;&rdquo;. The bounds of the packet are not numbers: <code>ctx.data_end - ctx.data</code> is refused,
+&ldquo;&lsquo;data_end&rsquo; is a packet bound, not a number; &lsquo;#&rsquo; on the packet is its length&rdquo;. On a kernel without
+efficient unaligned access, a read wider than a byte is refused (#2047): &ldquo;&lsquo;getuint16&rsquo; reads more
+than a byte, and this kernel lacks efficient unaligned access&rdquo;. <code>skb:data(layer)</code> is refused:
+&ldquo;&lsquo;data&rsquo; with a layer is not compiled yet&rdquo;.</p>
+
+<p><a name="Maps"></a></p>
+
+<h2 id="maps">Maps</h2>
+
+<p>The body declares a map with <a href="../modules/bpf.map.html#">bpf.map</a>: <code>map.hash(name, spec)</code>, <code>map.array(name, spec)</code> or
+<code>map.lru_hash(name, spec)</code>. The spec is <code>{key = ..., value = ..., entries = ...}</code>: the key is a
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format of one integer, four bytes wide in an array, the value one of those or a
+<a href="../modules/struct.html#">struct</a> codec, both in the kernel&rsquo;s byte order, and <code>entries</code> the map&rsquo;s capacity. <code>lunatik run</code>
+creates the map and pins it at <code>/sys/fs/bpf/lunatik/&lt;script&gt;/&lt;name&gt;</code>, where a kernel script opens
+it with the constructor of the same name of the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a>, which takes the path and the
+two specs: <code>map.hash(path, &quot;I4&quot;, &quot;I8&quot;)</code>.</p>
+
+<p>In a compiled function a map reads as a table.</p>
 
 <ul>
-<li>An <code>==</code>, or a truth test, on a register a join left with several types: &ldquo;a value cannot be
-compared with a number here&rdquo;, &ldquo;a value has no truth value in a compiled function&rdquo;. Lua decides it
-from the value&rsquo;s type when it runs, and the register&rsquo;s word holds <code>false</code>, <code>nil</code> and <code>0</code> as one.</li>
-<li>An ordered comparison of a value that is not a number: &ldquo;attempt to compare a context with a
-number&rdquo;. Lua raises only when the line runs, and the compiler refuses when it compiles.</li>
-<li>An <code>==</code> with nil on a lookup: &ldquo;&lsquo;flows&rsquo; may be nil here; test it first&rdquo;. The compiler narrows a
-lookup only where a truth test reads it, <code>if v then</code> or <code>if not v then</code>, and the same message
-refuses any other use of a lookup the program has not tested.</li>
-<li>A register two maps' lookups merged into, read as a value: &ldquo;a map value here comes from more than
-one map&rdquo;. The word is a pointer into one map or the other, and which one decides how its value
-is read.</li>
-<li>A program&rsquo;s verdict that may be nil: &ldquo;the verdict may be nil here; test it first&rdquo;. A nil verdict
-is the default one, and the register holds nil and <code>0</code> as one word.</li>
-<li>A jump backwards, a <code>while</code>, a <code>repeat</code> or a backward <code>goto</code>: &ldquo;&lsquo;while&rsquo; and &lsquo;repeat&rsquo; are not
-compiled yet&rdquo;.</li>
+<li><code>m[k]</code> is the value, or nil. The value is used only after <code>if v then</code>, or <code>if not v then</code>,
+tests it; any other use is refused: &ldquo;&lsquo;flows&rsquo; may be nil here; test it first&rdquo;. A lookup in an
+array within its entries always finds a value, 0 where nothing was written.</li>
+<li><code>m[k] = v</code> inserts or replaces the entry, and <code>m[k] = nil</code> deletes it; deleting a key the map
+does not hold is not an error.</li>
+<li>A key or a value its spec cannot pack stops the program, and so does an update or a delete the
+map refuses: an update of a full hash map, an index past an array&rsquo;s entries, a delete from an
+array. One the compiler knows is refused: &ldquo;the map key -1 does not fit &lsquo;I4&rsquo;&rdquo;.</li>
+<li>A <a href="../modules/struct.html#">struct</a> value is read-only and read by field name, <code>v.ttl</code>; a field wider than a byte is
+refused on a kernel without efficient unaligned access, as a packet read is.</li>
 </ul>
 
 
-<p>Two places where master answers otherwise are open defects: a <code>for</code> under a <code>may_goto</code> header
-leaves the loop with what it held once the kernel&rsquo;s budget runs out (#1944), and a program&rsquo;s
-verdict outside the hook&rsquo;s actions reaches the kernel as it is (#1945).</p>
+<p><a name="Calls"></a></p>
+
+<h2 id="calls">Calls</h2>
+
+<p>A compiled function calls a Lua function the program file declares, or one a kernel script it
+requires declares, installed as source. The callee is compiled once for each program that calls
+it.</p>
+
+<ul>
+<li>It takes at most four arguments, each a number or the packet, and returns one value; Lua&rsquo;s nil
+fills every other result the caller asks for.</li>
+<li>Its first call fixes the types of its arguments: a later call with other types is refused,
+&ldquo;&lsquo;f&rsquo; is called with a packet and compiled with a number&rdquo;.</li>
+<li>A callee that stops stops the program.</li>
+<li>A function written in C is refused, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-print">print</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-pcall">pcall</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-ipairs">ipairs</a> and <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.floor">math.floor</a> among them:
+&ldquo;&lsquo;print&rsquo; is not a Lua function this program file declares&rdquo;. So is recursion, &ldquo;recursion through
+&lsquo;walk&rsquo;&rdquo;, and a call whose arguments include a call, <code>f(g(x))</code>, which is written
+<code>local y = g(x)</code> and then <code>f(y)</code>.</li>
+<li><code>return f(x)</code> is a tail call, which is refused: write <code>local v = f(x)</code>, then <code>return v</code>.</li>
+</ul>
+
+
+<p><a name="Loops"></a></p>
+
+<h2 id="loops">Loops</h2>
+
+<p>A numeric <code>for</code> is the only loop compiled. It makes the passes Lua makes.</p>
+
+<ul>
+<li>With bounds and a step the compiler knows, <code>for i = 14, 17 do</code>, it compiles for every kernel.
+The verifier walks it pass by pass when <code>lunatik run</code> loads it, so a loop of many passes is
+refused there: <code>for i = 1, 100000 do</code> gives &ldquo;BPF program is too large&rdquo;, and one that reads the
+packet on each pass &ldquo;The sequence of 8193 jumps is too complex&rdquo;, at fewer passes.</li>
+<li>With a bound or a step the program computes, <code>for i = 1, n do</code>, it compiles for Linux 6.9 and
+later, through the kernel&rsquo;s <code>may_goto</code>, and is refused before 6.9: &ldquo;a &lsquo;for&rsquo; the compiler cannot
+bound needs may_goto, which this kernel lacks&rdquo;. Once the budget the kernel gives a loop runs out,
+the kernel leaves the loop and the program goes on with what the loop held (#1944).</li>
+<li>A step of 0 is refused when the compiler knows it, &ldquo;&lsquo;for&rsquo; step is zero&rdquo;, and stops the program
+when the program computes it.</li>
+</ul>
+
+
+<p><code>while</code>, <code>repeat</code>, a <code>goto</code> backwards and a generic <code>for</code> are refused.</p>
+
+<p><a name="Where_a_compiled_function_and_Lua_differ"></a></p>
+
+<h2 id="where-a-compiled-function-and-lua-differ">Where a compiled function and Lua differ</h2>
+
+<p>Lua decides some things only when the line runs, from the type a value has then. A compiled
+function cannot, and is refused where its answer could differ from Lua&rsquo;s. A variable that holds a
+number on one path and nil or a boolean on another is refused where <code>==</code> compares it or <code>if</code> tests
+it, since the kernel holds <code>nil</code>, <code>false</code> and <code>0</code> as the same word:</p>
+
+<pre>
+<span class="keyword">local</span> v
+<span class="keyword">if</span> p:<span class="function-name">getbyte</span>(<span class="number">14</span>) &gt; <span class="number">0</span> <span class="keyword">then</span> v = <span class="number">7</span> <span class="keyword">end</span>
+<span class="keyword">if</span> v == <span class="number">7</span> <span class="keyword">then</span> <span class="keyword">return</span> action.DROP <span class="keyword">end</span> <span class="comment">-- "a value cannot be compared with a number here"</span>
+</pre>
+
+
+<p>Give the variable one type on every path: <code>local v = 0</code>. These are refused too:</p>
+
+<ul>
+<li>The value of a map lookup used before <code>if v then</code>: &ldquo;&lsquo;flows&rsquo; may be nil here; test it first&rdquo;.
+The kernel lets the program read the value only past that test.</li>
+<li>A variable that holds a lookup in one map on one path and in another map on the other: &ldquo;a map
+value here comes from more than one map&rdquo;. Which map it came from decides how its value is read.</li>
+<li>A verdict that may be nil: &ldquo;the verdict may be nil here; test it first&rdquo;. The kernel would read
+nil as 0, which is an action.</li>
+<li>Arithmetic on nil or a boolean, and an ordered comparison of a value that is not a number:
+&ldquo;attempt to perform arithmetic on a nil value&rdquo;, &ldquo;attempt to compare a context with a number&rdquo;.</li>
+</ul>
+
+
+<p><a name="Messages"></a></p>
+
+<h2 id="messages">Messages</h2>
+
+<p>Each refusal reads <code>lunatik: &lt;file&gt;:&lt;line&gt;: &lt;message&gt;</code>.</p>
+
+<table>
+<thead>
+<tr>
+<th> Message </th>
+<th> You wrote </th>
+<th> Write instead </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> a tail call cannot be compiled </td>
+<td> <code>return f(x)</code>, <code>return p:getuint16(12)</code> </td>
+<td> <code>local v = f(x)</code>, then <code>return v</code> </td>
+</tr>
+<tr>
+<td> a call with a variable number of values cannot be compiled </td>
+<td> <code>f(g(x))</code>, <code>f(p:getbyte(1))</code> </td>
+<td> <code>local b = g(x)</code>, then <code>f(b)</code> </td>
+</tr>
+<tr>
+<td> &lsquo;ports&rsquo; is indexed by a value the compiler cannot resolve </td>
+<td> <code>ports[i]</code>, <code>i</code> read from the packet or a loop </td>
+<td> a map, or one comparison per value </td>
+</tr>
+<tr>
+<td> &lsquo;#&rsquo; cannot be applied in a compiled function </td>
+<td> <code>#ports</code>, a table of the body </td>
+<td> <code>local N &lt;const&gt; = #ports</code> in the body </td>
+</tr>
+<tr>
+<td> a table constructor cannot run in the kernel; build it in the file body </td>
+<td> <code>{}</code> in the function </td>
+<td> the table in the body </td>
+</tr>
+<tr>
+<td> &lsquo;..&rsquo; cannot be applied in a compiled function </td>
+<td> <code>a .. b</code> </td>
+<td> the string in the body </td>
+</tr>
+<tr>
+<td> &lsquo;print&rsquo; is not a Lua function this program file declares </td>
+<td> <a href="https://www.lua.org/manual/5.5/manual.html#pdf-print">print</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-pcall">pcall</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.floor">math.floor</a>, <a href="https://www.lua.org/manual/5.5/manual.html#pdf-ipairs">ipairs</a> in a generic <code>for</code> </td>
+<td> a Lua function of the file </td>
+</tr>
+<tr>
+<td> global &lsquo;limit&rsquo; is not a compile-time value </td>
+<td> a global the body never set </td>
+<td> set it in the body </td>
+</tr>
+<tr>
+<td> a global cannot be assigned in a compiled function </td>
+<td> <code>counter = 1</code>, <code>t.x = 1</code> </td>
+<td> a map </td>
+</tr>
+<tr>
+<td> an upvalue cannot be assigned in a compiled function </td>
+<td> <code>n = n + 1</code>, <code>n</code> a local of the body </td>
+<td> a map </td>
+</tr>
+<tr>
+<td> a closure cannot be created in a compiled function </td>
+<td> <code>function () ... end</code> in the function </td>
+<td> a function of the body </td>
+</tr>
+<tr>
+<td> a compiled function takes at most 4 arguments, not 5 </td>
+<td> five arguments </td>
+<td> four (#2094) </td>
+</tr>
+<tr>
+<td> a compiled function returns at most one value </td>
+<td> <code>return a, b</code> in a callee </td>
+<td> one value </td>
+</tr>
+<tr>
+<td> recursion through &lsquo;walk&rsquo; </td>
+<td> a function that calls itself </td>
+<td> a <code>for</code> </td>
+</tr>
+<tr>
+<td> the packet has no method &lsquo;getuint64&rsquo; </td>
+<td> <code>getuint64</code>, <code>setbyte</code> </td>
+<td> the reads of <a href="#the-packet">The packet</a> </td>
+</tr>
+<tr>
+<td> the context has no method &lsquo;mark&rsquo; </td>
+<td> <code>skb:mark()</code>, <code>ctx:argument()</code> </td>
+<td> the methods of <a href="#the-packet">The packet</a> </td>
+</tr>
+<tr>
+<td> &lsquo;data_end&rsquo; is a packet bound, not a number; &lsquo;#&rsquo; on the packet is its length </td>
+<td> <code>ctx.data_end - ctx.data</code> </td>
+<td> <code>#p</code> </td>
+</tr>
+<tr>
+<td> &lsquo;flows&rsquo; may be nil here; test it first </td>
+<td> a lookup used untested </td>
+<td> <code>if v then</code> </td>
+</tr>
+<tr>
+<td> a value cannot be compared with a number here </td>
+<td> <code>==</code> on a variable nil on one path </td>
+<td> <code>local v = 0</code> </td>
+</tr>
+<tr>
+<td> a value has no truth value in a compiled function </td>
+<td> <code>if v then</code>, <code>v</code> a number or nil </td>
+<td> <code>local v = 0</code>, then <code>if v ~= 0 then</code> </td>
+</tr>
+<tr>
+<td> the verdict may be nil here; test it first </td>
+<td> <code>return v</code>, <code>v</code> nil on one path </td>
+<td> a verdict on every path </td>
+</tr>
+<tr>
+<td> &lsquo;half&rsquo; is a float, which a compiled function cannot hold </td>
+<td> <code>local half = math.sqrt(4)</code> in the body </td>
+<td> an integer </td>
+</tr>
+<tr>
+<td> malformed number near &lsquo;.5&rsquo;, which <code>lunatic</code> prints before <code>lunatic could not compile it</code> </td>
+<td> <code>2.5</code> </td>
+<td> an integer: the kernel&rsquo;s Lua has no float </td>
+</tr>
+<tr>
+<td> &lsquo;while&rsquo; and &lsquo;repeat&rsquo; are not compiled yet </td>
+<td> <code>while</code>, <code>repeat</code>, a <code>goto</code> backwards </td>
+<td> a numeric <code>for</code> </td>
+</tr>
+<tr>
+<td> a &lsquo;for&rsquo; the compiler cannot bound needs may_goto, which this kernel lacks </td>
+<td> <code>for i = 1, n</code>, before Linux 6.9 </td>
+<td> known bounds </td>
+</tr>
+<tr>
+<td> &lsquo;for&rsquo; step is zero </td>
+<td> <code>for i = 1, 10, 0</code> </td>
+<td> a step that is not 0 </td>
+</tr>
+<tr>
+<td> the map key -1 does not fit &lsquo;I4&rsquo; </td>
+<td> a key or a value outside its spec </td>
+<td> a value its spec packs </td>
+</tr>
+<tr>
+<td> module &lsquo;byteorder&rsquo; not found </td>
+<td> <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> of a C module </td>
+<td> a Lua module under <code>/lib/modules/lua/</code> </td>
+</tr>
+</tbody>
+</table>
+
+
+<p><a name="How_a_program_file_becomes_a_program"></a></p>
+
+<h2 id="how-a-program-file-becomes-a-program">How a program file becomes a program</h2>
+
+<pre><code>   lunatik bpf -o filter.bpf.o filter.bpf.lua               on the host
+
+   filter.bpf.lua
+   +----------------------------------------------------+
+   | the body       runs once, now, on the host         |
+   |   map.array(counts, {...})       --&gt; a map         |
+   |   xdp.program(function ... end)  --&gt; a program     |
+   | the function   compiled now, run later, per packet |
+   +----------------------------------------------------+
+          |
+          | 1. lunatic, the Lua compiler of the kernel, compiles the file:
+          |    the bytecode the kernel would run, integers only
+          v
+   the chunk of the program file
+          |
+          | 2. the Lua of the CLI (lua5.5) runs the body from that chunk;
+          |    require finds bpf.xdp, bpf.tc and bpf.map, then the kernel
+          |    scripts under /lib/modules/lua/
+          v
+   the programs and the maps the body declared
+          |
+          | 3. the translator turns each program function, and each Lua
+          |    function it calls, into eBPF instructions; outside the
+          |    subset, lunatik: file:line: reason, exit 1, no object
+          v
+   eBPF instructions, each one tagged with its Lua line
+          |
+          | 4. the object is written for the kernel lunatik.config names,
+          |    with the offsets of the context fields read from its BTF
+          v
+   filter.bpf.o          installed as /lib/modules/lua/filter.bpf.o
+</code></pre>
+
+<p>A program file, <code>&lt;name&gt;.bpf.lua</code>, may declare several programs. Each is named by the <code>name</code> its
+constructor takes, or after the file, and <code>lunatik run --dev</code> attaches every one of them, as
+<a href="../topics/02-running-scripts.md.html#compiled-programs">Compiled programs</a> describes.</p>
+
+<p><code>lunatik bpf</code> compiles for the kernel <code>lunatik.config</code> names, which <code>make</code> writes from the kernel
+tree Lunatik is built against. Three facts of that kernel change what compiles:</p>
+
+<ul>
+<li>Linux 6.9 or later compiles a <code>for</code> whose bounds the program computes; an earlier kernel
+refuses it.</li>
+<li>A kernel without efficient unaligned access refuses a read wider than a byte, from the packet or
+from a map value (#2047).</li>
+<li>The object takes the kernel&rsquo;s byte order.</li>
+</ul>
+
+
+<p>The offsets of the context fields come from the kernel&rsquo;s BTF, <code>/sys/kernel/btf/vmlinux</code> unless
+<code>--btf</code> names another file, so a program that reads its context, or the packet, compiles only
+where that BTF is. Compiling for another kernel is in
+<a href="../topics/02-running-scripts.md.html#program-files">Program files</a>. A TC program needs libbpf 1.3.0 or later on
+the machine that loads it.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/07-resources.md.html"><span>Previous</span>Resources</a>
-    <a class="next" href="../topics/capi.md.html"><span>Next</span>Lunatik C API</a>
+    <a class="next" href="../topics/09-luaebpf-by-example.md.html"><span>Next</span>Lua to eBPF by example</a>
 </nav>
 <a class="edit" href="https://github.com/luainkernel/lunatik/edit/master/doc/guide/08-luaebpf.md">Edit this page on GitHub</a>
 
@@ -726,7 +933,7 @@ verdict outside the hook&rsquo;s actions reaches the kernel as it is (#1945).</p
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 14:26:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-26 11:51:28</span>
 </div>
 </footer>
 </body>

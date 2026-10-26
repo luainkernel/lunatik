@@ -58,6 +58,7 @@
   <li><a href="../topics/06-development.md.html">Development</a></li>
   <li><a href="../topics/07-resources.md.html">Resources</a></li>
   <li><a href="../topics/08-luaebpf.md.html">Compiling Lua to eBPF</a></li>
+  <li><a href="../topics/09-luaebpf-by-example.md.html">Lua to eBPF by example</a></li>
   <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
@@ -393,17 +394,27 @@ lunatik bpf filter.bpf.lua
 it builds the modules against: that kernel&rsquo;s version and whether it reads a word at any address
 decide what a program may emit, and its byte order is the object&rsquo;s. The types a program reads, its
 context&rsquo;s struct and any layout <a href="../modules/luaebpf.vmlinux.html#">luaebpf.vmlinux</a> answers, come from that kernel&rsquo;s BTF:
-<code>/sys/kernel/btf/vmlinux</code> unless <code>--btf</code> names a raw BTF file, the bytes that path serves. So a
-build host compiles for the kernel an image ships: the CLI reads the <code>lunatik.config</code> <code>make</code> wrote
-from that kernel&rsquo;s tree, <code>autogen/lunatik/config.lua</code>, ahead of the one <code>make install</code> links into
-its Lua path, <code>--btf</code> hands it the <code>.BTF</code> section of the image&rsquo;s <code>vmlinux</code>, which an <code>objcopy</code> that
-reads the image&rsquo;s architecture dumps, and the image only loads the object.</p>
+<code>/sys/kernel/btf/vmlinux</code> unless <code>--btf</code> names a raw BTF file, the bytes that path serves.</p>
+
+<p>A build host compiles for the kernel an image ships in three steps:</p>
+
+<ol>
+<li>it builds Lunatik against that kernel&rsquo;s tree, so <code>make</code> writes that kernel&rsquo;s
+<code>autogen/lunatik/config.lua</code>;</li>
+<li>it dumps the <code>.BTF</code> section of the image&rsquo;s <code>vmlinux</code> with an <code>objcopy</code> that reads the image&rsquo;s
+architecture, the first command below;</li>
+<li>it compiles with that <code>autogen/lunatik/config.lua</code> ahead of the one <code>make install</code> links into its
+Lua path, and with that BTF, the second command.</li>
+</ol>
+
 
 <pre>
 objcopy <span class="comment">--dump-section .BTF=vmlinux.btf vmlinux /dev/null
 </span>LUA_PATH=<span class="string">"$PWD/autogen/?.lua;;"</span> lunatik bpf <span class="comment">--btf=vmlinux.btf filter.bpf.lua</span>
 </pre>
 
+
+<p>The image then only loads the object.</p>
 
 <p>A BTF of the other byte order than the object&rsquo;s is refused, naming both, since it describes another
 kernel: the build host&rsquo;s own, read by default, in a compile for a kernel of the other order. A kernel
@@ -430,18 +441,48 @@ compiled function is refused at the line that reaches it.</p>
 creates the maps the program file declares and pins each there under its name;</li>
 <li>starts the runtime for <code>&lt;script&gt;.lua</code>, when there is one, whose script opens those maps by that
 path;</li>
-<li>attaches every program the object declares to <code>&lt;ifname&gt;</code>, an XDP program to the device and a TC
+<li><p>attaches every program the object declares to <code>&lt;ifname&gt;</code>, an XDP program to the device and a TC
 one to its tcx ingress or egress, and pins each link at
 <code>/sys/fs/bpf/lunatik/&lt;script&gt;/&lt;program&gt;-link</code>, which keeps the program attached once the command
 has exited. bpffs refuses a dot in a name, so the suffix takes a hyphen, which no map name
-carries.</li>
+carries.</p>
+
+<pre><code>sudo lunatik run --dev=eth0 filter
+
+/lib/modules/lua/filter.bpf.o            /lib/modules/lua/filter.lua
+           |                             the kernel script, if any
+           | 1. open the object                       |
+           | 2. remove what a previous run pinned     |
+           | 3. load: create and pin each map, then   |
+           |    the verifier checks each program; if  |
+           |    it refuses one, its log, quoting the  |
+           |    Lua line, and exit 1                  |
+           v                                          |
+/sys/fs/bpf/lunatik/filter/counts                     |
+           ^                                          | 4. the runtime
+           |   bpf.map opens it by that path          |    starts; its
+           +------------------------------------------+    body runs
+           |
+           | 5. attach each program to eth0, an XDP program to the
+           |    device, a TC one to its tcx ingress or egress, and pin
+           |    its link at /sys/fs/bpf/lunatik/filter/&lt;program&gt;-link
+           v
+the command exits; the pinned link keeps the program on eth0
+
+a step that fails undoes the steps before it, and the command exits 1
+
+sudo lunatik stop filter
+   detaches each link, stops the runtime, removes the pins
+</code></pre></li>
 </ol>
 
 
 <p>The maps exist before the script opens them, and the programs attach once the runtime is up. A
 failure at any step undoes the steps before it and exits 1 with that step&rsquo;s message, the verifier&rsquo;s
 own log when the kernel rejects a program, which quotes the Lua line; libbpf&rsquo;s own warnings, which
-name what failed where the kernel logs nothing, print on stderr before it. <code>lunatik stop &lt;script&gt;</code>
+name what failed where the kernel logs nothing, print on stderr before it. Once attached, a program
+logs nothing: a packet it cannot compute gets its default verdict, as
+<a href="../topics/08-luaebpf.md.html#what-a-program-returns">What a program returns</a> says. <code>lunatik stop &lt;script&gt;</code>
 runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each
 directory above it the root leaves empty. A root holds pins and nothing else, so a stop of a name
 that only parents other scripts' roots leaves them alone. <code>lunatik unload</code>, and <code>reload</code> and <code>test</code>
@@ -488,7 +529,7 @@ the kernel publishes the BTF the compiler reads. The program file itself stays o
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 14:26:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-26 11:51:28</span>
 </div>
 </footer>
 </body>

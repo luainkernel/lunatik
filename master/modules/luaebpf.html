@@ -58,6 +58,7 @@
   <li><a href="../topics/06-development.md.html">Development</a></li>
   <li><a href="../topics/07-resources.md.html">Resources</a></li>
   <li><a href="../topics/08-luaebpf.md.html">Compiling Lua to eBPF</a></li>
+  <li><a href="../topics/09-luaebpf-by-example.md.html">Lua to eBPF by example</a></li>
   <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
@@ -194,7 +195,9 @@
  on the host, from that bytecode in the CLI&rsquo;s Lua, and hands the functions it declares to a
  program constructor. Those functions are the program: <a href="../modules/luaebpf.html#compile">compile</a> reads their bytecode, lowers it,
  and returns an object <code>bpftool prog load</code> accepts. Anything the subset refuses is an error
- naming the Lua file and line.</p>
+ naming the Lua file and line. <code>lunatik bpf</code> calls <a href="../modules/luaebpf.html#compile">compile</a> and writes the object, which
+ <code>lunatik run --dev</code> loads and attaches; the guide page <em>Compiling Lua to eBPF</em> says what a
+ program file may hold, what a program returns and when it stops.</p>
 
 <p> The compiler compiles for the kernel <code>lunatik.config</code> describes, which <code>make</code> writes from the
  tree Lunatik is built against: that kernel&rsquo;s version and byte order. It reads that kernel&rsquo;s types
@@ -276,7 +279,7 @@ local image = luaebpf.compile(&quot;filter.bpf.lua&quot;, &quot;build/vmlinux.bt
 <a href="../../modules/luaebpf.html">5.1 docs</a> ·
 <a href="../../5.0/modules/luaebpf.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 14:26:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-26 11:51:28</span>
 </div>
 </footer>
 </body>

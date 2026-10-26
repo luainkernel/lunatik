@@ -58,6 +58,7 @@
   <li><a href="../topics/06-development.md.html">Development</a></li>
   <li><a href="../topics/07-resources.md.html">Resources</a></li>
   <li><a href="../topics/08-luaebpf.md.html">Compiling Lua to eBPF</a></li>
+  <li><a href="../topics/09-luaebpf-by-example.md.html">Lua to eBPF by example</a></li>
   <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
@@ -190,23 +191,30 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-packets">Packets and eBPF</a></div>
 <h1>bpf.tc<span class="kind">Module</span></h1>
 <p class="lead">Declares a TC program in a program file.</p>
- The file body runs on the host under <code>lunatik bpf</code>; the function it hands here is the
- program, compiled to eBPF and held to the subset the verifier can check. The verdicts are
- <a href="../modules/linux.tc.html#action">linux.tc.action</a>, the table the kernel scripts already use.</p>
+ The body of a program file runs on the host under <code>lunatik bpf</code>; the function it hands to
+ <a href="../modules/bpf.tc.html#bpf.tc.program">program</a> is compiled to eBPF and runs in the kernel on each packet the device receives, or
+ sends. It takes one argument, the context, and returns a verdict, a value of <a href="../modules/linux.tc.html#action">linux.tc.action</a>,
+ of which the kernel reads the low 32 bits: <code>OK</code>, <code>SHOT</code> and <code>REDIRECT</code> act, and any other value
+ reads as <code>UNSPEC</code>, which decides nothing. Where Lua would raise, at a read past the packet or a
+ division by 0, the program stops and returns its default verdict.</p>
 
 <p> The program&rsquo;s argument is spelled as the kernel&rsquo;s <a href="../modules/skb.html#">skb</a> object: <code>#skb</code> is the packet&rsquo;s length,
  <code>skb:ifindex()</code> its device&rsquo;s index, <code>skb:hash()</code> its flow hash and <code>skb:priority()</code> its
  priority, which <code>skb:priority(v)</code> sets to a value from 0 up to <code>U32_MAX</code>, returning it. A value
- outside them is refused where the compiler holds it, and takes the default verdict where the
- program computes it. <a href="../modules/skb.html#skb:data">skb.data</a>/<code>skb.data_end</code> are the packet&rsquo;s bounds rather than numbers, and
- <code>skb:data()</code> is the packet from <code>skb-&gt;data</code>; a layer is refused, and an skb that is not linear,
- where the kernel&rsquo;s <code>skb:data()</code> raises in a tc callback, takes the default verdict.
+ outside them is refused where the compiler holds it, and stops the program where the program
+ computes it. Any other method is refused, <code>skb:mark()</code> among them. <a href="../modules/skb.html#skb:data">skb.data</a>/<code>skb.data_end</code> are
+ the packet&rsquo;s bounds rather than numbers, and <code>skb:data()</code> is the packet from <code>skb-&gt;data</code>, read as
+ <code>ctx:packet()</code> is in <a href="../modules/bpf.xdp.html#">bpf.xdp</a>; a layer is refused, and an skb that is not linear, where the
+ kernel&rsquo;s <code>skb:data()</code> raises in a tc callback, stops the program.
     <h2 id="usage">Usage</h2>
         <pre class="example">local tc     = require(&quot;bpf.tc&quot;)
 local action = require(&quot;linux.tc&quot;).action
 
 return tc.program(function(skb)
-    return action.SHOT
+    if #skb &gt; 1500 then
+        skb:priority(1)
+    end
+    return action.OK
 end, {egress = true})
 </pre>
 
@@ -235,9 +243,9 @@ end, {egress = true})
         <li><span class="parameter">opts</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          <code>egress</code>, which attaches the program on the way out rather than in,
-   <code>default</code>, the verdict taken where the interpreter would raise (<code>linux.tc.action.OK</code>), and
-   <code>name</code>, what the program is called in the object, cut to the fifteen characters
-   <code>BPF_OBJ_NAME_LEN</code> leaves and made unique against the names already taken.
+   <code>default</code>, the verdict the program returns where it stops, where Lua would raise
+   (<code>linux.tc.action.OK</code>), and <code>name</code>, what the program is called in the object, cut to the
+   fifteen characters <code>BPF_OBJ_NAME_LEN</code> leaves and made unique against the names already taken.
          (<em>optional</em>)
         </li>
     </ul>
@@ -273,7 +281,7 @@ end, {egress = true})
 <a href="../../modules/bpf.tc.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.tc.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 14:26:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-26 11:51:28</span>
 </div>
 </footer>
 </body>

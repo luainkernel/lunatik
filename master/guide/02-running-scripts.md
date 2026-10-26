@@ -157,16 +157,23 @@ The object is compiled for the kernel `lunatik.config` describes, which `make` w
 it builds the modules against: that kernel's version and whether it reads a word at any address
 decide what a program may emit, and its byte order is the object's. The types a program reads, its
 context's struct and any layout `luaebpf.vmlinux` answers, come from that kernel's BTF:
-`/sys/kernel/btf/vmlinux` unless `--btf` names a raw BTF file, the bytes that path serves. So a
-build host compiles for the kernel an image ships: the CLI reads the `lunatik.config` `make` wrote
-from that kernel's tree, `autogen/lunatik/config.lua`, ahead of the one `make install` links into
-its Lua path, `--btf` hands it the `.BTF` section of the image's `vmlinux`, which an `objcopy` that
-reads the image's architecture dumps, and the image only loads the object.
+`/sys/kernel/btf/vmlinux` unless `--btf` names a raw BTF file, the bytes that path serves.
+
+A build host compiles for the kernel an image ships in three steps:
+
+1. it builds Lunatik against that kernel's tree, so `make` writes that kernel's
+   `autogen/lunatik/config.lua`;
+2. it dumps the `.BTF` section of the image's `vmlinux` with an `objcopy` that reads the image's
+   architecture, the first command below;
+3. it compiles with that `autogen/lunatik/config.lua` ahead of the one `make install` links into its
+   Lua path, and with that BTF, the second command.
 
 ```Shell
 objcopy --dump-section .BTF=vmlinux.btf vmlinux /dev/null
 LUA_PATH="$PWD/autogen/?.lua;;" lunatik bpf --btf=vmlinux.btf filter.bpf.lua
 ```
+
+The image then only loads the object.
 
 A BTF of the other byte order than the object's is refused, naming both, since it describes another
 kernel: the build host's own, read by default, in a compile for a kernel of the other order. A kernel
@@ -196,10 +203,41 @@ When `/lib/modules/lua/<script>.bpf.o` exists, the object compiled from `<script
    has exited. bpffs refuses a dot in a name, so the suffix takes a hyphen, which no map name
    carries.
 
+```
+  sudo lunatik run --dev=eth0 filter
+
+  /lib/modules/lua/filter.bpf.o            /lib/modules/lua/filter.lua
+             |                             the kernel script, if any
+             | 1. open the object                       |
+             | 2. remove what a previous run pinned     |
+             | 3. load: create and pin each map, then   |
+             |    the verifier checks each program; if  |
+             |    it refuses one, its log, quoting the  |
+             |    Lua line, and exit 1                  |
+             v                                          |
+  /sys/fs/bpf/lunatik/filter/counts                     |
+             ^                                          | 4. the runtime
+             |   bpf.map opens it by that path          |    starts; its
+             +------------------------------------------+    body runs
+             |
+             | 5. attach each program to eth0, an XDP program to the
+             |    device, a TC one to its tcx ingress or egress, and pin
+             |    its link at /sys/fs/bpf/lunatik/filter/<program>-link
+             v
+  the command exits; the pinned link keeps the program on eth0
+
+  a step that fails undoes the steps before it, and the command exits 1
+
+  sudo lunatik stop filter
+     detaches each link, stops the runtime, removes the pins
+```
+
 The maps exist before the script opens them, and the programs attach once the runtime is up. A
 failure at any step undoes the steps before it and exits 1 with that step's message, the verifier's
 own log when the kernel rejects a program, which quotes the Lua line; libbpf's own warnings, which
-name what failed where the kernel logs nothing, print on stderr before it. `lunatik stop <script>`
+name what failed where the kernel logs nothing, print on stderr before it. Once attached, a program
+logs nothing: a packet it cannot compute gets its default verdict, as
+[What a program returns](08-luaebpf.md#what-a-program-returns) says. `lunatik stop <script>`
 runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each
 directory above it the root leaves empty. A root holds pins and nothing else, so a stop of a name
 that only parents other scripts' roots leaves them alone. `lunatik unload`, and `reload` and `test`

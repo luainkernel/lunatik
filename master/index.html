@@ -110,6 +110,7 @@ kernel threads and more. A command line tool loads and manages them from user sp
   <li><a href="topics/06-development.md.html">Development</a></li>
   <li><a href="topics/07-resources.md.html">Resources</a></li>
   <li><a href="topics/08-luaebpf.md.html">Compiling Lua to eBPF</a></li>
+  <li><a href="topics/09-luaebpf-by-example.md.html">Lua to eBPF by example</a></li>
   <li><a href="topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
@@ -411,7 +412,7 @@ sudo lunatik    # a REPL whose lines run <span class="keyword">in</span> the ker
 <li><a href="topics/02-running-scripts.md.html">Running scripts</a>: the command line tool, execution contexts, <code>lunatic</code>, program files</li>
 <li><a href="topics/03-percpu.md.html">Per-CPU scripts</a>: one runtime per CPU, and where state belongs</li>
 <li><a href="topics/04-lua.md.html">Lua in the kernel</a>: what differs from userspace Lua</li>
-<li><a href="topics/08-luaebpf.md.html">Compiling Lua to eBPF</a>, experimental: the compiler&rsquo;s pipeline, the subset, and where the translation keeps Lua&rsquo;s semantics</li>
+<li><a href="topics/08-luaebpf.md.html">Compiling Lua to eBPF</a>, experimental: XDP and TC programs written as Lua functions, compiled on the host and attached with <code>lunatik run --dev</code>, and <a href="topics/09-luaebpf-by-example.md.html">what each construct compiles to</a></li>
 <li><a href="topics/05-examples.md.html">Examples</a>: device drivers, packet filters, probes, filesystem guards</li>
 <li><a href="https://luainkernel.github.io/lunatik/#api-reference">Lua API reference</a> and <a href="topics/capi.md.html">C API</a></li>
 <li><a href="topics/06-development.md.html">Development</a> and <a href="topics/07-resources.md.html">Resources</a>: tests, contributing, talks and papers</li>
@@ -871,7 +872,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 <a href="../index.html">5.1 docs</a> ·
 <a href="../5.0/index.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-25 14:26:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-26 11:51:28</span>
 </div>
 </footer>
 </body>
