@@ -27,13 +27,17 @@
 # crypto.comp is nil. hascomp asks the runtime for the binding, so the suite
 # skips that test instead of failing every case in it.
 #
+# acompress submits every compression and decompression with a callback: its
+# script checks the submissions it refuses and the transform's lifetime, and
+# acompress_callback reads from dmesg what each callback received.
+#
 # Usage: sudo bash tests/crypto/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="shash skcipher aead rng sig hkdf comp"
+TESTS="shash skcipher aead rng sig hkdf comp acompress"
 TOTAL=$(echo $TESTS | wc -w)
 PROBE="tests/crypto/hascomp"
 
@@ -71,6 +75,8 @@ echo ""
 bash "$DIR/context.sh" || RESULT=1
 echo ""
 bash "$DIR/async.sh" || RESULT=1
+echo ""
+bash "$DIR/acompress_callback.sh" || RESULT=1
 echo ""
 bash "$DIR/large.sh" || RESULT=1
 echo ""

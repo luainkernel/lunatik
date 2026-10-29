@@ -1649,6 +1649,8 @@ extern const lunatik_class_t luacrypto_aead_class;
 extern const lunatik_class_t luacrypto_rng_class;
 extern const lunatik_class_t luacrypto_sig_class;
 extern const lunatik_class_t luacrypto_comp_class;
+extern const lunatik_class_t luacrypto_acompress_class;
+extern const lunatik_class_t luacrypto_acompress_req_class;
 
 int luacrypto_shash_new(lua_State *L);
 int luacrypto_skcipher_new(lua_State *L);
@@ -1656,10 +1658,12 @@ int luacrypto_aead_new(lua_State *L);
 int luacrypto_rng_new(lua_State *L);
 int luacrypto_sig_new(lua_State *L);
 int luacrypto_comp_new(lua_State *L);
+int luacrypto_acompress_new(lua_State *L);
 ```
 The classes and constructors of `crypto.shash`, `crypto.skcipher`, `crypto.aead`, `crypto.rng`,
-`crypto.sig` and `crypto.comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
+`crypto.sig`, `crypto.comp` and `crypto.acompress`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
 what each constructor raises. `crypto.comp` is declared on kernels before v6.15 alone.
+`luacrypto_acompress_req_class` is the class of the requests an acompress transform makes.
 
 ---
 
