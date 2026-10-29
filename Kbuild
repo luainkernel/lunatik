@@ -14,6 +14,11 @@ else
 	KLIBC_ARCH := $(ARCH)
 endif
 
+# klibc's setjmp of the kernel's word size: its mips, parisc and sparc are 32-bit
+ifeq ($(filter $(KLIBC_ARCH),alpha arm arm64 i386 m68k s390 sh sparc64 x86_64 $(if $(CONFIG_64BIT),,mips parisc sparc)),)
+$(error no klibc setjmp is mapped for ARCH=$(ARCH)$(if $(CONFIG_64BIT), with CONFIG_64BIT))
+endif
+
 KLIBC_USR := klibc/usr
 KLIBC_INC := $(KLIBC_USR)/include/arch/$(KLIBC_ARCH)
 KLIBC_LIBGCC := $(KLIBC_USR)/klibc/libgcc
