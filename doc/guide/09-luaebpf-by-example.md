@@ -16,9 +16,9 @@ Where the eBPF instruction alone computes something else, the compiler emits wha
 
 | Lua | Lua computes | The instruction alone | The compiler emits |
 |-----|--------------|-----------------------|--------------------|
-| `-7 // 2` | `-4`, the floor | `-3`: `BPF_SDIV` truncates | the quotient less one where the remainder is not zero and the signs differ, as `luaV_idiv` |
-| `-7 % 2` | `1`, the divisor's sign | `-1`: `BPF_SMOD` truncates | the divisor added where the remainder is not zero and its sign is not the divisor's, as `luaV_mod` |
-| `x // -1`, `x % -1` | `-x` and `0`, so `math.mininteger // -1` is `math.mininteger` | for `math.mininteger`, a divide error on x86-64 before Linux 6.12, whose verifier patches the instruction to give `math.mininteger` and `0`, as arm64 always gave | a test for -1, then a negation or a zero, as `luaV_idiv` and `luaV_mod` take it, so the signed division never meets that case |
+| `-7 // 2` | `-4`, the floor | `-3`: `BPF_SDIV` truncates | `BPF_DIV` of the magnitudes, the quotient negated where the signs differ, as C's, and less one where the signs differ and the remainder is not zero, as `luaV_idiv` |
+| `-7 % 2` | `1`, the divisor's sign | `-1`: `BPF_SMOD` truncates | `BPF_MOD` of the magnitudes, the remainder given the dividend's sign, as C's, and the divisor added where the remainder is not zero and its sign is not the divisor's, as `luaV_mod` |
+| `x // -1`, `x % -1` | `-x` and `0`, so `math.mininteger // -1` is `math.mininteger` | for `math.mininteger`, a divide error on x86-64 before Linux 6.12, whose verifier patches the instruction to give `math.mininteger` and `0`, as arm64 always gave | nothing of its own: the magnitude of `math.mininteger` is itself, which `BPF_DIV` reads as 2^63, so its quotient by 1 reads back as `math.mininteger`, and every remainder by 1 is 0 |
 | `x // 0`, `x % 0` | raises | `0` and `x` | a test of the divisor, which takes the default verdict |
 | `1 << 64` | `0` | `1`: the count is masked to 63 | the count tested against 64 and -64, past which the result is zero |
 | `1 << -1` | `0`: a negative count shifts the other way | `math.mininteger`: -1 masked is 63 | a negative count negated into the other shift; `x >> n` is `x << -n`, as in Lua |
@@ -38,9 +38,10 @@ Where the eBPF instruction alone computes something else, the compiler emits wha
 | `m[k]` with `k` outside the key's spec | `string.pack` raises | a store that keeps the low bytes | a key the compiler holds packed when the function is compiled, and one the program computes tested, which takes the default verdict; a value alike |
 | `v.field` of a struct value | the field the codec decodes | a load the verifier refuses until the program tests the lookup | a load at the field's offset and width, the sign extended where the field is signed |
 
-The shift pair stands for `BPF_MEMSX`, which the s390 JIT of 6.6 does not take. A read is of the
-kernel's byte order on both sides: the kernel's `data` object reads one so, and a map spec of another
-order is refused when the body declares it.
+The shift pair stands for `BPF_MEMSX`, which the s390 JIT of 6.6 does not take, and the division of
+the magnitudes for `BPF_SDIV` and `BPF_SMOD`, which that JIT and others of the range read as the
+unsigned `BPF_DIV` and `BPF_MOD`. A read is of the kernel's byte order on both sides: the kernel's
+`data` object reads one so, and a map spec of another order is refused when the body declares it.
 
 The sources are `lua/lvm.c`,
 [`luaV_idiv`](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L812-L824),
@@ -60,9 +61,8 @@ A listing is `llvm-objdump -d` of the object `lunatik bpf` writes, with the hexa
 each jump given its target, and the Lua line each instruction came from. That line is in the
 object's `.BTF.ext`, which `llvm-objdump` does not read: the verifier's log quotes the same lines,
 and so does `bpftool prog dump xlated` of a loaded program, after the kernel has rewritten its
-context reads. An `llvm-objdump` that predates the instructions Linux 6.6 added, LLVM 14's among
-them, prints a signed division as an unsigned `/=` and a signed modulo as `<unknown>`; the
-listings write them `s/=` and `s%=`.
+context reads. An `llvm-objdump` older than LLVM 15, LLVM 14's among them, prints a modulo as
+`<unknown>`; the listings write it `%=`.
 
 The registers:
 
@@ -189,19 +189,19 @@ the kernel's Lua `a / b` is `a // b`, and it compiles to the same instructions.
  34  r1 = r8                       a
  35  r2 = r9                       b
  36  if r2 == 0 goto 54            Lua raises: stops
- 37  if r2 == -1 goto 47           a // -1 is -a
- 38  r3 = r1
- 39  r4 = r1
- 40  r4 s%= r2                     BPF_SMOD: the remainder, truncated
- 41  r1 s/= r2                     BPF_SDIV: the quotient, truncated
- 42  if r4 == 0 goto 50            exact: nothing to correct
- 43  r3 ^= r2                      negative where the signs differ
- 44  if r3 s>= 0 goto 50           the same signs: nothing to correct
- 45  r1 += -1                      the floor: one less
- 46  goto 50
- 47  r3 = r1                       b is -1
- 48  r1 = 0
- 49  r1 -= r3                      0 - a, which wraps for math.mininteger
+ 37  r3 = r1
+ 38  r3 ^= r2                      negative where the signs differ
+ 39  if r1 s>= 0 goto 41
+ 40  r1 = -r1                      |a|
+ 41  if r2 s>= 0 goto 43
+ 42  r2 = -r2                      |b|
+ 43  r4 = r1
+ 44  r4 %= r2                      BPF_MOD: |a| % |b|, unsigned
+ 45  r1 /= r2                      BPF_DIV: |a| / |b|, unsigned
+ 46  if r3 s>= 0 goto 50           the same signs: the quotient is |a| / |b|
+ 47  r1 = -r1                      the quotient truncated, as C's
+ 48  if r4 == 0 goto 50            exact: nothing to correct
+ 49  r1 += -1                      the floor: one less
  50  *(u64 *)(r10 -40) = r1        the result, in Lua register 4
  51  r0 = *(u64 *)(r10 -40)
  52  r0 = r0
@@ -211,7 +211,8 @@ the kernel's Lua `a / b` is `a // b`, and it compiles to the same instructions.
  55  exit
 ```
 
-The correction is Lua's `luaV_idiv`: the quotient less one where the remainder is not zero and the
+The magnitudes are divided unsigned, and the quotient takes the sign C's division gives it. The
+correction is then Lua's `luaV_idiv`: the quotient less one where the remainder is not zero and the
 signs differ. Bytes 14 and 15 at `f9 02`, so `a` is -7 and `b` is 2:
 
 | Instructions | What they compute | Value |
@@ -219,12 +220,14 @@ signs differ. Bytes 14 and 15 at `f9 02`, so `a` is -7 and `b` is 2:
 | 9, 13 | 14 is under 65535, and 15 is within the 16 bytes | no jump |
 | 14 to 17 | the byte `f9`, its sign extended | `a` is -7 |
 | 33 | the byte `02` | `b` is 2 |
-| 36, 37 | `b` is neither 0 nor -1 | no jump |
-| 40 | -7 s% 2 | `r4` is -1 |
-| 41 | -7 s/ 2 | `r1` is -3, what `BPF_SDIV` alone gives |
-| 42 | the remainder is not 0 | no jump |
-| 43, 44 | -7 ^ 2 is -5, negative: the signs differ | no jump |
-| 45 | -3 - 1 | `r1` is -4 |
+| 36 | `b` is not 0 | no jump |
+| 37, 38 | -7 ^ 2 | `r3` is -5, negative: the signs differ |
+| 39 to 42 | the magnitudes | `r1` is 7, `r2` is 2 |
+| 44 | 7 % 2 | `r4` is 1 |
+| 45 | 7 / 2 | `r1` is 3 |
+| 46, 47 | the signs differ: 0 - 3 | `r1` is -3, what `BPF_SDIV` alone gives |
+| 48 | the remainder is not 0 | no jump |
+| 49 | -3 - 1 | `r1` is -4 |
 | 50 to 53 | `r0` is -4 | the program returns -4 |
 
 Lua computes `-7 // 2` as -4. As a verdict, -4 is read as its low 32 bits, 4294967292, which is no
@@ -237,28 +240,33 @@ With `b` at 0, instruction 36 jumps to 54, and the program returns 2, `XDP_PASS`
      line 7: return a % b
  34  r1 = r8                       a
  35  r2 = r9                       b
- 36  if r2 == 0 goto 50            Lua raises: stops
- 37  if r2 == -1 goto 45           a % -1 is 0
- 38  r1 s%= r2                     BPF_SMOD: the remainder, truncated
- 39  if r1 == 0 goto 46            exact: 0
- 40  r3 = r1
- 41  r3 ^= r2                      negative where the signs differ
- 42  if r3 s>= 0 goto 46           the same signs: nothing to correct
- 43  r1 += r2                      the remainder takes the sign of b
- 44  goto 46
- 45  r1 = 0                        b is -1
- 46  *(u64 *)(r10 -40) = r1
- 47  r0 = *(u64 *)(r10 -40)
- 48  r0 = r0
- 49  exit
+ 36  if r2 == 0 goto 54            Lua raises: stops
+ 37  r3 = r1                       a, whose sign the remainder takes
+ 38  r4 = r2
+ 39  if r1 s>= 0 goto 41
+ 40  r1 = -r1                      |a|
+ 41  if r4 s>= 0 goto 43
+ 42  r4 = -r4                      |b|
+ 43  r1 %= r4                      BPF_MOD: |a| % |b|, unsigned
+ 44  if r3 s>= 0 goto 46
+ 45  r1 = -r1                      the remainder truncated, as C's
+ 46  if r1 == 0 goto 50            exact: 0
+ 47  r3 ^= r2                      negative where the signs differ
+ 48  if r3 s>= 0 goto 50           the same signs: nothing to correct
+ 49  r1 += r2                      the remainder takes the sign of b
+ 50  *(u64 *)(r10 -40) = r1
+ 51  r0 = *(u64 *)(r10 -40)
+ 52  r0 = r0
+ 53  exit
      line 8: end)
- 50  r0 = 2                        XDP_PASS, the default verdict
- 51  exit
+ 54  r0 = 2                        XDP_PASS, the default verdict
+ 55  exit
 ```
 
-The correction is Lua's `luaV_mod`. With -7 and 2, instruction 38 gives -1, what `BPF_SMOD` alone
-gives; -1 ^ 2 is negative, so instruction 43 adds 2, and the program returns 1, as Lua computes
-`-7 % 2`.
+With -7 and 2, instruction 43 gives 1, the remainder of 7 by 2, and instruction 45 gives -1, what
+`BPF_SMOD` alone gives. The correction is Lua's `luaV_mod`, which reads the remainder's sign, and
+that is the sign of `a`: -7 ^ 2 is negative, so instruction 49 adds 2, and the program returns 1,
+as Lua computes `-7 % 2`.
 
 ### Shifts
 
