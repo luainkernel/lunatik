@@ -1217,7 +1217,8 @@ interpreter raises, the compiled program owes its default verdict instead.
   as in **packet**.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
-  on no object being left behind; a verdict that may be nil, which a register
+  on no object being left behind; a global, a table of the body and a map's
+  field written through an upvalue, a verdict that may be nil, which a register
   cannot tell from `0`, a float the CLI's `math` returns, as a value, as a
   table's field and as the default verdict, a float literal `lunatic` refuses
   to parse, a C function handed to `xdp.program`, a function the CLI's Lua

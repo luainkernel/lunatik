@@ -224,8 +224,8 @@ never returns to the program; and a compiled function calls no metamethod. So ea
 refused at its line:
 
 * a table constructor, and `..`: "'..' cannot be applied in a compiled function";
-* a closure made at run time, an assignment to an upvalue or a global, a generic `for`, a
-  to-be-closed variable and a `global` declaration;
+* a closure made at run time, an assignment to an upvalue or a global, a write to a table that is
+  not a map, a generic `for`, a to-be-closed variable and a `global` declaration;
 * a vararg function, and a call with a variable number of values;
 * a tail call, `return f(x)`, which is written `local r = f(x)` and `return r`: "a tail call cannot
   be compiled";

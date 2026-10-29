@@ -189,8 +189,9 @@ that line. Each construct links to its listing.
 | [`return v`, the verdict](09-luaebpf-by-example.md#the-verdict) | its low 32 bits; `true` as 1, `false` as 0 | never | `v` may be nil |
 
 Besides what the table refuses, these are refused: a table constructor, `..`, a closure, an
-assignment to an upvalue or a global, a generic `for`, `while`, `repeat`, a `goto` backwards, a
-vararg function and a to-be-closed variable. [Messages](#messages) lists what each refusal says.
+assignment to an upvalue or a global, a write to a table that is not a map, a generic `for`,
+`while`, `repeat`, a `goto` backwards, a vararg function and a to-be-closed variable.
+[Messages](#messages) lists what each refusal says.
 
 ## The packet
 
@@ -326,7 +327,8 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | '..' cannot be applied in a compiled function | `a .. b` | the string in the body |
 | 'print' is not a Lua function this program file declares | `print`, `pcall`, `math.floor`, `ipairs` in a generic `for` | a Lua function of the file |
 | global 'limit' is not a compile-time value | a global the body never set | set it in the body |
-| a global cannot be assigned in a compiled function | `counter = 1`, `t.x = 1` | a map |
+| a global cannot be assigned in a compiled function | `counter = 1` | a map |
+| a table cannot be written in a compiled function | `t.x = 1`, `t[1] = 1`, `t` a table of the body | a map |
 | an upvalue cannot be assigned in a compiled function | `n = n + 1`, `n` a local of the body | a map |
 | a closure cannot be created in a compiled function | `function () ... end` in the function | a function of the body |
 | a compiled function takes at most 4 arguments, not 5 | five arguments | four (#2094) |

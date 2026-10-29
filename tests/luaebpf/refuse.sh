@@ -8,7 +8,8 @@
 # provokes them, and asserted three ways: the exact message, the non-zero exit, and that no
 # object was left behind.
 #
-# The rows are the runtime table and its constructor, a runtime string operation, a closure, a
+# The rows are the runtime table and its constructor, a write through an upvalue to a global, to
+# a table of the body and to a field of a map, a runtime string operation, a closure, a
 # vararg function, pcall, a coroutine, a metatable, an unresolvable global and an unresolvable
 # field of a compile-time module, which are one opcode and read back as what the source says, a
 # call through an unresolvable value, the context, '..', '#', a method call, a tail call, an upvalue
@@ -34,7 +35,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-ROWS=39
+ROWS=42
 
 luaebpf_start $ROWS
 
@@ -67,6 +68,13 @@ row table_new "table_new.bpf.lua:5: a table constructor cannot run in the kernel
 	$'\tlocal t = {}\n\treturn t[1]'
 row table_write "table_write.bpf.lua:6: a table cannot be written in a compiled function" \
 	$'\tlocal t = ports\n\tt[1] = 2\n\treturn 0' 'local ports = {}'
+row table_field "table_field.bpf.lua:5: a table cannot be written in a compiled function" \
+	$'\tports.x = 2\n\treturn 0' 'local ports = {}'
+row global_write "global_write.bpf.lua:5: a global cannot be assigned in a compiled function" \
+	$'\tcounter = 1\n\treturn 0'
+row map_field "map_field.bpf.lua:6: a map key is a number here" \
+	$'\tflows.x = 1\n\treturn 0' \
+	$'local map = require("bpf.map")\nlocal flows = map.hash("flows", {key = "I4", value = "I4", entries = 8})'
 row string_op "string_op.bpf.lua:5: '..' cannot be applied in a compiled function" \
 	$'\tlocal s = name .. "x"\n\treturn #s' 'local name = "a"'
 row length "length.bpf.lua:5: '#' cannot be applied in a compiled function" \
