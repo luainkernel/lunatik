@@ -67,13 +67,6 @@ local function ordered(f, pc, relation, a, b)
 	end
 end
 
--- whether the type names one Lua type. A join widens a register to several, and the bits say
--- which for none of them: false, nil and the integer zero are one word.
-local function exact(value)
-	local mask = value ~= nil and value.t or 0
-	return mask ~= 0 and (mask & (mask - 1)) == 0
-end
-
 -- whether the compiler holds the value itself, rather than the register
 local function held(value)
 	return value ~= nil and (value.k ~= nil or value.t == NIL)
@@ -102,7 +95,7 @@ end
 local function equality(f, pc, a, b)
 	tested(f, pc, a)
 	tested(f, pc, b)
-	if exact(a) and exact(b) then
+	if frame.exact(a) and frame.exact(b) then
 		if a.t ~= b.t then
 			return false -- Lua's '==' is false across types
 		end

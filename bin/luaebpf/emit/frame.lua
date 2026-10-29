@@ -64,7 +64,7 @@ local BOOL <const> = newtype("boolean", "word")
 local NIL  <const> = newtype("nil", "word")
 
 -- a value the compiler knows and the kernel never sees
-local OTHER <const> = newtype("value")
+local OTHER <const> = newtype("compile-time value")
 
 local frame = {
 	NREGS = NREGS, SLOT = SLOT, NBITS = NBITS, BYTE = BYTE, RESERVED = RESERVED, ABORTED = ABORTED,
@@ -72,13 +72,42 @@ local frame = {
 	classes = classes, type = newtype, typenames = typenames,
 }
 
+-- a join reads as the type it holds first and what else it may be, nil last, so that a refusal never
+-- names it as one type, e.g. "number that may be nil"
+local function joinname(t)
+	local mask = t & ~NIL
+	local first = mask & -mask
+	local others = {}
+	mask = mask ~ first
+	while mask ~= 0 do
+		local bit = mask & -mask
+		table.insert(others, "a " .. typenames[bit])
+		mask = mask ~ bit
+	end
+	if t & NIL ~= 0 then
+		table.insert(others, typenames[NIL])
+	end
+	return format("%s that may be %s", typenames[first], table.concat(others, " or "))
+end
+
 local function typename(value)
 	if value == nil then
 		return "undefined value"
 	end
-	return typenames[value.t] or "value"
+	if value.t == OTHER and value.k ~= nil then
+		return type(value.k)
+	end
+	return typenames[value.t] or joinname(value.t)
 end
 frame.typename = typename
+
+-- whether the type names one Lua type. A join widens a register to several, and the bits say
+-- which for none of them: false, nil and the integer zero are one word.
+local function exact(value)
+	local mask = value ~= nil and value.t or 0
+	return mask ~= 0 and (mask & (mask - 1)) == 0
+end
+frame.exact = exact
 
 local function refuse(f, pc, reason, ...)
 	error(format("%s:%d: ", f.chunk, f.proto.lines[pc] or f.proto.linedefined) .. format(reason, ...), 0)
