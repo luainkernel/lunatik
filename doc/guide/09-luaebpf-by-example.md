@@ -28,6 +28,7 @@ Where the eBPF instruction alone computes something else, the compiler emits wha
 | `if n then`, `n` a number at `0` | taken: `0` is true | not taken: the word is zero | the jump or nothing, from the register's type ([Branches](../design/luaebpf/compiler.md#branches)) |
 | `for i = 1, n, s` | the iterations counted up front, so the loop never passes `n` by overflowing | a back edge, which the verifier walks iteration by iteration or refuses | the count as `forprep` computes it, with an unsigned division; a bounded loop where the compiler holds the three values, a `may_goto` header otherwise |
 | `for` with a step of `0` | raises | `BPF_DIV` by zero gives a count of 0, one pass through the body | a step the compiler holds refused, "'for' step is zero", and one the program computes tested, which takes the default verdict |
+| `goto continue` | a jump to the label | the same jump, `BPF_JA`; to a label above it, a back edge the verifier walks pass by pass or refuses | one `JA` to the label, and nothing for the `CLOSE` Lua's parser leaves behind the jump, which no path reaches; a label above the `goto` refused, "'while', 'repeat' and a 'goto' backwards are not compiled yet" |
 | `f(x)` | the callee's value, and its raise | a call, which answers R0 and nothing else | the arguments in R1 to R4, the address of the caller's flag after them, and the flag read after the call |
 | `p:getint16(n)` | two bytes at `n`, signed; raises past the packet | a load the verifier refuses until the program tests the end | the offset tested unsigned against 65535 less the width, the end against `data_end`, and the sign extended by a shift left and an arithmetic shift right, where `BPF_MEMSX` would extend it |
 | `#p` | the bytes the `data` object views | no instruction: the context holds the two bounds | `data_end` less `data`, both read from the context |
@@ -638,6 +639,68 @@ with an unsigned division as `forprep` does, and the back edge passes through `m
 the kernel takes from Linux 6.9: the kernel leaves the loop there once the budget it gives the
 loop runs out (#1944). Compiled for an earlier kernel, the loop is refused: "a 'for' the compiler
 cannot bound needs may_goto, which this kernel lacks".
+
+## Goto
+
+```Lua
+local xdp = require("bpf.xdp")
+
+return xdp.program(function(ctx)
+	local p = ctx:packet()
+	local n = 0
+	for i = 14, 17 do
+		if p:getbyte(i) == 0 then goto continue end
+		n = n + 1
+		::continue::
+	end
+	return n
+end)
+```
+
+The label closes the body, so `goto continue` jumps to the loop's step, as `continue` does in C.
+Lua's parser writes a `CLOSE` after each `goto`, and moves it before the jump only when the jump
+leaves the scope of a local a closure captured or of a to-be-closed variable, both refused in a
+compiled function: the `CLOSE` stays behind the jump, no path reaches it, and it emits nothing.
+Instructions 0 to 13 take `ctx` and `p`, set `n` to 0 and start the loop as the one above: the
+count in `r9`, the step in `r10 - 40` and `i` in `r10 - 48`.
+
+```
+     line 7: if p:getbyte(i) == 0 then goto continue end
+ 14  to 27: the read of byte i, held to the bounds of the packet
+ 28  r1 = *(u64 *)(r10 -56)        the byte
+ 29  r2 = 0
+ 30  if r1 != r2 goto 32           not 0: on to n = n + 1
+ 31  goto 36                       goto continue: to the loop's step
+     line 8: n = n + 1
+ 32  to 34: n + 1 in r1
+ 35  r8 = r1                       n
+     line 6: for i = 14, 17 do
+ 36  r1 = r9
+ 37  if r1 == 0 goto 45            no pass left
+ 38  to 43: the count less one, i + the step
+ 44  goto 14                       the back edge
+     line 11: return n
+ 45  r0 = r8
+ 46  exit
+     line 12: end)
+ 47  r0 = 2                        XDP_PASS, the default verdict
+ 48  exit
+```
+
+Bytes 14 to 17 at `01 00 03 04`:
+
+| Pass | Byte | Path | `n` after |
+|------|------|------|-----------|
+| i at 14 | `01` | 30 jumps to 32 | 1 |
+| i at 15 | `00` | 31 jumps to 36, past `n = n + 1` | 1 |
+| i at 16 | `03` | 30 jumps to 32 | 2 |
+| i at 17 | `04` | 30 jumps to 32 | 3 |
+
+At 37 no pass is left, and the program returns 3, `XDP_TX`. A 16-byte frame stops at the third
+pass, whose read of byte 16 is past the packet, and returns 2. A `goto` out of the loop is the
+same `JA`, to the instructions after the loop. A `goto` to a label above it makes a loop the
+compiler counts no pass of, and is refused: "'while', 'repeat' and a 'goto' backwards are not
+compiled yet".
 
 ## Calls
 
