@@ -111,11 +111,13 @@ function binops.SHR(f)
 	shiftl(f)
 end
 
--- the kernel calls no metamethod, so every operand an arithmetic opcode reads is a number
+-- the kernel calls no metamethod, so every operand an arithmetic opcode reads is a number; Lua's
+-- message calls one type a value, and a join reads as what else it may be
 local function numbers(f, pc, ...)
 	for _, value in ipairs({...}) do
 		if not isinteger(value) then
-			refuse(f, pc, "attempt to perform arithmetic on a %s value", typename(value))
+			local name = typename(value)
+			refuse(f, pc, "attempt to perform arithmetic on a %s", frame.exact(value) and name .. " value" or name)
 		end
 	end
 end
