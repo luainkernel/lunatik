@@ -177,6 +177,7 @@ that line. Each construct links to its listing.
 | [`if v then`, `and`, `or`, `not`](09-luaebpf-by-example.md#comparisons-and-truth) | `0` is true; only `nil` and `false` are false | never | `v` may be a number on one path and nil or a boolean on another |
 | [`t.x`, `t[1]`, `t` a table of the body](09-luaebpf-by-example.md#values-of-the-body) | the value the body left there | never | the index is computed; `#t`; a write to `t` |
 | [`for i = a, b, s do`](09-luaebpf-by-example.md#loops) | the passes Lua makes | `s` is 0 | `s` is a known 0; a bound or a step is computed, before Linux 6.9 ([Loops](#loops)) |
+| [`goto continue`](09-luaebpf-by-example.md#goto) | a jump to the label | never | the label is above the `goto` |
 | [`local v = f(x)`](09-luaebpf-by-example.md#calls) | the value `f` returns | `f` stops | [Calls](#calls) says |
 | [`return f(x)`](09-luaebpf-by-example.md#calls) | | | always: a tail call |
 | [`p:getuint16(n)` and the other reads](09-luaebpf-by-example.md#the-packet) | the bytes at `n`, in the kernel's byte order | the read passes the end of the packet | [The packet](#the-packet) says |
@@ -189,8 +190,8 @@ that line. Each construct links to its listing.
 | [`return v`, the verdict](09-luaebpf-by-example.md#the-verdict) | its low 32 bits; `true` as 1, `false` as 0 | never | `v` may be nil |
 
 Besides what the table refuses, these are refused: a table constructor, `..`, a closure, an
-assignment to an upvalue or a global, a generic `for`, `while`, `repeat`, a `goto` backwards, a
-vararg function and a to-be-closed variable. [Messages](#messages) lists what each refusal says.
+assignment to an upvalue or a global, a generic `for`, `while`, `repeat`, a vararg function and a
+to-be-closed variable. [Messages](#messages) lists what each refusal says.
 
 ## The packet
 

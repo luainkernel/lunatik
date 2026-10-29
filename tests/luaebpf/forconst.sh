@@ -5,7 +5,8 @@
 #
 # Tests the numeric for whose bounds the compiler proves.
 #   - forward, zero-trip (1, 0), descending with a negative step, a step above one, a negative
-#     initial value, and a nested pair, each compared with the interpreter
+#     initial value, a nested pair, and a goto forwards, to the end of the body and out of the
+#     loop, each compared with the interpreter
 #   - no may_goto is emitted, since a proven bound lets the verifier walk the loop itself. The
 #     verifier's own log is what says so: by the time a program is loaded the kernel has
 #     rewritten a may_goto into a loop counter, and an xlated dump no longer names it
