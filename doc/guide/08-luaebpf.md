@@ -341,7 +341,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | the verdict may be nil here; test it first | `return v`, `v` nil on one path | a verdict on every path |
 | 'half' is a float, which a compiled function cannot hold | `local half = math.sqrt(4)` in the body | an integer |
 | malformed number near '.5', which `lunatic` prints before `lunatic could not compile it` | `2.5` | an integer: the kernel's Lua has no float |
-| 'while' and 'repeat' are not compiled yet | `while`, `repeat`, a `goto` backwards | a numeric `for` |
+| 'while', 'repeat' and a 'goto' backwards are not compiled yet | `while`, `repeat`, a `goto` backwards | a numeric `for` |
 | a 'for' the compiler cannot bound needs may_goto, which this kernel lacks | `for i = 1, n`, before Linux 6.9 | known bounds |
 | 'for' step is zero | `for i = 1, 10, 0` | a step that is not 0 |
 | the map key -1 does not fit 'I4' | a key or a value outside its spec | a value its spec packs |
