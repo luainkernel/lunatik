@@ -23,49 +23,54 @@ local NIL   <const> = frame.NIL
 
 local arithmetic = {}
 
--- Lua's floor division: the quotient is corrected toward minus infinity when the operands'
--- signs differ, a divisor of -1 is a negation (which mininteger needs), and a divisor of zero
--- raises, so the program takes its default verdict
+-- negated, math.mininteger is itself, which BPF_DIV and BPF_MOD read as 2^63, its magnitude
+local function negate(code, r, sign)
+	local skip = code:label()
+	code:branchi(jump.JSGE, sign, 0, skip)
+	code:neg(r)
+	code:place(skip)
+end
+
+-- Lua's floor division over the magnitudes, since the s390 JIT of v6.6 and others of the range read
+-- BPF_SDIV as BPF_DIV: the quotient is corrected toward minus infinity when the operands' signs
+-- differ, and a divisor of zero raises, so the program takes its default verdict
 local function floordiv(f)
 	local code = f.code
-	local negate, done = code:label(), code:label()
+	local done = code:label()
 	if f.drop ~= "divisor" then
 		code:branchi(jump.JEQ, reg.R2, 0, abort(f))
 	end
-	code:branchi(jump.JEQ, reg.R2, -1, negate)
 	code:alu(alu.MOV, reg.R3, reg.R1)
-	code:alu(alu.MOV, reg.R4, reg.R1)
-	code:sdiv(alu.MOD, reg.R4, reg.R2)
-	code:sdiv(alu.DIV, reg.R1, reg.R2)
-	code:branchi(jump.JEQ, reg.R4, 0, done)
 	code:alu(alu.XOR, reg.R3, reg.R2)
+	negate(code, reg.R1, reg.R1)
+	negate(code, reg.R2, reg.R2)
+	code:alu(alu.MOV, reg.R4, reg.R1)
+	code:alu(alu.MOD, reg.R4, reg.R2)
+	code:alu(alu.DIV, reg.R1, reg.R2)
 	code:branchi(jump.JSGE, reg.R3, 0, done)
+	code:neg(reg.R1)
+	code:branchi(jump.JEQ, reg.R4, 0, done)
 	code:alui(alu.ADD, reg.R1, -1)
-	code:jump(done)
-	code:place(negate)
-	code:alu(alu.MOV, reg.R3, reg.R1)
-	code:set(reg.R1, 0)
-	code:alu(alu.SUB, reg.R1, reg.R3)
 	code:place(done)
 end
 
--- Lua's modulo: the remainder takes the divisor's sign, and a divisor of -1 is zero
+-- Lua's modulo over the magnitudes, as floordiv divides them: the remainder takes the divisor's sign
 local function floormod(f)
 	local code = f.code
-	local zero, done = code:label(), code:label()
+	local done = code:label()
 	if f.drop ~= "divisor" then
 		code:branchi(jump.JEQ, reg.R2, 0, abort(f))
 	end
-	code:branchi(jump.JEQ, reg.R2, -1, zero)
-	code:sdiv(alu.MOD, reg.R1, reg.R2)
-	code:branchi(jump.JEQ, reg.R1, 0, done)
 	code:alu(alu.MOV, reg.R3, reg.R1)
-	code:alu(alu.XOR, reg.R3, reg.R2)
+	code:alu(alu.MOV, reg.R4, reg.R2)
+	negate(code, reg.R1, reg.R1)
+	negate(code, reg.R4, reg.R4)
+	code:alu(alu.MOD, reg.R1, reg.R4)
+	negate(code, reg.R1, reg.R3)
+	code:branchi(jump.JEQ, reg.R1, 0, done)
+	code:alu(alu.XOR, reg.R3, reg.R2) -- r3 is the dividend, whose sign the remainder takes
 	code:branchi(jump.JSGE, reg.R3, 0, done)
 	code:alu(alu.ADD, reg.R1, reg.R2)
-	code:jump(done)
-	code:place(zero)
-	code:set(reg.R1, 0)
 	code:place(done)
 end
 
