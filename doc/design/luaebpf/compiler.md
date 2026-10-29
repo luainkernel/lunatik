@@ -51,9 +51,10 @@ The order in which `require` finds a module in the body is in
 [Program files](../../guide/02-running-scripts.md#program-files). `compile`, in `init.lua`, builds
 it: while the body runs, `package.path` is the compile-time modules in `bin/luaebpf/lib/` and
 `package.cpath` is empty, a searcher `init.lua` adds finds the compiler's own `luaebpf.*` through
-the host's path, and the last one, which `proto.lua` adds, loads a module under `/lib/modules/lua/`
-through `lunatic`, as the program file is loaded. `linux.xdp` and `struct` come from there, and a function
-a kernel script defines is compiled as one the program file defines.
+the host's path, and the last one, which `proto.lua` adds, loads a module under `/lib/modules/lua/`,
+or the directory `lunatik bpf --scripts=` names, through `lunatic`, as the program file is loaded.
+`linux.xdp` and `struct` come from there, and a function a kernel script defines is compiled as one
+the program file defines.
 
 ### Programs and maps
 
