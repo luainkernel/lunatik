@@ -19,4 +19,4 @@ paths:
   settle it: an `==` on a register a join left with several types, whose bits hold `false`,
   `nil` and 0 as the same zero. A change that adds a
   lowering or changes one changes both pages in the same pull request, since a lowering they do
-  not list is one the next reader works out again from `emit.lua`.
+  not list is one the next reader works out again from `emit/`.
