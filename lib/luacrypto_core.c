@@ -109,6 +109,19 @@
 */
 
 /***
+* Creates an asynchronous compression transform.
+* @function acompress
+* @tparam string algname algorithm name (e.g., "lz4", "deflate")
+* @treturn crypto_acompress
+* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
+*   failure
+* @usage
+*   local acompress = require("crypto").acompress
+*   local tfm = acompress("lz4")
+*   local req = tfm:request()
+*/
+
+/***
 * Creates a compression transform. Absent on 6.15 and later, whose kernel has no synchronous
 * compression API.
 * @function comp
@@ -135,6 +148,7 @@ static const luaL_Reg luacrypto_lib[] = {
 	{"shash", luacrypto_shash_new},
 	{"skcipher", luacrypto_skcipher_new},
 	{"aead", luacrypto_aead_new},
+	{"acompress", luacrypto_acompress_new},
 	{"rng", luacrypto_rng_new},
 	{"sig", luacrypto_sig_new},
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
@@ -147,6 +161,8 @@ static const lunatik_class_t *luacrypto_classes[] = {
 	&luacrypto_shash_class,
 	&luacrypto_skcipher_class,
 	&luacrypto_aead_class,
+	&luacrypto_acompress_class,
+	&luacrypto_acompress_req_class,
 	&luacrypto_rng_class,
 	&luacrypto_sig_class,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))

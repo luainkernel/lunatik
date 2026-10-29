@@ -118,5 +118,9 @@ extern const lunatik_class_t luacrypto_comp_class;
 int luacrypto_comp_new(lua_State *L);
 #endif
 
+extern const lunatik_class_t luacrypto_acompress_class;
+extern const lunatik_class_t luacrypto_acompress_req_class;
+int luacrypto_acompress_new(lua_State *L);
+
 #endif /* _LUACRYPTO_H */
 

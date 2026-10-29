@@ -15,6 +15,7 @@ local char, rep, sub = string.char, string.rep, string.sub
 local CBC <const> = "cbc(aes)"
 local GCM <const> = "gcm(aes)"
 local CTR <const> = "ctr(aes)"
+local LZ4 <const> = "lz4"
 local KEY <const> = "0123456789abcdef"
 local IV <const> = "fedcba9876543210"
 local NONCE <const> = "abcdefghijkl"
@@ -32,6 +33,7 @@ local oversized = rep("x", sizes.kmalloc + page)
 lib.alloc(crypto.skcipher, CBC)
 lib.alloc(crypto.aead, GCM)
 lib.alloc(crypto.skcipher, CTR)
+lib.alloc(crypto.acompress, LZ4)
 
 local function keyed(new, algorithm)
 	local c = new(algorithm)
@@ -72,6 +74,8 @@ local function refused(expected, name, method, c, ...)
 	assert(err == expected, name .. ": expected '" .. expected .. "', got: " .. tostring(err))
 end
 
+local function accepted() end
+
 test("SKCIPHER AES-128-CBC data spanning pages matches its pages chained", function()
 	local c = cbc()
 	local ciphertext = c:encrypt(IV, spanning)
@@ -104,5 +108,12 @@ test("AEAD AES-128-GCM data or associated data past KMALLOC_MAX_SIZE", function(
 	refused(ENOMEM, "encrypt with associated data", c.encrypt, c, NONCE, "", oversized)
 	refused(ENOMEM, "decrypt", c.decrypt, c, NONCE, oversized)
 	refused(ENOMEM, "decrypt with associated data", c.decrypt, c, NONCE, rep("y", c:authsize()), oversized)
+end)
+
+test("ACOMPRESS data past KMALLOC_MAX_SIZE", function()
+	local tfm = crypto.acompress(LZ4)
+	local req = tfm:request()
+	refused(ENOMEM, "compress", req.compress, req, oversized, page, accepted)
+	refused(ENOMEM, "decompress", req.decompress, req, oversized, page, accepted)
 end)
 

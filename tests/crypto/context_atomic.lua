@@ -5,20 +5,25 @@
 -- Atomic-context body for the crypto context test (see context.sh).
 
 local crypto = require("crypto")
+local insert = table.insert
 
 local ATTEMPTS <const> = 16
 local REFUSAL  <const> = "'crypto%.%l+': process%-context class in interrupt%-context runtime"
 
-local constructors = {sha256 = crypto.shash, ["ecdsa-nist-p256"] = crypto.sig}
+local constructors = {
+	{name = "sha256", new = crypto.shash},
+	{name = "ecdsa-nist-p256", new = crypto.sig},
+	{name = "lz4", new = crypto.acompress},
+}
 if crypto.comp then -- the binding has no comp from 6.15 on
-	constructors.lz4 = crypto.comp
+	insert(constructors, {name = "lz4", new = crypto.comp})
 end
 
 local function refuse()
 	for _ = 1, ATTEMPTS do
-		for algname, new in pairs(constructors) do
-			local ok, err = pcall(new, algname)
-			assert(not ok, "crypto served an interrupt-context runtime: " .. algname)
+		for _, constructor in ipairs(constructors) do
+			local ok, err = pcall(constructor.new, constructor.name)
+			assert(not ok, "crypto served an interrupt-context runtime: " .. constructor.name)
 			assert(err:match(REFUSAL), "crypto raised something else: " .. err)
 		end
 	end
