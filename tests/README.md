@@ -107,7 +107,7 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 ### crypto
 
 Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
-`comp`.
+`acompress`, `compress`, `comp`.
 
 - **shash**: `sha256` and `hmac(sha256)` report a 32-byte digest and match
   known digests in one shot, in `init`/`update`/`final` parts and through
@@ -159,18 +159,52 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   quic.xargs.org; an instance closed twice raises "closed object" from
   `extract`, its HMAC transform released. Skipped where the kernel serves no
   `hmac(sha256)`, which the script allocates before its cases.
-- **comp**: `lz4` names itself through `algname`, compresses to fewer bytes
-  and decompresses back into an exact or a larger buffer; an empty string with
-  a size of 0 is refused as out of bounds, and a buffer one byte short of the
-  output with `EINVAL`; a method called on another class's object is refused
-  naming `crypto.comp`. Skipped where `crypto.comp` is not built: `hascomp`
-  asks the runtime for the binding, instead of the suite reading the kernel
-  version.
+- **acompress**: `lz4` names itself through `algname`, compresses to fewer bytes
+  and decompresses back into an exact or a larger buffer, `compress` and
+  `decompress` without a callback returning the string; three pages of
+  incompressible data round-trip whole; an empty input or an output length of 0
+  is refused as out of bounds, an output a byte short of the plaintext with
+  `EINVAL`, and an unknown algorithm with `ENOENT`; a request or a transform
+  handed another class's object is refused naming `crypto.acompress.request` or
+  `crypto.acompress`; a callback is taken, with `compress` returning nothing,
+  and one that is not a function is refused as its fourth argument. `busy` is
+  false once a synchronous operation completes, and a request closes and raises
+  "closed object" after, as the transform does. A request created from a
+  transform the collector then takes still compresses and decompresses exactly,
+  since it holds the transform alive, and `close` on a transform with a live
+  request is refused with "transform has live requests" until that request
+  closes. Skipped where the kernel serves
+  no `lz4`, which the script allocates before its cases.
+- **compress**: `crypto.compress`, the synchronous wrapper over `acompress`:
+  `lz4` names itself, compresses to fewer bytes and decompresses back into an
+  exact or a larger buffer, an empty string with a size of 0 is out of bounds,
+  a buffer a byte short of the output is `EINVAL`, an unknown algorithm is
+  `ENOENT`, and `close` releases its request and transform. Skipped where the
+  kernel serves no `lz4`.
+- **comp**: `crypto.comp`, the native binding before 6.15 and `crypto.compress`
+  after: `lz4` names itself through `algname`, compresses to fewer bytes and
+  decompresses back into an exact or a larger buffer; an empty string with a
+  size of 0 is refused as out of bounds, and a buffer one byte short of the
+  output with `EINVAL`. `lib/crypto/comp.lua` picks the implementation, so the
+  case runs on every kernel and skips where `lz4` is not served.
+- **comp_native**: the native `crypto.comp` refuses an object of another
+  class, naming `crypto.comp`. Skipped from 6.15 on, where the binding is not
+  built.
+- **acompress_callback**: four compressions whose callbacks submit the
+  decompression of their output on a request of their own, each printing
+  `ACOMPRESS callback ok <i>` when it gives back the input, or
+  `ACOMPRESS callback failed <i>` with the reason; a request whose callback
+  raises keeps working, and its next operation prints
+  `ACOMPRESS callback reusable`. The body returns without waiting: an
+  asynchronous driver runs the callbacks only once the runtime is free, so the
+  case polls `dmesg` for ten seconds and names the raise as the one error the
+  run provokes. Skipped where the kernel serves no `lz4`.
 - **context**: an object refused for its execution context leaves nothing
-  allocated. `crypto.shash("sha256")`, `crypto.comp("lz4")` and
+  allocated. `crypto.shash("sha256")`, `crypto.acompress("lz4")`,
+  `crypto.comp("lz4")` where the binding has it, and
   `crypto.sig("ecdsa-nist-p256")` from an armed softirq runtime are refused
-  naming their class, `crypto.shash`, `crypto.comp` and `crypto.sig`, and the
-  modules backing those algorithms -
+  naming their class, `crypto.shash`, `crypto.acompress`, `crypto.comp` and
+  `crypto.sig`, and the modules backing those algorithms -
   named by holding one object of each kind alive and watching which of
   `/proc/crypto`'s modules gain a reference - keep the reference counts they
   had. Skips when no module backs any of them, and when the loaded `luacrypto` cannot
@@ -182,18 +216,19 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   `authenc` of it, names no script asks for; `/proc/crypto` listing each instance
   as asynchronous shows the refusal answered one and not an unknown name. Skips
   when the kernel registered none, and unloads `cryptd` when the test loaded it.
-- **large**: `skcipher` and `aead` cipher a copy of their input in one kmalloc
-  block, since a scatterlist maps linear memory and a string past a page may be
-  vmalloc's. Data of two pages and a block, and associated data of two pages and
-  a byte, go through it whole: `cbc(aes)` matches its pages chained by their last
-  block, `gcm(aes)` seals into what `ctr(aes)` gives from the second counter and
-  opens back, and a byte flipped in the last page of either answers nil and
-  `EBADMSG`. A string past `KMALLOC_MAX_SIZE`,
+- **large**: `skcipher`, `aead` and `acompress` copy their input into one
+  kmalloc block, since a scatterlist maps linear memory and a string past a page
+  may be vmalloc's. Data of two pages and a block, and associated data of two
+  pages and a byte, go through it whole: `cbc(aes)` matches its pages chained by
+  their last block, `gcm(aes)` seals into what `ctr(aes)` gives from the second
+  counter and opens back, and a byte flipped in the last page of either answers
+  nil and `EBADMSG`. A string past `KMALLOC_MAX_SIZE`,
   always vmalloc's, is refused with "not enough memory" as the data of each
-  `encrypt` and `decrypt` and as `aead`'s associated data, with no warning in
-  `dmesg`. Skips unless the loaded `luacrypto` lists `luacrypto_newbuffer` in
+  `encrypt` and `decrypt`, as `aead`'s associated data, and as a synchronous
+  `acompress` `compress` or `decompress`, with no warning in `dmesg`. Skips
+  unless the loaded `luacrypto` lists `luacrypto_newbuffer` in
   `/proc/kallsyms`, since a build that maps the string oopses on arm64, and
-  where the kernel serves no `cbc(aes)`, `gcm(aes)` or `ctr(aes)`.
+  where the kernel serves no `cbc(aes)`, `gcm(aes)`, `ctr(aes)` or `lz4`.
 - **seed**: `rng` and `reset` without a seed seed an algorithm with `seedsize()`
   random bytes the kernel draws. `ansi_cprng`, which refuses a seed under 32
   bytes with `EINVAL`, is created, reports a seed size of 48 and gives other
@@ -208,10 +243,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   writes the errno of the running release for the case. Skipped where the kernel
   serves no `hmac(sha256)`.
 
-Each of `shash`, `skcipher`, `aead`, `rng`, `sig` and `comp` also closes an object
-through `closing.lua`: its metatable holds one function under `__close` and
-`close`, a second close does nothing, and a method raises "closed object"
-after it.
+Each of `shash`, `skcipher`, `aead`, `rng`, `sig`, `comp`, `compress` and
+`acompress` also closes an object through `closing.lua`: its metatable holds
+one function under `__close` and `close`, a second close does nothing, and a
+method raises "closed object" after it.
 
 ### darken
 
