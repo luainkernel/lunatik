@@ -10,7 +10,7 @@
 -- the program file's body runs the kernel's bytecode and computes as the kernel would, and a
 -- function it hands over is that bytecode, read back from its own `string.dump`. A module the body
 -- requires from the kernel scripts loads the same way, through the searcher this module puts last
--- in `package.searchers`.
+-- in `package.searchers`, from `/lib/modules/lua` or the directory `luaebpf.proto.scripts` names.
 -- @module luaebpf.proto
 
 local kernel = require("luaebpf.bytecode.kernel")
@@ -25,7 +25,8 @@ local popen      = io.popen
 local searchpath = package.searchpath
 
 local LUNATIC   <const> = "lunatic -o - -- "
-local MODULES   <const> = "/lib/modules/lua/?.lua;/lib/modules/lua/?/init.lua" -- the kernel's LUA_PATH_DEFAULT
+local SCRIPTS   <const> = "/lib/modules/lua" -- the kernel's LUA_ROOT
+local MODULES   <const> = "%s/?.lua;%s/?/init.lua" -- the kernel's LUA_PATH_DEFAULT, under a root
 local ELSEWHERE <const> = "a compiled function is defined in the program file or a kernel script it requires, " ..
 	"installed as source"
 
@@ -48,6 +49,7 @@ for name, opcode in pairs(host.opcodes) do
 end
 
 local loaded = {}
+local root = SCRIPTS
 
 local function quote(word)
 	return "'" .. word:gsub("'", "'\\''") .. "'"
@@ -77,8 +79,17 @@ function proto.load(path)
 	return chunk
 end
 
+---
+-- Reads the kernel scripts a program file's body requires from under `dir` from then on, laid out
+-- as the kernel's `require` reads `/lib/modules/lua`; a module `dir` lacks is not found.
+-- @function luaebpf.proto.scripts
+-- @tparam[opt] string dir the directory, `/lib/modules/lua` when absent
+function proto.scripts(dir)
+	root = dir or SCRIPTS
+end
+
 local function search(name)
-	local path, err = searchpath(name, MODULES)
+	local path, err = searchpath(name, format(MODULES, root, root))
 	if path == nil then
 		return err
 	end

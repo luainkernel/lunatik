@@ -16,9 +16,10 @@
 --
 -- The compiler compiles for the kernel `lunatik.config` describes, which `make` writes from the
 -- tree Lunatik is built against: that kernel's version and byte order. It reads that kernel's types
--- from the BTF file it is handed, or from `/sys/kernel/btf/vmlinux`, the running kernel's, so a
--- build host compiles for the kernel an image ships when `make` was handed that kernel's tree and
--- the compiler its BTF.
+-- from the BTF file it is handed, or from `/sys/kernel/btf/vmlinux`, the running kernel's, and the
+-- kernel scripts the body requires from the directory it is handed, or from `/lib/modules/lua`, so
+-- a build host compiles for the kernel an image ships when `make` was handed that kernel's tree and
+-- the compiler its BTF and the image's kernel scripts.
 --
 -- Experimental: the compiler, `lunatik bpf`, `lunatik run --dev` and the modules a program file's
 -- body requires may change in a minor release.
@@ -27,7 +28,7 @@
 -- local luaebpf = require("luaebpf")
 --
 -- local object = luaebpf.compile("filter.bpf.lua")
--- local image = luaebpf.compile("filter.bpf.lua", "build/vmlinux.btf")
+-- local image = luaebpf.compile("filter.bpf.lua", "build/vmlinux.btf", "staging/lib/modules/lua")
 
 local maps     = require("luaebpf.maps")
 local programs = require("luaebpf.programs")
@@ -251,16 +252,35 @@ local function write(declared, hook)
 	return object:pack()
 end
 
+local function modnames()
+	local names = {}
+	for modname in pairs(package.loaded) do
+		names[modname] = true
+	end
+	return names
+end
+
+local function unload(kept)
+	for modname in pairs(package.loaded) do
+		if not kept[modname] then
+			package.loaded[modname] = nil
+		end
+	end
+end
+
 local function name(program, chunk)
 	return program.name or (chunk:match("([^/]+)$"):gsub("%.bpf%.lua$", ""):gsub("%.lua$", ""))
 end
 
 ---
--- Compiles the program file at `path`.
+-- Compiles the program file at `path`. A module an earlier call's body loaded is loaded again, so
+-- this call's body reads the kernel scripts it names.
 -- @function luaebpf.compile
 -- @tparam string path the program file, usually named `<something>.bpf.lua`
 -- @tparam[opt] string btffile the kernel's BTF as a raw BTF file, the bytes
 --   `/sys/kernel/btf/vmlinux` serves, read once a layout is asked for; that file when absent
+-- @tparam[opt] string scripts the directory the body's `require` reads the kernel scripts from, laid
+--   out as `/lib/modules/lua` is; that directory when absent
 -- @treturn string the BPF ELF object
 -- @raise `<file>:<line>: <reason>` for every construct the subset refuses,
 --   `<path>: no program declared` when the body hands nothing to a constructor,
@@ -268,15 +288,17 @@ end
 --   BTF header says` when a layout is asked of a file that cannot be read, holds no BTF or is cut
 --   short, and `<btffile> is a <order>-endian BTF, for a <order>-endian object` when the BTF a
 --   layout was read from is not in the object's byte order
-function luaebpf.compile(path, btffile)
+function luaebpf.compile(path, btffile, scripts)
 	local chunk = proto.load(path)
 	programs.reset()
 	maps.reset()
 	vmlinux.open(btffile)
-	local host, cpath = package.path, package.cpath
+	proto.scripts(scripts)
+	local host, cpath, kept = package.path, package.cpath, modnames()
 	package.path, package.cpath = LIBPATH, "" -- no host module, Lua or C, stands in for a kernel script
 	local ok, message = pcall(chunk)
 	package.path, package.cpath = host, cpath
+	unload(kept)
 	if not ok then
 		error(message, 0)
 	end
