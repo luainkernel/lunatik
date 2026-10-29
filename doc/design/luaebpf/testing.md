@@ -46,8 +46,9 @@ failure paths are exercised, not only the happy one. Phase 1 reads no packet, an
 suite. The emitter exposes a test hook, `LUAEBPF_DROP`, an environment variable the CLI has no
 option for, naming one mechanism to drop: `divisor` (the test before a division), `maygoto` (the header
 a loop without a proven bound needs), `lineinfo` (the `.BTF.ext` records), `verdict` (the write to
-`R0`), and `bounds` (the `data_end` test before a packet load). Each has a test that asserts the
-verifier rejects the program, that the log lacks the Lua line, or that the arithmetic changes.
+`R0`), `bounds` (the `data_end` test before a packet load), and `ksyms` (a kfunc's entry in the
+`.ksyms` DATASEC). Each has a test that asserts the verifier rejects the program, that the log
+lacks the Lua line, that libbpf cannot resolve the kfunc, or that the arithmetic changes.
 
 **Pinned object cleanup.** Programs, maps and links pinned by a test outlive it. The cleanup
 removes everything under `/sys/fs/bpf/luaebpf/` and under `/sys/fs/bpf/lunatik/tests/luaebpf/`
@@ -56,8 +57,10 @@ does not poison the next.
 
 **Feature skips, not failures.** A kernel without `may_goto` skips the runtime-bound loop tests
 and asserts instead that the compiler refuses the loop with the documented message; a libbpf
-without `bpf_program__attach_tcx` skips the TC attach tests; a machine without `bpftool` or
-`clang` (needed once, for the runtime library at `make`) skips the suite with the reason.
+without `bpf_program__attach_tcx` skips the TC attach tests; a kernel that publishes no BTF for
+`luaxdp` or `luatc` skips the cases whose programs call that module's kfunc; a machine without
+`bpftool` or `clang` (needed once, for the runtime library at `make`) skips the suite with the
+reason.
 
 ## Test matrix
 
@@ -116,11 +119,11 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 
 | Test | Proves |
 |------|--------|
-| `callback.sh` | a compiled program that calls `runtime(n)` reaches the callback, which reads `n` from `ctx:argument()` and sets a verdict the program returns |
-| `miss.sh` | a call whose runtime is not loaded yields `nil`, and the program takes its default |
-| `partition.sh` | `sniclassify` in Lua: the first packet of a flow calls Lua, the second is decided from the map, counted through an `rcu.table` delta |
+| `callback.sh` | a compiled program that calls `lua(n)` reaches the callback, which reads `n` from `ctx:argument()` with all eight bytes and returns a verdict the program returns; no argument is an empty one, another argument reaches the callback's rejection and two arrive in order; the answer read before its test, compared with a number, returned, negated, copied by `or` and tested where a join met it, an argument that is not a number, a call from a subprogram or from a program without the context, a runtime with no name and one whose name the frame cannot hold are refused with their lines; one runtime called from both program types names both kfuncs, and the key reads back as the name in either byte order |
+| `miss.sh` | a call whose runtime is not loaded yields `nil` and the program takes its nil branch, whose word is the zero nil is everywhere else; with the runtime up the same program returns the callback's verdict, `if not v`, `v ~= nil` and `v == nil` take each arm as `if v` does, and a process-context runtime is not dispatched, which the module logs |
+| `partition.sh` | the classifier's shape under `BPF_PROG_TEST_RUN`: the first packet of a flow calls Lua, the second is decided from the map, counted through an `rcu.table`; the priority the callback set is what the map holds and what `ctx_out` carries, and a packet the header walk rejects never reaches Lua |
 | `report.sh` | the compiler's summary lists every call into Lua with its line |
-| `nobtf.sh` | without module BTF the load fails naming the kfunc, and a program with no such call loads |
+| `nobtf.sh` | an object whose kfunc libbpf cannot resolve, the `.ksyms` entry dropped by the test hook, fails the load and `lunatik run` naming the kfunc, and a program with no such call loads under the same hook; compiled whole, the program deploys through `lunatik run`, whose libbpf resolves the kfunc |
 
 ### Phase 5: the runtime library, strings and loops
 

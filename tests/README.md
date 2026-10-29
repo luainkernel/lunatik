@@ -1227,7 +1227,8 @@ interpreter raises, the compiled program owes its default verdict instead.
 - **budget**: the "processed N insns" figure the verifier prints for the
   worst program of each corpus, reported as a comment and asserted under a
   ceiling; the loops under a `may_goto` header are counted on a kernel that
-  has it.
+  has it, and the calls into the kernel Lua runtime where the kernel publishes
+  `luaxdp`'s BTF.
 
 The loader cases run `lunatik run --dev=` and `lunatik stop` over a program
 file the case compiles and puts beside the installed script, since
@@ -1282,6 +1283,49 @@ suite's own; each tears down before it reads its verdict.
   verifier's own log, which quotes the Lua line from the object's
   `line_info`; **load** loads the same program file compiled without the test
   hook, so the quote is the rejection's.
+
+The runtime cases load program files whose programs call the kernel Lua
+runtime with bpftool, run them with `bpftool prog run` and start the runtime
+they call with `lunatik run --context=softirq`; each skips where the kernel
+publishes no BTF for the module whose kfunc its programs call.
+
+- **callback**: four XDP programs call one runtime, whose callback answers
+  each by the argument it was handed: the name the program spelled reaches it
+  with all eight bytes of a 64-bit argument, a call with no argument hands it
+  an empty one, another argument reaches its rejection, and two arguments
+  arrive as two words in order. The answer read before a test, as a number,
+  compared by `==` with a number and by `<`, returned, negated, copied by `or`
+  and tested where a join met it with another value, an argument that is not a
+  number, a call from a function the program calls, a call from a program
+  that declares no context, a runtime declared with no name and one whose
+  name the frame cannot hold are refused with their messages and lines. One
+  runtime called from an XDP and a TC program names both kfuncs in the
+  object, and the key a call stores reads back as the runtime's name from an
+  object of either byte order, as `llvm-objdump` disassembles it.
+- **miss**: with no runtime of the name called the call answers `nil` and the
+  program takes its nil branch; returned there it is the program's default
+  verdict, and joined with `true` it tests false, so the branch holds the zero
+  word `nil` is everywhere else. With the runtime up in softirq the same
+  program returns the callback's verdict; `if not v`, `v ~= nil` and `v == nil`
+  take the nil arm without the runtime and the number arm with it, as `if v`
+  does; and a runtime in process context is not dispatched, which the module
+  logs.
+- **partition**: `examples/sniclassify/classify.c`'s shape as a TC program
+  under `BPF_PROG_TEST_RUN`: two packets of a ClientHello make one call into
+  Lua, the second decided from the hash map the program declares; the
+  priority the callback set from its argument is what the map holds and what
+  `ctx_out` carries; a SYN and an ICMP echo make no call and leave the map
+  empty.
+- **nobtf**: an object compiled with `LUAEBPF_DROP=ksyms`, which leaves the
+  kfunc out of its `.ksyms` DATASEC, fails bpftool's load and `lunatik run`
+  with libbpf's warning naming the kfunc, the run leaving nothing behind; the
+  same drop over a program with no call leaves the object loadable. Compiled
+  whole, the program deploys through `lunatik run`, whose libbpf resolves the
+  kfunc in the module's BTF, and answers its nil branch on the device.
+- **report**: compiles only. `lunatik bpf` prints on stdout one line per call
+  into the runtime, with its file, its line and the runtime's name, in the
+  order it met them, over two programs of one file, and nothing for a program
+  file with no call.
 
 ### monitor
 

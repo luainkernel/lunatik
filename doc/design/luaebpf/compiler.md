@@ -59,11 +59,15 @@ a kernel script defines is compiled as one the program file defines.
 
 A program constructor leaves each program in `programs.lua`: its function, its default verdict, its
 name if the file gave one, the ELF section its kind names, `xdp`, `tcx/ingress` or `tcx/egress`,
-from which libbpf reads the program type and the attach point, and its context: the kernel struct
+from which libbpf reads the program type and the attach point, its context: the kernel struct
 the program reads, `xdp_md` or `__sk_buff`, the field each of its methods reads, the methods that
-write, and the method that opens the packet. `bpf.map.hash`, `bpf.map.array` and `bpf.map.lru_hash`
-check a map's spec and leave the map in `maps.lua`, and a table a compiled function reaches is a
-map exactly when `maps.lua` holds it.
+write, and the method that opens the packet, and the kfunc its type's module registers,
+`bpf_luaxdp_run` or `bpf_luatc_run`, which a call into the kernel Lua runtime lowers to.
+`bpf.map.hash`, `bpf.map.array` and `bpf.map.lru_hash` check a map's spec and leave the map in
+`maps.lua`, and a table a compiled function reaches is a map exactly when `maps.lua` holds it.
+`bpf.xdp.runtime` and `bpf.tc.runtime` take the name of the script a runtime runs and leave the
+runtime in `runtimes.lua`, and a value a compiled function calls is a call into the kernel Lua
+runtime exactly when `runtimes.lua` holds it.
 
 ### Lowering
 
@@ -88,11 +92,15 @@ byte order of the kernel `lunatik.config` describes:
 * `.maps`, each map BTF-defined: a struct of pointer-to-array members whose element counts libbpf
   reads as the map's type, entries, key size and value size, a `VAR` of that struct, and a
   `DATASEC` holding them;
-* `license`, `Dual MIT/GPL`;
+* `license`, `Dual MIT/GPL`, which a program calling a kfunc needs;
 * `.BTF`, a `FUNC` and its `FUNC_PROTO` for each compiled function, every parameter a `long`, a
   program's result an `int` and a subprogram's a `long`, a program global and a subprogram static;
 * `.BTF.ext`, each function's `func_info`, and the `line_info` that quotes the Lua line each
   instruction came from, which is how the verifier's log quotes the program file;
+* `.ksyms`, a `DATASEC` listing a `FUNC` of extern linkage for each kfunc a call names, whose
+  prototype libbpf compares with the module's kind by kind, and an undefined symbol of no type,
+  which the call's relocation names: libbpf resolves the kfunc in the module's BTF and writes the
+  call's source register, immediate and offset;
 * `.symtab`, `.strtab`, and a relocation section for each section that calls a subprogram or names
   a map.
 
@@ -132,13 +140,14 @@ looks for it ([Compiled programs](../../guide/02-running-scripts.md#compiled-pro
 ### Types and the walk
 
 A Lua register carries a type through the function besides its word, because Lua's truth cannot be
-read off the bits: `0` is true, and `false` and `nil` are both stored as zero. A number, a boolean
-and nil are words the kernel holds; the context, the packet, a map value the program has not tested
-yet and a struct map value are pointers the kernel holds, read through their proxy; a table, a
-function or a string the body computed, and the method a call on a proxy reads, are values only the
-compiler holds. Each type is a bit the module that makes it declares, through `frame.type`, with
-the classes `frame.lua`'s checks read: `word`, a value the kernel holds as a word, `proxy`, a pointer
-read through its proxy, and `untested`, a word the program must test before the kernel reads it.
+read off the bits: `0` is true, and `false` and `nil` are both stored as zero. A number, a boolean,
+nil and the answer of a call into the runtime are words the kernel holds; the context, the packet,
+a map value the program has not tested yet and a struct map value are pointers the kernel holds,
+read through their proxy; a table, a function or a string the body computed, and the method a call
+on a proxy reads, are values only the compiler holds. Each type is a bit the module that makes it
+declares, through `frame.type`, with the classes `frame.lua`'s checks read: `word`, a value the
+kernel holds as a word, `proxy`, a pointer read through its proxy, and `untested`, a word the
+program must test before the kernel reads it.
 
 `emit/init.lua` walks a function's bytecode carrying an abstract state, the type of each register
 and the value the compiler holds for it, if any. Each edge leaves its state at the instruction it
@@ -158,7 +167,10 @@ value survives a call without the translator tracking which are live. R0 to R5 h
 instruction's lowering computes. Each frame reserves four words: the flag a callee raises, the
 address of its caller's flag, and a map key and a map value, which a helper takes by address. A
 frame has 512 bytes, so a function uses at most 64 Lua registers, and one that needs more is
-refused: "the function needs 520 bytes of stack, over the 512 eBPF allows".
+refused: "the function needs 520 bytes of stack, over the 512 eBPF allows". A call into the
+kernel Lua runtime writes the runtime's name and its arguments below the frame's deepest word,
+where nothing outlives the call, and the same refusal names its line where the frame and those
+words pass 512 bytes.
 
 ### Where the interpreter would raise
 
@@ -180,6 +192,30 @@ arguments, not 5". An argument is a number or the packet: "argument #1 is a cont
 call passes numbers and packets". A call that closes a cycle is refused, "recursion through
 'walk'", as the verifier refuses one. A callee answers one value, and Lua's nil fills every other
 result a caller asks for.
+
+### A call into the kernel Lua runtime
+
+A runtime `bpf.xdp.runtime(name)` or `bpf.tc.runtime(name)` declared, called in the program's own
+function, `lua(a, b)`, lowers to the kfunc of the program's type, `bpf_luaxdp_run` in an XDP
+program and `bpf_luatc_run` in a TC one, whichever module declared the runtime: R1 the address of
+the name, NUL-terminated in the frame, where the kfunc writes the terminator again, R2 its length
+with the NUL, R3 the context, R4 the address of the arguments, each a 64-bit word in order, which
+the callback reads as `ctx:argument():getint64(0)`, `getint64(8)` and on, and R5 their size, R4 a
+null pointer and R5 zero where the call passes none. The name's words are stored in the kernel's
+byte order. The call is refused from a function the program calls, "'lua' can only be called from
+the program's own function", since a compiled call does not pass the context; from a program whose
+parameter does not hold the context, "a call into the runtime passes the context, which the
+program's parameter does not hold"; with an argument that is not a number, "argument #1 is a
+boolean, and a call into the runtime passes numbers"; and a runtime declared with no name is
+refused at that line, "xdp.runtime takes a name".
+
+The kfunc answers an `int`, the callback's verdict or `-1` where Lua has none to give: no softirq
+runtime of the name with a callback attached, or a callback that raises, returns `nil` or a value
+outside the hook's actions. Only R0's low 32 bits are defined after the call, so the answer is
+sign-extended from them, into a type of its own, which the program tests before it reads, as a
+lookup is: [Branches](#branches). Each call runs the interpreter on the packet path, so the
+lowering records its line and the runtime's name, and `compile` returns a line per call,
+`<file>:<line>: calls the runtime '<name>'`, in the order it met them, which `lunatik bpf` prints.
 
 ### The lowerings
 
@@ -207,13 +243,15 @@ what `frame.lua` holds:
   dispatch of a method called on either proxy.
 * `map.lua`: a lookup, an update and a delete through the kernel's helpers, the test that narrows
   a lookup, and the value or the struct field a lookup found.
+* `runtime.lua`: a call into the kernel Lua runtime, which `CALL` hands it, and the test of its
+  answer, which `TEST` and `EQK` hand it.
 
 An opcode none of them lowers is refused with the reason `emit/init.lua` keeps for it, a table
 constructor's: "a table constructor cannot run in the kernel; build it in the file body".
 
 `LUAEBPF_DROP`, an environment variable the CLI has no option for, names one mechanism the
-compiler then leaves out, `divisor`, `bounds`, `maygoto`, `verdict` or `lineinfo`, so the suite
-shows each one is what a case rests on ([testing.md](testing.md)).
+compiler then leaves out, `divisor`, `bounds`, `maygoto`, `verdict`, `lineinfo` or `ksyms`, so the
+suite shows each one is what a case rests on ([testing.md](testing.md)).
 
 ## Limits
 
@@ -293,4 +331,13 @@ compiler holds, nil, a string, a table or a function, it is decided when the fun
 A lookup is narrowed where the program tests it: `if v then` jumps on the pointer the helper
 answered, reads the value on the branch that found it, and carries nil on the other, which is the
 only place the verifier lets the pointer be read.
+
+The answer of a call into the kernel Lua runtime is tested the same way: `if v then`,
+`if not v then`, `v == nil` and `v ~= nil` compare it with the kfunc's `-1`, the number branch
+reads it as the verdict, and the nil branch stores the zero word nil carries everywhere else, so a
+program that returns it there returns its default verdict and a join of it with a boolean tests
+false there. `v = v or 2` is such a test too, since Lua writes it as one. Every other read before
+the test is refused by the checks a lookup meets, and so is a test of a register where a join met
+the answer with another value, whose nil is `0` on the other path and `-1` on the call's, which the
+word cannot tell apart.
 

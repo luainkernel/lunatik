@@ -34,6 +34,8 @@ Where the eBPF instruction alone computes something else, the compiler emits wha
 | `skb:data()` on an skb that is not linear | raises in a tc callback | `data_end` ends the linear head, short of the packet | `len` compared with the head's length, which takes the default verdict where they differ |
 | `skb:priority(v)` | raises outside 0 to `U32_MAX` | a four-byte store keeps the low 32 bits | a value the compiler holds checked against the field's width, and one the program computes tested, which takes the default verdict |
 | `m[k]` | the value, or nil | the helper answers a pointer, or NULL, which the verifier lets the program read only past a test | the helper, and a value typed "value or nil" until `if v then` reads it, on the branch that found it |
+| `lua(a, b)` | the callback's verdict, or nil | the kfunc's `int` in the low 32 bits of R0, the only ones the verifier marks defined, and `-1` for nil | the name and the arguments in the frame, the context in R3, R0 sign-extended from 32 bits, and an answer typed "runtime answer" until a test reads it |
+| `if v then`, `v == nil` on an answer | false and true where the call answered nil | a test of zero reads `-1` as true | a comparison with `-1`, the branch that finds it storing the zero word nil is everywhere else |
 | `m[k] = v`, `m[k] = nil` | the kernel's `bpf.map` raises when the map refuses the update, or refuses the delete for any reason but an absent key | the helper's return code | the helper, and the default verdict on any code but zero, or `-ENOENT` from a delete |
 | `m[k]` with `k` outside the key's spec | `string.pack` raises | a store that keeps the low bytes | a key the compiler holds packed when the function is compiled, and one the program computes tested, which takes the default verdict; a value alike |
 | `v.field` of a struct value | the field the codec decodes | a load the verifier refuses until the program tests the lookup | a load at the field's offset and width, the sign extended where the field is signed |
@@ -701,4 +703,98 @@ returns -4, and so does the program.
 The call returns to the program, which reads the flag before it goes on. `return half(a, b)` would
 be a tail call, which Lua runs without coming back, and is refused: "a tail call cannot be
 compiled".
+
+## Calls into a kernel Lua runtime
+
+```Lua
+local xdp    = require("bpf.xdp")
+local action = require("linux.xdp").action
+
+local lua = xdp.runtime("ports")
+
+return xdp.program(function(ctx)
+	local p = ctx:packet()
+	local port = p:getbyte(36) << 8 | p:getbyte(37)
+	local verdict = lua(port, #p)
+	if verdict then
+		return verdict
+	end
+	return action.TX
+end)
+```
+
+`lua` is the runtime the body named: the kernel script `ports` of
+[Calls into a kernel Lua runtime](08-luaebpf.md#calls-into-a-kernel-lua-runtime), whose callback
+drops a frame to port 53 longer than 512 bytes and returns nothing for any other. The call lowers
+to the kfunc of an XDP program, `bpf_luaxdp_run`: `r1` the address of the name, `r2` its length
+with the NUL, `r3` the context, `r4` the address of the arguments and `r5` their size. The name
+and the arguments go below the frame's deepest word, `r10 - 48` here, where nothing outlives the
+call. `TX` on the nil branch tells that branch from the callback's verdict and from the default
+verdict. Instructions 0 to 45 take `ctx` and `p` and read bytes 36 and 37 into `port`, in `r8`.
+
+```
+     line 9: local verdict = lua(port, #p)
+ 46  *(u64 *)(r10 -40) = r8        port, in Lua register 4
+ 47  r1 = *(u32 *)(r7 +0)          xdp_md.data
+ 48  r2 = *(u32 *)(r7 +4)          xdp_md.data_end
+ 49  r2 -= r1                      #p
+ 50  *(u64 *)(r10 -48) = r2        #p, in Lua register 5
+ 51  r1 = 495874895728 ll          the name: two slots, decoded below
+ 53  *(u64 *)(r10 -72) = r1        the name, below the frame
+ 54  to 57: port at r10 -64 and #p at r10 -56, the arguments in order
+ 58  r1 = r10
+ 59  r1 += -72                     r1: the name, by address
+ 60  r2 = 6                        r2: "ports" and its NUL
+ 61  r3 = r6                       r3: the context
+ 62  r4 = r10
+ 63  r4 += -64                     r4: the arguments, by address
+ 64  r5 = 16                       r5: their size, two words
+ 65  call -1                       bpf_luaxdp_run: decoded below
+ 66  r0 <<= 32                     the int's 32 bits, the only ones defined
+ 67  r0 s>>= 32                    sign-extended, so -1 stays -1
+ 68  r9 = r0                       verdict
+     line 10: if verdict then
+ 69  if r9 == -1 goto 71           the kfunc's -1: nil
+ 70  goto 73                       a verdict: the number branch
+ 71  r9 = 0                        nil, the zero word it is everywhere else
+ 72  goto 75                       the nil branch
+     line 11: return verdict
+ 73  r0 = r9
+ 74  exit
+     line 13: return action.TX
+ 75  r1 = 3                        XDP_TX, read from linux.xdp
+ 76  to 79: r0 is 3, and the exit
+     line 14: end)
+ 80  r0 = 2                        XDP_PASS, the default verdict
+ 81  exit
+```
+
+`llvm-objdump` prints two of these instructions by what their bytes hold before libbpf has read
+the object. Instruction 51 is `18 01 00 00 70 6f 72 74 00 00 00 00 73 00 00 00`, an `LD_IMM64`
+whose two immediates are the bytes `70 6f 72 74` and `73 00 00 00`: `ports` and its NUL, padded to
+a word, in the kernel's byte order, which LLVM prints as the integer they make. Instruction 65 is
+`85 00 00 00 ff ff ff ff`, a call whose source register is 0 and whose immediate is -1, on which
+`llvm-objdump -r` prints the relocation `R_BPF_64_32 bpf_luaxdp_run`: libbpf, as it loads the
+object, writes there the source register 2, `BPF_PSEUDO_KFUNC_CALL`, the kfunc's id in `luaxdp`'s
+BTF as the immediate, and which BTF that is as the offset. `bpftool prog dump xlated` of the loaded
+program prints it `call bpf_luaxdp_run`.
+
+A frame of 600 bytes whose bytes 36 and 37 are `00 35`, with the runtime `ports` running:
+
+| Instructions | What they compute | Value |
+|--------------|-------------------|-------|
+| 3 to 45 | bytes 36 and 37, `00 35`, joined | `port` is 53 |
+| 47 to 49 | `data_end` less `data` | `#p` is 600 |
+| 51 to 64 | the name, 53 and 600 below the frame, and their addresses and sizes | |
+| 65 | the callback reads 53 with `getint64(0)` and 600 with `getint64(8)`: 600 is over 512 | `r0` is 1, `XDP_DROP` |
+| 66 to 68 | 1, sign-extended | `verdict` is 1 |
+| 69, 70 | 1 is not -1 | jump to 73 |
+| 73, 74 | `r0` is 1 | the program returns 1, `XDP_DROP` |
+
+A frame of 100 bytes to port 53, or one of 600 to port 80, makes the callback return nothing: the
+kfunc answers -1, instruction 69 jumps to 71, and the program returns 3, `XDP_TX`, as it does for
+every frame that reaches the call while no runtime `ports` runs. A frame of 30 bytes stops at the
+read of byte 36 and returns 2, `XDP_PASS`. `bpftool prog run` returned these for the object loaded
+on Linux 6.8, arm64, with the runtime started by `lunatik run --context=softirq ports`. In a TC
+program the call is the same over `bpf_luatc_run`, and `r3` holds the `__sk_buff`.
 

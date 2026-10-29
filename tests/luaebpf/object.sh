@@ -107,7 +107,7 @@ object:section{name = "license", type = elf.section.PROGBITS, flags = elf.flags.
 	data = "Dual MIT/GPL\0", align = 1}
 
 local texts = {"r0 = 1", "r0 = 0", "r1 = 0x100000002"}
-local func = types:func("prog", 1, btf.linkage.GLOBAL, {result = types.int, param = types.long})
+local func = types:func("prog", btf.linkage.GLOBAL, {result = types.int, params = {types.long}})
 local file = types:string("object.sh")
 local lines, previous = {}, nil
 for i, line in ipairs(code:sourcelines()) do
