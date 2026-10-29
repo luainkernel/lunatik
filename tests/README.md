@@ -1219,7 +1219,9 @@ interpreter raises, the compiled program owes its default verdict instead.
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind; a global, a table of the body and a map's
   field written through an upvalue, a verdict that may be nil, which a register
-  cannot tell from `0`, a float the CLI's `math` returns, as a value, as a
+  cannot tell from `0`, a join compared, tested and in arithmetic and a string
+  the body holds, alone and joined with another, each refusal naming the types
+  the register holds, a float the CLI's `math` returns, as a value, as a
   table's field and as the default verdict, a float literal `lunatic` refuses
   to parse, a C function handed to `xdp.program`, a function the CLI's Lua
   compiled from a string, a map key the compiler holds that its spec does not

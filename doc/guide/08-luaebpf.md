@@ -299,7 +299,7 @@ it, since the kernel holds `nil`, `false` and `0` as the same word:
 ```Lua
 local v
 if p:getbyte(14) > 0 then v = 7 end
-if v == 7 then return action.DROP end -- "a value cannot be compared with a number here"
+if v == 7 then return action.DROP end -- "a number or nil cannot be compared with a number here"
 ```
 
 Give the variable one type on every path: `local v = 0`. These are refused too:
@@ -338,8 +338,8 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | the context has no method 'mark' | `skb:mark()`, `ctx:argument()` | the methods of [The packet](#the-packet) |
 | 'data_end' is a packet bound, not a number; '#' on the packet is its length | `ctx.data_end - ctx.data` | `#p` |
 | 'flows' may be nil here; test it first | a lookup used untested | `if v then` |
-| a value cannot be compared with a number here | `==` on a variable nil on one path | `local v = 0` |
-| a value has no truth value in a compiled function | `if v then`, `v` a number or nil | `local v = 0`, then `if v ~= 0 then` |
+| a number or nil cannot be compared with a number here | `==` on a variable nil on one path | `local v = 0` |
+| a number or nil has no truth value in a compiled function | `if v then`, `v` a number or nil | `local v = 0`, then `if v ~= 0 then` |
 | the verdict may be nil here; test it first | `return v`, `v` nil on one path | a verdict on every path |
 | 'half' is a float, which a compiled function cannot hold | `local half = math.sqrt(4)` in the body | an integer |
 | malformed number near '.5', which `lunatic` prints before `lunatic could not compile it` | `2.5` | an integer: the kernel's Lua has no float |
