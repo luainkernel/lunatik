@@ -1084,8 +1084,9 @@ interpreter raises, the compiled program owes its default verdict instead.
   `==` against `nil`, `true`, `false` and a captured string, which only the
   two types answer for once the compiler no longer holds the value.
 - **forconst**: a numeric `for` whose bounds the compiler proves: forward,
-  zero-trip, descending, a step above one, a negative start and a nested
-  pair, none of them taking a `may_goto`.
+  zero-trip, descending, a step above one, a negative start, a nested pair
+  and a `goto` forwards, to the end of the body and out of the loop, none of
+  them taking a `may_goto`.
 - **forvar**: a numeric `for` whose bounds the program computes: it takes a
   `may_goto` header, verifies and terminates; without the header the verifier
   rejects it; a step a called function gets at run time takes the default
