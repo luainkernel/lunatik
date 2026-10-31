@@ -9,9 +9,11 @@
 -- The body of a program file runs on the host under `lunatik bpf`; the function it hands to
 -- `program` is compiled to eBPF and runs in the kernel on each packet the device receives, or
 -- sends. It takes one argument, the context, and returns a verdict, a value of `linux.tc.action`,
--- of which the kernel reads the low 32 bits: `OK`, `SHOT` and `REDIRECT` act, and any other value
--- reads as `UNSPEC`, which decides nothing. Where Lua would raise, at a read past the packet or a
--- division by 0, the program stops and returns its default verdict.
+-- as a kernel script's tc callback does: `OK`, `SHOT` and `REDIRECT` act, and the rest decides
+-- nothing. Where it computes a verdict that is no action, and where Lua would raise, at a read past
+-- the packet or a division by 0, the program stops and returns its default verdict; a verdict the
+-- compiler holds that is no action, and a boolean, are refused, "the verdict 9 is not a TC action"
+-- and "the verdict may be a boolean here; return an action".
 --
 -- The program's argument is spelled as the kernel's `skb` object: `#skb` is the packet's length,
 -- `skb:ifindex()` its device's index, `skb:hash()` its flow hash and `skb:priority()` its
@@ -41,6 +43,9 @@ local action   = require("linux.tc").action
 local INGRESS <const> = "tcx/ingress"
 local EGRESS  <const> = "tcx/egress"
 
+-- the verdicts the kernel's tc callback is held to, luakfunc_action's range in lib/luatc.c
+local actions = {first = action.UNSPEC, last = action.TRAP, name = "a TC action"}
+
 -- what a program reaches on its context, spelled as the kernel's skb object spells it
 -- (lib/luaskb.c): '#' reads len and each method the field of its name, and a method the kernel
 -- lets a program write takes a value. tc_cls_act_is_valid_access allows a write only to mark,
@@ -64,16 +69,16 @@ local tc = {}
 -- @function bpf.tc.program
 -- @tparam function fn the program; it takes the context and returns a verdict.
 -- @tparam[opt] table opts `egress`, which attaches the program on the way out rather than in,
---   `default`, the verdict the program returns where it stops, where Lua would raise
---   (`linux.tc.action.OK`), and `name`, what the program is called in the object, cut to the
+--   `default`, the verdict the program returns where it stops, an action (`linux.tc.action.OK`),
+--   and `name`, what the program is called in the object, cut to the
 --   fifteen characters `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken.
 -- @treturn table the declared program
 -- @raise `tc.program takes a Lua function`, or `<file>:<line>: tc.program's default verdict is not
---   an integer`, the line where `fn` is defined
+--   an integer` or `is not a TC action`, the line where `fn` is defined
 function tc.program(fn, opts)
 	opts = opts or {}
 	return programs.declare("tc.program", fn, {section = opts.egress and EGRESS or INGRESS,
-		default = opts.default or action.OK, name = opts.name, context = context})
+		default = opts.default or action.OK, name = opts.name, context = context, actions = actions})
 end
 
 return tc

@@ -48,8 +48,9 @@ failure paths are exercised, not only the happy one. Phase 1 reads no packet, an
 suite. The emitter exposes a test hook, `LUAEBPF_DROP`, an environment variable the CLI has no
 option for, naming one mechanism to drop: `divisor` (the test before a division), `maygoto` (the header
 a loop without a proven bound needs), `lineinfo` (the `.BTF.ext` records), `verdict` (the write to
-`R0`), and `bounds` (the `data_end` test before a packet load). Each has a test that asserts the
-verifier rejects the program, that the log lacks the Lua line, or that the arithmetic changes.
+`R0`), `action` (the test of a computed verdict against its type's actions), and `bounds` (the
+`data_end` test before a packet load). Each has a test that asserts the verifier rejects the
+program, that the log lacks the Lua line, or that the arithmetic or the verdict changes.
 
 **Pinned object cleanup.** Programs, maps and links pinned by a test outlive it. The cleanup
 removes everything under `/sys/fs/bpf/luaebpf/` and under `/sys/fs/bpf/lunatik/tests/luaebpf/`
@@ -78,6 +79,7 @@ matching and failing, not a list of features.
 | `pass.sh` | the constant-verdict program compiles, loads, and `prog run` returns the verdict |
 | `arith.sh` | every integer operator over a corpus of operand pairs, negative operands included, matches the interpreter (`//` and `%` floor semantics, shifts past 63) |
 | `divzero.sh` | a division by zero returns the default verdict where the interpreter raises |
+| `verdict.sh` | a verdict the program computes within its type's actions, at either end, is returned, and one outside them, past 32 bits or computed by a callee takes the default verdict; a known verdict outside them, a boolean, pure or joined, and a default outside them are refused with their lines; with the test dropped by the hook the verifier still loads the program and the raw values come back |
 | `branch.sh` | `if`, `and`, `or`, `not` and every comparison over signed and unsigned edges match |
 | `forconst.sh` | a `for` with constant bounds runs the right count; a zero-trip and a descending loop included |
 | `forvar.sh` | a `for` whose bound is a program value verifies with `may_goto` and terminates; skips and asserts the refusal on a kernel without it |
