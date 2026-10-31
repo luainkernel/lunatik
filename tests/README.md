@@ -1079,6 +1079,15 @@ compiled program keeps nothing.
   computes, take the default verdict; `mininteger // -1` and `x % -1` match
   the interpreter; with `LUAEBPF_DROP=divisor` the programs keep the raw eBPF
   answers instead.
+- **verdict**: a verdict the program computes at either end of its type's
+  actions, `XDP_ABORTED` and `XDP_REDIRECT`, `TC_ACT_UNSPEC` and `TC_ACT_TRAP`,
+  is returned, and so is `TC_ACT_UNSPEC` where the compiler holds it; one past
+  either end, one whose low 32 bits are an action and whose high ones are not,
+  and one a called function computes take the default verdict. A verdict the
+  compiler holds outside the actions, a boolean, a value that is a boolean on
+  one path, and a default verdict outside them are refused with their lines;
+  with `LUAEBPF_DROP=action` the verifier still loads the programs and `prog
+  run` returns the raw low 32 bits.
 - **branch**: every comparison in its register and immediate forms with a
   negative against a positive, `if`/`elseif`/`else`, `and`, `or`, `not`,
   `TEST`/`TESTSET`, a boolean held in a register, Lua's truth, where `0` is

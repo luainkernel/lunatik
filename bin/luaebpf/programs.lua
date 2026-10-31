@@ -27,23 +27,36 @@ function programs.reset()
 	declared = {}
 end
 
+-- what a default verdict must be and is not, or nil where it is one of its program type's actions
+local function unmet(program)
+	local default, actions = program.default, program.actions
+	if mathtype(default) ~= "integer" then
+		return "an integer"
+	end
+	if default < actions.first or default > actions.last then
+		return actions.name
+	end
+end
+
 ---
 -- Records one program, held to what every constructor takes.
 -- @function luaebpf.programs.declare
 -- @tparam string constructor the constructor the program file called, `xdp.program` or its peer
 -- @tparam function fn the program
--- @tparam table program `{section, default, name, context}`
+-- @tparam table program `{section, default, name, context, actions}`, `actions` the verdicts of its
+--   type, `{first, last, name}`
 -- @treturn table the program, with `fn`
 -- @raise `<constructor> takes a Lua function`, or `<file>:<line>: <constructor>'s default verdict
---   is not an integer`, the line where `fn` is defined
+--   is not an integer` or `is not <actions.name>`, the line where `fn` is defined
 function programs.declare(constructor, fn, program)
 	if type(fn) ~= "function" or getinfo(fn, "S").what == "C" then
 		error(format("%s takes a Lua function", constructor), 2) -- each constructor tail-calls declare
 	end
-	if mathtype(program.default) ~= "integer" then
+	local expected = unmet(program)
+	if expected ~= nil then
 		local info = getinfo(fn, "S") -- a caller that returns xdp.program(...) leaves no line of its own
-		error(format("%s:%d: %s's default verdict is not an integer", info.short_src, info.linedefined,
-			constructor), 0)
+		error(format("%s:%d: %s's default verdict is not %s", info.short_src, info.linedefined,
+			constructor, expected), 0)
 	end
 	program.fn = fn
 	insert(declared, program)
