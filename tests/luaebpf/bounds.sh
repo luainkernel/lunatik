@@ -11,14 +11,14 @@
 #     interpreter raises on each, and the compiled program owes XDP_ABORTED through ctx:packet() on
 #     XDP, read between the context's bounds, and TC_ACT_SHOT through skb:data() on TC, read
 #     through bpf_skb_load_bytes
-#   - every row is declared twice, once with each of two defaults, so the answer is the error
+#   - every row is declared twice, once with each of two defaults, so the verdict is the error
 #     verdict of the program's type whatever default the file named
 #   - with LUAEBPF_DROP=bounds the object is still written, and the verifier rejects it naming an
 #     invalid packet access, which is what says the check is emitted rather than implied
 #   - with LUAEBPF_DROP=loadbytes the test of what bpf_skb_load_bytes answers is gone from a TC
-#     read, which the verifier takes, and the read one byte past the last answers the 0 the helper
+#     read, which the verifier takes, and the read one byte past the last keeps the 0 the helper
 #     leaves in the frame where the interpreter raises, which is what says the test is emitted. The
-#     read above the ceiling answers 0 too, which says a TC read tests its offset against INT_MAX,
+#     read above the ceiling keeps 0 too, which says a TC read tests its offset against INT_MAX,
 #     the helper's own bound, and not against the ceiling. It is a hook of its own: under the other
 #     the object's XDP rows are rejected with it
 #
@@ -51,11 +51,11 @@ ktap_pass "luaebpf: without the bounds check the verifier refuses the packet acc
 rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
 output=$(luaebpf_compile bounds loadbytes) || { comment "$output"; fail "luaebpf: the dropped build failed"; }
 output=$(luaebpf_loadall bounds) || { comment "$output"; fail "luaebpf: without the helper's test the TC rows did not verify"; }
-raw=$(luaebpf_verdict skbpast1 skbarp)
-[ "$raw" = "0" ] || fail "luaebpf: without the helper's test a TC read past the packet answers 0, got '$raw'"
-ktap_pass "luaebpf: without the test of the helper's answer a TC read past the packet answers 0"
-raw=$(luaebpf_verdict skbhigh1 skbarp)
-[ "$raw" = "0" ] || fail "luaebpf: without the helper's test a TC read above the ceiling answers 0, got '$raw'"
+raw=$(luaebpf_keeps skbpast1 skbarp)
+[ "$raw" = "0" ] || fail "luaebpf: without the helper's test a TC read past the packet keeps 0, got '$raw'"
+ktap_pass "luaebpf: without the test of the helper's answer a TC read past the packet keeps 0"
+raw=$(luaebpf_keeps skbhigh1 skbarp)
+[ "$raw" = "0" ] || fail "luaebpf: without the helper's test a TC read above the ceiling keeps 0, got '$raw'"
 ktap_pass "luaebpf: a TC read above the ceiling reaches bpf_skb_load_bytes"
 
 check_dmesg

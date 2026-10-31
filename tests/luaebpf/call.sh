@@ -9,9 +9,10 @@
 #     its caller tests, a call asking for two results, where Lua fills the second with nil, and a
 #     body with more live values than the emitter keeps in registers, so the rest go to the frame
 #   - a division inside a called function returns XDP_ABORTED, through the flag each frame raises
-#     in its caller's, and not the default the file declares, which no row owes; a callee that
-#     stops answers 0, XDP_ABORTED's value, so such a row adds one past the call, which a caller
-#     that went on past the flag would return; a row whose callee reaches nothing but its abort
+#     in its caller's, and keeps nothing, where a row that goes on returns the default the file
+#     declares, other than XDP_PASS, so the verdict is the one it asked for; a callee that stops
+#     answers 0, XDP_ABORTED's value, and a row whose callee may stop adds one past the call, which
+#     a caller that went on past the flag would keep; a row whose callee reaches nothing but its abort
 #     tail loads, which it would not if that tail left R0 uninitialised, since the verifier reads
 #     R0 on the caller's fall-through without pairing the flag with the path
 #   - the object carries one BTF FUNC per subprogram, named as the file names it

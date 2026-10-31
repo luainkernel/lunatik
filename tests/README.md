@@ -1184,12 +1184,13 @@ Tests for the Lua to eBPF compiler. Each case compiles a program file with
 runs once up front. Skips when `lunatic` or `bpftool` is missing, when
 `/sys/fs/bpf` is not mounted, or when the kernel publishes no BTF.
 
-Every corpus case is differential: the program file's body calls the same
-functions it hands to `xdp.program` on the host and writes what each returned
-beside the object, and the case compares that with what the compiled program
-returns, truncated to the 32 bits `bpf_prog_run` gives back. Where the
-interpreter raises, the compiled program owes the error verdict of its type
-instead, `XDP_ABORTED` or `TC_ACT_SHOT`.
+Every corpus case is differential: each program keeps the value its function
+computes in a map the program file declares and returns its default verdict;
+the body runs the same programs on the host and writes what each kept beside
+the object, and the case compares that with the 64 bits the compiled program
+kept, and its verdict with the default. Where the interpreter raises, the
+compiled program keeps nothing and owes the error verdict of its type instead,
+`XDP_ABORTED` or `TC_ACT_SHOT`.
 
 - **host**: the body runs from the chunk `lunatic` compiles, rewritten for
   the CLI's Lua, and computes as the kernel does: `10 / 4` is the integer 2,
@@ -1275,15 +1276,14 @@ instead, `XDP_ABORTED` or `TC_ACT_SHOT`.
   and immediate forms over negatives, zero, `-1`, `mininteger`, `maxinteger`
   and shift counts of 0, 1, 63, 64, 65 and `-1`.
 - **divzero**: `// 0` and `% 0`, by a constant divisor and by one the program
-  computes, return `XDP_ABORTED` and not the default the file names, a
-  quotient by zero returned plus one so that eBPF's own, 0, is not read as
-  `XDP_ABORTED`; `mininteger // -1` and `x % -1` match the interpreter; with
-  `LUAEBPF_DROP=divisor` the raw eBPF answers come through instead.
+  computes, return `XDP_ABORTED` and not the default the file names, and keep
+  nothing; `mininteger // -1` and `x % -1` match the interpreter; with
+  `LUAEBPF_DROP=divisor` the programs keep the raw eBPF answers instead.
 - **branch**: every comparison in its register and immediate forms with a
   negative against a positive, `if`/`elseif`/`else`, `and`, `or`, `not`,
-  `TEST`/`TESTSET`, a returned boolean, Lua's truth, where `0` is true, and
-  `==` against `nil`, `true`, `false` and a captured string, which only the
-  two types answer for once the compiler no longer holds the value.
+  `TEST`/`TESTSET`, a boolean held in a register, Lua's truth, where `0` is
+  true, and `==` against `nil`, `true`, `false` and a captured string, which
+  only the two types answer for once the compiler no longer holds the value.
 - **forconst**: a numeric `for` whose bounds the compiler proves: forward,
   zero-trip, descending, a step above one, a negative start, a nested pair
   and a `goto` forwards, to the end of the body and out of the loop, none of
@@ -1365,7 +1365,7 @@ instead, `XDP_ABORTED` or `TC_ACT_SHOT`.
   object is still written and the verifier refuses it naming an invalid packet
   access, and with `LUAEBPF_DROP=loadbytes`, which drops the test of what
   `bpf_skb_load_bytes` answers, it verifies and the TC reads past the last byte
-  and above the ceiling answer 0, the second since a TC read tests its offset
+  and above the ceiling keep 0, the second since a TC read tests its offset
   against `INT_MAX`, the helper's own bound, and not against the ceiling.
 - **nonlinear**: `skb:data()` on an skb that is not linear, which `prog run`
   builds only from v6.19: the TC program is attached with `tc` to the egress of
@@ -1394,10 +1394,11 @@ instead, `XDP_ABORTED` or `TC_ACT_SHOT`.
   register nil on the path that skips the lookup, tested as the lookup is, on a
   frame that takes the lookup and on one that skips it, a key
   the program computes past its unsigned or its signed spec, whose low bytes are
-  a seeded key, which returns `XDP_ABORTED`, and a negative key a signed
-  spec packs. The program file's body writes what each owes either way, from
-  the constants and specs the programs were compiled against, a key
-  `string.pack` refuses owing `XDP_ABORTED`. An untested use, a string key, a
+  a seeded key, which stops the program, and a negative key a signed spec
+  packs. Each program keeps what it finds in the map `results`, and the program
+  file's body writes what each owes either way, from the constants and specs
+  the programs were compiled against, a key `string.pack` refuses owing
+  nothing. An untested use, a string key, a
   method call on a lookup and a register two lookups in different maps merge
   into, at a branch or through a loop's back edge, are refused with their
   messages and lines, and so is a declaration the

@@ -38,10 +38,9 @@ local function always(n)
 	return 1 // zero
 end
 
--- the deepest chain MAX_CALL_FRAMES takes: the program's own frame and seven more, each able to
--- abort, so the flag is forwarded one frame at a time
-local function deep7(x) return 100 // x end
-local function deep6(x) local v = deep7(x) return v // 1 end
+-- the deepest chain MAX_CALL_FRAMES takes: the program's own frame, the row's function and six
+-- more, each able to abort, so the flag is forwarded one frame at a time
+local function deep6(x) return 100 // x end
 local function deep5(x) local v = deep6(x) return v // 1 end
 local function deep4(x) local v = deep5(x) return v // 1 end
 local function deep3(x) local v = deep4(x) return v // 1 end
@@ -78,6 +77,7 @@ local order = {"once", "twolevels", "fourarguments", "shared", "deepest", "nilab
 	"onlyabort", "oneresult", "spilled"}
 local operands = {{0}, {3}, {-5}, {1000000}}
 
--- a default no row owes, so a stop that took it rather than XDP_ABORTED is told apart
+-- a default other than XDP_PASS, so the verdict a row that goes on returns is the one the file asked
+-- for, and a stop that took it rather than XDP_ABORTED is told apart
 corpus.declare(makers, order, operands, action.REDIRECT)
 
