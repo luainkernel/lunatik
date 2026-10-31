@@ -8,6 +8,10 @@
 #     header, verifies, and terminates with the interpreter's answer. The verifier's own log is
 #     what shows the header, since the kernel rewrites it into a loop counter on the way in
 #   - a step that is zero at run time, which the interpreter raises on, returns XDP_ABORTED
+#   - a loop whose passes outrun the budget the kernel gives may_goto, counted or timed, returns
+#     XDP_ABORTED too and keeps nothing, in the program and in a function it calls, which the
+#     interpreter, making every pass, never gives, so the case asserts it on its own rather than
+#     against the oracle
 #   - with LUAEBPF_DROP=maygoto the header is gone and the verifier rejects the loop, which is
 #     what proves the header is emitted
 #   - a step a called function gets at run time returns XDP_ABORTED too, through the flag the
@@ -26,7 +30,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 4
+luaebpf_start 5
 
 cat > "$LUAEBPF_WORK/zerostep.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
@@ -50,6 +54,7 @@ if ! luaebpf_maygoto; then
 	ktap_pass "luaebpf: without may_goto an unbounded loop is refused with its reason"
 	ktap_skip "luaebpf: the kernel has no may_goto"
 	ktap_skip "luaebpf: the kernel has no may_goto"
+	ktap_skip "luaebpf: the kernel has no may_goto"
 	check_dmesg
 	ktap_totals
 	[ $KTAP_FAIL -eq 0 ]
@@ -65,6 +70,14 @@ ktap_pass "luaebpf: an unproven bound takes a may_goto header and verifies"
 
 output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a loop differs from the interpreter"; }
 ktap_pass "luaebpf: every unbounded loop terminates with the interpreter's answer"
+
+for name in spent calledspent; do
+	raw=$(luaebpf_verdict "$name")
+	kept=$(luaebpf_kept "$name")
+	[ "$raw" = "0" ] && [ "$kept" = absent ] \
+		|| fail "luaebpf: $name, past the may_goto budget, returned '$raw' and kept '$kept', not XDP_ABORTED"
+done
+ktap_pass "luaebpf: a loop past the budget the kernel gives may_goto returns XDP_ABORTED, called or not"
 
 rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
 output=$(luaebpf_compile forvar maygoto) || { comment "$output"; fail "luaebpf: the dropped build failed"; }
