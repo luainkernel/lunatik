@@ -104,15 +104,47 @@ luaebpf_verdict() {
 		| grep -oP 'Return value: \K[0-9]+'
 }
 
-# every row of the oracle against the program of the same name; where the interpreter raised,
-# the compiled program owes the default verdict that row declared instead
+# what a pinned map holds under a key, as bpftool prints it, or "absent"
+luaebpf_lookup() {
+	local out
+	out=$(bpftool map lookup pinned "$LUAEBPF_MAPS/$1" key $2 2>&1) || { echo absent; return; }
+	echo "$out" | grep -oP 'value: \K.*' | sed 's/ *$//'
+}
+
+# what the program <name> kept in the map corpus.lua declares, under the key the program file's
+# body wrote beside the object: its eight bytes read in the host's byte order, the kernel's, or
+# "absent"
+luaebpf_kept() {
+	local key bytes byte hex= order
+	key=$(awk -F'\t' -v name="$1" '$1 == name {print $2}' "$LUAEBPF_WORK/keys.txt")
+	bytes=$(luaebpf_lookup results "$key")
+	[ "$bytes" = absent ] && { echo absent; return; }
+	order=$(host_order)
+	for byte in $bytes; do
+		if [ "$order" = little ]; then hex=$byte$hex; else hex=$hex$byte; fi
+	done
+	echo $((16#$hex))
+}
+
+# luaebpf_keeps <name> [<context> [<out>]]: what the program keeps when prog run runs it, as
+# luaebpf_verdict runs it
+luaebpf_keeps() {
+	luaebpf_verdict "$@" > /dev/null
+	luaebpf_kept "$1"
+}
+
+# every row of the oracle against the program of the same name: it returns the default verdict
+# its row declared, and keeps what the interpreter kept, nothing where the interpreter raised
 luaebpf_differential() {
-	local name value default context got mismatch=0
+	local name value default context got kept mismatch=0
 	while IFS=$'\t' read -r name value default context; do
-		[ "$value" = "raises" ] && value="$default"
 		got=$(luaebpf_verdict "$name" "$context")
-		if [ "$got" != "$value" ]; then
-			echo "$name: returned '$got', the interpreter says '$value'"
+		kept=$(luaebpf_kept "$name")
+		if [ "$got" != "$default" ]; then
+			echo "$name: returned '$got', not its default verdict '$default'"
+			mismatch=$((mismatch + 1))
+		elif [ "$kept" != "$value" ]; then
+			echo "$name: kept '$kept', the interpreter '$value'"
 			mismatch=$((mismatch + 1))
 		fi
 	done < "$LUAEBPF_WORK/oracle.txt"

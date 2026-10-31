@@ -9,8 +9,8 @@
 #   - a corpus of operand pairs with negatives, zero, -1, mininteger, maxinteger, and shift
 #     counts of 0, 1, 63, 64, 65 and -1, where eBPF masks the count and Lua yields zero
 #   - SHLI, whose constant is the left operand, and SHRI, whose count Lua negates
-# One program per row lands in one object; each verdict is compared with the value the program
-# file's own body computed on the host, truncated to the 32 bits bpf_prog_run returns.
+# One program per row lands in one object, and keeps its value in a map; the 64 bits it keeps are
+# compared with what the program file's own body kept running the same program on the host.
 #
 # Usage: sudo bash tests/luaebpf/arith.sh
 

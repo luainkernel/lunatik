@@ -17,10 +17,10 @@
 #     which is where the verifier has to narrow it, and a register nil on the path that skips
 #     the lookup, which the test narrows as it narrows the lookup, run on a frame that takes the
 #     lookup and on one that skips it, where the nil answers as a miss does
-#   - a key the program computes outside what its spec packs, unsigned and signed, takes the
-#     default verdict, where the kernel's bpf.map raises in string.pack: each one's low bytes are
-#     a seeded key, so a key stored truncated answers the seeded value instead; and a negative
-#     key a signed spec packs finds what the shell seeded under it
+#   - a key the program computes outside what its spec packs, unsigned and signed, stops the
+#     program, where the kernel's bpf.map raises in string.pack: each one's low bytes are a seeded
+#     key, so a key stored truncated keeps the seeded value instead of nothing; and a negative key
+#     a signed spec packs finds what the shell seeded under it
 #   - a lookup used as a number with no test, a lookup keyed by a string, and a method call on
 #     a lookup, which no map value carries, are refused with their messages and lines
 #   - a register two lookups in different maps merge into is refused where it is tested, whether
@@ -46,12 +46,12 @@ luaebpf_start 19
 
 ROWS=
 
-# what every program answered, one "name value" line per row
+# what every program kept, one "name value" line per row
 answers() {
 	local name before after
 	while IFS=$'\t' read -r kind name before after; do
 		[ "$kind" = expect ] || continue
-		echo "$name $(luaebpf_verdict "$name" frame)"
+		echo "$name $(luaebpf_keeps "$name" frame)"
 	done < "$ROWS"
 }
 

@@ -16,7 +16,6 @@ local insert, sort = table.insert, table.sort
 local KEY     <const> = "I4"
 local AT      <const> = 1
 local MISS    <const> = 9
-local WORD    <const> = 0xffffffff
 
 -- one field of every width and signedness, with a gap the codec reads as padding
 local record = struct{size = 16, fields = {
@@ -48,8 +47,9 @@ local function totlen(_) local v = headers[AT] if v then return v.tot_len end re
 local reads = {{"u8", u8}, {"i8", i8}, {"u16", u16}, {"i16", i16}, {"u32", u32}, {"i32", i32},
 	{"ttl", ttl}, {"protocol", protocol}, {"totlen", totlen}}
 for _, read in ipairs(reads) do
-	xdp.program(read[2], {name = read[1]})
+	corpus.program(xdp.program, {name = read[1]}, corpus.returning, read[2])
 end
+corpus.close()
 
 corpus.frame()
 
@@ -83,10 +83,10 @@ local out = assert(io.open("rows.txt", "w"))
 out:write("seed\trecords\t", bytes(pack(KEY, AT)), "\t", bytes(packed), "\n")
 out:write("seed\theaders\t", bytes(pack(KEY, AT)), "\t", bytes(wire), "\n")
 for _, value in ipairs(values) do
-	out:write("expect\t", value[1], "\t", value[2] & WORD, "\n")
+	out:write("expect\t", value[1], "\t", value[2], "\n")
 end
-out:write("expect\tttl\t", header_fields.ttl & WORD, "\n")
-out:write("expect\tprotocol\t", header_fields.protocol & WORD, "\n")
-out:write("expect\ttotlen\t", header_fields.tot_len & WORD, "\n")
+out:write("expect\tttl\t", header_fields.ttl, "\n")
+out:write("expect\tprotocol\t", header_fields.protocol, "\n")
+out:write("expect\ttotlen\t", header_fields.tot_len, "\n")
 out:close()
 

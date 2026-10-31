@@ -9,7 +9,7 @@
 #     unsigned jump gets wrong
 #   - if/elseif/else, and, or, not, TEST and TESTSET
 #   - Lua's truth, which the bits do not carry: 0 is true, and only false and nil are not
-#   - a program returning a boolean
+#   - a comparison held in a register as a boolean, and an 'or' of two, then tested
 #   - '==' against nil, true, false and a string the body captured, where the compiler holds the
 #     other side's type but not its value, so only the two types answer: in a register, false,
 #     nil and the integer zero are one word
