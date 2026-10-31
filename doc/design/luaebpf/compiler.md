@@ -61,7 +61,8 @@ the program file defines.
 A program constructor leaves each program in `programs.lua`: its function, its default verdict, the
 error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`, its name if the file gave one, the ELF
 section its kind names, `xdp`, `tcx/ingress` or `tcx/egress`,
-from which libbpf reads the program type and the attach point, its context: the kernel struct
+from which libbpf reads the program type and the attach point, the actions a verdict of its type
+may be, the range `luakfunc_action` holds a kernel callback to, its context: the kernel struct
 the program reads, `xdp_md` or `__sk_buff`, the field each of its methods reads, the methods that
 write, and the method that opens the packet, and the kfunc its type's module registers,
 `bpf_luaxdp_run` or `bpf_luatc_run`, which a call into the kernel Lua runtime lowers to.
@@ -243,7 +244,10 @@ what `frame.lua` holds:
 * `forloop.lua`: `FORPREP` and `FORLOOP`, the numeric `for`, whose iterations are counted up front
   as `forprep` in `lua/lvm.c` counts them.
 * `call.lua`: `CALL`, the returns, and the invocation of a subprogram. A `return` with no value, or
-  with nil, in a program returns its default verdict, as a hook reads both alike.
+  with nil, in a program returns its default verdict, as a hook reads both alike. A program's
+  verdict is one of its type's actions: a boolean, or a value the compiler holds outside them, is
+  refused, and a value the program computes is tested against the first and the last, two jumps to
+  the abort tail. A subprogram's return is not a verdict.
 * `context.lua`: a method of the context reads the field its constructor maps it to, after storing
   there the value a setter is called with, and `#skb` reads `len`.
 * `packet.lua`: the reads of the packet proxy, each held to the packet's bounds or, on TC, made
@@ -257,8 +261,8 @@ An opcode none of them lowers is refused with the reason `emit/init.lua` keeps f
 constructor's: "a table constructor cannot run in the kernel; build it in the file body".
 
 `LUAEBPF_DROP`, an environment variable the CLI has no option for, names one mechanism the
-compiler then leaves out, `divisor`, `bounds`, `loadbytes`, `maygoto`, `verdict`, `lineinfo` or
-`ksyms`, so the suite shows each one is what a case rests on ([testing.md](testing.md)).
+compiler then leaves out, `divisor`, `bounds`, `loadbytes`, `maygoto`, `verdict`, `action`,
+`lineinfo` or `ksyms`, so the suite shows each one is what a case rests on ([testing.md](testing.md)).
 
 ## Limits
 
