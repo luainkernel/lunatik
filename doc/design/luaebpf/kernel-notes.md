@@ -209,9 +209,11 @@ under `sudo`.
   and `may_goto` (`BPF_JCOND` at
   [uapi/linux/bpf.h#L45](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L45),
   `BPF_MAY_GOTO` at [#L58](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L58)),
-  a conditional jump the kernel takes after `BPF_MAX_LOOPS` iterations, so a loop whose header
-  carries one is accepted whatever its condition. Lua's numeric `for` computes its iteration count
-  up front (`forprep`,
+  a conditional jump the kernel takes after `BPF_MAX_LOOPS` iterations, or, where the JIT times
+  it, a quarter of a second after the frame's first `BPF_MAX_TIMED_LOOPS` iterations
+  ([kernel/bpf/core.c#L3407-L3423](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/core.c#L3407-L3423)),
+  so a loop whose header carries one is accepted whatever its condition. Lua's numeric `for`
+  computes its iteration count up front (`forprep`,
   [lvm.c#L223-L259](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L223-L259))
   and `OP_FORLOOP` counts it down
   ([lopcodes.h#L333-L334](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lopcodes.h#L333-L334)):
@@ -655,6 +657,7 @@ bytecode reader and types are LuaJIT's. The design transfers, the code does not.
 | the tree's kfuncs (`lib/luakfunc.h`, no gate above the tree's floor) | v6.6 | [lib/luakfunc.h#L130-L139](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luakfunc.h#L130-L139) |
 | `bpf_throw` | v6.7 | [f18b03fabaa9](https://github.com/torvalds/linux/commit/f18b03fabaa9b7c80e80b72a621f481f0d706ae0) (2023-09-12) |
 | `may_goto` | v6.9 | [011832b97b31](https://github.com/torvalds/linux/commit/011832b97b311bb9e3c27945bc0d1089a14209c9) (2024-03-06) |
+| timed `may_goto` | v6.15 on x86, v6.18 on arm64 | [2fb761823ead](https://github.com/torvalds/linux/commit/2fb761823eadf2fdfb6fdf146c4b94807b4bc3ba) (2025-03-15), [16175375da36](https://github.com/torvalds/linux/commit/16175375da369fcfdcc0127c9ca39b767ae4f885) (2025-08-28) |
 | arena | v6.9 | [317460317a02](https://github.com/torvalds/linux/commit/317460317a02a1af512697e6e964298dedd8a163) (2024-03-08) |
 | `register_bpf_struct_ops` for modules | v6.9 by tag presence (absent at v6.7, v6.8 not checked) | [9187210eee7d](https://github.com/torvalds/linux/commit/9187210eee7d87eea37b45ea93454a88681894a4) (merge, 2024-03-13) |
 | `kern_sys_bpf` namespaced | v6.15 | [f88886de0927](https://github.com/torvalds/linux/commit/f88886de0927a2adf4c1b4c5c1f1d31d2023ef74) (2025-04-25) |
