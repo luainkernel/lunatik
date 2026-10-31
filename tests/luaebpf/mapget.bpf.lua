@@ -7,7 +7,6 @@
 local corpus = require("tests.luaebpf.corpus")
 local map    = require("bpf.map")
 local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
 
 local pack, bytes = string.pack, corpus.bytes
 
@@ -34,129 +33,165 @@ local hits  = map.array("hits", {key = KEY, value = BIG, entries = 4})
 local marks = map.hash("marks", {key = SIGNED, value = VALUE, entries = ENTRIES})
 local recent = map.lru_hash("recent", {key = KEY, value = VALUE, entries = ENTRIES})
 
-local function present(_)
-	local v = flows[PRESENT]
-	if v then
-		return v
+local function present(keep)
+	return function(_)
+		local v = flows[PRESENT]
+		if v then
+			keep(v)
+			return
+		end
+		keep(MISS)
 	end
-	return MISS
 end
 
-local function absent(_)
-	local v = flows[ABSENT]
-	if v then
-		return v
+local function absent(keep)
+	return function(_)
+		local v = flows[ABSENT]
+		if v then
+			keep(v)
+			return
+		end
+		keep(MISS)
 	end
-	return MISS
 end
 
 -- the key is a byte of the packet, so the lookup takes a value the program computed rather than
 -- one the compiler folded into the instruction
-local function computed(ctx)
-	local p = ctx:packet()
-	local k = p:getbyte(0)
-	local v = flows[k]
-	if v then
-		return v
+local function computed(keep)
+	return function(ctx)
+		local p = ctx:packet()
+		local k = p:getbyte(0)
+		local v = flows[k]
+		if v then
+			keep(v)
+			return
+		end
+		keep(MISS)
 	end
-	return MISS
 end
 
 -- an array lookup in range answers a pointer even where nothing was written, so the branch a
 -- zero value takes is the one Lua takes: 0 is true
-local function inrange(_)
-	local v = hits[INDEX]
-	if v then
-		return v + BASE
+local function inrange(keep)
+	return function(_)
+		local v = hits[INDEX]
+		if v then
+			keep(v + BASE)
+			return
+		end
+		keep(MISS)
 	end
-	return MISS
 end
 
-local function beyond(_)
-	local v = hits[BEYOND]
-	if v then
-		return v + BASE
+local function beyond(keep)
+	return function(_)
+		local v = hits[BEYOND]
+		if v then
+			keep(v + BASE)
+			return
+		end
+		keep(MISS)
 	end
-	return MISS
 end
 
 -- more live values than the emitter keeps in registers, so the lookup's own pointer goes to the
 -- frame and the verifier has to narrow it there
-local function spilled(_)
-	local a, b, c, d = 1, 2, 3, 4
-	local e, f, g, h = 5, 6, 7, 8
-	local v = flows[PRESENT]
-	local sum = a + b * 2 + c * 3 + d * 4 + e * 5 + f * 6 + g * 7 + h * 8
-	if v then
-		return v + sum
+local function spilled(keep)
+	return function(_)
+		local a, b, c, d = 1, 2, 3, 4
+		local e, f, g, h = 5, 6, 7, 8
+		local v = flows[PRESENT]
+		local sum = a + b * 2 + c * 3 + d * 4 + e * 5 + f * 6 + g * 7 + h * 8
+		if v then
+			keep(v + sum)
+			return
+		end
+		keep(sum)
 	end
-	return sum
 end
 
 -- a key the program computes past what its spec packs, whose low four bytes are the seeded one:
 -- string.pack raises on it, so the program owes its default verdict and not the seeded value
-local function widekey(ctx)
-	local p = ctx:packet()
-	local k = p:getbyte(0) << WORD | PRESENT
-	local v = flows[k]
-	if v then
-		return v
+local function widekey(keep)
+	return function(ctx)
+		local p = ctx:packet()
+		local k = p:getbyte(0) << WORD | PRESENT
+		local v = flows[k]
+		if v then
+			keep(v)
+			return
+		end
+		keep(MISS)
 	end
-	return MISS
 end
 
 -- a negative key a signed spec packs, and one past its range whose low two bytes are that key
-local function negkey(ctx)
-	local p = ctx:packet()
-	local v = marks[-p:getbyte(0)]
-	if v then
-		return v
+local function negkey(keep)
+	return function(ctx)
+		local p = ctx:packet()
+		local v = marks[-p:getbyte(0)]
+		if v then
+			keep(v)
+			return
+		end
+		keep(MISS)
 	end
-	return MISS
 end
 
-local function narrowkey(ctx)
-	local p = ctx:packet()
-	local v = marks[-p:getbyte(0) - SPAN]
-	if v then
-		return v
+local function narrowkey(keep)
+	return function(ctx)
+		local p = ctx:packet()
+		local v = marks[-p:getbyte(0) - SPAN]
+		if v then
+			keep(v)
+			return
+		end
+		keep(MISS)
 	end
-	return MISS
 end
 
 -- a register nil on the path that skips the lookup, which the test narrows as it narrows the lookup
-local function onepath(ctx)
-	local p = ctx:packet()
-	local v
-	if p:getbyte(0) == FIRST then
-		v = flows[PRESENT]
+local function onepath(keep)
+	return function(ctx)
+		local p = ctx:packet()
+		local v
+		if p:getbyte(0) == FIRST then
+			v = flows[PRESENT]
+		end
+		if v then
+			keep(v)
+			return
+		end
+		keep(MISS)
 	end
-	if v then
-		return v
-	end
-	return MISS
 end
 
 -- the same register where the frame skips the lookup, so the test reads the nil itself
-local function skipped(ctx)
-	local p = ctx:packet()
-	local v
-	if p:getbyte(0) ~= FIRST then
-		v = flows[PRESENT]
+local function skipped(keep)
+	return function(ctx)
+		local p = ctx:packet()
+		local v
+		if p:getbyte(0) ~= FIRST then
+			v = flows[PRESENT]
+		end
+		if v then
+			keep(v)
+			return
+		end
+		keep(MISS)
 	end
-	if v then
-		return v
-	end
-	return MISS
 end
 
 -- an LRU hash, which a lookup reads as it reads a hash
-local function lru(_)
-	local v = recent[PRESENT]
-	if v then
-		return v
+local function lru(keep)
+	return function(_)
+		local v = recent[PRESENT]
+		if v then
+			keep(v)
+			return
+		end
+		keep(MISS)
 	end
-	return MISS
 end
 
 local programs = {{"present", present}, {"absent", absent}, {"computed", computed},
@@ -164,13 +199,14 @@ local programs = {{"present", present}, {"absent", absent}, {"computed", compute
 	{"negkey", negkey}, {"narrowkey", narrowkey}, {"onepath", onepath}, {"skipped", skipped},
 	{"lru", lru}}
 for _, program in ipairs(programs) do
-	xdp.program(program[2], {name = program[1]})
+	corpus.program(xdp.program, {name = program[1]}, program[2])
 end
+corpus.close()
 
--- the verdict a lookup under a key owes: what it finds where string.pack takes the key, and the
--- default where it raises, as the kernel's bpf.map does
+-- what a lookup under a key keeps: what it finds where string.pack takes the key, and nothing where
+-- it raises, as the kernel's bpf.map does
 local function owed(format, key, found)
-	return pcall(pack, format, key) and found or action.PASS
+	return pcall(pack, format, key) and found or "absent"
 end
 
 local frame = corpus.frame()

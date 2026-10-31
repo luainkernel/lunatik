@@ -9,8 +9,8 @@
 #     its caller tests, a call asking for two results, where Lua fills the second with nil, and a
 #     body with more live values than the emitter keeps in registers, so the rest go to the frame
 #   - a division inside a called function takes the program's default verdict, through the flag
-#     each frame raises in its caller's, and the file declares a default no other path returns,
-#     so the answer is the verdict it asked for; a row whose callee reaches nothing but its abort
+#     each frame raises in its caller's, and the file declares a default other than XDP_PASS, so
+#     the verdict is the one it asked for; a row whose callee reaches nothing but its abort
 #     tail loads, which it would not if that tail left R0 uninitialised, since the verifier reads
 #     R0 on the caller's fall-through without pairing the flag with the path
 #   - the object carries one BTF FUNC per subprogram, named as the file names it

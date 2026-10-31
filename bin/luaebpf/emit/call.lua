@@ -16,10 +16,11 @@ local packet = require("luaebpf.emit.packet")
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local getinfo = debug.getinfo
 local abort, fetch, getreg, move, refuse = frame.abort, frame.fetch, frame.getreg, frame.move, frame.refuse
-local resolve, setreg, typename = frame.resolve, frame.setreg, frame.typename
+local isinteger, resolve, setreg, typename = frame.isinteger, frame.resolve, frame.setreg, frame.typename
 local method = packet.method
 
 local ABORTED <const> = frame.ABORTED
+local BOOL    <const> = frame.BOOL
 local INT     <const> = frame.INT
 local METHOD  <const> = loads.METHOD
 local NIL     <const> = frame.NIL
@@ -29,6 +30,37 @@ local MAXARGS <const> = 4 -- MAX_BPF_FUNC_REG_ARGS, less the register the abort 
 
 local call = {}
 
+-- whether the compiler holds a verdict that is none of its program type's actions
+local function isoutside(actions, value)
+	local k = value.k
+	return isinteger(value) and k ~= nil and (k < actions.first or k > actions.last)
+end
+
+-- a verdict is one of its program type's actions, which no bits of nil or of a boolean are
+local function checkverdict(f, pc, value)
+	if value.t & NIL ~= 0 then -- a register carries nil and 0 as one word
+		refuse(f, pc, "the verdict may be nil here; test it first")
+	end
+	if value.t & BOOL ~= 0 then
+		refuse(f, pc, "the verdict may be a boolean here; return an action")
+	end
+	local actions = f.unit.actions
+	if isoutside(actions, value) then
+		refuse(f, pc, "the verdict %d is not %s", value.k, actions.name)
+	end
+end
+
+-- a verdict the program computes outside its type's actions takes the default verdict, as the
+-- kernel callback's takes the stub's fallback in luakfunc_action
+local function testverdict(f, value)
+	if value.k ~= nil or f.drop == "action" then -- checkverdict held one the compiler knows
+		return
+	end
+	local actions = f.unit.actions
+	f.code:branchi(jump.JSLT, reg.R0, actions.first, abort(f))
+	f.code:branchi(jump.JSGT, reg.R0, actions.last, abort(f))
+end
+
 local function returns(f, pc, state, i)
 	local dropped = f.drop == "verdict"
 	if i == nil or state[i].t == NIL then -- the hook reads 'return' and 'return nil' alike
@@ -37,12 +69,16 @@ local function returns(f, pc, state, i)
 			f.code:set(reg.R0, f.isprogram and f.default or 0)
 		end
 	else
-		if f.isprogram and state[i].t & NIL ~= 0 then -- a register carries nil and 0 as one word
-			refuse(f, pc, "the verdict may be nil here; test it first")
+		local value = state[i]
+		if f.isprogram then
+			checkverdict(f, pc, value)
 		end
-		f.rettype = f.rettype | state[i].t
+		f.rettype = f.rettype | value.t
 		if not dropped then
 			f.code:alu(alu.MOV, reg.R0, getreg(f, pc, state, i, reg.R0))
+			if f.isprogram then
+				testverdict(f, value)
+			end
 		end
 	end
 	f.code:exit()

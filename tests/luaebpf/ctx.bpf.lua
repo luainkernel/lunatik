@@ -19,68 +19,93 @@ local U32MAX  <const> = 0xffffffff
 -- an ethertype no IP header follows: an skb test run refuses an IPv4 one whose header is missing
 local FRAME   <const> = "\xff\xff\xff\xff\xff\xff\x00\x11\x22\x33\x44\x55\x88\xb5"
 
-local function ingress(ctx)
-	local ifindex = ctx:ingress()
-	return ifindex
+local function ingress(keep)
+	return function(ctx)
+		local ifindex = ctx:ingress()
+		keep(ifindex)
+	end
 end
 
-local function queue(ctx)
-	local index = ctx:queue()
-	return index
+local function queue(keep)
+	return function(ctx)
+		local index = ctx:queue()
+		keep(index)
+	end
 end
 
-local function both(ctx)
-	return ctx:ingress() * 100 + ctx:queue()
+local function both(keep)
+	return function(ctx)
+		local v = ctx:ingress() * 100 + ctx:queue()
+		keep(v)
+	end
 end
 
-local function skblen(skb)
-	return #skb
+local function skblen(keep)
+	return function(skb)
+		keep(#skb)
+	end
 end
 
-local function skbifindex(skb)
-	local ifindex = skb:ifindex()
-	return ifindex
+local function skbifindex(keep)
+	return function(skb)
+		local ifindex = skb:ifindex()
+		keep(ifindex)
+	end
 end
 
-local function skbhash(skb)
-	local hash = skb:hash()
-	return hash
+local function skbhash(keep)
+	return function(skb)
+		local hash = skb:hash()
+		keep(hash)
+	end
 end
 
-local function skbpriority(skb)
-	local priority = skb:priority()
-	return priority
+local function skbpriority(keep)
+	return function(skb)
+		local priority = skb:priority()
+		keep(priority)
+	end
 end
 
 -- the setter answers the field it stored, read back through the kernel's own context
-local function skbsetpriority(skb)
-	local priority = skb:priority(WRITTEN)
-	return priority
+local function skbsetpriority(keep)
+	return function(skb)
+		local priority = skb:priority(WRITTEN)
+		keep(priority)
+	end
 end
 
 -- a value the program computes, which the store takes from a register rather than a constant, with
 -- the field's top bit set, so the test before the store is held to the field's whole width
-local function skbsetlength(skb)
-	local priority = skb:priority(U32MAX - #skb)
-	return priority
+local function skbsetlength(keep)
+	return function(skb)
+		local priority = skb:priority(U32MAX - #skb)
+		keep(priority)
+	end
 end
 
 -- the largest value the field holds, which a store of the low 32 bits keeps as it is
-local function skbsetmax(skb)
-	local priority = skb:priority(U32MAX)
-	return priority
+local function skbsetmax(keep)
+	return function(skb)
+		local priority = skb:priority(U32MAX)
+		keep(priority)
+	end
 end
 
 -- a computed value past the field's 32 bits, and one below zero, which the kernel's setter raises
 -- on: the compiled one owes the default verdict, where a store of the low bits would answer them
-local function skbsetwide(skb)
-	local priority = skb:priority(#skb + U32MAX)
-	return priority
+local function skbsetwide(keep)
+	return function(skb)
+		local priority = skb:priority(#skb + U32MAX)
+		keep(priority)
+	end
 end
 
-local function skbsetnegative(skb)
-	local priority = skb:priority(-#skb)
-	return priority
+local function skbsetnegative(keep)
+	return function(skb)
+		local priority = skb:priority(-#skb)
+		keep(priority)
+	end
 end
 
 local xdpctx = corpus.context("xdpctx", "xdp_md",
@@ -92,22 +117,21 @@ local skbcomputed = corpus.context("skbcomputed", "__sk_buff", {ifindex = IFINDE
 local skbmax = corpus.context("skbmax", "__sk_buff", {ifindex = IFINDEX, priority = PRIO}, FRAME)
 
 local rows = corpus.new()
-rows:declare("ingress", ingress, nil, xdpctx)
-rows:declare("queue", queue, nil, xdpctx)
-rows:declare("both", both, nil, xdpctx)
-rows:declare("skblen", skblen, nil, skbctx)
-rows:declare("skbifindex", skbifindex, nil, skbctx)
-rows:declare("skbhash", skbhash, nil, skbctx)
-rows:declare("skbpriority", skbpriority, nil, skbctx)
-rows:declare("skbsetprio", skbsetpriority, nil, skbwrite)
-rows:declare("skbsetlen", skbsetlength, nil, skbcomputed)
-rows:declare("skbsetmax", skbsetmax, nil, skbmax)
-rows:declare("skbsetwide", skbsetwide, nil, skbctx)
-rows:declare("skbsetneg", skbsetnegative, nil, skbctx)
-rows:close()
-
+rows:stores("ingress", ingress, nil, xdpctx)
+rows:stores("queue", queue, nil, xdpctx)
+rows:stores("both", both, nil, xdpctx)
+rows:stores("skblen", skblen, nil, skbctx)
+rows:stores("skbifindex", skbifindex, nil, skbctx)
+rows:stores("skbhash", skbhash, nil, skbctx)
+rows:stores("skbpriority", skbpriority, nil, skbctx)
+rows:stores("skbsetprio", skbsetpriority, nil, skbwrite)
+rows:stores("skbsetlen", skbsetlength, nil, skbcomputed)
+rows:stores("skbsetmax", skbsetmax, nil, skbmax)
+rows:stores("skbsetwide", skbsetwide, nil, skbctx)
+rows:stores("skbsetneg", skbsetnegative, nil, skbctx)
 -- the length read again on the way out, from the section libbpf reads the egress attach point off
-tc.program(skblen, {name = "skbegress", egress = true})
+corpus.program(tc.program, {name = "skbegress", egress = true}, skblen)
+rows:close()
 
 -- what the case reads ctx_out back at, from the same BTF the emitter lowered the store against
 local out = assert(io.open("offsets.txt", "w"))

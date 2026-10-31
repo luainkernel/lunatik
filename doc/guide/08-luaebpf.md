@@ -85,34 +85,37 @@ sudo lunatik stop protocols
   |   return action.PASS               |     |                            |
   +-----------------+------------------+     +----------------------------+
                     |
-                    | the low 32 bits of the value it returns
+                    | the verdict, an action of its program type
                     v
-  XDP  PASS DROP TX REDIRECT ABORTED act as named; any other value
-       drops the packet, and the kernel warns once in its log
-  TC   OK SHOT REDIRECT act as named; any other value decides nothing,
-       and the packet goes on
+  XDP  PASS DROP TX REDIRECT ABORTED act as named
+  TC   OK SHOT REDIRECT act as named; the rest of linux.tc.action
+       decides nothing, and the packet goes on
 
-  where Lua would raise, at a read past the packet or x // 0, the
+  where the program computes a value that is no action, and where
+  Lua would raise, at a read past the packet or x // 0, the
   program stops and returns its default verdict
 ```
 
 A program returns its verdict, which tells the kernel what to do with the packet: a value of
-`linux.xdp.action` in an XDP program, of `linux.tc.action` in a TC one. The kernel reads the low
-32 bits of the value the function returns.
+`linux.xdp.action` in an XDP program, of `linux.tc.action` in a TC one, the values a kernel script's
+callback returns on the same hook.
 
 * In an XDP program, `PASS`, `DROP`, `TX`, `REDIRECT` and `ABORTED` act as the kernel defines
-  them. Any other value drops the packet, and the kernel warns once, in its log, of an illegal XDP
-  return value.
-* In a TC program, `OK` lets the packet go on, `SHOT` drops it and `REDIRECT` redirects it. Any
-  other value decides nothing: `UNSPEC` hands the packet to the next TC program on the device, and
-  every other value, the rest of `linux.tc.action` included, skips those programs; either way the
-  packet then goes on, through the device's tc filters if it has any.
-* A boolean is returned as 1 or 0: `return p:getbyte(23) == 6` returns `XDP_DROP` for TCP and
-  `XDP_ABORTED` for any other protocol (#1945).
+  them.
+* In a TC program, `OK` lets the packet go on, `SHOT` drops it and `REDIRECT` redirects it. The
+  rest of `linux.tc.action` decides nothing: `UNSPEC` hands the packet to the next TC program on the
+  device, and every other action skips those programs; either way the packet then goes on, through
+  the device's tc filters if it has any.
+* A value the program computes that is none of these, `return p:getbyte(23)` on a byte past 4 in
+  an XDP program, returns the default verdict, as the kernel's Lua answers a callback returning it
+  with the hook's fallback. One the compiler knows is refused, "the verdict 11 is not an XDP
+  action", and so is a boolean, which no action is: `return p:getbyte(23) == 6` gives "the verdict
+  may be a boolean here; return an action".
 
 A `return` with no value, or with `nil`, returns the default verdict, and so does a program that
 stops. A verdict that may be nil is refused: "the verdict may be nil here; test it first". The
-default verdict is `XDP_PASS` or `TC_ACT_OK`, unless the constructor names another:
+default verdict is `XDP_PASS` or `TC_ACT_OK`, unless the constructor names another action, and a
+default that is not one is refused, "xdp.program's default verdict is not an XDP action":
 
 ```Lua
 return xdp.program(filter, {default = action.DROP})
@@ -147,7 +150,7 @@ fails in one of three places.
 * **Refused.** `lunatik bpf` prints `lunatik: <file>:<line>: <reason>`, exits 1 and writes no
   object. What the subset does not compile is refused, and so is an operation the compiler can see
   is wrong because it knows the value: a `for` step of 0, a map key or value its spec cannot pack,
-  a `skb:priority` outside 0 to 4294967295.
+  a `skb:priority` outside 0 to 4294967295, a verdict that is no action of its program type.
 * **Refused at load.** The kernel's verifier checks the object again when `lunatik run` loads it.
   A program past the verifier's limits, most often a loop of many passes, is refused there:
   `lunatik run` prints the verifier's log, which quotes the Lua lines, exits 1 and leaves nothing
@@ -156,8 +159,9 @@ fails in one of three places.
   nothing is logged (#2098). A program stops at a read past the packet, a division or a modulo by
   0, a `for` step of 0 it computed, a map key or value its spec cannot pack, a map update or delete
   the map refuses, a `skb:data()` of an skb that is not linear, a `skb:priority` it computed outside
-  0 to 4294967295, and in a function it called that stops. A division by a 0 the compiler knows is
-  not refused: the program stops on every packet that reaches it.
+  0 to 4294967295, a verdict it computed that is no action of its program type, and in a function
+  it called that stops. A division by a 0 the compiler knows is not refused: the program stops on
+  every packet that reaches it.
 
 ## The Lua a program may use
 
@@ -186,7 +190,7 @@ that line. Each construct links to its listing.
 | [`m[k]`](09-luaebpf-by-example.md#maps) | the value, or nil | `k` does not fit the key's spec | a known `k` does not fit it; the value is used before `if v then` tests it |
 | [`m[k] = v`, `m[k] = nil`](09-luaebpf-by-example.md#maps) | the entry inserted or replaced, or deleted | the map refuses; `k` or `v` does not fit its spec | a known `k` or `v` does not fit it |
 | [`v.field`, `v` a struct value](09-luaebpf-by-example.md#maps) | the field | never | the field does not exist; a write |
-| [`return v`, the verdict](09-luaebpf-by-example.md#the-verdict) | its low 32 bits; `true` as 1, `false` as 0 | never | `v` may be nil |
+| [`return v`, the verdict](09-luaebpf-by-example.md#the-verdict) | `v`, an action of the program's type | `v` is no action of it | `v` may be nil or a boolean; a known `v` is no action |
 
 Besides what the table refuses, these are refused: a table constructor, `..`, a closure, an
 assignment to an upvalue or a global, a generic `for`, `while`, `repeat`, a `goto` backwards, a
@@ -309,6 +313,9 @@ Give the variable one type on every path: `local v = 0`. These are refused too:
   value here comes from more than one map". Which map it came from decides how its value is read.
 * A verdict that may be nil: "the verdict may be nil here; test it first". The kernel would read
   nil as 0, which is an action.
+* A verdict that may be a boolean: "the verdict may be a boolean here; return an action". The
+  kernel's Lua answers a boolean with the hook's fallback, and the kernel holds `true` and `false`
+  as the words of 1 and 0, which are actions, so a test of the word cannot tell them apart.
 * Arithmetic on nil or a boolean, and an ordered comparison of a value that is not a number:
   "attempt to perform arithmetic on a nil value", "attempt to compare a context with a number".
 
@@ -339,6 +346,9 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | a value cannot be compared with a number here | `==` on a variable nil on one path | `local v = 0` |
 | a value has no truth value in a compiled function | `if v then`, `v` a number or nil | `local v = 0`, then `if v ~= 0 then` |
 | the verdict may be nil here; test it first | `return v`, `v` nil on one path | a verdict on every path |
+| the verdict may be a boolean here; return an action | `return p:getbyte(23) == 6` | `if p:getbyte(23) == 6 then return action.DROP end` |
+| the verdict 11 is not an XDP action | `return 11`, a value no action of the program's type | an action of `linux.xdp.action` or `linux.tc.action` |
+| xdp.program's default verdict is not an XDP action | `{default = 5}` | `{default = action.DROP}` |
 | 'half' is a float, which a compiled function cannot hold | `local half = math.sqrt(4)` in the body | an integer |
 | malformed number near '.5', which `lunatic` prints before `lunatic could not compile it` | `2.5` | an integer: the kernel's Lua has no float |
 | 'while' and 'repeat' are not compiled yet | `while`, `repeat`, a `goto` backwards | a numeric `for` |

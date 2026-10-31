@@ -37,6 +37,7 @@ Where the eBPF instruction alone computes something else, the compiler emits wha
 | `m[k] = v`, `m[k] = nil` | the kernel's `bpf.map` raises when the map refuses the update, or refuses the delete for any reason but an absent key | the helper's return code | the helper, and the default verdict on any code but zero, or `-ENOENT` from a delete |
 | `m[k]` with `k` outside the key's spec | `string.pack` raises | a store that keeps the low bytes | a key the compiler holds packed when the function is compiled, and one the program computes tested, which takes the default verdict; a value alike |
 | `v.field` of a struct value | the field the codec decodes | a load the verifier refuses until the program tests the lookup | a load at the field's offset and width, the sign extended where the field is signed |
+| `return v`, the verdict | the kernel's Lua answers a value outside its type's actions, or a boolean, with the hook's fallback | `r0`, whose low 32 bits the kernel reads as an action, a boolean as 1 or 0 | `v` tested against the first and the last action, which takes the default verdict outside them; a boolean refused, and so is a known `v` outside them |
 
 The shift pair stands for `BPF_MEMSX`, which the s390 JIT of 6.6 does not take. A read is of the
 kernel's byte order on both sides: the kernel's `data` object reads one so, and a map spec of another
@@ -74,7 +75,8 @@ The registers:
 * `r1` to `r5` hold what one line computes.
 
 Every listing ends with the instructions where the function stops: the default verdict, and the
-exit.
+exit. A program that returns a value it computes tests it first against the actions of its type,
+two jumps to the default verdict, as [The verdict](#the-verdict) shows.
 
 ## The packet
 
@@ -106,19 +108,21 @@ in network order.
   6  r4 = *(u64 *)(r10 -40)        the offset
   7  r1 = *(u32 *)(r9 +0)          xdp_md.data
   8  r2 = *(u32 *)(r9 +4)          xdp_md.data_end
-  9  if r4 > 65533 goto 18         past 65535 less the width: stops
+  9  if r4 > 65533 goto 20         past 65535 less the width: stops
  10  r1 += r4                      data + 16
  11  r4 = r1
  12  r4 += 2
- 13  if r4 > r2 goto 18            past the end of the packet: stops
+ 13  if r4 > r2 goto 20            past the end of the packet: stops
  14  r1 = *(u16 *)(r1 +0)          two bytes, in the kernel byte order
  15  r8 = r1                       length
      line 6: return length
  16  r0 = r8
- 17  exit
-     line 7: end)
- 18  r0 = 2                        XDP_PASS, the default verdict
+ 17  if r0 s< 0 goto 20            not an XDP action: stops
+ 18  if r0 s> 4 goto 20
  19  exit
+     line 7: end)
+ 20  r0 = 2                        XDP_PASS, the default verdict
+ 21  exit
 ```
 
 Instruction 13 is the test the verifier asks for before instruction 14 reads: it takes the load
@@ -130,7 +134,7 @@ instructions 15 and 16 of [Floor division and modulo](#floor-division-and-modulo
 
 | Frame | Instructions | What they compute | The program returns |
 |-------|--------------|-------------------|---------------------|
-| 34 bytes, IPv4, total length `00 1c`, 28 | 13, 14 | 18 is within 34; `00 1c` read little-endian | 7168, `0x1c00` |
+| 34 bytes, IPv4, total length `00 1c`, 28 | 13, 14, 18 | 18 is within 34; `00 1c` read little-endian is 7168, `0x1c00`, past `XDP_REDIRECT` | 2, `XDP_PASS` |
 | 14 bytes, an Ethernet header alone | 13 | 18 is past 14 | 2, `XDP_PASS` |
 
 The kernel's Lua reads the same 7168 from `p:getuint16(16)` on arm64 and x86. Read a byte at a
@@ -173,11 +177,11 @@ the kernel's Lua `a / b` is `a // b`, and it compiles to the same instructions.
   6  r4 = *(u64 *)(r10 -40)        the offset
   7  r1 = *(u32 *)(r9 +0)          xdp_md.data
   8  r2 = *(u32 *)(r9 +4)          xdp_md.data_end
-  9  if r4 > 65534 goto 54         past 65535 less the width: stops
+  9  if r4 > 65534 goto 56         past 65535 less the width: stops
  10  r1 += r4
  11  r4 = r1
  12  r4 += 1
- 13  if r4 > r2 goto 54            past the end of the packet: stops
+ 13  if r4 > r2 goto 56            past the end of the packet: stops
  14  r1 = *(u8 *)(r1 +0)           the byte
  15  r1 <<= 56                     its sign extended by a shift pair
  16  r1 s>>= 56
@@ -188,7 +192,7 @@ the kernel's Lua `a / b` is `a // b`, and it compiles to the same instructions.
      line 7: return a // b
  34  r1 = r8                       a
  35  r2 = r9                       b
- 36  if r2 == 0 goto 54            Lua raises: stops
+ 36  if r2 == 0 goto 56            Lua raises: stops
  37  if r2 == -1 goto 47           a // -1 is -a
  38  r3 = r1
  39  r4 = r1
@@ -205,10 +209,12 @@ the kernel's Lua `a / b` is `a // b`, and it compiles to the same instructions.
  50  *(u64 *)(r10 -40) = r1        the result, in Lua register 4
  51  r0 = *(u64 *)(r10 -40)
  52  r0 = r0
- 53  exit
-     line 8: end)
- 54  r0 = 2                        XDP_PASS, the default verdict
+ 53  if r0 s< 0 goto 56            not an XDP action: stops
+ 54  if r0 s> 4 goto 56
  55  exit
+     line 8: end)
+ 56  r0 = 2                        XDP_PASS, the default verdict
+ 57  exit
 ```
 
 The correction is Lua's `luaV_idiv`: the quotient less one where the remainder is not zero and the
@@ -225,11 +231,12 @@ signs differ. Bytes 14 and 15 at `f9 02`, so `a` is -7 and `b` is 2:
 | 42 | the remainder is not 0 | no jump |
 | 43, 44 | -7 ^ 2 is -5, negative: the signs differ | no jump |
 | 45 | -3 - 1 | `r1` is -4 |
-| 50 to 53 | `r0` is -4 | the program returns -4 |
+| 50 to 52 | `r0` is -4 | |
+| 53 | -4 is below `XDP_ABORTED`, 0 | jump to 56: the program returns 2 |
 
-Lua computes `-7 // 2` as -4. As a verdict, -4 is read as its low 32 bits, 4294967292, which is no
-XDP action: attached to a device, this program would drop the packet ([The verdict](#the-verdict)).
-With `b` at 0, instruction 36 jumps to 54, and the program returns 2, `XDP_PASS`.
+Lua computes `-7 // 2` as -4, which is no XDP action, so the program returns its default verdict,
+2, `XDP_PASS` ([The verdict](#the-verdict)). With `b` at 0, instruction 36 jumps to 56, and the
+program returns 2 too.
 
 `a % b` is the same program with `return a % b`; instructions 0 to 33 read `a` and `b` as above:
 
@@ -237,7 +244,7 @@ With `b` at 0, instruction 36 jumps to 54, and the program returns 2, `XDP_PASS`
      line 7: return a % b
  34  r1 = r8                       a
  35  r2 = r9                       b
- 36  if r2 == 0 goto 50            Lua raises: stops
+ 36  if r2 == 0 goto 52            Lua raises: stops
  37  if r2 == -1 goto 45           a % -1 is 0
  38  r1 s%= r2                     BPF_SMOD: the remainder, truncated
  39  if r1 == 0 goto 46            exact: 0
@@ -250,10 +257,12 @@ With `b` at 0, instruction 36 jumps to 54, and the program returns 2, `XDP_PASS`
  46  *(u64 *)(r10 -40) = r1
  47  r0 = *(u64 *)(r10 -40)
  48  r0 = r0
- 49  exit
-     line 8: end)
- 50  r0 = 2                        XDP_PASS, the default verdict
+ 49  if r0 s< 0 goto 52            not an XDP action: stops
+ 50  if r0 s> 4 goto 52
  51  exit
+     line 8: end)
+ 52  r0 = 2                        XDP_PASS, the default verdict
+ 53  exit
 ```
 
 The correction is Lua's `luaV_mod`. With -7 and 2, instruction 38 gives -1, what `BPF_SMOD` alone
@@ -281,10 +290,12 @@ The same program with `return a << n`, `n` read from byte 15; instructions 0 to 
  45  *(u64 *)(r10 -40) = r1
  46  r0 = *(u64 *)(r10 -40)
  47  r0 = r0
- 48  exit
-     line 8: end)
- 49  r0 = 2                        XDP_PASS, the default verdict
+ 48  if r0 s< 0 goto 51            not an XDP action: stops
+ 49  if r0 s> 4 goto 51
  50  exit
+     line 8: end)
+ 51  r0 = 2                        XDP_PASS, the default verdict
+ 52  exit
 ```
 
 This is Lua's `luaV_shiftl`. `BPF_LSH` alone masks the count to its low six bits, so `1 << 64`
@@ -297,7 +308,7 @@ is 3 and `n` is -1:
 | 40 | -1 is above -64 | no jump |
 | 41 | the count negated | `r2` is 1 |
 | 42 | 3 >> 1 | `r1` is 1 |
-| 45 to 48 | `r0` is 1 | the program returns 1 |
+| 45 to 50 | `r0` is 1, `XDP_DROP` | the program returns 1 |
 
 Lua computes `3 << -1` as 1. With 1 and 64, instruction 37 jumps to 44, and the program returns 0.
 `a >> n` is `a << -n`, as in Lua: the count is negated first, and the same tests follow.
@@ -419,31 +430,42 @@ local xdp = require("bpf.xdp")
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
-	return p:getbyte(14) == 1
+	local verdict = p:getbyte(14)
+	return verdict
 end)
 ```
 
-Instructions 0 to 15 read byte 14 into `r8`.
+Instructions 0 to 15 read byte 14 into `r8`, as [The packet](#the-packet) reads two bytes, their
+bounds tests jumping to 20.
 
 ```
-     line 5: return p:getbyte(14) == 1
- 16  r1 = r8
- 17  r2 = 1
- 18  if r1 == r2 goto 21
- 19  r8 = 0                        false
- 20  goto 22
- 21  r8 = 1                        true
- 22  r0 = r8                       the verdict: 1 or 0
- 23  exit
-     line 6: end)
- 24  r0 = 2                        XDP_PASS, the default verdict
- 25  exit
+     line 6: return verdict
+ 16  r0 = r8
+ 17  if r0 s< 0 goto 20            below XDP_ABORTED: stops
+ 18  if r0 s> 4 goto 20            past XDP_REDIRECT: stops
+ 19  exit
+     line 7: end)
+ 20  r0 = 2                        XDP_PASS, the default verdict
+ 21  exit
 ```
 
-The function returns a boolean, and the kernel reads 1 or 0 as an action (#1945): a frame whose
-byte 14 is 1 returns 1, `XDP_DROP`, and any other returns 0, `XDP_ABORTED`. The kernel reads the
-low 32 bits of `r0`, so the -4 of [Floor division and modulo](#floor-division-and-modulo) reaches it
-as 4294967292.
+A verdict is one of the actions of its program type: `linux.xdp.action`, from 0, `XDP_ABORTED`, to
+4, `XDP_REDIRECT`, and `linux.tc.action`, from -1, `TC_ACT_UNSPEC`, to 8, `TC_ACT_TRAP`, which a TC
+program's two jumps test instead. The kernel's Lua holds a kernel script's callback to the same
+range, in `luakfunc_action`, and answers any other value with the hook's fallback. The eBPF
+instruction alone would hand the kernel the low 32 bits of `r0`, which it reads as an action
+whatever they are, so the -4 of [Floor division and modulo](#floor-division-and-modulo) would reach
+it as 4294967292, and an XDP value that is no action drops the packet.
+
+| Byte 14 | Instructions | The program returns |
+|---------|--------------|---------------------|
+| `01` | 17, 18: 1 is within 0 to 4 | 1, `XDP_DROP` |
+| `09` | 18: 9 is past 4 | 2, `XDP_PASS` |
+
+A verdict the compiler knows takes no test, and one outside the actions is refused: `return 11`
+gives "the verdict 11 is not an XDP action". So is a verdict that may be a boolean, which no
+action is: `return p:getbyte(14) == 1` gives "the verdict may be a boolean here; return an action",
+and is written `if p:getbyte(14) == 1 then return action.DROP end`, then `return action.PASS`.
 
 ## The context
 
@@ -623,15 +645,18 @@ count, the step and `i`: here `r9`, `r10 - 40` and `r10 - 48`. Instructions 0 to
  40  goto 14                       the back edge
      line 9: return s
  41  r0 = r8
- 42  exit
-     line 10: end)
- 43  r0 = 2                        XDP_PASS, the default verdict
+ 42  if r0 s< 0 goto 45            not an XDP action: stops
+ 43  if r0 s> 4 goto 45
  44  exit
+     line 10: end)
+ 45  r0 = 2                        XDP_PASS, the default verdict
+ 46  exit
 ```
 
-Bytes 14 to 17 at `01 02 03 04` make four passes, i at 14, 15, 16 and 17, and the program returns
-10. A 16-byte frame stops at the third pass, whose read of byte 16 is past the packet, and returns
-2, `XDP_PASS`.
+Bytes 14 to 17 at `01 02 03 04` make four passes, i at 14, 15, 16 and 17, and `s` is 10, which is
+no XDP action, so the program returns 2, `XDP_PASS`; at `00 01 01 02`, `s` is 4, and the program
+returns 4, `XDP_REDIRECT`. A 16-byte frame stops at the third pass, whose read of byte 16 is past
+the packet, and returns 2.
 
 With a bound the program computes, `for i = 1, n do`, the count is computed when the loop starts,
 with an unsigned division as `forprep` does, and the back edge passes through `may_goto`, which
@@ -670,13 +695,13 @@ and `r2`, and the address of the caller's flag in the register after them, `r3`.
  40  r3 += -8                      its address, the third argument
  41  call half                     relocated by libbpf
  42  r1 = *(u64 *)(r10 -8)
- 43  if r1 != 0 goto 48            raised: stops
+ 43  if r1 != 0 goto 50            raised: stops
  44  *(u64 *)(r10 -40) = r0        v
      line 12: return v
- 45  to 47: r0 is v, and the exit
+ 45  to 49: r0 is v, tested against the actions, and the exit
      line 13: end)
- 48  r0 = 2                        XDP_PASS, the default verdict
- 49  exit
+ 50  r0 = 2                        XDP_PASS, the default verdict
+ 51  exit
 
   half, in the section .text
      line 3: local function half(n, d)
@@ -694,9 +719,10 @@ and `r2`, and the address of the caller's flag in the register after them, `r3`.
 ```
 
 Bytes 14 and 15 at `07 00`: `a` is 7 and `b` is 0. In `half` the zero test jumps to 22, which
-raises the flag and returns; at 43 the program reads the flag and jumps to 48, so it returns 2,
+raises the flag and returns; at 43 the program reads the flag and jumps to 50, so it returns 2,
 `XDP_PASS`, as if the division had been in the program's own function. With -7 and 2, `half`
-returns -4, and so does the program.
+returns -4, which `half` may, since only the program's own `return` is a verdict; -4 is no XDP
+action, so the program returns 2.
 
 The call returns to the program, which reads the flag before it goes on. `return half(a, b)` would
 be a tail call, which Lua runs without coming back, and is refused: "a tail call cannot be
