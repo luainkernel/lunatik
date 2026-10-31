@@ -30,7 +30,9 @@ message naming `make`.
    exists for the tests and the two oracles stay the host VM and the kernel's JIT. The verdicts
    must match on every packet of a corpus. Where the interpreted side raises (an out-of-bounds
    read, a division by zero, a map key or value `string.pack` refuses), the compiled side must
-   return the program's default verdict, and the test asserts that pairing, not equality.
+   return the program's default verdict, and the test asserts that pairing, not equality. A loop
+   past the budget the kernel gives `may_goto` stops with the default verdict where the interpreter
+   makes every pass, so its test asserts the verdict alone.
 3. *The wire.* The existing `xdp` and `tc` harness: a veth pair with its peer in a namespace, a
    ping, and a verdict that either blocks it or lets it through.
 
@@ -78,7 +80,7 @@ matching and failing, not a list of features.
 | `divzero.sh` | a division by zero returns the default verdict where the interpreter raises |
 | `branch.sh` | `if`, `and`, `or`, `not` and every comparison over signed and unsigned edges match |
 | `forconst.sh` | a `for` with constant bounds runs the right count; a zero-trip and a descending loop included |
-| `forvar.sh` | a `for` whose bound is a program value verifies with `may_goto` and terminates; skips and asserts the refusal on a kernel without it |
+| `forvar.sh` | a `for` whose bound is a program value verifies with `may_goto` and terminates, or takes the default verdict past the kernel's budget; skips and asserts the refusal on a kernel without it |
 | `call.sh` | a call to a file-declared function becomes a subprogram; the object carries one `func_info` per subprogram; a check that fails inside one takes the program's default verdict through the flag each frame raises in its caller's |
 | `refuse.sh` | each refused construct (runtime table, closure, vararg, `pcall`, unknown global, tail call, `while`, `repeat`, a float the CLI's libraries return, a float literal `lunatic` refuses to parse, a function the CLI's Lua compiled from a string) fails with its message and line, and nothing is written; recursion and the five-argument call sit in `call.sh`, beside the calls they are the edges of |
 | `lineinfo.sh` | the object's `.BTF.ext` names the `.lua` file, and a program broken by the test hook is rejected with a log that quotes the Lua line |

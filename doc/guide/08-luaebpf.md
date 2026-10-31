@@ -138,7 +138,9 @@ not through the verdict.
   what the subset does     a program past the       where Lua would raise:
   not compile, and a       limits of the verifier,  x // 0, a read past
   value the compiler       most often a loop of     the packet, an update
-  sees is wrong            many passes              the map refuses
+  sees is wrong            many passes              the map refuses; and
+                                                    a loop past the budget
+                                                    the kernel gives it
 ```
 
 Where Lua would raise an error, and where the part of Lua the compiler takes ends, a program file
@@ -154,10 +156,11 @@ fails in one of three places.
   attached.
 * **Stops.** In the kernel, on a packet, the program returns its default verdict at once, and
   nothing is logged (#2098). A program stops at a read past the packet, a division or a modulo by
-  0, a `for` step of 0 it computed, a map key or value its spec cannot pack, a map update or delete
-  the map refuses, a `skb:data()` of an skb that is not linear, a `skb:priority` it computed outside
-  0 to 4294967295, and in a function it called that stops. A division by a 0 the compiler knows is
-  not refused: the program stops on every packet that reaches it.
+  0, a `for` step of 0 it computed, a `for` whose passes outrun the budget the kernel gives it, a
+  map key or value its spec cannot pack, a map update or delete the map refuses, a `skb:data()` of
+  an skb that is not linear, a `skb:priority` it computed outside 0 to 4294967295, and in a function
+  it called that stops. A division by a 0 the compiler knows is not refused: the program stops on
+  every packet that reaches it.
 
 ## The Lua a program may use
 
@@ -176,7 +179,7 @@ that line. Each construct links to its listing.
 | [`a == b`, `a ~= b`](09-luaebpf-by-example.md#comparisons-and-truth) | `false` between values of two types | never | an operand may hold two types, a number on one path and nil on another |
 | [`if v then`, `and`, `or`, `not`](09-luaebpf-by-example.md#comparisons-and-truth) | `0` is true; only `nil` and `false` are false | never | `v` may be a number on one path and nil or a boolean on another |
 | [`t.x`, `t[1]`, `t` a table of the body](09-luaebpf-by-example.md#values-of-the-body) | the value the body left there | never | the index is computed; `#t`; a write to `t` |
-| [`for i = a, b, s do`](09-luaebpf-by-example.md#loops) | the passes Lua makes | `s` is 0 | `s` is a known 0; a bound or a step is computed, before Linux 6.9 ([Loops](#loops)) |
+| [`for i = a, b, s do`](09-luaebpf-by-example.md#loops) | the passes Lua makes | `s` is 0; a bound or a step is computed, and the passes outrun the kernel's budget ([Loops](#loops)) | `s` is a known 0; a bound or a step is computed, before Linux 6.9 ([Loops](#loops)) |
 | [`local v = f(x)`](09-luaebpf-by-example.md#calls) | the value `f` returns | `f` stops | [Calls](#calls) says |
 | [`return f(x)`](09-luaebpf-by-example.md#calls) | | | always: a tail call |
 | [`p:getuint16(n)` and the other reads](09-luaebpf-by-example.md#the-packet) | the bytes at `n`, in the kernel's byte order | the read passes the end of the packet | [The packet](#the-packet) says |
@@ -281,8 +284,12 @@ A numeric `for` is the only loop compiled. It makes the passes Lua makes.
   packet on each pass "The sequence of 8193 jumps is too complex", at fewer passes.
 * With a bound or a step the program computes, `for i = 1, n do`, it compiles for Linux 6.9 and
   later, through the kernel's `may_goto`, and is refused before 6.9: "a 'for' the compiler cannot
-  bound needs may_goto, which this kernel lacks". Once the budget the kernel gives a loop runs out,
-  the kernel leaves the loop and the program goes on with what the loop held (#1944).
+  bound needs may_goto, which this kernel lacks". The kernel gives these loops a budget, which the
+  loops of one call of a function share and each call starts in full, and the program stops once
+  it runs out, where Lua would make every pass: 8,388,608 passes, or about a quarter of a second
+  where the kernel's JIT times the loops, x86 from 6.15 and arm64 from 6.18 among them. From 6.17
+  a kernel that times them writes "ERROR: Timeout detected for may_goto instruction" to the
+  program's stderr stream when it stops one.
 * A step of 0 is refused when the compiler knows it, "'for' step is zero", and stops the program
   when the program computes it.
 

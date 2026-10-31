@@ -138,7 +138,7 @@ function forloop.FORLOOP(f, pc, ins, state)
 			refuse(f, pc, "a 'for' the compiler cannot bound needs may_goto, which this kernel lacks")
 		end
 		if f.drop ~= "maygoto" then
-			code:maygoto(after)
+			code:maygoto(abort(f)) -- a spent budget stops: past the loop, it returns what Lua never does
 		end
 	end
 	into(f, pc, state, a, reg.R1)

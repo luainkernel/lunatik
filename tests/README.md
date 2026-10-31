@@ -1088,9 +1088,11 @@ interpreter raises, the compiled program owes its default verdict instead.
   pair, none of them taking a `may_goto`.
 - **forvar**: a numeric `for` whose bounds the program computes: it takes a
   `may_goto` header, verifies and terminates; without the header the verifier
-  rejects it; a step a called function gets at run time takes the default
-  verdict, and one that is zero at compile time is refused. On a kernel below
-  v6.9 the case asserts the compiler's refusal instead.
+  rejects it; a loop whose passes outrun the budget the kernel gives
+  `may_goto`, counted or timed, and a step a called function gets at run time
+  take the default verdict, and a step that is zero at compile time is
+  refused. On a kernel below v6.9 the case asserts the compiler's refusal
+  instead.
 - **call**: calls to file-declared functions as BPF-to-BPF subprograms: one
   call, two levels, four arguments, a shared helper, the deepest chain
   `MAX_CALL_FRAMES` takes with every level able to abort, a helper returning
