@@ -1301,9 +1301,10 @@ compiled program keeps nothing and owes the error verdict of its type instead,
 - **forvar**: a numeric `for` whose bounds the program computes: it takes a
   `may_goto` header, verifies and terminates; without the header the verifier
   rejects it; a step that is zero at run time, in the program and in a function
-  it calls, returns `XDP_ABORTED`, and one that is zero at compile time is
-  refused. On a kernel below v6.9 the case asserts the compiler's refusal
-  instead.
+  it calls, returns `XDP_ABORTED`, and so does a loop whose passes outrun the
+  budget the kernel gives `may_goto`, counted or timed, in either, keeping
+  nothing; a step that is zero at compile time is refused. On a kernel below
+  v6.9 the case asserts the compiler's refusal instead.
 - **call**: calls to file-declared functions as BPF-to-BPF subprograms: one
   call, two levels, four arguments, a shared helper, the deepest chain
   `MAX_CALL_FRAMES` takes with every level able to abort, a helper returning
