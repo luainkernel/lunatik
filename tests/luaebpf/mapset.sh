@@ -34,13 +34,6 @@ luaebpf_start 4
 
 ROWS=
 
-# what the map holds under one key, as bpftool prints it, or "absent"
-held() {
-	local out
-	out=$(bpftool map lookup pinned "$LUAEBPF_MAPS/$1" key $2 2>&1) || { echo absent; return; }
-	echo "$out" | grep -oP 'value: \K.*' | sed 's/ *$//'
-}
-
 output=$(luaebpf_compile mapset) || { comment "$output"; fail "luaebpf: mapset.bpf.lua did not compile"; }
 ROWS="$LUAEBPF_WORK/rows.txt"
 
@@ -56,7 +49,7 @@ ran=$(while IFS=$'\t' read -r kind a b c; do
 done < "$ROWS")
 
 kept=$(while IFS=$'\t' read -r kind a b c; do
-	[ "$kind" = check ] && echo "$a $b: $(held "$a" "$b")"
+	[ "$kind" = check ] && echo "$a $b: $(luaebpf_lookup "$a" "$b")"
 done < "$ROWS")
 rm -rf "$LUAEBPF_PINS"
 
