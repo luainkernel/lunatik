@@ -14,9 +14,10 @@
 #   value given to --percpu, a context or percpu given to stop or list, bpf
 #   without its program file or with a word after it, -c given to bpf, -o
 #   without an object, -o given to run, --btf without a file, --btf given to
-#   run, --dev without a device, --dev given to stop, and --dev given to run for
-#   a script with no compiled program each exit 2 with a line naming it and the
-#   usage on stderr, and nothing on stdout;
+#   run, --scripts without a directory, --scripts given to run, --dev without a
+#   device, --dev given to stop, and --dev given to run for a script with no
+#   compiled program each exit 2 with a line naming it and the usage on stderr,
+#   and nothing on stdout;
 # - -V and --version print the loaded version, "Lunatik <major>.<minor>", exit 0,
 #   and with the modules unloaded -V exits 1, not loaded; the modules are loaded
 #   again after it;
@@ -88,6 +89,8 @@ misused "-o takes a value" bpf -o
 misused "unknown option -o" run -o x.o tests/cli/idle
 misused "--btf takes a value" bpf --btf
 misused "unknown option --btf" run --btf=x tests/cli/idle
+misused "--scripts takes a value" bpf --scripts
+misused "unknown option --scripts" run --scripts=x tests/cli/idle
 misused "--dev takes a value" run --dev
 misused "unknown option --dev" stop --dev=x tests/cli/idle
 misused "tests/cli/idle has no compiled program for --dev" run --dev=x tests/cli/idle

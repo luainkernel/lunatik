@@ -236,7 +236,7 @@ usage: lunatik [-h | -V]
        lunatik list
        lunatik test [<suite>]
        lunatik compile [<lunatic argument>...]
-       lunatik bpf [--btf=<file>] [-o <object>] <program>]=]
+       lunatik bpf [--btf=<file>] [--scripts=<dir>] [-o <object>] <program>]=]
 
 local function report(message)
 	io.stderr:write("lunatik: ", message, "\n")
@@ -361,7 +361,7 @@ local modifying = accepting("--",
 	option("percpu", "p"))
 -- run takes what modifying does, and the device its compiled program attaches to
 local deploying = setmetatable(accepting(option("dev", nil, true)), {__index = modifying})
-local compiling = accepting("--", option("output", "o", true), option("btf", nil, true))
+local compiling = accepting("--", option("output", "o", true), option("btf", nil, true), option("scripts", nil, true))
 local takes = {run = deploying, bpf = compiling}
 
 local function parse(i, accepted, parsed)
@@ -543,7 +543,7 @@ function runners.bpf(parsed, program, ...)
 	if program == nil then misuse("bpf takes a program file") end
 	if select("#", ...) > 0 then misuse("bpf takes nothing after the program file") end
 	local luaebpf = require("luaebpf")
-	local object = luaebpf.compile(program, parsed.btf)
+	local object = luaebpf.compile(program, parsed.btf, parsed.scripts)
 	local path = parsed.output or program:gsub("%.lua$", "") .. ".o"
 	local file = open(path, "wb")
 	assert(file:write(object))

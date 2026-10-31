@@ -376,9 +376,10 @@ REPL and the builds `status` and `reload` compare.
   context, a value given to `--percpu`, a context or percpu given to `stop` or
   `list`, `bpf` without its program file or with a word after it, `-c` given
   to `bpf`, `-o` without an object, `-o` given to `run`, `--btf` without a
-  file, `--btf` given to `run`, `--dev` without a device, `--dev` given to
-  `stop`, and `--dev` given to `run` for a script with no compiled program each
-  exit 2 with a line naming it and the usage on stderr; `-V`
+  file, `--btf` given to `run`, `--scripts` without a directory, `--scripts`
+  given to `run`, `--dev` without a device, `--dev` given to `stop`, and
+  `--dev` given to `run` for a script with no compiled program each exit 2
+  with a line naming it and the usage on stderr; `-V`
   and `--version` print the loaded version, `Lunatik <major>.<minor>`, and with the modules unloaded `-V`
   exits 1, not loaded; each module `status` reports as loaded carries as its
   version the release `-V` prints, which gives it the srcversion `reload`
@@ -1027,6 +1028,21 @@ interpreter raises, the compiled program owes its default verdict instead.
   itself does not load is reached through the host's path, and `class` and
   `struct` come from the kernel scripts though a Lua module on
   `LUA_PATH_5_5` and a C one on `LUA_CPATH_5_5` carry their names.
+- **scripts**: `lunatik bpf --scripts` names the directory the body requires the
+  kernel scripts from in place of `/lib/modules/lua`. Through a directory laid
+  out as that one, named relative to where the compile runs, whose
+  `linux/xdp.lua` gives `PASS` a value no kernel gives it and whose `class` is a
+  `class/init.lua` of its own, the body's `class` is that file and the program,
+  which returns the `action.PASS` the body read, returns that value.
+  `luaebpf.compile`, called in one process for `/lib/modules/lua`, then for a
+  directory whose `linux/xdp.lua` gives `PASS` another value and which lacks
+  `class`, which raises, and then for the first directory, named by its absolute
+  path, reads that directory the third time and writes the object `lunatik bpf
+  --scripts` wrote. A module the directory lacks, `class`, is not found, the
+  message naming the directory's paths and none under `/lib/modules/lua`, which
+  holds one, and no object is written. The compile without `--scripts` reads
+  `/lib/modules/lua`, `--scripts` on a copy of it reads the copy, and the two
+  write the same object.
 - **object**: no program file and no translator: the CLI's Lua assembles an
   XDP program of five instructions by hand with `luaebpf.insn`, a jump over
   one of them and a 64-bit immediate among them, and writes it with
