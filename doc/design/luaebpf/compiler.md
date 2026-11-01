@@ -65,9 +65,11 @@ write, and the method that opens the packet, and the kfunc its type's module reg
 `bpf_luaxdp_run` or `bpf_luatc_run`, which a call into the kernel Lua runtime lowers to.
 `bpf.map.hash`, `bpf.map.array` and `bpf.map.lru_hash` check a map's spec and leave the map in
 `maps.lua`, and a table a compiled function reaches is a map exactly when `maps.lua` holds it.
-`bpf.xdp.runtime` and `bpf.tc.runtime` take the name of the script a runtime runs and leave the
-runtime in `runtimes.lua`, and a value a compiled function calls is a call into the kernel Lua
-runtime exactly when `runtimes.lua` holds it.
+`bpf.runtime.new` takes the name of the script a runtime runs and returns a proxy of the metatable
+the module keeps, and a value a compiled function calls is a call into the kernel Lua runtime
+exactly when `bpf.runtime.isproxy` finds that metatable on it. The compiler reaches `bpf.runtime`
+through the program files' `lib/`, as a body reaches the compiler's `luaebpf.*` through the host's
+path, so both read the one copy `package.loaded` keeps.
 
 ### Lowering
 
@@ -195,9 +197,9 @@ result a caller asks for.
 
 ### A call into the kernel Lua runtime
 
-A runtime `bpf.xdp.runtime(name)` or `bpf.tc.runtime(name)` declared, called in the program's own
-function, `lua(a, b)`, lowers to the kfunc of the program's type, `bpf_luaxdp_run` in an XDP
-program and `bpf_luatc_run` in a TC one, whichever module declared the runtime: R1 the address of
+A runtime `bpf.runtime.new(name)` returned, called in the program's own function, `lua(a, b)`,
+lowers to the kfunc of the program's type, `bpf_luaxdp_run` in an XDP program and `bpf_luatc_run`
+in a TC one, since the proxy belongs to no program type: R1 the address of
 the name, NUL-terminated in the frame, where the kfunc writes the terminator again, R2 its length
 with the NUL, R3 the context, R4 the address of the arguments, each a 64-bit word in order, which
 the callback reads as `ctx:argument():getint64(0)`, `getint64(8)` and on, and R5 their size, R4 a
@@ -206,8 +208,8 @@ byte order. The call is refused from a function the program calls, "'lua' can on
 the program's own function", since a compiled call does not pass the context; from a program whose
 parameter does not hold the context, "a call into the runtime passes the context, which the
 program's parameter does not hold"; with an argument that is not a number, "argument #1 is a
-boolean, and a call into the runtime passes numbers"; and a runtime declared with no name is
-refused at that line, "xdp.runtime takes a name".
+boolean, and a call into the runtime passes numbers"; and a `runtime.new` with no name is refused
+at its line, "runtime.new takes a name".
 
 The kfunc answers an `int`, the callback's verdict or `-1` where Lua has none to give: no softirq
 runtime of the name with a callback attached, or a callback that raises, returns `nil` or a value

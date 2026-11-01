@@ -22,9 +22,9 @@
 -- `ctx:packet()` is in `bpf.xdp`; a layer is refused, and an skb that is not linear, where the
 -- kernel's `skb:data()` raises in a tc callback, stops the program.
 --
--- `tc.runtime(name)` names a kernel Lua runtime the program calls, through `bpf_luatc_run`: the
--- call answers the verdict the runtime's callback returns, or nil, and the program tests the
--- answer before it reads it.
+-- A call into a kernel Lua runtime `bpf.runtime` names lowers to `bpf_luatc_run`: it answers the
+-- verdict the callback `tc.attach` registered returns, or nil, and the program tests the answer
+-- before it reads it.
 -- @module bpf.tc
 -- @usage
 -- local tc     = require("bpf.tc")
@@ -38,7 +38,6 @@
 -- end, {egress = true})
 
 local programs = require("luaebpf.programs")
-local runtimes = require("luaebpf.runtimes")
 local action   = require("linux.tc").action
 
 -- libbpf reads the program type and its attach point back from the ELF section name
@@ -82,30 +81,6 @@ function tc.program(fn, opts)
 	opts = opts or {}
 	return programs.declare("tc.program", fn, {section = opts.egress and EGRESS or INGRESS,
 		default = opts.default or action.OK, name = opts.name, context = context, kfunc = KFUNC})
-end
-
----
--- Names the kernel Lua runtime a program calls.
---
--- Inside a program's own function the value this returns is called with numbers, `lua(a, b)`,
--- and the call runs the callback the runtime registered with `tc.attach`, handing it the
--- program's skb and each argument as a 64-bit integer, in order, which the callback reads as
--- `ctx:argument():getint64(0)`, `getint64(8)` and on. The call answers the verdict the callback
--- returns, or `nil` where `bpf_luatc_run` returns `-1`: no softirq runtime of that name with a
--- callback attached, a callback that raises, returns `nil` or a value outside
--- `linux.tc.action`, or one that returns `linux.tc.action.UNSPEC`, which is `-1`. The program
--- tests the answer before it reads it, with `if v then`, `if not v then`, `v == nil` or
--- `v ~= nil`; every other use is refused at its line. An object with such a call loads where the
--- module publishes its BTF (`make btf_install`).
--- @function bpf.tc.runtime
--- @tparam string name the script the runtime runs, as `lunatik run` takes it, its path below
---   `/lib/modules/lua/` without `.lua`
--- @treturn table the runtime, called inside a program
--- @raise `<file>:<line>: tc.runtime takes a name`, the line that called it
--- @usage
--- local lua = tc.runtime("examples/sniclassify/sni")
-function tc.runtime(name)
-	return runtimes.declare("tc.runtime", name)
 end
 
 return tc

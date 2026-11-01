@@ -265,8 +265,8 @@ before the runtime starts; the existing `xdp` and `tc` cases pass with a compile
 
 ### Phase 4: the escape hatch
 
-The callable proxy over the kernel runtime: `xdp.runtime(name)` and `tc.runtime(name)` name a
-runtime by the script it runs, the name required, and `runtime(args...)`, in the program's own
+The callable proxy over the kernel runtime: `runtime.new(name)`, of `bpf.runtime`, names a
+runtime by the script it runs, the name required, and `lua(args...)`, in the program's own
 function, lowers to the kfunc of the program's type, the name NUL-terminated in the frame and each
 argument a native 64-bit integer in order. The answer is a type the program tests before it reads,
 `nil` where the kfunc returns `-1`. The object carries each kfunc a call names as libbpf reads one

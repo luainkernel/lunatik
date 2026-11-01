@@ -4,11 +4,12 @@
 --
 -- Program file of the miss case (see miss.sh).
 
-local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
+local xdp     = require("bpf.xdp")
+local runtime = require("bpf.runtime")
+local action  = require("linux.xdp").action
 
-local lua       = xdp.runtime("tests/luaebpf/miss")
-local inprocess = xdp.runtime("tests/luaebpf/inprocess")
+local lua       = runtime.new("tests/luaebpf/miss")
+local inprocess = runtime.new("tests/luaebpf/inprocess")
 
 -- PASS is the callback's verdict and DROP the program's own where the call answered nil
 local function miss(_)

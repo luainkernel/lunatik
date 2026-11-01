@@ -182,7 +182,7 @@ that line. Each construct links to its listing.
 | [`for i = a, b, s do`](09-luaebpf-by-example.md#loops) | the passes Lua makes | `s` is 0 | `s` is a known 0; a bound or a step is computed, before Linux 6.9 ([Loops](#loops)) |
 | [`local v = f(x)`](09-luaebpf-by-example.md#calls) | the value `f` returns | `f` stops | [Calls](#calls) says |
 | [`return f(x)`](09-luaebpf-by-example.md#calls) | | | always: a tail call |
-| [`local v = lua(a, b)`, `lua` a runtime](09-luaebpf-by-example.md#calls-into-a-kernel-lua-runtime) | the verdict the runtime's callback returns, or nil | never | an argument is not a number; the call is in a function the program calls |
+| [`local v = lua(a, b)`, `lua` what `runtime.new` returns](09-luaebpf-by-example.md#calls-into-a-kernel-lua-runtime) | the verdict the runtime's callback returns, or nil | never | an argument is not a number; the call is in a function the program calls |
 | [`if v then`, `v == nil`, `v` what `lua` answered](09-luaebpf-by-example.md#calls-into-a-kernel-lua-runtime) | the branch Lua takes: `v` is the verdict on one, nil on the other | never | `v` is used before one of these tests reads it; `v` is the answer on one path and another value on another |
 | [`p:getuint16(n)` and the other reads](09-luaebpf-by-example.md#the-packet) | the bytes at `n`, in the kernel's byte order | the read passes the end of the packet | [The packet](#the-packet) says |
 | [`#p`](09-luaebpf-by-example.md#the-packet) | the length of the packet | never | never |
@@ -280,22 +280,23 @@ it.
 
 A program hands a packet to Lua by calling a kernel Lua runtime, a kernel script run in softirq
 context whose callback decides the packet. The body names the runtime by the script it runs, its
-path below `/lib/modules/lua/` without `.lua`, as `lunatik run` takes it: `xdp.runtime(name)` or
-`tc.runtime(name)`, the two alike. This program file hands Lua the UDP frames, and the kernel
-script drops one to port 53 longer than 512 bytes:
+path below `/lib/modules/lua/` without `.lua`, as `lunatik run` takes it: `runtime.new(name)` of
+`bpf.runtime`, whichever program type calls it. This program file hands Lua the UDP frames, and the
+kernel script drops one to port 53 longer than 512 bytes:
 
 `ports.bpf.lua`:
 
 ```Lua
-local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
+local xdp     = require("bpf.xdp")
+local runtime = require("bpf.runtime")
+local action  = require("linux.xdp").action
 
 local ETHERTYPE <const> = 12 -- 0x0800 for IPv4, in network order
 local PROTOCOL  <const> = 23 -- the protocol byte of the IPv4 header
 local PORT      <const> = 36 -- the UDP destination port, past an IPv4 header with no options
 local UDP       <const> = 17
 
-local lua = xdp.runtime("ports")
+local lua = runtime.new("ports")
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
@@ -347,7 +348,7 @@ any other frame, so the call answers nil there, and the program passes the frame
   arguments, each a number, as 64-bit integers in order: `ctx:argument()` holds 8 bytes for each,
   which `ctx:argument():getint64(0)`, `getint64(8)` and on read, and is empty for `lua()`. A call
   from an XDP program reaches the callback `xdp.attach` registered, and one from a TC program the
-  callback of `tc.attach`, whichever of `xdp.runtime` and `tc.runtime` named the runtime.
+  callback of `tc.attach`.
 * The call answers the callback's verdict, a value of `linux.xdp.action` or `linux.tc.action`, or
   nil where none comes back: no runtime of that name runs in softirq with a callback attached, or
   the callback raises, returns nil or nothing, or returns what is not one of the hook's actions,
@@ -363,8 +364,8 @@ any other frame, so the call answers nil there, and the program passes the frame
   own function", since only the program's own function holds the context, and so is one in a
   program whose parameter does not hold it, "a call into the runtime passes the context, which the
   program's parameter does not hold". An argument that is not a number is refused, "argument #1 is
-  a boolean, and a call into the runtime passes numbers", and so is a runtime declared with no
-  name, at that line, "xdp.runtime takes a name".
+  a boolean, and a call into the runtime passes numbers", and so is a `runtime.new` with no name,
+  at its line, "runtime.new takes a name".
 * The name and the arguments are written on the program's stack while the call runs, 512 bytes it
   shares with the function's own values; a call they do not fit is refused, "the function needs 528
   bytes of stack, over the 512 eBPF allows", one with a name of 480 bytes among them.
@@ -453,7 +454,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | 'lua' can only be called from the program's own function | a call into a runtime in a function the program calls | the call in the program's function |
 | a call into the runtime passes the context, which the program's parameter does not hold | `xdp.program(function() ... end)` calling `lua(1)` | `function(ctx)` |
 | argument #1 is a boolean, and a call into the runtime passes numbers | `lua(true)`, `lua(p)` | a number |
-| xdp.runtime takes a name | `xdp.runtime()` | `xdp.runtime("ports")` |
+| runtime.new takes a name | `runtime.new()` | `runtime.new("ports")` |
 | the function needs 528 bytes of stack, over the 512 eBPF allows | a call into a runtime named by 480 bytes | a shorter name |
 | a value cannot be compared with a number here | `==` on a variable nil on one path | `local v = 0` |
 | a value has no truth value in a compiled function | `if v then`, `v` a number or nil | `local v = 0`, then `if v ~= 0 then` |
@@ -485,8 +486,8 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
   the chunk of the program file
          |
          | 2. the Lua of the CLI (lua5.5) runs the body from that chunk;
-         |    require finds bpf.xdp, bpf.tc and bpf.map, then the kernel
-         |    scripts under /lib/modules/lua/
+         |    require finds bpf.xdp, bpf.tc, bpf.map and bpf.runtime,
+         |    then the kernel scripts under /lib/modules/lua/
          v
   the programs and the maps the body declared
          |

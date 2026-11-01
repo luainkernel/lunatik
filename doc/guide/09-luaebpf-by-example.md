@@ -707,10 +707,11 @@ compiled".
 ## Calls into a kernel Lua runtime
 
 ```Lua
-local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
+local xdp     = require("bpf.xdp")
+local runtime = require("bpf.runtime")
+local action  = require("linux.xdp").action
 
-local lua = xdp.runtime("ports")
+local lua = runtime.new("ports")
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
@@ -733,7 +734,7 @@ call. `TX` on the nil branch tells that branch from the callback's verdict and f
 verdict. Instructions 0 to 45 take `ctx` and `p` and read bytes 36 and 37 into `port`, in `r8`.
 
 ```
-     line 9: local verdict = lua(port, #p)
+     line 10: local verdict = lua(port, #p)
  46  *(u64 *)(r10 -40) = r8        port, in Lua register 4
  47  r1 = *(u32 *)(r7 +0)          xdp_md.data
  48  r2 = *(u32 *)(r7 +4)          xdp_md.data_end
@@ -753,18 +754,18 @@ verdict. Instructions 0 to 45 take `ctx` and `p` and read bytes 36 and 37 into `
  66  r0 <<= 32                     the int's 32 bits, the only ones defined
  67  r0 s>>= 32                    sign-extended, so -1 stays -1
  68  r9 = r0                       verdict
-     line 10: if verdict then
+     line 11: if verdict then
  69  if r9 == -1 goto 71           the kfunc's -1: nil
  70  goto 73                       a verdict: the number branch
  71  r9 = 0                        nil, the zero word it is everywhere else
  72  goto 75                       the nil branch
-     line 11: return verdict
+     line 12: return verdict
  73  r0 = r9
  74  exit
-     line 13: return action.TX
+     line 14: return action.TX
  75  r1 = 3                        XDP_TX, read from linux.xdp
  76  to 79: r0 is 3, and the exit
-     line 14: end)
+     line 15: end)
  80  r0 = 2                        XDP_PASS, the default verdict
  81  exit
 ```
