@@ -373,7 +373,7 @@ any other frame, so the call answers nil there, and the program passes the frame
   packet that reaches it: a program decides what it can by itself, a map in front, and calls Lua
   for the rest. `lunatik bpf` prints on stdout a line for each call it compiled,
   `<file>:<line>: calls the runtime '<name>'`, in the order it met them, and nothing for a file
-  with none; for the file above, `ports.bpf.lua:17: calls the runtime 'ports'`.
+  with none; for the file above, `ports.bpf.lua:18: calls the runtime 'ports'`.
 * The object loads where the module of its call, `luaxdp` or `luatc`, carries BTF, which a module
   built after `sudo make btf_install` does. Where it carries none, `lunatik run` prints libbpf's
   "extern (func ksym) 'bpf_luaxdp_run': not found in kernel or module BTFs", exits 1 and leaves
