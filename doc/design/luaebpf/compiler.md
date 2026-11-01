@@ -80,8 +80,8 @@ reference to a map keep the name the object relocates.
 
 ### The object
 
-`write`, in `init.lua`, lays out the object with `elf.lua`, `btf.lua` and `strtab.lua`, in the
-byte order of the kernel `lunatik.config` describes:
+`writer.write`, in `writer.lua`, lays out the object with `elf.lua`, `btf.lua` and `strtab.lua`, in
+the byte order of the kernel `lunatik.config` describes:
 
 * each program's entry in the section its kind names, under a global symbol, and every subprogram
   in `.text`, under a local one, where libbpf resolves a call;
