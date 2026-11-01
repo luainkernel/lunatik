@@ -41,9 +41,10 @@ no "Test plan" section, no em dashes. On top of it:
   base when the change is written, and `bash tools/checks/examples-named.sh <body> <changed files>`
   fails a body that leaves one of them unnamed, which `pr-body-guard.sh` runs when the pull request
   opens.
-- The body opens with the failure or the need in one plain sentence, then what the change does,
-  then what it depends on: three short paragraphs at most; `bash tools/checks/pr-body.sh <file>`
-  before posting it.
+- The body is written as AGENTS.md, "Patches and commits", says: the need, what the change lets a
+  script or a user do with the code they write in a fenced block that reads on its own, what changes
+  from today and what it costs; four short paragraphs at most, an example counting as none;
+  `bash tools/checks/pr-body.sh <file>` before posting it.
 - A pull request that finishes a phase of an epic carries `Closes #<phase issue>` on a line of its
   own, and one that finishes none says `#<epic>, which it does not close`: a body that only says it
   is part of the epic, or answers an issue, closes nothing when it merges, and `pr-body.sh` fails it.

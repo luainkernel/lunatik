@@ -145,8 +145,7 @@ maintainer stated, quoted (AGENTS.md, "Deciding what to change"), and one withou
 answered removed.${a.smallest ? `
 The implementer's own reading, which yours is not bound by: ${JSON.stringify(a.smallest)}` : ''}${a.body && !a.pr ? `
 The pull request opens with this body once the build passes; read it with the commit bodies, and your answer's
-body is this text with what the final diff, your fixups included, makes untrue corrected, the smallest shape
-named in a sentence and each mechanism you kept with its source in a clause, the rest as it stands:
+body is this text with what the final diff, your fixups included, makes untrue corrected, the rest as it stands:
 ${JSON.stringify(a.body)}` : ''}
 For every mechanism the diff builds over a kernel primitive, name the kernel's own answer to the problem it
 solves, from Documentation/ and the primitive's users in the kernel tree, and say why the diff's shape and not
