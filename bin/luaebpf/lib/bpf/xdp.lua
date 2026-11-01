@@ -20,9 +20,9 @@
 -- no method '<name>'".
 -- `ctx.data` and `ctx.data_end` are the bounds of the packet, not numbers; `#p` is its length.
 --
--- `xdp.runtime(name)` names a kernel Lua runtime the program calls, through `bpf_luaxdp_run`: the
--- call answers the verdict the runtime's callback returns, or nil, and the program tests the
--- answer before it reads it.
+-- A call into a kernel Lua runtime `bpf.runtime` names lowers to `bpf_luaxdp_run`: it answers the
+-- verdict the callback `xdp.attach` registered returns, or nil, and the program tests the answer
+-- before it reads it.
 -- @module bpf.xdp
 -- @usage
 -- local xdp    = require("bpf.xdp")
@@ -37,7 +37,6 @@
 -- end)
 
 local programs = require("luaebpf.programs")
-local runtimes = require("luaebpf.runtimes")
 local action   = require("linux.xdp").action
 
 -- libbpf reads the program type back from the ELF section name (tools/lib/bpf/libbpf.c)
@@ -74,29 +73,6 @@ function xdp.program(fn, opts)
 	opts = opts or {}
 	return programs.declare("xdp.program", fn, {section = SECTION, default = opts.default or action.PASS,
 		name = opts.name, context = context, kfunc = KFUNC})
-end
-
----
--- Names the kernel Lua runtime a program calls.
---
--- Inside a program's own function the value this returns is called with numbers, `lua(a, b)`,
--- and the call runs the callback the runtime registered with `xdp.attach`, handing it the
--- program's context and each argument as a 64-bit integer, in order, which the callback reads as
--- `ctx:argument():getint64(0)`, `getint64(8)` and on. The call answers the verdict the callback
--- returns, or `nil` where `bpf_luaxdp_run` returns `-1`: no softirq runtime of that name with a
--- callback attached, or a callback that raises, returns `nil` or a value outside
--- `linux.xdp.action`. The program tests the answer before it reads it, with `if v then`,
--- `if not v then`, `v == nil` or `v ~= nil`; every other use is refused at its line. An object
--- with such a call loads where the module publishes its BTF (`make btf_install`).
--- @function bpf.xdp.runtime
--- @tparam string name the script the runtime runs, as `lunatik run` takes it, its path below
---   `/lib/modules/lua/` without `.lua`
--- @treturn table the runtime, called inside a program
--- @raise `<file>:<line>: xdp.runtime takes a name`, the line that called it
--- @usage
--- local lua = xdp.runtime("examples/filter/sni")
-function xdp.runtime(name)
-	return runtimes.declare("xdp.runtime", name)
 end
 
 return xdp

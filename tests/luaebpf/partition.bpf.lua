@@ -9,6 +9,7 @@ local packets = require("tests.luaebpf.packets")
 local vmlinux = require("luaebpf.vmlinux")
 local tc      = require("bpf.tc")
 local map     = require("bpf.map")
+local runtime = require("bpf.runtime")
 local action  = require("linux.tc").action
 
 local pack = string.pack
@@ -28,7 +29,7 @@ local FACTS   <const> = "facts.txt"
 local stimuli <const> = {"tls", "syn", "icmp"}
 
 local flows = map.hash("flows", {key = KEY, value = VALUE, entries = ENTRIES})
-local lua   = tc.runtime("tests/luaebpf/partition")
+local lua   = runtime.new("tests/luaebpf/partition")
 
 local function u16(packet, at)
 	return packet:getbyte(at) << 8 | packet:getbyte(at + 1)

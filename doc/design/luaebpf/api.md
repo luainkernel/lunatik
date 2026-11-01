@@ -198,14 +198,15 @@ create` to the program that reads it.
 
 The escape hatch is a call the program writes, at the point it chooses:
 
-    local tc     = require("bpf.tc")
-    local map    = require("bpf.map")
-    local action = require("linux.tc").action
+    local tc      = require("bpf.tc")
+    local map     = require("bpf.map")
+    local runtime = require("bpf.runtime")
+    local action  = require("linux.tc").action
 
     local HTTPS <const> = 443
 
     local flows = map.hash("flows", {key = "I4", value = "I4", entries = 65536})
-    local lua   = tc.runtime("examples/sniclassify/sni")
+    local lua   = runtime.new("examples/sniclassify/sni")
 
     local function u16(packet, at)
         return packet:getbyte(at) << 8 | packet:getbyte(at + 1)
@@ -236,9 +237,10 @@ The escape hatch is a call the program writes, at the point it chooses:
     end)
 
 That is `examples/sniclassify/classify.c` in Lua, its cache keyed per flow by `skb->hash` as the C
-is. `tc.runtime(name)` names a kernel runtime by the key the kfunc looks up, the script's path
-below `/lib/modules/lua/` as `lunatik run` takes it, and a declaration without one is refused at
-its line. The call, in the program's own function, lowers to
+is. `runtime.new(name)`, of `bpf.runtime`, names a kernel runtime by the key the kfunc looks up,
+the script's path below `/lib/modules/lua/` as `lunatik run` takes it, and a call without one is
+refused at its line. The proxy belongs to no program type: the call, in the program's own function,
+lowers to the kfunc of the program's type, here
 `bpf_luatc_run(key, key__sz, skb, &args, sizeof(args))`, the key NUL-terminated in the frame and
 each argument a native 64-bit integer in order, a call with none passing a null pointer and a zero
 size. The kernel side is what it is today: `tc.attach(callback)`, `ctx:argument():getint64(0)` for
@@ -318,6 +320,7 @@ What the body of a program file can `require`:
 * `bpf.xdp`, `bpf.tc`, later `bpf.lsm` and `bpf.cgroup`: the program constructors and their
   proxies;
 * `bpf.map`: map declarations;
+* `bpf.runtime`: the kernel Lua runtimes a program calls;
 * `luaebpf.*`: the compiler's own modules, which a test reads from a body;
 * `linux.*`: the autogen constant tables, loaded from the same files the kernel scripts use;
 * `string`, `table`, `math`, `utf8`: the CLI's standard libraries, for building constants;

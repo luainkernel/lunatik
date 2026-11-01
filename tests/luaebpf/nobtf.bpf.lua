@@ -4,10 +4,11 @@
 --
 -- Program file of the nobtf case (see nobtf.sh).
 
-local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
+local xdp     = require("bpf.xdp")
+local runtime = require("bpf.runtime")
+local action  = require("linux.xdp").action
 
-local lua = xdp.runtime("tests/luaebpf/nobtf")
+local lua = runtime.new("tests/luaebpf/nobtf")
 
 return xdp.program(function(_)
 	local verdict = lua()

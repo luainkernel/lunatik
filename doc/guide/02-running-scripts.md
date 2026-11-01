@@ -190,14 +190,14 @@ The image then only loads the object.
 A BTF of the other byte order than the object's is refused, naming both, since it describes another
 kernel: the build host's own, read by default, in a compile for a kernel of the other order.
 
-`require` in the body finds the compile-time modules first, `bpf.xdp`, `bpf.tc` and `bpf.map`,
-which declares a map rather than opening the kernel's, then the compiler's own `luaebpf` modules,
-then the kernel scripts, under `/lib/modules/lua/` or the directory `--scripts` names, whose modules
-`lunatic` compiles as it does the program file, installed as source or, with `BYTECODE=1`, as
-chunks. It finds nothing else the CLI's Lua would, so a Lua or C module the host installs never
-stands in for a kernel script. `10 / 4` is `2` in the body as in the kernel; the CLI's libraries can
-still return a float, as `math.sqrt` does, and one reaching a compiled function is refused at the
-line that reaches it.
+`require` in the body finds the compile-time modules first, `bpf.xdp`, `bpf.tc`, `bpf.runtime` and
+`bpf.map`, which declares a map rather than opening the kernel's, then the compiler's own `luaebpf`
+modules, then the kernel scripts, under `/lib/modules/lua/` or the directory `--scripts` names,
+whose modules `lunatic` compiles as it does the program file, installed as source or, with
+`BYTECODE=1`, as chunks. It finds nothing else the CLI's Lua would, so a Lua or C module the host
+installs never stands in for a kernel script. `10 / 4` is `2` in the body as in the kernel; the
+CLI's libraries can still return a float, as `math.sqrt` does, and one reaching a compiled function
+is refused at the line that reaches it.
 
 ## Compiled programs
 

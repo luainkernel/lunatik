@@ -10,11 +10,11 @@
 -- @module luaebpf.emit.call
 
 local insn     = require("luaebpf.insn")
-local runtimes = require("luaebpf.runtimes")
 local frame    = require("luaebpf.emit.frame")
 local loads    = require("luaebpf.emit.loads")
 local packet   = require("luaebpf.emit.packet")
 local runtime  = require("luaebpf.emit.runtime")
+local isproxy  = require("bpf.runtime").isproxy
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local getinfo = debug.getinfo
@@ -119,7 +119,7 @@ function call.CALL(f, pc, ins, state)
 		method(f, pc, ins, state, callee)
 		return filled(f, pc, ins, state)
 	end
-	if callee ~= nil and runtimes.declares(callee.k) then
+	if callee ~= nil and isproxy(callee.k) then
 		runtime.call(f, pc, ins, state, callee)
 		return filled(f, pc, ins, state)
 	end

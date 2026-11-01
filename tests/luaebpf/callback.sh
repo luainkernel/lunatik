@@ -49,9 +49,10 @@ luaebpf_start $((CALLS + 1 + REFUSALS + 2))
 row() {
 	local name="$1" line="$2" message="$3" body="$4" params="${5-ctx}" runtime="${6-\"$SCRIPT\"}" output
 	{
-		echo 'local xdp = require("bpf.xdp")'
+		echo 'local xdp     = require("bpf.xdp")'
+		echo 'local runtime = require("bpf.runtime")'
 		echo ''
-		echo "local lua = xdp.runtime($runtime)"
+		echo "local lua = runtime.new($runtime)"
 		echo ''
 		echo 'local function helper(n)'
 		echo $'\tlocal v = lua(n)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0'
@@ -113,32 +114,33 @@ else
 	ktap_pass "luaebpf: two arguments reach the callback as two words, in order"
 fi
 
-row untested 15 "'lua' may be nil here; test it first" $'\tlocal v = lua(1)\n\treturn v + 1'
-row compared 14 "'lua' may be nil here; test it first" \
+row untested 16 "'lua' may be nil here; test it first" $'\tlocal v = lua(1)\n\treturn v + 1'
+row compared 15 "'lua' may be nil here; test it first" \
 	$'\tif lua(1) == 0 then\n\t\treturn 1\n\tend\n\treturn 2'
-row ordered 14 "attempt to compare a runtime answer with a number" \
+row ordered 15 "attempt to compare a runtime answer with a number" \
 	$'\tif lua(1) < 5 then\n\t\treturn 1\n\tend\n\treturn 2'
-row returned 15 "'lua' may be nil here; test it first" $'\tlocal v = lua(1)\n\treturn v'
-row copied 15 "'lua' may be nil here; test it first" $'\tlocal v = lua(1)\n\tlocal w = v or 2\n\treturn w'
-row joined 18 "a runtime answer joined another value here, whose nil is 0 and not -1; test it before" \
+row returned 16 "'lua' may be nil here; test it first" $'\tlocal v = lua(1)\n\treturn v'
+row copied 16 "'lua' may be nil here; test it first" $'\tlocal v = lua(1)\n\tlocal w = v or 2\n\treturn w'
+row joined 19 "a runtime answer joined another value here, whose nil is 0 and not -1; test it before" \
 	$'\tlocal v\n\tif ctx:ingress() == 1 then\n\t\tv = lua(1)\n\tend\n\tif v then\n\t\treturn v\n\tend\n\treturn 2'
-row boolean 14 "argument #1 is a boolean, and a call into the runtime passes numbers" \
+row boolean 15 "argument #1 is a boolean, and a call into the runtime passes numbers" \
 	$'\tlocal v = lua(true)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0'
-row subprogram 6 "'lua' can only be called from the program's own function" $'\tlocal n = helper(1)\n\treturn n'
-row noctx 14 "a call into the runtime passes the context, which the program's parameter does not hold" \
+row subprogram 7 "'lua' can only be called from the program's own function" $'\tlocal n = helper(1)\n\treturn n'
+row noctx 15 "a call into the runtime passes the context, which the program's parameter does not hold" \
 	$'\tlocal v = lua(1)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0' ''
-row noname 3 "xdp.runtime takes a name" $'\treturn 0' ctx ''
-row negated 14 "'lua' may be nil here; test it first" $'\tlocal b = not lua(1)\n\tif b then\n\t\treturn 1\n\tend\n\treturn 0'
-row longname 14 "the function needs 528 bytes of stack, over the 512 eBPF allows" \
+row noname 4 "runtime.new takes a name" $'\treturn 0' ctx ''
+row negated 15 "'lua' may be nil here; test it first" $'\tlocal b = not lua(1)\n\tif b then\n\t\treturn 1\n\tend\n\treturn 0'
+row longname 15 "the function needs 528 bytes of stack, over the 512 eBPF allows" \
 	$'\tlocal v = lua(1)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0' ctx 'string.rep("x", 480)'
 
-# one runtime, two program types: a kfunc read off the runtime's namespace names bpf_luaxdp_run
-# alone, and the TC program would call the XDP module's kfunc
+# one runtime, two program types: a kfunc read off the runtime rather than the program would name
+# one kfunc for both, and one of the programs would call the other module's kfunc
 cat > "$LUAEBPF_WORK/shared.bpf.lua" <<LUA
-local xdp = require("bpf.xdp")
-local tc  = require("bpf.tc")
+local xdp     = require("bpf.xdp")
+local tc      = require("bpf.tc")
+local runtime = require("bpf.runtime")
 
-local lua = xdp.runtime("$SCRIPT")
+local lua = runtime.new("$SCRIPT")
 
 local function ingress(_)
 	local verdict = lua(1)

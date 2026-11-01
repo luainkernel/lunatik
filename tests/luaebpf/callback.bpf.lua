@@ -4,13 +4,14 @@
 --
 -- Program file of the callback case (see callback.sh).
 
-local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
+local xdp     = require("bpf.xdp")
+local runtime = require("bpf.runtime")
+local action  = require("linux.xdp").action
 
 local MAGIC <const> = 0x5555000000004c41 -- whose low 32 bits are not MAGIC
 local WRONG <const> = 0x5555000000004c42 -- MAGIC with one byte changed
 
-local lua = xdp.runtime("tests/luaebpf/callback")
+local lua = runtime.new("tests/luaebpf/callback")
 
 -- TX where the call answered nil, a verdict the callback never returns
 local function answer(_)
