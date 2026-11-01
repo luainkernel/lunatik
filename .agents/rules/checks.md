@@ -444,13 +444,16 @@ maintainer without the question, two options and a recommendation (AGENTS.md, *D
 keys on the phrase that hands one over, "the maintainer's call", "é decisão sua", "levo isso a
 você", and asks the text around it for the three. A reply in the session is where the maintainer
 read "é decisão sua", so `.claude/hooks/on-stop.sh`, the Stop hook, runs it over the reply a turn
-ends on and sends one that fails back once, passing the stop after it (`stop_hook_active`). A decision reported as taken, "foi decisão sua", "por decisão sua", or said to be none, "não pede decisão sua", hands nothing over and passes.
+ends on and sends one that fails back once, passing the stop after it (`stop_hook_active`). A decision reported as taken, "foi decisão sua", "por decisão sua", or said to be none, "não pede decisão sua", "nenhuma decisão sua", hands nothing over and passes.
 It also reads every recommendation, from the line that opens with one, `Recommendation:`, `Recomendação:`
 or `Recomendo`, to the end of its paragraph, for a reason that rests on keeping an API, "the existing contract", "não
 muda a API": that is a cost the other options pay, not what the recommended one buys (AGENTS.md,
 *Deciding what to change*), and #1965's recommendation of a positional read rested on it. One that
 spells the break as the cost of the option that makes it, "B breaks `bpf.map`'s API, which one test
-uses", passes. A decision, two lettered options and a recommendation, that carries no ID `D1` is named,
+uses", passes. It also names a recommendation that names no option it beats, by its letter in a
+comparison, "over A", "sobre A": the reason is what the option buys over that one, and #2202's D19
+recommended one function under two names, the maintainer then asking what it bought over one name.
+A decision, two lettered options and a recommendation, that carries no ID `D1` is named,
 and so are two or more brought without a table whose rows open with their IDs: the maintainer answers
 by the ID, `D3 B`, and asked for both after a reply that made him spell out which decision he meant.
 

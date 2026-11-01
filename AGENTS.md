@@ -416,7 +416,12 @@ named, not one discovered at that consumer's build.
   option, "nothing uses it yet", decides between none. #1965 recommended reading a map's struct value
   by position because the kernel's array was "the existing contract", where a read by name holds when
   a field moves and one test was all the array had; `tools/checks/decision.sh` names a recommendation
-  that rests on keeping an API.
+  that rests on keeping an API. The reason is what the option buys over the one it beats, named by
+  its letter, `B, because over A it ...`: a list of what the option does leaves the maintainer to ask
+  what it buys over the others. D19 on #2202 recommended one function under two names,
+  `xdp.runtime` and `tc.runtime`, for keeping the names #878's Update had settled, and the
+  maintainer asked what that bought over one `bpf.runtime`: a line of `require`; `decision.sh` names a
+  recommendation that names no other option.
 * A step the session can take it takes. One only the maintainer can, a command the session's
   permissions refuse or his own terminal must run, reaches him as a script the session writes under
   `/tmp` and the one short line that runs it, `! bash /tmp/<name>.sh` in Claude Code: a command spelled
