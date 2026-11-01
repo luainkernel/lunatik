@@ -180,17 +180,18 @@ taught it; a lesson kept in one assistant's notes is one the next contributor pa
 a check that lands is run that day over the open pull requests it reaches, and each one it names gets
 a fixup or a reason.
 
-`pr-body.sh` takes a pull request body file and fails it on more than three paragraphs, an em dash,
+`pr-body.sh` takes a pull request body file and fails it on more than four paragraphs outside its fenced
+examples, an em dash,
 a "Test plan" section or an assistant's footer; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
 blocks a `gh` write to pulls that carries a body file the check fails on, or that `machine-leak.sh`
 finds the machine in; a body it cannot read is refused rather than skipped, as in the review guard below.
 A write to a pull request's reviews or comments is that guard's and not this one's, since a review body
-runs past three paragraphs by design. A write to issues takes this guard too, since the implement-issue workflow
+runs past four paragraphs by design. A write to issues takes this guard too, since the implement-issue workflow
 opens and edits issues from what its agents leave and its prompt asking for the checks enforced none;
 `untraced.sh` stands in there for `pr-body.sh`, whose paragraphs and Closes line are a pull request's.
 A release takes it as well, through `release-body.sh`, which keeps the em dash, `untraced.sh` and
 `decision.sh`, adds the maintainer's rule for public notes, nothing promised of the API or of a release
-to come, and drops the three paragraphs, since notes run as long as the release.
+to come, and drops the paragraph count, since notes run as long as the release.
 An edit is read for the lines it adds to the body GitHub has, asked with the credential the command
 carries, so text a reporter posted is no edit's to rewrite. When GitHub does not answer, the whole body is read. This guard and the review
 guard read a write in every spelling gh takes of it: `new` beside `create`, `-R` before the verb, `-F`

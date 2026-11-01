@@ -157,8 +157,7 @@ you take it, what you read, decided, committed and measured, and your answer bef
    Run no install, reload, suite or example yourself. List the examples tools/checks/examples-touched.sh
    names over the changed files.
 6. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/pr-body.sh
-   passes the body, which names the smallest shape in a sentence and each mechanism past it with its source
-   in a clause, carries \`Closes #${a.issue}\` on a line of its own and names each example as run:
+   passes the body, which carries \`Closes #${a.issue}\` on a line of its own and names each example as run:
    the pull request opens only on a head the host run passed, and says of an example the host only loaded
    what the build said of it. Open nothing.
 7. Remove your worktree (\`rm -rf <tree> && git worktree prune\`) once the branch is pushed: the review, the host

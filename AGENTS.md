@@ -479,11 +479,17 @@ named, not one discovered at that consumer's build.
   not say: a new API, a behaviour change, a non obvious rationale. No bullet list of every detail.
 * A pull request title and body follow the same rule: what and why, nothing the commits already say.
   No "Test plan" section, and no em dashes.
-* The body opens with the failure or the need in one plain sentence — what a script can do today,
-  what breaks, what has nowhere to live — then says what the change does, in a few lines, and what
-  it depends on. Three short paragraphs at most. How the problem was found, what was measured and
-  what was tried belong in the commits; a body a reviewer has to study is not a summary.
-  `tools/checks/pr-body.sh` holds a body file to this.
+* The body explains the change to a reviewer who has not read its issue, in four short paragraphs
+  at most: the failure or the need in one plain sentence, what a script can do today and what
+  breaks; what the change lets a script or a user do, shown, where it reaches one, by the code they
+  write, in a fenced block that reads on its own, every name in it defined there; what changes from
+  today, the hand-written stub it replaces or the refusal it lifts; and what it costs or needs, a
+  kernel, a build step, a path that pays more. An example counts as no paragraph. How the problem was
+  found, what was measured and what was tried belong in the commits, and so does the mechanism: the
+  body says what a reader of the API meets, not how the code reaches it. #2202 opened on "the kfuncs
+  ... are reachable from hand-written C stubs alone" and a paragraph on how the call lowers into
+  the frame, and the maintainer could not tell what it was for until a program file handing UDP
+  frames to a kernel script showed it. `tools/checks/pr-body.sh` holds a body file to the count.
 * A pull request that replaces another says so in the body, `Alternative to #N`, and the merge of
   the replacement closes #N in the same breath: one left open is a claim about the queue nobody made.
   `tools/pr-status.sh` marks an open pull request a merged body names that way as superseded and

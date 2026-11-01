@@ -6,7 +6,7 @@
 # Checks a release's notes against the rules v5.0's were written to and that no guard read: no em
 # dash, nothing promised of the API or of a release to come, which the maintainer keeps out of the
 # public notes, no failure named as a flake (untraced.sh) and no decision handed over without the
-# three (decision.sh). Notes run as long as the release, so pr-body.sh's three paragraphs and its
+# three (decision.sh). Notes run as long as the release, so pr-body.sh's paragraph count and its
 # Closes line are not theirs. Takes the notes file; prints what fails and exits 1, silent otherwise.
 
 future='API (freeze|is frozen|stays frozen)|freezes? (the|its) (public )?API|frozen (public )?API|next (major |minor )?release|(upcoming|future|later) release|will be (fixed|addressed|resolved)'
