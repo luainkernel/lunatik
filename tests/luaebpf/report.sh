@@ -22,12 +22,13 @@ trap cleanup EXIT
 
 luaebpf_start 2
 
-# the calls sit on lines 8, 12 and 20, which the expected summary names
+# the calls sit on lines 9, 13 and 21, which the expected summary names
 cat > "$LUAEBPF_WORK/report.bpf.lua" <<'LUA'
-local xdp = require("bpf.xdp")
+local xdp     = require("bpf.xdp")
+local runtime = require("bpf.runtime")
 
-local first  = xdp.runtime("tests/luaebpf/first")
-local second = xdp.runtime("tests/luaebpf/second")
+local first  = runtime.new("tests/luaebpf/first")
+local second = runtime.new("tests/luaebpf/second")
 
 -- two calls in one program
 local function both(_)
@@ -54,9 +55,9 @@ xdp.program(both, {name = "both"})
 xdp.program(one, {name = "one"})
 LUA
 
-summary="$LUAEBPF_WORK/report.bpf.lua:8: calls the runtime 'tests/luaebpf/first'
-$LUAEBPF_WORK/report.bpf.lua:12: calls the runtime 'tests/luaebpf/second'
-$LUAEBPF_WORK/report.bpf.lua:20: calls the runtime 'tests/luaebpf/second'"
+summary="$LUAEBPF_WORK/report.bpf.lua:9: calls the runtime 'tests/luaebpf/first'
+$LUAEBPF_WORK/report.bpf.lua:13: calls the runtime 'tests/luaebpf/second'
+$LUAEBPF_WORK/report.bpf.lua:21: calls the runtime 'tests/luaebpf/second'"
 
 output=$(cd "$LUAEBPF_WORK" && lunatik bpf -o "$LUAEBPF_WORK/report.bpf.o" "$LUAEBPF_WORK/report.bpf.lua" \
 	2> "$LUAEBPF_WORK/stderr") || { comment "$(< "$LUAEBPF_WORK/stderr")"; fail "luaebpf: report.bpf.lua did not compile"; }
