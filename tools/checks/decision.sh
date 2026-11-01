@@ -9,9 +9,13 @@
 # recommendation's reason is what the option buys: keeping an API is a cost the other options pay,
 # and #1965 recommended a positional read of a struct value because the array was "the existing
 # contract", where a read by name holds when a field moves and one test used the array.
+# The reason is what the option buys over the one it beats, named by its letter: D19 on #2202
+# recommended one function under two names for keeping the names an Update had settled, and the
+# maintainer had to ask what that bought over the other option.
 # Takes text files, a review body, a comment, a pull request or issue body or a reply; when one
 # hands a decision over without the three, brings one without the ID its answer names or two without
-# their table, or recommends an option for keeping an API, prints the lines that do and exits 1.
+# their table, recommends an option for keeping an API, or recommends one without naming another it
+# beats, prints the lines that do and exits 1.
 #
 # Usage: bash tools/checks/decision.sh <file>...
 
@@ -21,7 +25,8 @@ question="o que decidir|a decidir:|decis(a|ã)o( D[0-9]+)?:|to decide:|decision(
 option='^[[:space:]>*-]*(\*\*)?(\(?[a-e]\)|op(c|ç)(a|ã)o [a-e1-9]|option [a-e1-9])'
 recommend='recomend|recommend'
 recommendation="^[[:space:]>*-]*(\*\*)?($recommend)"
-kept='existing (api|contract)|(api|contract) (that )?already exists|keeps? the (existing |current |documented )?(api|contract)|without (changing|breaking) the (api|contract)|does(n.t| not) (change|break) the (api|contract)|contrato (que )?j(á|a) existe|contrato existente|api (que )?j(á|a) existe|api existente|mant(é|e)m (a api|o contrato)|n(ã|a)o (muda|quebra) (a api|o contrato)|sem (mudar|quebrar) (a api|o contrato)'
+rival='([Oo]ver|than|[Ss]obre|que|[Vv]ersus|vs\.?|rela(ç|c)(ã|a)o (a|à)|[Ff]rente (a|à)|[Aa]gainst|[Ee]m vez de|[Ii]nstead of|[Rr]ather than|[Cc]omparad[oa] (a|com)|[Cc]ompared (to|with))'
+kept='existing (api|contract)|(api|contract) (that )?already exists|keeps? the (existing |current |documented )?(api|contract)|without (changing|breaking) the (api|contract)|does(n.t| not) (change|break) the (api|contract)|contrato (que )?j(á|a) existe|contrato existente|api (que )?j(á|a) existe|api existente|mant(é|e)m (a api|o contrato)|n(ã|a)o (muda|quebra) (a api|o contrato)|sem (mudar|quebrar) (a api|o contrato)|keeps? the (settled |existing |current )?names?\b|mant(é|e)m (os|o) nomes?\b'
 
 status=0
 for file in "$@"; do
@@ -32,6 +37,24 @@ for file in "$@"; do
 	if [ -n "$reasons" ]; then
 		printf '%s\n' "$reasons" | sed "s|^|$file:|"
 		echo "$file: the recommendation rests on keeping an API, which is a cost the other options pay; give its reason in what the recommended option buys, and the break as the cost of the option that makes it, with the API's users counted"
+		status=1
+	fi
+	# a recommendation says what its option buys over the one it beats, named by its letter
+	unnamed=$(printf '%s\n' "$said" | re="$recommendation" awk '
+		tolower($0) ~ ENVIRON["re"] { if (on) print text; on = 1; text = NR ":" $0; next }
+		/^[[:space:]]*$/ { if (on) print text; on = 0; next }
+		on { text = text " " $0 }
+		END { if (on) print text }' | while IFS= read -r paragraph; do
+			chosen=$(printf '%s\n' "$paragraph" | sed -E 's/^[0-9]+:[^[:alpha:]]*[Rr]ecomm?end[^ ]*//' |
+				grep -oE '(^|[^A-Za-z])[A-E]([^A-Za-z]|$)' | head -1 | tr -cd 'A-E')
+			[ -n "$chosen" ] || continue
+			others=$(printf 'ABCDE' | tr -d "$chosen")
+			printf '%s\n' "$paragraph" | grep -qE "$rival[[:space:]]+(((a|o|à|ao|the) )?(op(ç|c)(ã|a)o|option) )?\(?[$others]([^A-Za-z]|$)" ||
+				printf '%s\n' "$paragraph" | cut -c1-160
+		done)
+	if [ -n "$unnamed" ]; then
+		printf '%s\n' "$unnamed" | sed "s|^|$file:|"
+		echo "$file: the recommendation names no option it beats; say what it buys over that one, by its letter: \"B, because over A it ...\""
 		status=1
 	fi
 	options=$(grep -ciE "$option" "$file")
@@ -47,7 +70,7 @@ for file in "$@"; do
 		fi
 	fi
 	# a decision reported as taken, or said to be none, hands nothing over
-	said=$(printf '%s\n' "$said" | sed -E "s/\b(foi|por|was|n(ã|a)o (pede|precisa de|exige)|needs no|is not)( a| the)? ($handoff)//gI")
+	said=$(printf '%s\n' "$said" | sed -E "s/\b(foi|por|was|n(ã|a)o (pede|precisa de|exige)|nenhuma|needs no|is not)( a| the)? ($handoff)//gI")
 	printf '%s\n' "$said" | grep -qiE "$handoff" || continue
 	missing=""
 	grep -qiE "$question" "$file" || missing="$missing, what is to be decided"
