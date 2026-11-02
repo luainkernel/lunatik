@@ -193,7 +193,7 @@ end
 
 -- the kfunc a program's functions call the runtime through, listed once however many of them do
 local function extern(externs, called, program, frame)
-	if not called[program.kfunc] and #frame.code:relocations("kfunc") > 0 then
+	if #frame.calls > 0 and not called[program.kfunc] then
 		called[program.kfunc] = true
 		table.insert(externs, {name = program.kfunc, context = program.context.struct})
 	end
