@@ -45,7 +45,7 @@ docs_deferral='Documentation/core-api/workqueue.rst, Documentation/timers/, Docu
 families="rcu locking refcount deferral"
 
 # a function definition at column zero, a definer macro, or a declaration at one tab with no initializer
-mechanism='^\+((static |extern )?(inline |noinline )?[A-Za-z_][A-Za-z0-9_ ]*[ *]+[A-Za-z_][A-Za-z0-9_]*\(.*\)$|(DEFINE_[A-Z_]+|LIST_HEAD|DECLARE_[A-Z_]+)\(|\t(struct |unsigned |bool |int |long |size_t |u8 |u16 |u32 |u64 |atomic_t |refcount_t |spinlock_t |struct mutex |lunatik_)[A-Za-z0-9_ *]*;$)'
+mechanism='^\+((static |extern )?(inline |noinline )?[A-Za-z_][A-Za-z0-9_ ]*[ *]+[A-Za-z_][A-Za-z0-9_]*\(.*\)$|(DEFINE_[A-Z_]+|LIST_HEAD|DECLARE_[A-Z_]+)\(|'$'\t''(struct |unsigned |bool |int |long |size_t |u8 |u16 |u32 |u64 |atomic_t |refcount_t |spinlock_t |struct mutex |lunatik_)[A-Za-z0-9_ *]*;$)'
 
 status=0
 
