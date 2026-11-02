@@ -130,6 +130,11 @@ local function section(units, sections, name)
 	return unit
 end
 
+-- what a function's code names for the object to relocate, each kind with the relocation its
+-- instruction takes, in the order the records are written
+local relocated = {{kind = "call", type = elf.relocation.IMM32}, {kind = "map", type = elf.relocation.IMM64},
+	{kind = "kfunc", type = elf.relocation.IMM32}}
+
 local function place(types, unit, frame, cache, subprograms)
 	local at = unit.at
 	insert(unit.code, frame.code:pack(emit.bigendian))
@@ -137,17 +142,10 @@ local function place(types, unit, frame, cache, subprograms)
 	for _, record in ipairs(lineinfo(types, frame, at, cache)) do
 		insert(unit.lines, record)
 	end
-	for _, call in ipairs(frame.code:relocations("call")) do
-		insert(unit.relocations, {at = at + (call.at - 1) * insn.SIZE, name = call.name,
-			type = elf.relocation.IMM32})
-	end
-	for _, use in ipairs(frame.code:relocations("map")) do
-		insert(unit.relocations, {at = at + (use.at - 1) * insn.SIZE, name = use.name,
-			type = elf.relocation.IMM64})
-	end
-	for _, call in ipairs(frame.code:relocations("kfunc")) do
-		insert(unit.relocations, {at = at + (call.at - 1) * insn.SIZE, name = call.name,
-			type = elf.relocation.IMM32})
+	for _, reloc in ipairs(relocated) do
+		for _, use in ipairs(frame.code:relocations(reloc.kind)) do
+			insert(unit.relocations, {at = at + (use.at - 1) * insn.SIZE, name = use.name, type = reloc.type})
+		end
 	end
 	unit.at = at + frame.code:len() * insn.SIZE
 	if not frame.isprogram then
