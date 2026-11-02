@@ -32,7 +32,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -yq build-essential bc bison flex libssl-dev dwarves libelf-dev libbpf-dev libncurses-dev clang llvm pkg-config libpcap-dev lua5.5 m4
+        sudo apt-get install -yq build-essential bc bison flex libssl-dev dwarves libelf-dev libbpf-dev libncurses-dev clang llvm pkg-config libpcap-dev lua5.5 m4 lld
     - name: Setup kernel ${{ matrix.kernel-version }}
       run: |
         SERIES="${{ matrix.kernel-version }}"
@@ -138,4 +138,18 @@ jobs:
         test ! -e "$dest/lua/skb" || { echo "make uninstall left skb/"; exit 1; }
         for f in "${kept[@]}"; do test -f "$f" || { echo "make install or uninstall removed $f"; exit 1; }; done
         echo "Lunatik built successfully for kernel ${{ matrix.kernel-version }}"
+    - name: Check autogen on a big-endian tree
+      # the branch of cpu_big_endian and of efficient_unaligned_access that the x86 kernel above never takes
+      run: |
+        src="${{ env.KERNEL_DIR }}" be="$RUNNER_TEMP/be"
+        make clean MODULES_BUILD_PATH="$src"
+        # kbuild refuses an out-of-tree build from a source tree configured in place, as the one above is
+        make -C "$src" mrproper
+        export ARCH=mips LLVM=1
+        make -C "$src" O="$be" malta_defconfig
+        "$src/scripts/config" --file "$be/.config" -e CPU_BIG_ENDIAN -d CPU_LITTLE_ENDIAN
+        make -C "$src" O="$be" olddefconfig
+        make -j$(nproc) -C "$src" O="$be" modules_prepare
+        make autogen MODULES_BUILD_PATH="$be"
+        lua5.5 -e 'local c = dofile("autogen/lunatik/config.lua") assert(c.cpu_big_endian == true and c.efficient_unaligned_access == false, ("the big-endian MIPS tree read as cpu_big_endian = %s, efficient_unaligned_access = %s"):format(c.cpu_big_endian, c.efficient_unaligned_access))'
 
