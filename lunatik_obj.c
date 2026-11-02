@@ -12,10 +12,9 @@
 
 #ifdef LUNATIK_RUNTIME
 
-#define lunatik_iswrapped(reg)							\
-	(strncmp((reg)->name, "__", 2) ?					\
-		strcmp((reg)->name, "close") && strcmp((reg)->name, "stop") :	\
-		!strcmp((reg)->name, "__tostring"))
+#define lunatik_iswrapped(reg)			\
+	(!strcmp((reg)->name, "__tostring") ||	\
+	(strncmp((reg)->name, "__", 2) && strcmp((reg)->name, "close") && strcmp((reg)->name, "stop")))
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt)
 {
