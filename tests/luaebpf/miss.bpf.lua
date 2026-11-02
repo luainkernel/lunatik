@@ -49,7 +49,7 @@ local function joined(_)
 	return action.DROP
 end
 
--- the three other tests of the answer, each DROP on its nil arm and the verdict on its number arm
+-- the four other tests of the answer, each DROP on its nil arm and the verdict on its number arm
 local function negated(_)
 	local verdict = lua()
 	if not verdict then
@@ -74,6 +74,13 @@ local function equal(_)
 	return verdict
 end
 
+-- the test Lua writes 'v = v or x' as, which TEST lowers without copying the answer
+local function ored(_)
+	local verdict = lua()
+	verdict = verdict or action.DROP
+	return verdict
+end
+
 xdp.program(miss, {name = "miss"})
 xdp.program(process, {name = "process"})
 xdp.program(returned, {name = "returned", default = action.TX})
@@ -81,4 +88,5 @@ xdp.program(joined, {name = "joined"})
 xdp.program(negated, {name = "negated"})
 xdp.program(unequal, {name = "unequal"})
 xdp.program(equal, {name = "equal"})
+xdp.program(ored, {name = "ored"})
 

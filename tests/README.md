@@ -1306,10 +1306,10 @@ publishes no BTF for the module whose kfunc its programs call.
   program takes its nil branch; returned there it is the program's default
   verdict, and joined with `true` it tests false, so the branch holds the zero
   word `nil` is everywhere else. With the runtime up in softirq the same
-  program returns the callback's verdict; `if not v`, `v ~= nil` and `v == nil`
-  take the nil arm without the runtime and the number arm with it, as `if v`
-  does; and a runtime in process context is not dispatched, which the module
-  logs.
+  program returns the callback's verdict; `if not v`, `v ~= nil`, `v == nil`
+  and `v = v or x` take the nil arm without the runtime and the number arm with
+  it, as `if v` does; and a runtime in process context is not dispatched, which
+  the module logs.
 - **partition**: `examples/sniclassify/classify.c`'s shape as a TC program
   under `BPF_PROG_TEST_RUN`: two packets of a ClientHello make one call into
   Lua, the second decided from the hash map the program declares; the

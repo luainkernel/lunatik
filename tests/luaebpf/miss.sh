@@ -14,8 +14,8 @@
 #     everywhere else, not the kfunc's -1
 #   - with the runtime started in softirq the same program over the same packet returns the
 #     callback's verdict, so the DROP above is the absent runtime
-#   - 'if not v', 'v ~= nil' and 'v == nil' take the nil arm without the runtime and the number
-#     arm with it, as 'if v' does
+#   - 'if not v', 'v ~= nil', 'v == nil' and 'v = v or x' take the nil arm without the runtime and
+#     the number arm with it, as 'if v' does
 #   - a runtime started in process context, inprocess.lua, is not dispatched, and the module
 #     logs that it refused it, which is what tells this row from the first: the kfunc answers -1
 #     either way
@@ -38,8 +38,8 @@ DROP=1
 PASS=2
 TX=3
 ROWS=5
-# the programs testing the answer the three other ways
-FORMS="negated unequal equal"
+# the programs testing the answer the four other ways
+FORMS="negated unequal equal ored"
 
 luaebpf_start $ROWS luaxdp
 
@@ -79,9 +79,9 @@ ktap_pass "luaebpf: the nil a call answers is the zero word nil is, returned as 
 [ "$softirq" = "$PASS" ] || fail "luaebpf: a call with the runtime up answered '$softirq', not PASS"
 ktap_pass "luaebpf: the same program over the same packet returns the callback's verdict"
 
-[ "$down" = "$DROP $DROP $DROP" ] || fail "luaebpf: $FORMS answered '$down' with no runtime, not DROP each"
-[ "$up" = "$PASS $PASS $PASS" ] || fail "luaebpf: $FORMS answered '$up' with the runtime up, not PASS each"
-ktap_pass "luaebpf: 'if not v', 'v ~= nil' and 'v == nil' take the nil arm with no runtime and the number arm with it"
+[ "$down" = "$DROP $DROP $DROP $DROP" ] || fail "luaebpf: $FORMS answered '$down' with no runtime, not DROP each"
+[ "$up" = "$PASS $PASS $PASS $PASS" ] || fail "luaebpf: $FORMS answered '$up' with the runtime up, not PASS each"
+ktap_pass "luaebpf: 'if not v', 'v ~= nil', 'v == nil' and 'v = v or x' take the nil arm with no runtime and the number arm with it"
 
 [ "$process" = "$DROP" ] || fail "luaebpf: a process-context runtime answered '$process', not DROP"
 [ "$refused" -ge 1 ] || fail "luaebpf: the module did not log that it refused the process-context runtime"
