@@ -5,8 +5,9 @@
 
 // A review as a workflow in two phases, each short enough to survive a provider error and resumable
 // from the cache when one does not: a reviewer that reads the change once, through the packet the
-// machine gathers for it, and a build that runs the host only when the head was not validated, a
-// fixup changed what the build reads, or an example the change touches was not run on it.
+// machine gathers for it, and a build that runs the host only when tools/checks/functional.sh names a
+// file it reads past the validated head, or past the base where none was, or an example the change
+// touches was not run on the validated head.
 //
 // Every phase appends what it finds to a checkpoint file the moment it finds it, so a phase that
 // dies leaves its findings on disk and its successor continues from them instead of reading the
@@ -19,7 +20,8 @@
 //   scratch     an absolute directory for worktrees and the checkpoint
 //   validated   {suite: "pass:N fail:0 skip:0", core: "<srcversion>", examples: [...]} when the exact
 //               head already passed the suite, with the examples run on it through
-//               tools/watchdog.sh, or null to build and run it here
+//               tools/watchdog.sh, or null to build and run it here when functional.sh
+//               names a file of the branch
 //   examples    the examples the change touches, as tools/checks/examples-touched.sh lists
 //               them over the changed files; the build phase runs whichever of them
 //               validated does not carry
@@ -180,6 +182,9 @@ ${JSON.stringify(a.defects, null, 2)}` : ''}
 `
 
 const unrun = (a.examples || []).filter(e => !(a.validated?.examples || []).includes(e))
+const since = a.validated ? a.head : a.base
+// functional.sh says what this tree's suite reads, not what a build of another tree or of a tool does
+const asks = typeof a.build !== 'string' && (!a.validated || !unrun.length)
 
 const BUILD = (tip) => `
 PHASE: BUILD of ${a.pr ? `pull request #${a.pr}` : `the branch \`${a.branch}\``} of ${github}, in the checkout at \`${repo}\`.
@@ -202,10 +207,12 @@ plants nothing and answers applied false with failed empty; it and a call a guar
 tried another way. Your answer's discrimination says, for each patch, whether it applied and the cases that
 failed.
 ${JSON.stringify(a.defects, null, 2)}` : ''}
-${a.validated && !unrun.length ? `Before any of that: \`${a.head}\` already passed (${a.validated.suite}, core ${a.validated.core}),
-so ask what the branch changed since in what the host reads, \`(cd ${repo} && bash tools/checks/functional.sh ${a.head} ${tip})\`.
-When it names nothing, comments, spacing, documents or the harness alone having moved, run nothing: answer skipped
-true, with the tip as head, the validated totals and core, and \`git diff --name-only ${a.head} ${tip}\` in notes.` : ''}
+${asks ? `Before any of that: ${a.validated ? `\`${a.head}\` already passed (${a.validated.suite}, core ${a.validated.core}),
+so ask what the branch changed since` : 'no head of this branch was validated, so ask what it changed from its base'} in
+what the host reads, \`(cd ${repo} && bash tools/checks/functional.sh ${since} ${tip})\`. When it names nothing, comments,
+spacing, documents or the harness alone having moved, run nothing, the examples included: answer skipped true, with
+the tip as head, ${a.validated ? 'the validated totals and core' : `totals and core empty, since nothing was measured,
+clean true`}, and in notes \`${since}\` and what \`git diff --name-only ${since} ${tip}\` lists.` : ''}
 Remove your worktree when you are done (\`rm -rf <tree> && git -C ${repo} worktree prune\`), and nothing else
 under ${a.scratch}/, which holds every phase's checkpoints and defect patches.
 `
@@ -249,7 +256,7 @@ const BUILD_OUT = {
   type: 'object',
   properties: {
     totals: { type: 'string' }, core: { type: 'string' }, head: { type: 'string' },
-    skipped: { type: 'boolean', description: 'true when functional.sh named nothing past the validated head' },
+    skipped: { type: 'boolean', description: 'true when functional.sh named nothing past the validated head, or past the base where none was' },
     examples: { type: 'array', items: { type: 'string' } }, clean: { type: 'boolean' }, notes: { type: 'string' },
     loaded: { type: 'array', items: { type: 'object', properties: {
       example: { type: 'string' }, why: { type: 'string' },
@@ -278,7 +285,7 @@ else if (!a.validated || changed || unrun.length) {
   phase('Build')
   build = await agent(BUILD(reviewer?.tip || a.head), { label: `build:${a.pr || a.branch}`, phase: 'Build', agentType: 'lunatik-host', schema: BUILD_OUT, ...builder })
   if (build?.skipped)
-    log(`build skipped: ${a.head} validated, and the branch moved past it only in what the build does not read`)
+    log(`build skipped: the branch moved past ${a.validated ? `${a.head}, validated,` : `its base ${a.base}`} only in what the build does not read`)
 } else {
   log(`build skipped: head ${a.head} already validated (${a.validated.suite}, core ${a.validated.core}, examples ${(a.validated.examples || []).join(' ') || 'none'}) and no fixup changed it`)
 }

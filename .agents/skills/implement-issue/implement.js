@@ -178,7 +178,7 @@ What you find past the failure and do not fix, in the change or beside it,
 ${LEAVE}
 `
 
-const OPEN = (impl, head, unrelated, body, loaded) => `
+const OPEN = (impl, head, unrelated, body, loaded, skipped) => `
 ${MACHINE}Open a pull request on luainkernel/lunatik from the branch \`${impl.branch}\` against \`${base}\`, whose head is
 \`${head}\`; push the branch first if GitHub's tip of it is not that SHA.${DRAFT} Title: ${JSON.stringify(impl.title)}
 A pull request GitHub already has for the branch is that one, read with
@@ -188,7 +188,8 @@ Body, as it stands${unrelated.length ? `, with one sentence added to its last pa
 run showed and the change does not cause, and the issue that reports it, from this record:
 ${JSON.stringify(unrelated)}` : ''}${loaded.length ? `, and with its sentence on the examples saying of each
 example of this record that the host only loaded it, or could not run it, and why, in the record's words:
-${JSON.stringify(loaded)}` : ''}:
+${JSON.stringify(loaded)}` : ''}${skipped && (impl.examples || []).length ? `, and with its sentence on the examples
+saying that the host ran none of them, since tools/checks/functional.sh names no file of the change it reads` : ''}:
 ${JSON.stringify(body)}
 
 Write the body with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it, and pass that
@@ -316,9 +317,9 @@ const reviewArgs = (impl, extra) => ({
   focus: a.focus || a.notes, smallest: impl.smallest, body: impl.body, effort: reviewer.effort, model: reviewer.model, push: a.push,
   agents: { build: (a.agents || {}).build }, build: a.build, repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
 })
-const passed = (build) => build && build.clean && /fail:0\b/.test(build.totals || '')
-// an example the host only loaded is accounted for, and the body says so
-const unrun = (impl, build) => (impl.examples || []).filter(e =>
+const passed = (build) => build && build.clean && (build.skipped || /fail:0\b/.test(build.totals || ''))
+// an example the host only loaded, or a skipped build ran none of, is accounted for, and the body says so
+const unrun = (impl, build) => build?.skipped ? [] : (impl.examples || []).filter(e =>
   ![...(build?.examples || []), ...(build?.loaded || []).map(l => l.example)].includes(e))
 
 let groomed = null
@@ -366,7 +367,7 @@ if (implemented?.branch && a.push !== false) {
     phase('Open')
     const unrelated = fixes.filter(f => f && !f.caused).map(f => f.notes)
     const body = review?.reviewer?.body || implemented.body
-    const opened = await agent(OPEN(implemented, head, unrelated, body, build?.loaded || []), {
+    const opened = await agent(OPEN(implemented, head, unrelated, body, build?.loaded || [], build?.skipped), {
       label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
     })
     pr = opened?.pr || 0
