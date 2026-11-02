@@ -16,7 +16,7 @@ local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local format   = string.format
 local pack     = string.pack
 local mathtype = math.type
-local abort, aligned, constant = frame.abort, frame.aligned, frame.constant
+local abort, address, aligned, constant = frame.abort, frame.address, frame.aligned, frame.constant
 local extend, fetch, fitsunsigned, getreg = frame.extend, frame.fetch, frame.fitsunsigned, frame.getreg
 local isinteger, narrow, refuse = frame.isinteger, frame.narrow, frame.refuse
 local setreg, tested = frame.setreg, frame.tested
@@ -96,10 +96,8 @@ end
 -- the map in R1 and the key's address in R2, where every map helper wants them. Lua registers
 -- live in R6-R9 and the frame, so the call clobbers nothing live.
 local function maphelper(f, map)
-	local code = f.code
-	code:map(reg.R1, map.name)
-	code:alu(alu.MOV, reg.R2, reg.FP)
-	code:alui(alu.ADD, reg.R2, KEY)
+	f.code:map(reg.R1, map.name)
+	address(f, reg.R2, KEY)
 end
 
 local function maplookup(f, ins, state, map, key)
@@ -156,8 +154,7 @@ local function mapstore(f, pc, ins, state, map, key)
 	end
 	mapslot(f, VALUE, value, map.value.size)
 	maphelper(f, map)
-	code:alu(alu.MOV, reg.R3, reg.FP)
-	code:alui(alu.ADD, reg.R3, VALUE)
+	address(f, reg.R3, VALUE)
 	code:set(reg.R4, ANY)
 	code:helper(UPDATE)
 	code:branchi(jump.JNE, reg.R0, 0, abort(f)) -- the kernel's bpf.map raises on an update the map refuses

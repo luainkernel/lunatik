@@ -12,10 +12,10 @@ local insn    = require("luaebpf.insn")
 local frame   = require("luaebpf.emit.frame")
 local context = require("luaebpf.emit.context")
 
-local alu, reg = insn.alu, insn.reg
+local reg = insn.reg
 local unpack = string.unpack
 local insert = table.insert
-local depth, extend, fetch, getreg = frame.depth, frame.extend, frame.fetch, frame.getreg
+local address, depth, extend, fetch, getreg = frame.address, frame.depth, frame.extend, frame.fetch, frame.getreg
 local isinteger, move, named, narrow = frame.isinteger, frame.move, frame.named, frame.narrow
 local refuse, setreg, stack, typename = frame.refuse, frame.setreg, frame.stack, frame.typename
 
@@ -82,15 +82,13 @@ function runtime.call(f, pc, ins, state, callee)
 	for i = 1, nargs do
 		code:store(reg.FP, args + (i - 1) * SLOT, getreg(f, pc, state, ins.a + i, reg.R1))
 	end
-	code:alu(alu.MOV, reg.R1, reg.FP)
-	code:alui(alu.ADD, reg.R1, at)
+	address(f, reg.R1, at)
 	code:set(reg.R2, #key + NUL)
 	move(f, fetch(f, CTXREG, reg.R3), reg.R3)
 	if nargs == 0 then
 		code:set(reg.R4, 0) -- the verifier takes a null pointer where the size is zero
 	else
-		code:alu(alu.MOV, reg.R4, reg.FP)
-		code:alui(alu.ADD, reg.R4, args)
+		address(f, reg.R4, args)
 	end
 	code:set(reg.R5, nargs * SLOT)
 	code:kfunc(f.unit.kfunc)
