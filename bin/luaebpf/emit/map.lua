@@ -16,10 +16,10 @@ local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local format   = string.format
 local pack     = string.pack
 local mathtype = math.type
-local abort, aligned, constant, copy = frame.abort, frame.aligned, frame.constant, frame.copy
+local abort, aligned, constant = frame.abort, frame.aligned, frame.constant
 local extend, fetch, fitsunsigned, getreg = frame.extend, frame.fetch, frame.fitsunsigned, frame.getreg
-local isinteger, jumptarget, labelof, reach = frame.isinteger, frame.jumptarget, frame.labelof, frame.reach
-local refuse, setreg, tested = frame.refuse, frame.setreg, frame.tested
+local isinteger, narrow, refuse = frame.isinteger, frame.narrow, frame.refuse
+local setreg, tested = frame.setreg, frame.tested
 
 local BYTE   <const> = frame.BYTE
 local INT    <const> = frame.INT
@@ -35,6 +35,7 @@ local UPDATE <const> = 2 -- BPF_FUNC_map_update_elem
 local DELETE <const> = 3 -- BPF_FUNC_map_delete_elem
 local ANY    <const> = 0 -- BPF_ANY, the flags an unconditional update takes
 local ENOENT <const> = -2 -- what a delete of a key the map does not hold answers
+local NULL   <const> = 0  -- what a lookup of a key the map does not hold answers
 
 local map = {MAYBE = MAYBE, RECORD = RECORD}
 
@@ -220,21 +221,7 @@ end
 -- a lookup is narrowed where the program tests it, and the read goes on the branch that found
 -- it good: the verifier refuses it anywhere else, and the other branch carries a nil
 local function testlookup(f, pc, ins, state)
-	local code, value = f.code, state[ins.a]
-	local target = jumptarget(f, pc + 1)
-	local truthy = ins.k and target or pc + 2
-	local falsy = ins.k and pc + 2 or target
-	local null = code:label()
-	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), 0, null)
-	local taken = copy(state)
-	mapvalue(f, pc, taken, ins.a, value)
-	code:jump(labelof(f, truthy))
-	reach(f, truthy, taken)
-	code:place(null)
-	code:jump(labelof(f, falsy))
-	state[ins.a] = {t = NIL, name = value.name}
-	reach(f, falsy, state)
-	return false
+	return narrow(f, pc, ins, state, NULL, ins.k, mapvalue)
 end
 map.testlookup = testlookup
 

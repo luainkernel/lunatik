@@ -184,11 +184,16 @@ local function fetch(f, i, scratch)
 end
 frame.fetch = fetch
 
+-- the value's name quoted, or what the caller says of one with none
+local function named(value, otherwise)
+	return value.name and format("'%s'", value.name) or otherwise
+end
+frame.named = named
+
 -- the verifier lets a lookup's pointer be used only where the program has tested it
 local function tested(f, pc, value)
 	if value ~= nil and (value.t & classes.untested) ~= 0 then
-		local name = value.name and format("'%s'", value.name) or "a value"
-		refuse(f, pc, "%s may be nil here; test it first", name)
+		refuse(f, pc, "%s may be nil here; test it first", named(value, "a value"))
 	end
 end
 frame.tested = tested
@@ -322,6 +327,31 @@ local function jumptarget(f, pc)
 	return target
 end
 frame.jumptarget = jumptarget
+
+-- the test of a word the kernel answered against `word`, its nil: `found` narrows the register on the
+-- arm that found another, the other arm holds nil's zero word, and `taken` is whether the opcode's
+-- jump is the former
+local function narrow(f, pc, ins, state, word, taken, found)
+	local code, value = f.code, state[ins.a]
+	local target = jumptarget(f, pc + 1)
+	local hit = taken and target or pc + 2
+	local miss = taken and pc + 2 or target
+	local absent = code:label()
+	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), word, absent)
+	local narrowed = copy(state)
+	found(f, pc, narrowed, ins.a, value)
+	code:jump(labelof(f, hit))
+	reach(f, hit, narrowed)
+	code:place(absent)
+	if word ~= 0 then
+		setimm(f, ins.a, 0)
+	end
+	code:jump(labelof(f, miss))
+	state[ins.a] = {t = NIL, name = value.name}
+	reach(f, miss, state)
+	return false
+end
+frame.narrow = narrow
 
 return frame
 

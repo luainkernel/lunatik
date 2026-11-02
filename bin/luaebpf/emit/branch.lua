@@ -138,7 +138,7 @@ function branch.LE(f, pc, ins, state) return compare(f, pc, ins, state, "LE", st
 local function compareconst(f, pc, ins, state, relation, value)
 	local a, b = state[ins.a], {t = typeof(value), k = value}
 	if relation == "EQ" and b.t == NIL and answers(a) then
-		return testanswer(f, pc, ins, state, ins.k)
+		return testanswer(f, pc, ins, state, not ins.k)
 	end
 	ordered(f, pc, relation, a, b)
 	if relation == "EQ" then
@@ -173,7 +173,7 @@ function branch.TEST(f, pc, ins, state)
 		return testlookup(f, pc, ins, state)
 	end
 	if answers(value) then
-		return testanswer(f, pc, ins, state, not ins.k)
+		return testanswer(f, pc, ins, state, ins.k)
 	end
 	local known = truth(f, pc, state, ins.a)
 	if known ~= nil then
