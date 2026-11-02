@@ -101,8 +101,8 @@ byte order of the kernel `lunatik.config` describes:
   prototype libbpf compares with the module's kind by kind, and an undefined symbol of no type,
   which the call's relocation names: libbpf resolves the kfunc in the module's BTF and writes the
   call's source register, immediate and offset;
-* `.symtab`, `.strtab`, and a relocation section for each section that calls a subprogram or names
-  a map.
+* `.symtab`, `.strtab`, and a relocation section for each section that calls a subprogram or a
+  kfunc or names a map.
 
 ### The kernel it compiles for
 
