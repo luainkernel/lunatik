@@ -37,9 +37,9 @@
 //   build       what the host runs in place of the suite and the examples, review.js's own argument:
 //               a change whose done criteria are a run of its own tool spells that run here
 //
-// It returns the implementer's answer, the review's, the last host run's build, the pull request and
-// whether GitHub took its label, the issues that now hold each entry of findings_left the filing did not
-// skip, and any entry left unfiled.
+// It returns the implementer's answer, the review's, the last host run's build, whether the issue took
+// the groomer's Update (null where it settled none), the pull request and whether GitHub took its label,
+// the issues that now hold each entry of findings_left the filing did not skip, and any entry left unfiled.
 // findings_left holds what the implementer, the review, each fix and each build run again after one left.
 
 export const meta = {
@@ -109,11 +109,14 @@ ${JSON.stringify(text)}
 Write the whole new body with your Write tool to exactly ${a.scratch}/issue${a.issue}/update.md, and pass that
 path spelled out in the command that edits the issue (\`gh api -X PATCH repos/luainkernel/lunatik/issues/${a.issue}
 -F body=@${a.scratch}/issue${a.issue}/update.md\`): the guards before a shell call read the file the command
-names. Your answer is the issue's number.
+names. Your answer is updated, whether its body ends with that Update when you read it back; a write refused
+goes in notes, word for word.
 `
 
-const GROOMING = (groomed) => `
-THE GROOMER judged the issue worth implementing and settled its API under the issue's Update: line. Its
+const GROOMING = (groomed, updated) => `
+THE GROOMER judged the issue worth implementing and settled its API${updated === false
+  ? `, which the issue did not take, so it stands here in place of an Update: line: ${JSON.stringify(groomed.update)}.`
+  : ' under the issue\'s Update: line.'} Its
 reading of the shapes, for your step 2, and what it read:
 ${JSON.stringify({ shapes: groomed.shapes, sources: groomed.sources }, null, 2)}
 `
@@ -315,7 +318,7 @@ const GROOMED = { type: 'object', properties: {
   notes: { type: 'string' },
 }, required: ['verdict', 'merit', 'shapes', 'update', 'sources', 'notes'] }
 
-const UPDATED = { type: 'object', properties: { issue: { type: 'integer' } }, required: ['issue'] }
+const UPDATED = { type: 'object', properties: { updated: { type: 'boolean' }, notes: { type: 'string' } }, required: ['updated'] }
 
 const FILED = { type: 'object', properties: {
   filed: { type: 'array', items: { type: 'object', properties: {
@@ -334,7 +337,7 @@ const passed = (build) => build && build.clean && /fail:0\b/.test(build.totals |
 const unrun = (impl, build) => (impl.examples || []).filter(e =>
   ![...(build?.examples || []), ...(build?.loaded || []).map(l => l.example)].includes(e))
 
-let groomed = null
+let groomed = null, updated = null
 if ((a.agents || {}).groom) {
   phase('Groom')
   groomed = await agent(GROOM, { label: `groom:${a.issue}`, phase: 'Groom', schema: GROOMED, ...role('groom') })
@@ -342,14 +345,18 @@ if ((a.agents || {}).groom) {
     log(`#${a.issue} ${groomed ? `groomed: ${groomed.verdict}` : 'not groomed: the groomer died'}; the session reads the result`)
     return { issue: a.issue, groomed, pr: 0 }
   }
-  if (groomed.update)
-    await agent(UPDATE(groomed.update), {
+  if (groomed.update) {
+    const update = await agent(UPDATE(groomed.update), {
       label: `update:${a.issue}`, phase: 'Groom', agentType: 'lunatik-github', schema: UPDATED, ...githubber,
     })
+    updated = !!update?.updated
+    if (!updated)
+      log(`#${a.issue} without the groomer's Update: ${update?.notes || 'the agent gave no reason'}; the session appends it`)
+  }
 }
 
 phase('Implement')
-const implemented = await agent(IMPLEMENT + (groomed ? GROOMING(groomed) : ''), {
+const implemented = await agent(IMPLEMENT + (groomed ? GROOMING(groomed, updated) : ''), {
   label: `implement:${a.issue}`, phase: 'Implement', schema: IMPLEMENTED, ...implementer,
 })
 
@@ -420,5 +427,5 @@ if (unfiled.length) {
   log(`${unfiled.length} of ${findings_left.length} left unfiled: ${unfiled.map(f => f.title).join('; ')}${filing?.notes ? `; ${filing.notes}` : ''}`)
 }
 const issues = [...new Set(filed.filter(f => f.action !== 'skipped').map(f => f.number))]
-return { issue: a.issue, groomed, pr, labelled, implemented, review, build, fixes, findings_left, filed, issues, unfiled }
+return { issue: a.issue, groomed, updated, pr, labelled, implemented, review, build, fixes, findings_left, filed, issues, unfiled }
 
