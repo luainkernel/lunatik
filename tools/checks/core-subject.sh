@@ -34,7 +34,7 @@ for commit in $(git rev-list --no-walk "${@:-HEAD}"); do
 	[ -n "$core" ] && [ -n "$other" ] || continue
 
 	subject=$(git show -s --format=%s "$commit")
-	case "$subject" in lunatik*:*|core:*|capi:*|api:*) continue ;; esac
+	grep -qE '^((fixup|squash|amend)! )*([^:,]*, *)*(lunatik[^:,]*|core|capi|api) *(,[^:]*)?:' <<< "$subject" && continue
 	grep -qE 'lunatik[_.][A-Za-z_]|LUNATIK_[A-Z]|capi\.md|[Cc] API' <<< "$subject" && continue
 
 	printf '%s "%s" changes the core without saying so:\n%s' "${commit:0:9}" "$subject" "$core"
