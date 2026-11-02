@@ -228,6 +228,13 @@ local function setimm(f, i, value)
 end
 frame.setimm = setimm
 
+-- dst := the address of the frame's bytes at `at`, which a call reads through a pointer
+local function address(f, dst, at)
+	f.code:alu(alu.MOV, dst, reg.FP)
+	f.code:alui(alu.ADD, dst, at)
+end
+frame.address = address
+
 local function move(f, from, scratch)
 	if from ~= scratch then
 		f.code:alu(alu.MOV, scratch, from)

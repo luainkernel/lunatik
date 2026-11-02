@@ -17,8 +17,8 @@ local runtime  = require("luaebpf.emit.runtime")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local getinfo = debug.getinfo
-local abort, fetch, getreg, move, refuse = frame.abort, frame.fetch, frame.getreg, frame.move, frame.refuse
-local resolve, setreg, typename = frame.resolve, frame.setreg, frame.typename
+local abort, address, fetch, getreg, move = frame.abort, frame.address, frame.fetch, frame.getreg, frame.move
+local refuse, resolve, setreg, typename = frame.refuse, frame.resolve, frame.setreg, frame.typename
 local method = packet.method
 local isproxy = runtime.isproxy
 
@@ -103,8 +103,7 @@ end
 
 local function invoke(f, target, nargs)
 	f.code:storei(reg.FP, ABORTED, 0)
-	f.code:alu(alu.MOV, reg.R1 + nargs, reg.FP)
-	f.code:alui(alu.ADD, reg.R1 + nargs, ABORTED)
+	address(f, reg.R1 + nargs, ABORTED)
 	f.code:call(target.name)
 	f.code:load(reg.R1, reg.FP, ABORTED)
 	f.code:branchi(jump.JNE, reg.R1, 0, abort(f))
