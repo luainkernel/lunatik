@@ -2555,11 +2555,18 @@ was bound before, and a first attach, which finds nothing, logs nothing.
 
 - **tc nonlinear**: the host sends a TCP segment to a listener in the
   namespace, whose payload `tcp_sendmsg` keeps in page fragments, picked by
-  its sender's `SO_PRIORITY`. Handed to the callback as it is,
-  `skb:data()`, `skb:copy()` and `skb:resize()` raise "skb is not linear";
-  handed again after the program's `bpf_skb_pull_data(skb, skb->len)`, the
-  callback reads and copies the whole packet and shrinks it, then drops it,
-  and TCP sends it again. Skips without `socat`.
+  its sender's `SO_PRIORITY`. Handed to the callback as it is, `skb:data()`
+  reads the whole packet in place: `#skb:data()` is `#skb`, the last payload
+  byte, a `getuint32` and a `getint64` across the payload's start and a
+  `getstring` of the whole packet read what the sender wrote, as `tostring`
+  does, the checksum is a flat copy's of the same bytes, the "net" and "mac"
+  views end at the packet's end, a read past it raises "out of bounds" and a
+  `setbyte`, a `setstring` and a `resize` "read only", and the view reads
+  nothing once the callback returns; `skb:copy()` and `skb:resize()` raise
+  "skb is not linear". Handed again after the program's
+  `bpf_skb_pull_data(skb, skb->len)`, the callback writes the linear skb's view,
+  reads and copies the whole packet and shrinks it, then drops it, and TCP sends
+  it again. Skips without `socat`.
 
 - **tc copy**: four pings, one step of the callback on each echo reply. On the
   first it keeps a copy, whose `ifindex()` is the hook's skb's; on the second
