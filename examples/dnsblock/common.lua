@@ -22,6 +22,17 @@ local function get_domain(skb, off)
 	return name
 end
 
+local function decode_domain(name)
+	local labels = {}
+	local i = 1
+	while i <= #name do
+		local length = string.byte(name, i)
+		table.insert(labels, string.sub(name, i + 1, i + length))
+		i = i + length + 1
+	end
+	return table.concat(labels, ".")
+end
+
 local function check_blacklist(name)
 	for _, v in ipairs(blacklist) do
 		if string.find(name, v) ~= nil then
@@ -38,7 +49,7 @@ function common.hook(skb, thoff, proto)
 			local qoff = thoff + 20
 			local name = get_domain(skb, qoff)
 			if check_blacklist(name) then
-				print("DNS query for " .. name .. " blocked\n")
+				print("DNS query for " .. decode_domain(name) .. " blocked")
 				return true
 			end
 		end
