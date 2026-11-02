@@ -20,7 +20,7 @@ connectivity a few seconds after the start, as in
 * [dnsblock](../../examples/dnsblock): a netfilter hook that drops outbound DNS queries for blacklisted
   domains.
 * [dnsdoctor](../../examples/dnsdoctor): a netfilter hook that rewrites the address in a DNS response
-  for a private client. Needs `dnsmasq` and `dig`, and its `setup.sh` rewrites `/etc/resolv.conf`.
+  for a private client. Needs `dnsmasq` and `host`.
 * [tcpreject](../../examples/tcpreject): a netfilter hook that injects a TCP RST toward the origin of
   forwarded packets an `nft` rule marks. Needs `nft`, and its `setup.sh` turns forwarding on.
 * [sniclassify](../../examples/sniclassify): a TC/eBPF classifier on egress that classifies TLS

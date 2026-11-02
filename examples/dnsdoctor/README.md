@@ -7,10 +7,10 @@ The domain, the address it rewrites to and the client are set in [nf_dnsdoctor.l
 
 ## Usage
 
-Needs `dnsmasq` and `dig`. `setup.sh` points the host's `/etc/resolv.conf` at `10.1.1.3`, saving it
-as `/etc/resolv.conf.lunatik`, and only `cleanup.sh` puts it back: run `cleanup.sh` even after
-stopping `setup.sh` with Ctrl-C, or the host keeps resolving through a server that is gone.
-`setup.sh` keeps dnsmasq in the foreground and does not return, so the rest runs in a second terminal.
+Needs `dnsmasq` and `host`. `setup.sh` creates the namespaces `ns1` and `ns2` and the veth pairs that
+join them to the host, then keeps dnsmasq in the foreground in `ns1` and does not return, so the rest
+runs in a second terminal. Run `cleanup.sh` even after stopping `setup.sh` with Ctrl-C: while `ns1`
+and `ns2` stand, a second `setup.sh` fails at `ip netns add ns1`.
 
 In the first terminal:
 
@@ -23,14 +23,14 @@ In the second one:
 
 ```
 # test the setup, a response with IP 192.168.10.1 should be returned
-dig lunatik.com
+host -4 -t A lunatik.com 10.1.1.3
 
 # run the Lua kernel script, either in one runtime or in one runtime per CPU
 sudo lunatik run --context=softirq examples/dnsdoctor/nf_dnsdoctor
 sudo lunatik run --context=softirq --percpu examples/dnsdoctor/nf_dnsdoctor	# or one runtime per CPU, sharing the hook
 
 # test the setup, a response with IP 10.1.2.3 should be returned
-dig lunatik.com
+host -4 -t A lunatik.com 10.1.1.3
 
 # cleanup, after a Ctrl-C in the first terminal
 sudo lunatik stop examples/dnsdoctor/nf_dnsdoctor
