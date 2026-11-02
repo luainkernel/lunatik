@@ -108,7 +108,7 @@ return {
 			"LOCAL_PORT_RANGE", "PROTOCOL" } },
 	{ header = "linux/socket.h", prefix = "SOL_", module = "socket.sol",
 		desc = "Socket option levels (SOL_*)." },
-	{ header = "uapi/asm-generic/socket.h", prefix = "SO_", module = "socket.so",
+	{ header = "linux/socket.h", prefix = "SO_", module = "socket.so",
 		desc = "Socket-level option names (SO_*)." },
 	{ header = "uapi/linux/time_types.h", module = "socket.layout", struct = "__kernel_sock_timeval",
 		desc = "Socket option payload layouts.",
