@@ -59,8 +59,8 @@ summary="$LUAEBPF_WORK/report.bpf.lua:9: calls the runtime 'tests/luaebpf/first'
 $LUAEBPF_WORK/report.bpf.lua:13: calls the runtime 'tests/luaebpf/second'
 $LUAEBPF_WORK/report.bpf.lua:21: calls the runtime 'tests/luaebpf/second'"
 
-output=$(cd "$LUAEBPF_WORK" && lunatik bpf -o "$LUAEBPF_WORK/report.bpf.o" "$LUAEBPF_WORK/report.bpf.lua" \
-	2> "$LUAEBPF_WORK/stderr") || { comment "$(< "$LUAEBPF_WORK/stderr")"; fail "luaebpf: report.bpf.lua did not compile"; }
+output=$(luaebpf_written report 2> "$LUAEBPF_WORK/stderr") \
+	|| { comment "$(< "$LUAEBPF_WORK/stderr")"; fail "luaebpf: report.bpf.lua did not compile"; }
 [ "$output" = "$summary" ] || { comment "$output"; fail "luaebpf: the summary is not one line per call, in order"; }
 ktap_pass "luaebpf: every call into Lua is listed on stdout with its file, its line and its runtime"
 
