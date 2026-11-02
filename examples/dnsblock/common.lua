@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
--- Common code for new netfilter framework and legacy iptables dnsblock example
+-- Blacklist and DNS query match that nf_dnsblock's hook calls
 
 local byteorder = require("byteorder")
 local string = require("string")
