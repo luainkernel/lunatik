@@ -25,7 +25,8 @@ local BYTE     <const> = 8   -- bits
 
 -- the words every frame reserves: the flag a callee raises through the pointer its caller
 -- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
--- the key and the value a map helper is handed by address
+-- the key and the value a map helper is handed by address, the value also where a packet read
+-- through a helper lands its bytes
 local RESERVED <const> = 4
 local ABORTED  <const> = -SLOT
 local CALLER   <const> = -SLOT * 2

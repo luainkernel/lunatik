@@ -11,8 +11,8 @@
 #     same bytes with string.unpack. A wrong width, offset or sign extension changes the number;
 #     the offset is the source address, whose first byte has its high bit set, so the signed rows
 #     have something to extend
-#   - '#' on the packet, which is the distance between the context's two bounds and must equal
-#     the bytes prog run was handed
+#   - '#' on the packet, the distance between the context's two bounds on XDP and the skb's length
+#     on TC, which must equal the bytes prog run was handed
 #   - an accessor at an offset an earlier read computed, so the bound on a computed offset is
 #     exercised and not only the folded constant one
 #   - an accessor asked for two results, where Lua fills the second with nil: a second result
@@ -30,7 +30,8 @@
 #   - on a kernel without efficient unaligned access an accessor wider than a byte is refused and
 #     a byte read is not. The suite runs on x86 and arm64, which always have it, so the program
 #     file's body sets the answer lunatik.config gives such a kernel, as a body may since it runs
-#     in the compiler's Lua
+#     in the compiler's Lua. A TC read wider than a byte compiles there: bpf_skb_load_bytes copies
+#     its bytes into a slot of the frame, which the load reads aligned
 #
 # Usage: sudo bash tests/luaebpf/packet.sh
 
@@ -41,7 +42,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 8
+luaebpf_start 9
 
 output=$(luaebpf_compile packet) || { comment "$output"; fail "luaebpf: packet.bpf.lua did not compile"; }
 output=$(luaebpf_loadall packet) || { comment "$output"; fail "luaebpf: the packet reads did not verify"; }
@@ -101,6 +102,20 @@ ktap_pass "luaebpf: a function called with a packet and compiled for a number is
 wide=$'\tlocal p = ctx:packet()\n\tlocal a = p:getbyte(6)\n\tlocal b = p:getuint16(6)\n\treturn a + b'
 row unaligned 6 "'getuint16' reads more than a byte, and this kernel lacks efficient unaligned access" \
 	"$wide" 'require("luaebpf.emit").unaligned = false'
+
+cat > "$LUAEBPF_WORK/tcwide.bpf.lua" <<'LUA'
+require("luaebpf.emit").unaligned = false
+local tc = require("bpf.tc")
+
+return tc.program(function(skb)
+	local p = skb:data()
+	local v = p:getuint16(6)
+	return v
+end)
+LUA
+output=$(cd "$LUAEBPF_WORK" && lunatik bpf -o "$LUAEBPF_WORK/tcwide.bpf.o" "$LUAEBPF_WORK/tcwide.bpf.lua" 2>&1) \
+	|| { comment "$output"; fail "luaebpf: a TC read wider than a byte is refused without efficient unaligned access"; }
+ktap_pass "luaebpf: a TC read wider than a byte compiles without efficient unaligned access"
 
 check_dmesg
 ktap_totals

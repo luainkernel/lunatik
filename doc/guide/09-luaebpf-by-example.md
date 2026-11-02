@@ -30,8 +30,9 @@ Where the eBPF instruction alone computes something else, the compiler emits wha
 | `for` with a step of `0` | raises | `BPF_DIV` by zero gives a count of 0, one pass through the body | a step the compiler holds refused, "'for' step is zero", and one the program computes tested, which takes the default verdict |
 | `f(x)` | the callee's value, and its raise | a call, which answers R0 and nothing else | the arguments in R1 to R4, the address of the caller's flag after them, and the flag read after the call |
 | `p:getint16(n)` | two bytes at `n`, signed; raises past the packet | a load the verifier refuses until the program tests the end | the offset tested unsigned against 65535 less the width, the end against `data_end`, and the sign extended by a shift left and an arithmetic shift right, where `BPF_MEMSX` would extend it |
-| `#p` | the bytes the `data` object views | no instruction: the context holds the two bounds | `data_end` less `data`, both read from the context |
-| `skb:data()` on an skb that is not linear | raises in a tc callback | `data_end` ends the linear head, short of the packet | `len` compared with the head's length, which takes the default verdict where they differ |
+| `p:getint16(n)` on TC | the same, of the whole packet, past the skb's linear head too | a load stops at `data_end`, the end of the linear head | the offset tested as on XDP, `bpf_skb_load_bytes` into the frame, which copies the bytes wherever the skb holds them, the default verdict where it answers non-zero, and the sign extended alike |
+| `#p` | the bytes the `data` object views | no instruction: the context holds the two bounds | `data_end` less `data`, both read from the context; on TC `len`, as `#skb` |
+| `skb:data()` on an skb that is not linear | the whole packet, in a tc callback, its bytes past the linear head read as copies | `data_end` ends the linear head, short of the packet | the context register, which the reads hand to `bpf_skb_load_bytes` |
 | `skb:priority(v)` | raises outside 0 to `U32_MAX` | a four-byte store keeps the low 32 bits | a value the compiler holds checked against the field's width, and one the program computes tested, which takes the default verdict |
 | `m[k]` | the value, or nil | the helper answers a pointer, or NULL, which the verifier lets the program read only past a test | the helper, and a value typed "value or nil" until `if v then` reads it, on the branch that found it |
 | `m[k] = v`, `m[k] = nil` | the kernel's `bpf.map` raises when the map refuses the update, or refuses the delete for any reason but an absent key | the helper's return code | the helper, and the default verdict on any code but zero, or `-ENOENT` from a delete |
@@ -70,7 +71,8 @@ The registers:
 * `r6` to `r9` hold Lua registers 0 to 3, the function's first locals, and a call leaves them
   alone. Lua registers 4 and up live in the frame, at `r10 - 40`, `r10 - 48` and on down.
 * `r10` is the frame. `r10 - 8` holds the flag a called function raises, `r10 - 16` the address of
-  its caller's flag, and `r10 - 24` and `r10 - 32` the key and the value a map helper takes.
+  its caller's flag, and `r10 - 24` and `r10 - 32` the key and the value a map helper takes;
+  `r10 - 32` also takes the bytes a TC read copies.
 * `r1` to `r5` hold what one line computes.
 
 Every listing ends with the instructions where the function stops: the default verdict, and the
@@ -460,45 +462,56 @@ end)
 ```
 
 The context of a TC program is the kernel's `__sk_buff`, read at the offsets its BTF gives: `len`
-at 0, `priority` at 32, `data` at 76 and `data_end` at 80.
+at 0 and `priority` at 32. The packet is the context register under another name, and a read of it
+is `bpf_skb_load_bytes`, helper 26, which copies the bytes into the frame at `r10 - 32` wherever
+the skb holds them, past its linear head too, and answers non-zero past the packet: the kernel's
+`skb:data()` reads the same bytes through `skb_header_pointer`, which the helper calls.
 
 ```
      line 4: return tc.program(function(skb)
   0  r6 = r1                       skb
      line 5: local p = skb:data()
   1  r8 = r6
-  2  r1 = *(u32 *)(r8 +76)         __sk_buff.data
-  3  r2 = *(u32 *)(r8 +80)         __sk_buff.data_end
-  4  r2 -= r1                      the linear head
-  5  r1 = *(u32 *)(r8 +0)          __sk_buff.len, the whole packet
-  6  if r1 != r2 goto 37           not linear: stops
-  7  r7 = r8                       p
+  2  r7 = r8                       p
      line 6: local class = p:getint8(15)
-  8  to 21: the read of byte 15, its sign extended
- 22  r8 = r1                       class
+  3  r9 = r7
+  4  r1 = 15
+  5  *(u64 *)(r10 -40) = r1
+  6  r2 = *(u64 *)(r10 -40)        the offset, 15
+  7  r1 = r9                       the context
+  8  if r2 > 65534 goto 32         past 65535 less the width: stops
+  9  r3 = r10
+ 10  r3 += -32                     the frame's value slot
+ 11  r4 = 1                        the width
+ 12  call 26                       bpf_skb_load_bytes
+ 13  if r0 != 0 goto 32            past the end of the packet: stops
+ 14  r1 = *(u8 *)(r10 -32)         byte 15
+ 15  r1 <<= 56
+ 16  r1 s>>= 56                    its sign extended
+ 17  r8 = r1                       class
      line 7: skb:priority(class)
- 23  *(u64 *)(r10 -40) = r6
- 24  *(u64 *)(r10 -48) = r8
- 25  r2 = *(u64 *)(r10 -48)        class
- 26  r5 = r2
- 27  r5 >>= 32
- 28  if r5 != 0 goto 37            outside 0 to 4294967295: stops
- 29  r1 = *(u64 *)(r10 -40)
- 30  *(u32 *)(r1 +32) = r2         __sk_buff.priority
- 31  r1 = *(u64 *)(r10 -40)
- 32  r2 = *(u32 *)(r1 +32)         what skb:priority returns
- 33  r9 = r2
+ 18  *(u64 *)(r10 -40) = r6
+ 19  *(u64 *)(r10 -48) = r8
+ 20  r2 = *(u64 *)(r10 -48)        class
+ 21  r5 = r2
+ 22  r5 >>= 32
+ 23  if r5 != 0 goto 32            outside 0 to 4294967295: stops
+ 24  r1 = *(u64 *)(r10 -40)
+ 25  *(u32 *)(r1 +32) = r2         __sk_buff.priority
+ 26  r1 = *(u64 *)(r10 -40)
+ 27  r2 = *(u32 *)(r1 +32)         what skb:priority returns
+ 28  r9 = r2
      line 8: return action.OK
- 34  r9 = 0                        TC_ACT_OK
- 35  r0 = r9
- 36  exit
+ 29  r9 = 0                        TC_ACT_OK
+ 30  r0 = r9
+ 31  exit
      line 9: end)
- 37  r0 = 0                        TC_ACT_OK, the default verdict
- 38  exit
+ 32  r0 = 0                        TC_ACT_OK, the default verdict
+ 33  exit
 ```
 
 A frame whose byte 15 is 3 leaves its priority at 3 and returns 0. One whose byte 15 is `ff`
-gives -1, which instruction 28 finds outside the range: the program stops before the store, and
+gives -1, which instruction 23 finds outside the range: the program stops before the store, and
 the priority stays where it was. The default verdict here is `TC_ACT_OK` too, so only the priority
 tells the two apart.
 

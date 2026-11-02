@@ -100,12 +100,14 @@ reads the same bytes on both sides:
 is `examples/common/sni.lua`'s helper, unchanged, and it compiles.
 
 The offset is an argument like any other, and an accessor called without one, or with one that
-is not a number, is refused at its line. So is an accessor wider than a byte on a kernel built
+is not a number, is refused at its line. So is an XDP accessor wider than a byte on a kernel built
 without `HAVE_EFFICIENT_UNALIGNED_ACCESS`, whose verifier refuses a packet read at an offset it
 cannot prove aligned; x86 and arm64 always have it, and the eight-bit reads compile everywhere. Every packet access carries a bounds check against
 `data_end`, and tests its offset first against 65535 less its width, the last offset a read that
 wide can start at, since the verifier refuses arithmetic between a packet pointer and a register
-whose range it does not know. An access that fails either does not raise (there is nothing to
+whose range it does not know. A TC access tests its offset the same way and reads through
+`bpf_skb_load_bytes`, whose non-zero answer is its bounds check, so it reads the bytes past the
+skb's linear head too. An access that fails either does not raise (there is nothing to
 raise to): the function returns the program's **default verdict**, the type's safe answer
 (`PASS` for XDP, `OK` for TC), overridable in the constructor:
 
@@ -130,9 +132,10 @@ takes the default verdict. The object has methods and no fields, so a field read
 refused, and `__sk_buff`'s `ingress_ifindex`, which it does not carry, is refused too.
 `skb:data()` is the packet from `skb->data`, which in a TC program is the MAC header, and
 `skb:data("net")` and `skb:data("mac")`, the views the kernel object starts at a header, are
-refused until a compiled read reaches one. In a tc callback the kernel object raises on an skb
-that is not linear, one whose `len` runs past `data_end`, so a compiled `skb:data()` takes the
-default verdict on it. `tc.program(fn, {egress = true})` puts the entry in `tcx/egress` rather
+refused until a compiled read reaches one. In a tc callback the kernel object reads an skb that is
+not linear, one whose `len` runs past `data_end`, whole, copying what lies past the linear head,
+so a compiled read goes through `bpf_skb_load_bytes`, which copies the same bytes, and `#` on the
+packet is `len`. `tc.program(fn, {egress = true})` puts the entry in `tcx/egress` rather
 than `tcx/ingress`, which is how libbpf reads the attach point back.
 
 ## Maps

@@ -4,8 +4,9 @@
 --
 
 ---
--- The packet proxy: the reads the kernel's data object publishes, each held to the packet's bounds,
--- its length, and the dispatch of a method called on either proxy.
+-- The packet proxy: the reads the kernel's data object publishes, each held to the packet's bounds
+-- or made through the helper the context names, its length, and the dispatch of a method called on
+-- either proxy.
 -- @module luaebpf.emit.packet
 
 local insn    = require("luaebpf.insn")
@@ -15,14 +16,16 @@ local context = require("luaebpf.emit.context")
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local format = string.format
 local abort, aligned, extend, fetch, into = frame.abort, frame.aligned, frame.extend, frame.fetch, frame.into
-local isinteger, refuse, setreg, typename = frame.isinteger, frame.refuse, frame.setreg, frame.typename
-local contextcall, layout = context.contextcall, context.layout
+local isinteger, move, refuse, setreg = frame.isinteger, frame.move, frame.refuse, frame.setreg
+local typename = frame.typename
+local contextcall, contextlen, layout = context.contextcall, context.contextlen, context.layout
 
 local BYTE   <const> = frame.BYTE
 local CTX    <const> = context.CTX
 local INT    <const> = frame.INT
 local NBITS  <const> = frame.NBITS
 local PACKET <const> = frame.type("packet", "proxy")
+local VALUE  <const> = frame.VALUE
 
 -- MAX_PACKET_OFF: the verifier refuses arithmetic between a packet pointer and a register whose
 -- range it does not know, and find_good_pkt_pointers leaves a pointer no range at all once the
@@ -57,8 +60,9 @@ end
 
 -- One access, self-contained: data and data_end are re-read from the context rather than kept
 -- live, so the proxy is one register that survives a call and cannot go stale.
-local function packetread(f, pc, ins, state, access)
+local function directread(f, pc, ins, state, access, name)
 	local code, base, limit = f.code, bounds(f)
+	aligned(f, pc, format("'%s'", name), access.size)
 	into(f, pc, state, ins.a + 2, reg.R4)
 	local ptr = fetch(f, ins.a + 1, reg.R3)
 	code:load(reg.R1, ptr, base.offset, base.size)
@@ -71,6 +75,33 @@ local function packetread(f, pc, ins, state, access)
 		code:branch(jump.JGT, reg.R4, reg.R2, abort(f))
 	end
 	code:load(reg.R1, reg.R1, 0, access.size)
+end
+
+-- The helper copies the bytes into the frame's value slot wherever the skb holds them, and answers
+-- non-zero past the packet, where the interpreter raises. It takes a 32-bit offset, so the offset is
+-- tested against PACKETMAX first: one whose low 32 bits fall in the packet would read there.
+local function helperread(f, pc, ins, state, access, helper)
+	local code = f.code
+	into(f, pc, state, ins.a + 2, reg.R2)
+	move(f, fetch(f, ins.a + 1, reg.R1), reg.R1)
+	code:branchi(jump.JGT, reg.R2, PACKETMAX - access.size, abort(f))
+	code:alu(alu.MOV, reg.R3, reg.FP)
+	code:alui(alu.ADD, reg.R3, VALUE)
+	code:set(reg.R4, access.size)
+	code:helper(helper)
+	if f.drop ~= "loadbytes" then
+		code:branchi(jump.JNE, reg.R0, 0, abort(f))
+	end
+	code:load(reg.R1, reg.FP, VALUE, access.size)
+end
+
+local function packetread(f, pc, ins, state, access, name)
+	local helper = f.unit.context.packet.load
+	if helper ~= nil then
+		helperread(f, pc, ins, state, access, helper)
+	else
+		directread(f, pc, ins, state, access, name)
+	end
 	if access.signed and access.size * BYTE < NBITS then
 		extend(f, reg.R1, access.size)
 	end
@@ -78,29 +109,21 @@ local function packetread(f, pc, ins, state, access)
 	state[ins.a] = {t = INT}
 end
 
-local function span(f, ptr)
+-- the length is what '#' on the kernel's data object answers and what the interpreted twin reads
+-- off the same bytes: the distance between the bounds, or the skb's own where a helper reads it
+local function packetlen(f, pc, ins, state)
+	if f.unit.context.packet.load ~= nil then
+		return contextlen(f, pc, ins, state)
+	end
 	local code, base, limit = f.code, bounds(f)
+	local ptr = fetch(f, ins.b, reg.R3)
 	code:load(reg.R1, ptr, base.offset, base.size)
 	code:load(reg.R2, ptr, limit.offset, limit.size)
 	code:alu(alu.SUB, reg.R2, reg.R1)
-	return reg.R2
-end
-
--- the length is the distance between the bounds, which is what '#' on the kernel's data object
--- answers and what the interpreted twin reads off the same bytes
-local function packetlen(f, ins, state)
-	setreg(f, ins.a, span(f, fetch(f, ins.b, reg.R3)))
+	setreg(f, ins.a, reg.R2)
 	state[ins.a] = {t = INT}
 end
 packet.packetlen = packetlen
-
--- data_end ends the linear head (bpf_compute_data_pointers): a packet longer than the span is not linear
-local function checklinear(f, ctx)
-	local length = layout(f)[f.unit.context.length]
-	local head = span(f, ctx)
-	f.code:load(reg.R1, ctx, length.offset, length.size)
-	f.code:branch(jump.JNE, reg.R1, head, abort(f))
-end
 
 -- a method that takes a layer is called with the receiver and the layer, both of which OP_CALL counts
 local LAYERARGS <const> = 2
@@ -112,11 +135,7 @@ local function contextpacket(f, pc, ins, state, name)
 	if packet.layered and ins.b > LAYERARGS then
 		refuse(f, pc, "'%s' with a layer is not compiled yet", name)
 	end
-	local ctx = fetch(f, ins.a + 1, reg.R3)
-	if packet.linear then
-		checklinear(f, ctx)
-	end
-	setreg(f, ins.a, ctx)
+	setreg(f, ins.a, fetch(f, ins.a + 1, reg.R3))
 	state[ins.a] = {t = PACKET, name = name}
 end
 
@@ -144,8 +163,7 @@ local function method(f, pc, ins, state, callee)
 	if not isinteger(at) then
 		refuse(f, pc, "'%s' takes a number, not a %s", callee.name, typename(at))
 	end
-	aligned(f, pc, format("'%s'", callee.name), access.size)
-	packetread(f, pc, ins, state, access)
+	packetread(f, pc, ins, state, access, callee.name)
 end
 packet.method = method
 
