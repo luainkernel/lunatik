@@ -79,7 +79,7 @@ for file in "$@"; do
 	case "$file" in
 		*autogen/linux/*|*lib/linux/*|lua/*|*/lua/*|luac/*|*/luac/*) continue ;;
 		*.lua) ;;
-		*) continue ;;
+		*) [[ ${file##*/} != *.* && $(head -n 1 "$file" 2> /dev/null) =~ ^#!.*[/\ ]lua ]] || continue ;;
 	esac
 	[ -f "$file" ] || continue
 

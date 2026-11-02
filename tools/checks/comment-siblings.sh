@@ -36,7 +36,7 @@ for file in "$@"; do
 		*.mod.c|*lunatik_sym.h|*autogen/linux/*|*lib/linux/*) continue ;;
 		*.c|*.h) lang=c ;;
 		*.lua) lang=lua ;;
-		*) continue ;;
+		*) [[ ${file##*/} != *.* && $(head -n 1 "$file" 2> /dev/null) =~ ^#!.*[/\ ]lua ]] || continue; lang=lua ;;
 	esac
 	[ -f "$file" ] || continue
 	lines=$(added "$file")

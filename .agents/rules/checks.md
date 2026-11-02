@@ -31,7 +31,9 @@ names (`recursion.sh`), a local, a function or a global lua-language-server read
 `.gitignore` (`machine-leak.sh`), and the trailing blank
 line rule, the refusal of a staged conflict marker, of a source file without its copyright and
 license header and of a string function the kernel removed (`pre-commit`). Each takes file paths and
-skips what does not apply, so any editor, assistant, or CI can run them. The `Checks` workflow runs
+skips what does not apply, so any editor, assistant, or CI can run them. `comment-style.sh`,
+`comment-siblings.sh` and `lua-style.sh` know a file's language by its extension, and a script with
+none, as `bin/lunatik` is, by the interpreter its shebang names. The `Checks` workflow runs
 them over a pull request's diff: `pre-commit` and
 `machine-leak.sh` fail the run, the heuristic checks annotate it. Install the commit gate with:
 
