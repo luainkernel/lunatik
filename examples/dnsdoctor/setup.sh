@@ -28,12 +28,6 @@ sudo ip -n ns2 link set veth3 up
 sudo ip link set veth2 up
 sudo ip link set veth4 up
 
-# backup resolv config
-echo "Backing up resolver config to /etc/resolv.conf.lunatik"
-sudo cp -fP /etc/resolv.conf /etc/resolv.conf.lunatik && \
-sudo sed -i 's/nameserver/#nameserver/g' /etc/resolv.conf && \
-echo "nameserver 10.1.1.3" | sudo tee -a /etc/resolv.conf && \
-
 # run the dns server in ns1, answering lunatik.com with 192.168.10.1, in debug mode so a Ctrl-C ends it
 sudo ip netns exec ns1 dnsmasq --no-daemon --no-resolv --no-hosts --bind-interfaces \
 	--listen-address=10.1.1.3 --address=/lunatik.com/192.168.10.1

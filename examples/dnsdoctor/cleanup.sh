@@ -6,14 +6,6 @@
 
 set -eux
 
-# restore resolv config
-if [[ -f /etc/resolv.conf.lunatik ]]; then
-	echo "Restoring dns config from resolv.conf.lunatik"
-	sudo rm /etc/resolv.conf
-	sudo cp -P /etc/resolv.conf.lunatik /etc/resolv.conf
-	sudo rm /etc/resolv.conf.lunatik
-fi
-
 # down the interfaces
 sudo ip -n ns1 link set veth1 down
 sudo ip -n ns2 link set veth3 down
