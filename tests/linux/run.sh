@@ -11,6 +11,11 @@
 # get_random_u64() by modulo gives three in four: the count of 10000 draws is nearer the first,
 # the two being 17 sigma apart.
 #
+# fsnotify: linux.fsnotify carries each event mask at the value the FAN_* and IN_* uapi pins it to,
+# each entry is a single bit and no bit repeats, and it carries none of the composites and private
+# names the include list of autogen/specs.lua leaves out: MOVE, IN_IGNORED, DN_MULTISHOT and
+# EVENTS_POSS_ON_CHILD.
+#
 # notifier: linux.netdev.cmd carries the events of enum netdev_cmd and linux.vt.event the notifier events of
 # <linux/vt.h>, and neither carries another name under its prefix. The case reads the names and no
 # value: enum netdev_cmd is internal, and the kernel renumbers it when it inserts an event.
@@ -22,6 +27,17 @@
 # task: linux.task carries the task states of <linux/sched.h> and nothing else: not its bounds,
 # TASK_STATE_MAX and TASK_REPORT_MAX, nor TASK_COMM_LEN, nor an architecture's TASK_SIZE. The case
 # reads the names and no value: the states are internal to the kernel.
+#
+# lookup: linux.lookup answers nil for a name no build can emit and for an absent symbol, answers a
+# lightuserdata for kallsyms_lookup_name, and refuses a value that is not a string as string
+# expected. A softirq and a hardirq runtime resolve the symbol in their body and again resumed past
+# it, the armed state a hook calls from, where the absent one stays nil. Skipped without
+# CONFIG_KPROBES.
+#
+# constants: the unsigned constants past INT_MAX, the signed ones below zero and those within
+# INT_MAX that the script names keep their value. The eleven syscalls asm-generic/unistd.h defines
+# as the name of their __NR3264_ number are in linux.syscall.numbers, and linux.errno holds each
+# errno positive, keyed by the name linux.errname gives it.
 #
 # netns: linux.netns resolves pid 1 in a process runtime, in its body and resumed
 # past it, and in the body of a softirq and a hardirq runtime; resumed past theirs,
@@ -41,6 +57,10 @@
 # schedule: linux.schedule refuses a timeout outside 0 to 2^31 - 1 as out of bounds, asking first
 # for one past msecs_to_jiffies's unsigned int, which a build without the bound truncates and naps
 # on, so that build fails there before -1 and 2^31, which it reads as forever and sleeps on.
+# It takes 0, and a 1 ms nap returns 0 left in a process runtime and in the body of a softirq and a
+# hardirq runtime, which runs in process context; resumed past it, the armed state a hook calls
+# from, each refuses the call as not allowed once the runtime is armed. Skipped unless the loaded
+# lualinux is the installed one and carries that refusal.
 #
 # tracing: linux.tracing turns kernel tracing off and on given false and true, and answers the
 # state it leaves, in a process, a softirq and a hardirq runtime resumed past their body, the armed
