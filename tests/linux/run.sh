@@ -34,6 +34,7 @@
 # for INT_MAX and -INT_MAX; it refuses INT_MIN, whose absolute value an int cannot
 # hold, and a number past an int, as out of bounds, where a truncating build names
 # (1 << 32) | ENOENT as ENOENT.
+#
 # ifindex: linux.ifindex resolves lo to its index and linux.hwaddr that index to
 # lo's address, and each answers nil, alone, for a name or an index no device has.
 #
