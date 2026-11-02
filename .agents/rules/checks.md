@@ -136,7 +136,8 @@ and over a pull request's diff and annotates, since a definition can hold the on
 siblings do not.
 
 `lua-style.sh` reads a Lua file for the shape rules of `.agents/rules/lua.md` a line-based read can find: an `if`/`elseif` whose branches repeat the same steps, which is a dispatch table
-or a helper; one table of arguments spelled at two call sites, which is declared once; and a
+or a helper; one table of arguments spelled at two call sites, which is declared once, named where
+the change adds or edits one of them, since a pair the change leaves is not its to fix; and a
 function of more than one statement written inline as a table field, which is a named local
 function. It runs at edit
 time and over a pull request's diff and annotates rather than fails, since two registrations that
