@@ -29,7 +29,14 @@ local NUL     <const> = 1  -- the byte key__sz counts past the key, which the kf
 local INTSIZE <const> = 4  -- the kfunc answers an int
 local ABSENT  <const> = -1 -- what the kfunc answers where Lua answers nil (luakfunc_action)
 
-local runtime = {ANSWER = ANSWER}
+local proxy = {} -- no method: it marks what bpf.runtime.new returns, which CALL's lowering looks for
+
+local runtime = {ANSWER = ANSWER, proxy = proxy}
+
+-- whether a value the file body computed is a runtime bpf.runtime.new returned
+function runtime.isproxy(value)
+	return getmetatable(value) == proxy
+end
 
 -- the key's bytes NUL-padded to whole words, each read in the byte order a store writes it in
 local function keywords(f, key)

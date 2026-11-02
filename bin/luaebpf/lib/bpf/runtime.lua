@@ -29,9 +29,9 @@
 --     return action.PASS
 -- end)
 
-local runtime = {}
+local lowering = require("luaebpf.emit.runtime")
 
-local proxy = {} -- no method: it marks what new returns, which isproxy looks for
+local runtime = {}
 
 ---
 -- Names the kernel Lua runtime a program calls.
@@ -55,17 +55,7 @@ function runtime.new(name)
 	if type(name) ~= "string" then
 		error("runtime.new takes a name", 2)
 	end
-	return setmetatable({key = name}, proxy)
-end
-
----
--- Whether a value the file body computed is a runtime `new` returned, which a compiled call lowers
--- into the kfunc of the program's type.
--- @function bpf.runtime.isproxy
--- @param value
--- @treturn boolean
-function runtime.isproxy(value)
-	return getmetatable(value) == proxy
+	return setmetatable({key = name}, lowering.proxy)
 end
 
 return runtime
