@@ -11,8 +11,9 @@ these sections.
 
 ## What the compiler emits
 
-A construct the compiler lowers computes what the kernel's Lua computes, or is refused at its line.
-Where the eBPF instruction alone computes something else, the compiler emits what lies between:
+A construct the compiler lowers computes what the kernel's Lua computes, stops the program with its
+default verdict where Lua would raise, or is refused at its line. Where the eBPF instruction alone
+computes something else, the compiler emits what lies between:
 
 | Lua | Lua computes | The instruction alone | The compiler emits |
 |-----|--------------|-----------------------|--------------------|
