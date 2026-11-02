@@ -12,19 +12,16 @@ local insn    = require("luaebpf.insn")
 local frame   = require("luaebpf.emit.frame")
 local context = require("luaebpf.emit.context")
 
-local alu, jump, reg = insn.alu, insn.jump, insn.reg
-local format = string.format
+local alu, reg = insn.alu, insn.reg
 local unpack = string.unpack
 local insert = table.insert
-local copy, depth, extend, fetch, getreg = frame.copy, frame.depth, frame.extend, frame.fetch, frame.getreg
-local isinteger, jumptarget, labelof, move = frame.isinteger, frame.jumptarget, frame.labelof, frame.move
-local reach, refuse, setimm, setreg = frame.reach, frame.refuse, frame.setimm, frame.setreg
-local stack, typename = frame.stack, frame.typename
+local depth, extend, fetch, getreg = frame.depth, frame.extend, frame.fetch, frame.getreg
+local isinteger, move, named, narrow = frame.isinteger, frame.move, frame.named, frame.narrow
+local refuse, setreg, stack, typename = frame.refuse, frame.setreg, frame.stack, frame.typename
 
 local ANSWER <const> = frame.type("runtime answer", "word", "untested")
 local CTX    <const> = context.CTX
 local INT    <const> = frame.INT
-local NIL    <const> = frame.NIL
 local SLOT   <const> = frame.SLOT
 
 local CTXREG  <const> = 0  -- the program's parameter, which the call passes as the context
@@ -33,10 +30,6 @@ local INTSIZE <const> = 4  -- the kfunc answers an int
 local ABSENT  <const> = -1 -- what the kfunc answers where Lua answers nil (luakfunc_action)
 
 local runtime = {ANSWER = ANSWER}
-
-local function named(value, otherwise)
-	return value.name and format("'%s'", value.name) or otherwise
-end
 
 -- the key's bytes NUL-padded to whole words, each read in the byte order a store writes it in
 local function keywords(f, key)
@@ -107,29 +100,20 @@ function runtime.answers(value)
 	return value ~= nil and (value.t & ANSWER) ~= 0
 end
 
--- 'if v then' and 'v == nil' compare the answer with the kfunc's -1, and the arm that finds it
--- stores the zero word nil is everywhere else; onnil is whether the opcode's jump is taken on nil
-function runtime.test(f, pc, ins, state, onnil)
-	local code, value = f.code, state[ins.a]
+-- the answer the arm that found one holds, a number from here on
+local function number(_, _, state, i, value)
+	state[i] = {t = INT, name = value.name}
+end
+
+-- 'if v then' and 'v == nil' compare the answer with the kfunc's -1; taken is whether the opcode's
+-- jump is the arm that found a number
+function runtime.test(f, pc, ins, state, taken)
+	local value = state[ins.a]
 	if value.t ~= ANSWER then
 		refuse(f, pc, "%s joined another value here, whose nil is 0 and not -1; test it before the paths join",
 			named(value, "a runtime answer"))
 	end
-	local target = jumptarget(f, pc + 1)
-	local number = onnil and pc + 2 or target
-	local absent = onnil and target or pc + 2
-	local missing = code:label()
-	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), ABSENT, missing)
-	local taken = copy(state)
-	taken[ins.a] = {t = INT, name = value.name}
-	code:jump(labelof(f, number))
-	reach(f, number, taken)
-	code:place(missing)
-	setimm(f, ins.a, 0)
-	code:jump(labelof(f, absent))
-	state[ins.a] = {t = NIL, name = value.name}
-	reach(f, absent, state)
-	return false
+	return narrow(f, pc, ins, state, ABSENT, taken, number)
 end
 
 return runtime
