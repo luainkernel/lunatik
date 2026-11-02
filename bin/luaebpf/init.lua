@@ -237,7 +237,7 @@ local function write(declared, hook)
 			for _, call in ipairs(frame.calls) do
 				insert(calls, format("%s:%d: calls the runtime '%s'", frame.chunk, call.line, call.key))
 			end
-			if not called[program.kfunc] and #frame.code:relocations("kfunc") > 0 then
+			if #frame.calls > 0 and not called[program.kfunc] then
 				called[program.kfunc] = true
 				insert(externs, {name = program.kfunc, context = program.context.struct})
 			end
