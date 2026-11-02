@@ -66,10 +66,8 @@ write, and the method that opens the packet, and the kfunc its type's module reg
 `bpf.map.hash`, `bpf.map.array` and `bpf.map.lru_hash` check a map's spec and leave the map in
 `maps.lua`, and a table a compiled function reaches is a map exactly when `maps.lua` holds it.
 `bpf.runtime.new` takes the name of the script a runtime runs and returns a proxy of the metatable
-the module keeps, and a value a compiled function calls is a call into the kernel Lua runtime
-exactly when `bpf.runtime.isproxy` finds that metatable on it. The compiler reaches `bpf.runtime`
-through the program files' `lib/`, as a body reaches the compiler's `luaebpf.*` through the host's
-path, so both read the one copy `package.loaded` keeps.
+`emit/runtime.lua` keeps, and a value a compiled function calls is a call into the kernel Lua
+runtime exactly when that module finds its metatable on it.
 
 ### Lowering
 

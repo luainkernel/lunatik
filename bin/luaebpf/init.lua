@@ -32,6 +32,7 @@
 local maps     = require("luaebpf.maps")
 local programs = require("luaebpf.programs")
 local proto    = require("luaebpf.proto")
+local emit     = require("luaebpf.emit")
 local insn     = require("luaebpf.insn")
 local elf      = require("luaebpf.elf")
 local btf      = require("luaebpf.btf")
@@ -53,22 +54,16 @@ local LIBPATH <const> = select(2, ...):match("^(.*/)") .. "lib/?.lua"
 -- the host's path, through which a body still reaches the compiler's own modules
 local HOSTPATH <const> = package.path
 
--- lib/, through which the compiler reaches the bpf.runtime a call's lowering reads, one copy for it and the body
-local paths = {luaebpf = HOSTPATH, bpf = LIBPATH}
-
 local function own(name)
-	local where = paths[name:match("^(%a+)%.")]
-	if where ~= nil then
-		local path, err = package.searchpath(name, where)
+	if name:find("^luaebpf%.") then
+		local path, err = package.searchpath(name, HOSTPATH)
 		if path == nil then
 			return err
 		end
 		return assert(loadfile(path)), path
 	end
 end
-insert(package.searchers, #package.searchers, own) -- ahead of the kernel scripts' searcher
-
-local emit = require("luaebpf.emit") -- after own: a call's lowering requires bpf.runtime
+insert(package.searchers, #package.searchers, own) -- the compiler's luaebpf.*, ahead of the kernel scripts' searcher
 
 local luaebpf = {}
 

@@ -14,13 +14,13 @@ local frame    = require("luaebpf.emit.frame")
 local loads    = require("luaebpf.emit.loads")
 local packet   = require("luaebpf.emit.packet")
 local runtime  = require("luaebpf.emit.runtime")
-local isproxy  = require("bpf.runtime").isproxy
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local getinfo = debug.getinfo
 local abort, fetch, getreg, move, refuse = frame.abort, frame.fetch, frame.getreg, frame.move, frame.refuse
 local resolve, setreg, typename = frame.resolve, frame.setreg, frame.typename
 local method = packet.method
+local isproxy = runtime.isproxy
 
 local ABORTED <const> = frame.ABORTED
 local INT     <const> = frame.INT
