@@ -34,14 +34,7 @@ CALLED="luaebpf partition test call"
 OK=0
 ROWS=3
 
-luaebpf_start $ROWS
-
-reason=$(luaebpf_kfunc luatc)
-if [ -n "$reason" ]; then
-	for i in $(seq $ROWS); do ktap_skip "luaebpf: $reason"; done
-	ktap_totals
-	exit 0
-fi
+luaebpf_start $ROWS luatc
 
 # what the program file's body says the case owes
 fact() {
@@ -57,15 +50,12 @@ held() {
 
 # runs the program over a packet of the corpus <count> times, answering its last verdict
 classify() {
-	bpftool prog run pinned "$LUAEBPF_PINS/partition" data_in "$LUAEBPF_WORK/$1.bin" \
-		ctx_in "$LUAEBPF_WORK/$1.ctx" ctx_out "$LUAEBPF_WORK/$1.out" repeat "$2" 2>&1 \
-		| grep -oP 'Return value: \K[0-9]+'
+	luaebpf_verdict partition "$1" "$LUAEBPF_WORK/$1.out" "$2"
 }
 
 output=$(luaebpf_compile partition) || { comment "$output"; fail "luaebpf: partition.bpf.lua did not compile"; }
 output=$(luaebpf_loadall partition) || { comment "$output"; fail "luaebpf: the classifier did not verify"; }
-output=$(lunatik run --context=softirq "$SCRIPT" 2>&1)
-[ -z "$output" ] || { comment "$output"; fail "luaebpf: the runtime did not start"; }
+luaebpf_started "$SCRIPT" --context=softirq
 
 tls=$(classify tls 2)
 calls=$(dmesg_since | grep -c "$CALLED")

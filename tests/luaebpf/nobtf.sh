@@ -62,8 +62,7 @@ else
 	status=$?
 	id=$(luaebpf_attached)
 	verdict=
-	[ -n "$id" ] && verdict=$(bpftool prog run id "$id" data_in "$LUAEBPF_WORK/packet.bin" 2>&1 \
-		| grep -oP 'Return value: \K[0-9]+')
+	[ -n "$id" ] && verdict=$(luaebpf_returned id "$id" data_in "$LUAEBPF_WORK/packet.bin")
 	lunatik stop tests/luaebpf/nobtf > /dev/null 2>&1
 	[ "$status" -eq 0 ] && [ -n "$id" ] || { comment "$output"; fail "luaebpf: the program compiled whole did not deploy"; }
 	[ "$verdict" = "$PASS" ] || fail "luaebpf: the deployed program answered '$verdict', not its nil branch's PASS"

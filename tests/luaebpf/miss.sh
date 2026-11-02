@@ -41,14 +41,7 @@ ROWS=5
 # the programs testing the answer the three other ways
 FORMS="negated unequal equal"
 
-luaebpf_start $ROWS
-
-reason=$(luaebpf_kfunc luaxdp)
-if [ -n "$reason" ]; then
-	for i in $(seq $ROWS); do ktap_skip "luaebpf: $reason"; done
-	ktap_totals
-	exit 0
-fi
+luaebpf_start $ROWS luaxdp
 
 # the verdicts of FORMS' programs, in that order
 forms() {
@@ -66,13 +59,11 @@ absent=$(luaebpf_verdict miss)
 returned=$(luaebpf_verdict returned)
 joined=$(luaebpf_verdict joined)
 down=$(forms)
-output=$(lunatik run --context=softirq "$SCRIPT" 2>&1)
-[ -z "$output" ] || { comment "$output"; fail "luaebpf: the softirq runtime did not start"; }
+luaebpf_started "$SCRIPT" --context=softirq
 softirq=$(luaebpf_verdict miss)
 up=$(forms)
 lunatik stop "$SCRIPT" > /dev/null 2>&1
-output=$(lunatik run "$INPROCESS" 2>&1)
-[ -z "$output" ] || { comment "$output"; fail "luaebpf: the process-context runtime did not start"; }
+luaebpf_started "$INPROCESS"
 process=$(luaebpf_verdict process)
 refused=$(dmesg_since | grep -cF "$REFUSED")
 lunatik stop "$INPROCESS" > /dev/null 2>&1

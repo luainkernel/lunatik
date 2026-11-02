@@ -47,7 +47,7 @@ luaebpf_start $((CALLS + 1 + REFUSALS + 2))
 # every row of a refusal is one program over one runtime, so only the body and the parameter list
 # the program declares differ
 row() {
-	local name="$1" line="$2" message="$3" body="$4" params="${5-ctx}" runtime="${6-\"$SCRIPT\"}" output
+	local name="$1" line="$2" message="$3" body="$4" params="${5-ctx}" runtime="${6-\"$SCRIPT\"}"
 	{
 		echo 'local xdp     = require("bpf.xdp")'
 		echo 'local runtime = require("bpf.runtime")'
@@ -62,13 +62,7 @@ row() {
 		echo "$body"
 		echo 'end)'
 	} > "$LUAEBPF_WORK/$name.bpf.lua"
-	output=$(luaebpf_refuses "$name" "$name.bpf.lua:$line: $message")
-	if [ $? -ne 0 ]; then
-		comment "$output"
-		ktap_fail "luaebpf: $name"
-	else
-		ktap_pass "luaebpf: $name is refused with its message and line"
-	fi
+	luaebpf_refused "$name" "$name.bpf.lua:$line: $message"
 }
 
 # the runtime's name as each key the object stores reads in <order>, one a line
@@ -89,14 +83,13 @@ keys() {
 
 reason=$(luaebpf_kfunc luaxdp)
 if [ -n "$reason" ]; then
-	for i in $(seq $((CALLS + 1))); do ktap_skip "luaebpf: $reason"; done
+	luaebpf_skips $((CALLS + 1)) "$reason"
 else
 	output=$(luaebpf_compile callback) || { comment "$output"; fail "luaebpf: callback.bpf.lua did not compile"; }
 	output=$(luaebpf_loadall callback) || { comment "$output"; fail "luaebpf: a call into the runtime did not verify"; }
 	ktap_pass "luaebpf: every program calling the runtime verifies"
 
-	output=$(lunatik run --context=softirq "$SCRIPT" 2>&1)
-	[ -z "$output" ] || { comment "$output"; fail "luaebpf: the runtime did not start"; }
+	luaebpf_started "$SCRIPT" --context=softirq
 	answer=$(luaebpf_verdict answer)
 	noargs=$(luaebpf_verdict noargs)
 	wrong=$(luaebpf_verdict wrong)
@@ -161,8 +154,7 @@ end
 xdp.program(ingress, {name = "ingress"})
 tc.program(classify, {name = "classify"})
 LUA
-output=$(cd "$LUAEBPF_WORK" && lunatik bpf -o "$LUAEBPF_WORK/shared.bpf.o" "$LUAEBPF_WORK/shared.bpf.lua" 2>&1) \
-	|| { comment "$output"; fail "luaebpf: shared.bpf.lua did not compile"; }
+output=$(luaebpf_written shared 2>&1) || { comment "$output"; fail "luaebpf: shared.bpf.lua did not compile"; }
 dump=$(bpftool btf dump file "$LUAEBPF_WORK/shared.bpf.o" format raw 2>&1)
 missing=
 for kfunc in bpf_luaxdp_run bpf_luatc_run; do
