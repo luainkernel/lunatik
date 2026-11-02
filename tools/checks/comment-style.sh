@@ -33,7 +33,17 @@ for file in "$@"; do
 		*.c|*.h) lang=c; width=110 ;;
 		*.lua) lang=lua; width=120 ;;
 		*.sh) lang=sh; width=120 ;;
-		*) continue ;;
+		*)
+			[[ ${file##*/} != *.* ]] || continue
+			first=$(head -n 1 "$file" 2> /dev/null)
+			if [[ $first =~ ^#!.*[/\ ]lua ]]; then
+				lang=lua
+			elif [[ $first =~ ^#!.*[/\ ](ba)?sh(\ |$) ]]; then
+				lang=sh
+			else
+				continue
+			fi
+			width=120 ;;
 	esac
 	[ -f "$file" ] || continue
 
@@ -59,7 +69,7 @@ for file in "$@"; do
 	}
 	function whole(s) {	# the line is a comment and nothing else
 		if (lang == "c") return s ~ /^[[:space:]]*(\/\*|\*|\/\/)/
-		if (lang == "lua") return s ~ /^[[:space:]]*--/
+		if (lang == "lua") return s ~ /^([[:space:]]*--|#!)/
 		return s ~ /^[[:space:]]*#/
 	}
 	function incode() { return lang == "c" ? depth > 0 : seen_code }
