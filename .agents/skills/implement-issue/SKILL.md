@@ -43,7 +43,10 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   another branch. #1538's review did not run, its script not found under a worktree the session had removed.
 - The review is `review.js` of the review-pr skill, run nested over the branch before any pull request
   exists, so a review runs one way whoever launches it. Its build phase is the change's one run of the
-  suite and of the examples it touches, in the `lunatik-host` agent, after the reviewer's fixups. A failure
+  suite and of the examples it touches, in the `lunatik-host` agent, after the reviewer's fixups; where
+  `tools/checks/functional.sh` names no file of that tip against the branch's base it runs nothing, and
+  the pull request opens on the checks, saying so of each example: a sentence of a guide page on #2231
+  went through a whole suite. A failure
   goes to a fix agent with the implementer's checkpoint, and the build runs again, twice at most; the
   fix is not reviewed again, which the hand-back says.
 - The implementer writes, for each test the change adds or changes, the defect it is for as a patch,
@@ -55,7 +58,8 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   leave. A defect that removes a crash guard is not written, since its test rests on the message
   it asserts.
 - The pull request opens, in the `lunatik-github` agent, only on a head that passed with every example
-  the change touches run, or loaded where the host cannot drive it, and on a review that kept no mechanism
+  the change touches run, or loaded where the host cannot drive it, or none where the build ran nothing,
+  and on a review that kept no mechanism
   past the smallest shape without its source, and takes the `workflow-reviewed` label from the session. Its body is the
   implementer's as the reviewer corrected it against the final diff, saying of an example the host only
   loaded what the build said: the body is drafted before either reads the branch, and #1948 and #1958

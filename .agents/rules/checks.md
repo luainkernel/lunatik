@@ -353,9 +353,10 @@ without the lines its functions span, a shell script with a line other than a co
 whose commit moved, and any other file whose bytes or mode moved, past the documents, the scripts under
 `tools/` other than `tools/shade.sh`, which the darken suite runs, the rest of the harness, the `.gitignore`
 files and the binding template `lib/luaskel.c`, which nothing the host runs reads. When it
-names none the change is not run, and the review's build phase skips a head that moved only that way: a
-comment shortened on #1903 went through install, reload and two suites, which measured the module they had
-measured before.
+names none the change is not run, and the review's build phase skips a head that moved only that way past
+the validated head, or past the base on a first build, which has none: a comment shortened on #1903 went
+through install, reload and two suites, which measured the module they had measured before, and a sentence
+of a guide page on #2231 through a whole suite, its first build having no validated head to read past.
 
 `tools/watchdog.sh` runs a script and stops it when the host loses the connectivity it had before the
 run, comparing against the loopback and the default route's gateway and holding nothing against the

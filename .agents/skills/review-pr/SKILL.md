@@ -86,7 +86,9 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
   runs only when a fixup changed a file the build, the install or the suite reads, or an example
   the change touches (`tools/checks/examples-touched.sh` over the changed files, passed as
   `args.examples`) is not among them. The suite is not the examples, and an example is the binding at
-  the rate a user drives it.
+  the rate a user drives it. A first build, with no head validated, asks `tools/checks/functional.sh`
+  over the branch against its base, and runs nothing, the examples included, when it names no file.
+  The check reads what this tree's suite reads, so it skips no run `args.build` spells.
 - A phase writes its own answer back into the checkpoint before it returns, not only the findings as
   it closes them, so an agent dropped between its last tool call and the runner's record still leaves
   the verdict on disk.
