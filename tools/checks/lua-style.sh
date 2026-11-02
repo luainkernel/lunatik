@@ -6,7 +6,8 @@
 # The shape rules of .agents/rules/lua.md that a line-based read can find: an
 # if/elseif whose branches repeat the same steps, which is a dispatch table or a
 # helper; one table of arguments spelled at two call sites, which is declared
-# once; a function of more than one statement written inline as a table field,
+# once, named where the change adds or edits one of them against CHECK_BASE; a
+# function of more than one statement written inline as a table field,
 # which is a named local function; an if that returns nil and a value above a return of what it
 # tested, which is one return whose value is the choice, as inet.udp:receivefrom took on #1584; a
 # module a file requires twice, which one local holds, as lib/socket and lib/netlink/nl80211 did
@@ -82,7 +83,11 @@ for file in "$@"; do
 	esac
 	[ -f "$file" ] || continue
 
-	awk -v file="$file" '
+	awk -v file="$file" -v added="$(added "$file")" '
+	BEGIN {
+		if (added == "all") every = 1
+		else { m = split(added, a, "\n"); for (i = 1; i <= m; i++) mine[a[i]] = 1 }
+	}
 	function flag(n, why) { printf "%s:%d: %s\n", file, n, why; found = 1 }
 	function indent(s) { match(s, /^\t*/); return RLENGTH }
 	# the first step a statement takes: the call it makes or the name it assigns
@@ -162,15 +167,17 @@ for file in "$@"; do
 
 		# the argument table of a call, collected to its closing brace
 		if (!intable && match(line, /[A-Za-z0-9_\])][[:space:]]*\(?[[:space:]]*\{/)) {
-			intable = 1; tstart = NR; text = substr(line, RSTART + RLENGTH - 1); depthb = 0
+			intable = 1; tstart = NR; text = substr(line, RSTART + RLENGTH - 1); depthb = 0; tfresh = 0
 		}
 		else if (intable) text = text "," line
 		if (intable) {
+			if (every || (NR in mine)) tfresh = 1
 			t = (tstart == NR ? text : line)
 			depthb += gsub(/\{/, "{", t) - gsub(/\}/, "}", t)
 			if (depthb <= 0) {
-				nt++; tline[nt] = tstart; fields(text, nt)
+				nt++; tline[nt] = tstart; tnew[nt] = tfresh; fields(text, nt)
 				for (o = 1; o < nt; o++) {
+					if (!tnew[nt] && !tnew[o]) continue
 					shared = 0
 					for (key in pairs) { split(key, kp, SUBSEP); if (kp[1] == nt && ((o, kp[2]) in pairs)) shared++ }
 					if (shared >= 3) {
