@@ -12,10 +12,10 @@
 # This one reads commits, not files, since a subject belongs to a commit and
 # the staged diff the other checks read cannot see commit boundaries. The core
 # is what the Layout table names, plus the C API reference, so there is no list
-# to keep. Over the last 400 commits of master it fires on 7, four of them the
-# shape it is for; the rest are docs and autogen sweeps whose only core file is
-# doc/capi.md, which stays in because dropping it blinds the check to a new C
-# API entry. Heuristic: it nudges a review, it does not rewrite.
+# to keep. Besides the shape it is for, it fires on a commit whose only core
+# file is doc/capi.md, as a binding's commit that edits its own section there
+# is; doc/capi.md stays in because dropping it blinds the check to a new C API
+# entry. Heuristic: it nudges a review, it does not rewrite.
 #
 # Usage: bash tools/checks/core-subject.sh <commit or range>...   (default HEAD)
 

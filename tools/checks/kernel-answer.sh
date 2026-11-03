@@ -19,10 +19,10 @@
 # Documentation/ path nor one of the family's own facilities. A field added beside an
 # embedded kernel object, a bool unlinked beside the hlist_node whose unlink
 # already leaves pprev NULL for hlist_unhashed_lockless, is named with what the
-# object records: #1179's first shape carried that field. Over the last 300
-# commits of master it fires on two, the lock operations of lunatik_lock.h and
-# the kprobe a percpu script's runtimes share, both mechanisms of the kind it
-# asks about. Heuristic: it nudges a review, it does not rewrite.
+# object records: #1179's first shape carried that field. It fires on
+# 5a8ae5a82, the lock operations of lunatik_lock.h, and on af1827434, the
+# kprobe a percpu script's runtimes share, both mechanisms of the kind it asks
+# about. Heuristic: it nudges a review, it does not rewrite.
 #
 # Usage: bash tools/checks/kernel-answer.sh <commit or range>...   (default HEAD)
 
