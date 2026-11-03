@@ -24,7 +24,8 @@ dpkg --get-selections | grep 'llvm\s' | grep install &&\
 dpkg --get-selections | grep 'libelf-dev' | grep install &&\
 dpkg --get-selections | grep 'libpcap-dev' | grep install &&\
 dpkg --get-selections | grep 'pahole\s' | grep install || exit 1
-cp /sys/kernel/btf/vmlinux "/usr/lib/modules/${KERNEL_RELEASE}/build/" || exit 1
+# the running kernel's BTF is the base of the modules' BTF on that kernel alone: another release builds with none
+[ "$(uname -r)" != "${KERNEL_RELEASE}" ] || cp /sys/kernel/btf/vmlinux "/usr/lib/modules/${KERNEL_RELEASE}/build/" || exit 1
 
 echo "Compiling and installing resolve_btfids from kernel sources"
 cd /usr/local/src &&\

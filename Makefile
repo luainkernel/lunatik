@@ -50,9 +50,10 @@ LOADER := bin/luaebpf/loader.so
 LOADER_CFLAGS := -std=gnu99 -O2 -Wall -fPIC -shared -DLUA_USE_LINUX -Ilua
 
 # a program file's object goes beside the script it belongs to, where `lunatik run <script>` looks for it;
-# the compiler reads the context's layout from the kernel's BTF, so a kernel that publishes none gets no object
+# the compiler reads the context's layout from the running kernel's BTF, so a kernel that publishes none, or an
+# install for another release, gets no object
 define INSTALL_BPF
-	[ ! -r /sys/kernel/btf/vmlinux ] || for f in $(1); do case "$$f" in \
+	[ ! -r /sys/kernel/btf/vmlinux ] || [ "${KERNEL_RELEASE}" != "$$(uname -r)" ] || for f in $(1); do case "$$f" in \
 		*.bpf.lua) ${LUNATIK_INSTALL_PATH}/lunatik bpf -o $(2)/$$(basename $$f .lua).o $$f || exit 1;; \
 	esac; done
 endef
