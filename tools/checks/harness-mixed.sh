@@ -11,10 +11,9 @@
 #
 # Reads commits, not files, since the mixing is a property of a commit: takes commits
 # or a rev-range (bash tools/checks/harness-mixed.sh origin/master..HEAD), default HEAD.
-# Over the last 400 commits of master it fires on 9, three of them the shape it is for;
-# the rest are documentation sweeps that correct one wording in AGENTS.md and in the
-# README at once, and a CI change whose README claim moved with it. Heuristic: it
-# nudges a review, it does not rewrite.
+# Besides the shape it is for, it fires on a change that moves a line of AGENTS.md or a
+# workflow with what that line describes, as a new directory's Layout row does.
+# Heuristic: it nudges a review, it does not rewrite.
 #
 # With --outside, reads paths on stdin and prints those that are not the harness, which
 # merge-guard.sh reads a pull request's files with.

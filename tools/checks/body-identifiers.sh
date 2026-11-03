@@ -16,9 +16,9 @@
 # design notes out, since a note that names a symbol is what kept #848's stale
 # paragraph hidden. A kernel symbol the body cites for a behaviour the code does
 # not call, synchronize_srcu behind a put that refuses to wait, is named as
-# well: over the last 40 commits of master it names something on 13, kernel
-# internals a body traces, so the report is read, not obeyed. Heuristic: it
-# nudges the re-read after a squash, it does not rewrite.
+# well, and so are the kernel internals a body traces, so the report is read,
+# not obeyed. Heuristic: it nudges the re-read after a squash, it does not
+# rewrite.
 #
 # Usage: bash tools/checks/body-identifiers.sh <commit or range>...   (default HEAD)
 
