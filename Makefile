@@ -280,7 +280,9 @@ modules_install:
 	${MKDIR} ${MODULES_INSTALL_PATH}/lunatik
 	${INSTALL} -m 0644 $$(sed 's/\.o$$/.ko/' modules.order) ${MODULES_INSTALL_PATH}/lunatik
 
+# the running kernel's BTF is the base of the modules' BTF on that kernel alone
 btf_install:
+	@[ "${KERNEL_RELEASE}" = "$$(uname -r)" ] || { echo "btf_install: /sys/kernel/btf/vmlinux is $$(uname -r)'s, not ${KERNEL_RELEASE}'s" >&2; exit 1; }
 	cp /sys/kernel/btf/vmlinux ${BTF_INSTALL_PATH}
 
 modules_uninstall:
