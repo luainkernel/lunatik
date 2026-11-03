@@ -826,8 +826,9 @@ each case runs `depmod -b` over a tree of the suite's own.
   those names to `lunatik.ko`. A stand-in for `zfs.ko`, built from `zfs.c`,
   exports `lua_createtable` as ZFS's Lua does, and sits in turn at
   `kernel/zfs/zfs.ko`, `kernel/zfs/zlua.ko`, `updates/dkms/zfs.ko`,
-  `updates/dkms/zlua.ko` and `ubuntu/dkms/zfs/zfs.ko`, beside the installed
-  Lunatik modules and the host's `modules.order`; no module under
+  `updates/dkms/zlua.ko`, `ubuntu/dkms/zfs/zfs.ko`, `extra/zfs.ko`,
+  `updates/zfs.ko`, `extra/zfs/zfs.ko` and `weak-updates/zfs/zfs.ko`, beside
+  the installed Lunatik modules and the host's `modules.order`; no module under
   `kernel/lunatik/` depends on it at any of those paths.
 
 ### io
