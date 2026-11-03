@@ -35,10 +35,7 @@ mark_dmesg
 run_script --context=softirq "$SCRIPT"
 
 echo x > "/dev/udp/127.0.0.1/$PORT" 2>/dev/null
-for _ in $(seq 20); do
-	[ "$(dmesg_since | grep -c "skb bounds: ")" -ge "$NACCESSORS" ] && break
-	sleep 0.5
-done
+TRIES=100 awaited dmesg_reaches "skb bounds: " "$NACCESSORS"
 
 lunatik stop "$SCRIPT"
 out=$(dmesg_since)

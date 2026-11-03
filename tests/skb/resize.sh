@@ -67,7 +67,7 @@ run_script --context=softirq "$SCRIPT"
 
 socat -u "TCP-LISTEN:$PORT,reuseaddr,fork" OPEN:/dev/null &
 LISTENER=$!
-for _ in $(seq 20); do [ -n "$(ss -tHln "sport = :$PORT" 2>/dev/null)" ] && break; sleep 0.1; done
+TRIES=20 awaited listens -t "$PORT"
 
 i=1
 for c in $CASES; do
@@ -77,10 +77,7 @@ for c in $CASES; do
 	i=$((i + 1))
 done
 
-for _ in $(seq 20); do
-	[ "$(dmesg_since | grep -c "skb resize: ")" -ge "$NCASES" ] && break
-	sleep 0.5
-done
+TRIES=100 awaited dmesg_reaches "skb resize: " "$NCASES"
 
 lunatik stop "$SCRIPT"
 out=$(dmesg_since)

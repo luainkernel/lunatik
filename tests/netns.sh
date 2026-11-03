@@ -20,6 +20,8 @@ PIDMOD="/lib/modules/lua/tests/netns_pid.lua"
 # bounds a process a killed run leaves holding the namespace
 NETNS_HOLD=300
 
+netns_entered() { [ "$(stat -Lc %i "/proc/$1/ns/net" 2> /dev/null)" = "$2" ]; }
+
 netns_up() {
 	local ns
 
@@ -28,11 +30,7 @@ netns_up() {
 	NSPID=$!
 	disown "$NSPID" # the test kills it, and bash would report that on the KTAP output
 	ns=$(stat -Lc %i "/run/netns/$NETNS")
-	for _ in $(seq 1 50); do
-		[ "$(stat -Lc %i "/proc/$NSPID/ns/net" 2> /dev/null)" = "$ns" ] && return 0
-		sleep 0.1
-	done
-	return 1
+	awaited netns_entered "$NSPID" "$ns"
 }
 
 netns_wiphy() {
@@ -56,10 +54,6 @@ netns_down() {
 	ip netns pids "$NETNS" 2> /dev/null | xargs -r kill 2> /dev/null
 	ip netns del "$NETNS" 2> /dev/null
 	[ -n "$WIPHY" ] || return 0
-	for _ in $(seq 1 100); do
-		[ -e "/sys/class/ieee80211/$WIPHY" ] && return 0
-		sleep 0.1
-	done
-	return 1
+	TRIES=100 awaited [ -e "/sys/class/ieee80211/$WIPHY" ]
 }
 

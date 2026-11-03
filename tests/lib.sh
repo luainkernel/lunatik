@@ -46,6 +46,13 @@ comment() { while IFS= read -r line; do echo "# $line"; done <<< "$1"; }
 # polls a condition the kernel reaches on another task after the stimulus returns, a deferred
 # callback or release: awaited <command...> runs it ten times a second, up to $TRIES times (50)
 awaited() { for _ in $(seq "${TRIES:-50}"); do "$@" && return 0; sleep 0.1; done; return 1; }
+# what several scripts await: dmesg_reaches <text> <n>, <n> lines of the log since mark_dmesg carry
+# <text>; listens <-t|-u> <port>, a TCP or a UDP socket listens on <port>; gone <device>, no link has
+# that name; wlan_listed, a wlan interface is, as mac80211_hwsim registers its radios once loaded
+dmesg_reaches() { [ "$(dmesg_since | grep -cF "$1")" -ge "$2" ]; }
+listens() { [ -n "$(ss -Hln "$1" "sport = :$2" 2>/dev/null)" ]; }
+gone() { ! ip link show "$1" > /dev/null 2>&1; }
+wlan_listed() { ip -br link show 2>/dev/null | grep -q wlan; }
 
 # a netdevsim device of one port, for a case on an offload veth has not: nsim_add <id> creates it,
 # loading the module where it is not, nsim_port <id> names its port and nsim_del <id> undoes both

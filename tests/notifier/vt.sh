@@ -24,7 +24,6 @@ TTY="/dev/tty1"
 MARK='`' # must match MARK in vt.lua
 CHAR=$(printf '%d' "'$MARK") # MARK as the script reports it
 SPARE=63 # /dev/tty63, console 62, SPARE in vt.lua
-TRIES=50 # the close of a console puts its port from a work item, and a console still held is busy
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -60,15 +59,6 @@ command -v deallocvt > /dev/null || skip="no deallocvt"
 [ -c "/dev/tty$SPARE" ] || skip="no /dev/tty$SPARE"
 [ -e "/sys/class/vc/vcs$SPARE" ] && skip="/dev/tty$SPARE is held by the host"
 
-deallocate()
-{
-	for _ in $(seq "$TRIES"); do
-		deallocvt "$SPARE" 2> /dev/null && return 0
-		sleep 0.1
-	done
-	return 1
-}
-
 carried() { dmesg_since | sed -n "s/.*notifier vt: $1 //p"; }
 
 mark_dmesg
@@ -76,7 +66,8 @@ run_script --context=hardirq "$SCRIPT"
 printf '%s' "$MARK" > "$TTY" || fail "cannot write to $TTY"
 if [ -z "$skip" ]; then
 	: < "/dev/tty$SPARE" || fail "cannot open /dev/tty$SPARE"
-	deallocate || fail "cannot deallocate /dev/tty$SPARE"
+	# the close of a console puts its port from a work item, and a console still held is busy
+	awaited deallocvt "$SPARE" 2> /dev/null || fail "cannot deallocate /dev/tty$SPARE"
 fi
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 

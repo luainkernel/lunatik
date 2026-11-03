@@ -86,11 +86,7 @@ ktap_pass "socket.new raises on a pid out of range and on a socket refused in th
 dmesg | grep -q "netlink link_netns: $DEV listed after the holder exited" || fail "the session lost its namespace"
 ktap_pass "a session keeps its namespace after the last task in it exits"
 
-for _ in $(seq 1 100); do
-	ip link show "$WITNESS" > /dev/null 2>&1 || break
-	sleep 0.1
-done
-ip link show "$WITNESS" > /dev/null 2>&1 && fail "the namespace outlived the sockets that held it"
+TRIES=100 awaited gone "$WITNESS" || fail "the namespace outlived the sockets that held it"
 ktap_pass "the namespace goes once the last socket holding it is closed"
 
 ktap_totals

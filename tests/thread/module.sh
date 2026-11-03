@@ -27,7 +27,6 @@
 SCRIPT="tests/thread/module"
 MODULE="luathread"
 PREFIX="thread module test: "
-TRIES=50
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -52,15 +51,9 @@ ktap_plan 2
 mark_dmesg
 output=$(lunatik spawn "$SCRIPT" 2>&1)
 [ -z "$output" ] || fail "$output"
-for _ in $(seq $TRIES); do
-	released && break
-	sleep 0.1
-done
+awaited released
 lunatik stop "$SCRIPT" > /dev/null 2>&1
-for _ in $(seq $TRIES); do
-	settled && break
-	sleep 0.1
-done
+awaited settled
 
 released || fail "the runtime of a thread whose handle was collected did not close"
 settled || fail "$MODULE refcnt $before -> $(refcnt) after a thread released by its own exit"

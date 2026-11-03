@@ -85,6 +85,13 @@ inum()
 	tr -dc '0-9'
 }
 
+# sets ZOMBIE to the child of PARENT once it is a zombie
+zombied()
+{
+	ZOMBIE=$(ps -o pid= --ppid "$PARENT" | tr -d ' ')
+	[ -n "$ZOMBIE" ] && [[ "$(ps -o stat= -p "$ZOMBIE")" == Z* ]]
+}
+
 command -v ip > /dev/null 2>&1 || skip_all "ip not available"
 command -v nsenter > /dev/null 2>&1 || skip_all "nsenter not available"
 unshare --pid --fork true 2> /dev/null || skip_all "no pid namespaces"
@@ -105,13 +112,7 @@ wait "$REAPED"
 sh -c 'true & exec sleep 30' & # the sleep inherits the child, and never waits for it
 PARENT=$!
 disown "$PARENT"
-for _ in $(seq 1 50); do
-	ZOMBIE=$(ps -o pid= --ppid "$PARENT" | tr -d ' ')
-	[ -n "$ZOMBIE" ] && [[ "$(ps -o stat= -p "$ZOMBIE")" == Z* ]] && break
-	ZOMBIE=
-	sleep 0.1
-done
-[ -n "$ZOMBIE" ] || skip_all "cannot keep a zombie"
+awaited zombied || skip_all "cannot keep a zombie"
 echo "return {holder = $NSPID, reaped = $REAPED, zombie = $ZOMBIE}" > "$PIDMOD"
 
 mark_dmesg

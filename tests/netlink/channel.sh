@@ -93,9 +93,7 @@ GRP=$(genl ctrl get name "$FAMILY" 2>/dev/null \
 
 "$SUB_BIN" "$GRP" > "$SUB_OUT" 2> "$SUB_ERR" &
 SUB_PID=$!
-ready=""
-for _ in $(seq 1 50); do grep -q READY "$SUB_ERR" 2>/dev/null && { ready=1; break; }; sleep 0.1; done
-[ -n "$ready" ] || fail "subscriber not ready: $(cat "$SUB_ERR")"
+awaited grep -q READY "$SUB_ERR" 2>/dev/null || fail "subscriber not ready: $(cat "$SUB_ERR")"
 
 # generate loopback traffic; the received packet fires PRE_ROUTING in NET_RX softirq
 for _ in $(seq 1 5); do echo x > /dev/udp/127.0.0.1/9999 2>/dev/null; sleep 0.1; done
