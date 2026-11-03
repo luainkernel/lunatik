@@ -164,7 +164,14 @@ window the lunatik-cycle skill names. A failure the change causes is fixed in th
 request opens squashed, \`make\` clean, and pushed with \`--force-with-lease\`; one it does not cause, a host process or a test already
 failing on master, is said as such with its evidence and the open issue that reports it, and fixes nothing. Run no install, reload, suite or
 example: the host run that follows is another agent's. Append what you traced and committed to the checkpoint,
-and remove the worktree you worked in once the fix is pushed.
+and remove the worktree you worked in once the fix is pushed.${(implemented.defects || []).length ? `
+
+The host run plants each defect below over your pushed head, and a fix over a line one carries leaves it unable
+to apply, so before you remove the worktree run \`git apply --check <patch>\` of each over that head; one that no
+longer applies you write again at the same path, carrying the defect the old patch carries: edit the tree, see
+that \`make\` builds it, \`git diff > <patch>\`, then \`git apply -R <patch>\`, each a call of its own. Note each
+one written again in the checkpoint.
+${JSON.stringify(implemented.defects, null, 2)}` : ''}
 
 What you find past the failure and do not fix, in the change or beside it,
 ${LEAVE}

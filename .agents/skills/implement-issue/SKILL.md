@@ -43,7 +43,9 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   and the build plants each once the suite passed, in a call of its own that `crash-guard.sh` reads,
   runs the test's suite and reverts it. The hand-back carries the cases each defect failed; one that
   left its cases passing is a test that does not discriminate, which the session brings back before
-  the merge. A defect that removes a crash guard is not written, since its test rests on the message
+  the merge, and one whose patch did not apply is stale, neither of the two: the reviewer, after its
+  fixups, and a fix, after its push, write again each patch that no longer applies over the head they
+  leave. A defect that removes a crash guard is not written, since its test rests on the message
   it asserts.
 - The pull request opens, in the `lunatik-github` agent, only on a head that passed with every example
   the change touches run, or loaded where the host cannot drive it, and on a review that kept no mechanism
