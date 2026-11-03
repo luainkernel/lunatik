@@ -39,8 +39,7 @@ ktap_header
 ktap_plan 6
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
-[ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] &&
-	grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)" || skip_script "the loaded $MODULE does not carry the refusal: it may register a family under RTNL"
+carries $MODULE "$REFUSAL" || skip_script "the loaded $MODULE does not carry the refusal: it may register a family under RTNL"
 
 reported()
 {

@@ -225,7 +225,7 @@ each script allocates before its cases, and each case that runs
   `hardirq` runtime, which runs in process context; resumed past the body,
   the armed state a hook calls from, each refuses with "not allowed once
   the runtime is armed", since allocating the transform sleeps. Skips unless
-  the loaded `luadarken` is the installed one and carries the refusal.
+  the `luadarken` it runs against carries the refusal.
 - **decrypt**: `darken.run` reads what `crypto.aead`'s `gcm(aes)` seals: a
   script runs and returns its values, as a stripped chunk of it does,
   `darken.load` returns one loaded and not run, and an
@@ -343,8 +343,8 @@ each script allocates before its cases, and each case that runs
   the same runtime's other device, whose callbacks return an offset and a
   length, then succeed. A build that reads
   those returns outside a protected call raises with no handler, which is a
-  `BUG`, so the test skips unless the loaded `luadevice` is the installed one
-  and that file carries the error such a return raises.
+  `BUG`, so the test skips unless the `luadevice` it runs against carries the
+  error such a return raises.
 - **file**: each open of a device has a state of its own, which every callback
   of that open receives from its open to its release. Two files open at once
   each read what they wrote; a file that wrote nothing reads nothing; release
@@ -790,8 +790,7 @@ after the watch is stopped.
   runtime, which runs in process context; resumed past the body, the armed
   state a `probe` or `raw_event` callback runs in, it refuses with "not
   allowed once the runtime is armed", since registering a driver sleeps.
-  Skips unless the loaded `luahid` is the installed one and carries the
-  refusal.
+  Skips unless the `luahid` it runs against carries the refusal.
 - **device**: a driver's callbacks, driven by devices a C peer creates
   through `/dev/uhid` after `hid.register()` returns. A probe receives the
   device's table and the matching `id_table` entry, and two devices bound at
@@ -880,7 +879,7 @@ each case runs `depmod -b` over a tree of the suite's own.
   the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
   body, the armed state a hook calls from, each refuses with "not allowed once the runtime is
   armed". A build without the refusal sleeps under the armed runtime's spinlock, so the test skips
-  unless the loaded `lualinux` is the installed one and carries it.
+  unless the `lualinux` it runs against carries it.
 - **netns**: `linux.netns` resolves pid 1 to the initial namespace in a
   process runtime, in its body and resumed past it, and in the body of a
   `softirq` and a `hardirq` runtime, which runs in process context; resumed

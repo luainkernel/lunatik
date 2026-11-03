@@ -79,12 +79,6 @@ CONFIG=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null
 MODULE=lualinux
 REFUSAL="not allowed once the runtime is armed"
 
-# a lualinux without the refusal sleeps under an armed runtime's spinlock, and a run by hand reaches what is loaded
-carries_refusal() {
-	[ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] &&
-		grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"
-}
-
 # the boottime offset, in seconds, of the namespace timens() makes, which time.lua requires from OFFSETMOD
 BOOTOFFSET=1000000
 OFFSETMOD="/lib/modules/lua/tests/linux/time_offset.lua"
@@ -114,7 +108,8 @@ for t in $TESTS; do
 		ktap_skip "linux/$t: needs CONFIG_TRACING"
 		continue
 	fi
-	if [ "$t" = schedule ] && ! carries_refusal; then
+	# a lualinux without the refusal sleeps under an armed runtime's spinlock, and a run by hand reaches what is loaded
+	if [ "$t" = schedule ] && ! carries $MODULE "$REFUSAL"; then
 		ktap_skip "linux/$t: the loaded $MODULE does not carry the refusal in schedule"
 		continue
 	fi

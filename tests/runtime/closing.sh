@@ -70,14 +70,6 @@ reported()
 	dmesg_since | grep -cF "closing test: $1"
 }
 
-carries()
-{
-	local module="lua$1" loaded="/sys/module/lua$1/srcversion"
-
-	{ [ ! -e "$loaded" ] || [ "$(cat "$loaded")" = "$(modinfo -F srcversion "$module" 2> /dev/null)" ]; } &&
-		grep -qaF "$REFUSAL" "$(modinfo -n "$module" 2> /dev/null)" 2> /dev/null
-}
-
 stopped()
 {
 	run_script --context="$2" "$REGISTER$1"
@@ -98,7 +90,7 @@ refused()
 
 guarded()
 {
-	if carries "$1"; then
+	if carries "lua$1" "$REFUSAL"; then
 		refused "$@"
 	else
 		ktap_skip "the loaded lua$1 does not carry the refusal: a $1 made as the runtime closes would outlive it"

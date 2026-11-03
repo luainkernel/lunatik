@@ -179,6 +179,15 @@ probe_refusal() {
 	fi
 }
 
+# carries <module> <message>: the installed <module> holds <message> and is the one loaded, where one
+# is: a case that would wedge the host on a build without its fix skips unless it does
+carries() {
+	local loaded="/sys/module/$1/srcversion"
+
+	{ [ ! -e "$loaded" ] || [ "$(cat "$loaded")" = "$(modinfo -F srcversion "$1" 2> /dev/null)" ]; } &&
+		grep -qaF "$2" "$(modinfo -n "$1" 2> /dev/null)" 2> /dev/null
+}
+
 # runs the CLI, keeping its status in $status, its stdout in $out and its stderr in $err
 cli() {
 	local errfile

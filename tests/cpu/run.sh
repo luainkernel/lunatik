@@ -53,9 +53,7 @@ cleanup
 ktap_header
 ktap_plan $TOTAL
 
-[ ! -e /sys/module/$MODULE ] ||
-	[ "$(cat /sys/module/$MODULE/srcversion)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] &&
-	grep -qaF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)" || {
+carries $MODULE "$REFUSAL" || {
 	for t in $TESTS; do
 		ktap_skip "cpu/$t: the $MODULE it runs against does not carry the bound: an unbounded id would read past the online mask"
 	done
