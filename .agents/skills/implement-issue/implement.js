@@ -37,9 +37,9 @@
 //   build       what the host runs in place of the suite and the examples, review.js's own argument:
 //               a change whose done criteria are a run of its own tool spells that run here
 //
-// It returns the implementer's answer, the review's, the last host run's build, whether the issue took
-// the groomer's Update (null where it settled none), the pull request and whether GitHub took its label,
-// the issues that now hold each entry of findings_left the filing did not skip, and any entry left unfiled.
+// It returns the implementer's answer, the review's, the last host run's build, the pull request, the
+// writes the session posts to GitHub in order, the label, the groomer's Update and each entry of
+// findings_left the filing prepared, and any entry left unfiled.
 // findings_left holds what the implementer, the review, each fix and each build run again after one left.
 
 export const meta = {
@@ -64,7 +64,6 @@ const reviewer = role('review')
 const githubber = role('github', { effort: 'low' })
 const groomCheckpoint = `${a.scratch}/issue${a.issue}/GROOM.md`
 const checkpoint = `${a.scratch}/issue${a.issue}/IMPLEMENT.md`
-const fileCheckpoint = `${a.scratch}/issue${a.issue}/FILED.md`
 const bodyFile = `${a.scratch}/issue${a.issue}/pull-request.md`
 const REVIEW = `${a.repo}/.agents/skills/review-pr/review.js`
 const MACHINE = a.machine ? `THIS MACHINE: ${a.machine}\n` : ''
@@ -101,22 +100,9 @@ An issue is a request, not a decision to implement it. Judge it before you shape
    the reason to build nothing. Either stops the run.
 `
 
-const UPDATE = (text) => `
-${MACHINE}Append to the body of issue #${a.issue} of luainkernel/lunatik, as GitHub has it now, a blank line, a line
-\`Update:\` and this text, and change nothing else in it:
-${JSON.stringify(text)}
-
-Write the whole new body with your Write tool to exactly ${a.scratch}/issue${a.issue}/update.md, and pass that
-path spelled out in the command that edits the issue (\`gh api -X PATCH repos/luainkernel/lunatik/issues/${a.issue}
--F body=@${a.scratch}/issue${a.issue}/update.md\`): the guards before a shell call read the file the command
-names. Your answer is updated, whether its body ends with that Update when you read it back; a write refused
-goes in notes, word for word.
-`
-
-const GROOMING = (groomed, updated) => `
-THE GROOMER judged the issue worth implementing and settled its API${updated === false
-  ? `, which the issue did not take, so it stands here in place of an Update: line: ${JSON.stringify(groomed.update)}.`
-  : ' under the issue\'s Update: line.'} Its
+const GROOMING = (groomed) => `
+THE GROOMER judged the issue worth implementing and settled its API, which the session appends to the issue
+under an Update: line once this run returns, so it stands here: ${JSON.stringify(groomed.update)}. Its
 reading of the shapes, for your step 2, and what it read:
 ${JSON.stringify({ shapes: groomed.shapes, sources: groomed.sources }, null, 2)}
 `
@@ -199,21 +185,15 @@ ${JSON.stringify(body)}
 
 Write the body with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it, and pass that
 path spelled out in the command that opens the pull request (\`-F body=@${bodyFile}\`): the guards before a shell
-call read the file the command names, and refuse a path a shell variable holds. Then label the pull request
-\`workflow-reviewed\`, since the review ran over this head. Your answer is the pull request's number, and
-labelled, whether the label is on it when you read its labels back; a write refused goes in notes, word for word.
+call read the file the command names, and refuse a path a shell variable holds. Label nothing: the session
+labels it. Your answer is the pull request's number; a write refused goes in notes, word for word.
 `
 
 const FILE = (entries, source, findings, fixes) => `
-${MACHINE}File what the implementation of issue #${a.issue} and its review left, as issues of luainkernel/lunatik.
-You post nothing on a pull request, no review and no comment, and no entry goes to one: the issues endpoint
-answers for a pull request too, and \`gh api repos/luainkernel/lunatik/issues/<n>\` carries a \`pull_request\`
-field when <n> is one.
-
-CHECKPOINT: ${fileCheckpoint} records every entry already filed, one line each under its title in ENTRIES,
-\`<index> | <title> | #<issue> | created\`, \`... | updated\` or \`... | skipped\`. Read it first and leave an entry whose index and
-title it records as its line says, since an entry filed twice is a duplicate someone closes by hand; append the line the moment
-the issue holds it.
+${MACHINE}Prepare what the implementation of issue #${a.issue} and its review left, as issues of luainkernel/lunatik,
+for the session to post: you write nothing to GitHub, since the auto mode classifier refuses a workflow agent's
+write, and read it through \`gh api\` alone. No entry goes to a pull request: the issues endpoint answers for a
+pull request too, and \`gh api repos/luainkernel/lunatik/issues/<n>\` carries a \`pull_request\` field when <n> is one.
 
 An entry was written before the run went on, so what the branch did since is read before it is filed. An
 entry a finding of the review below fixed with a commit, or a fix below traced and committed, is skipped, and
@@ -221,31 +201,27 @@ one the branch fixes in part is cut to the part it leaves. A failure a fix read 
 fixed by an open pull request is skipped too. A skipped entry is held by that pull request, or by #${source}.
 
 Entries that report one defect, the implementer's and the review's or those of builds that fail on it again,
-are one: file the fullest once and name every index against the issue that holds it. For each other entry:
-- write its body with your Write tool to exactly ${a.scratch}/issue${a.issue}/entry<index>.md and run
-  tools/checks/machine-leak.sh and tools/checks/untraced.sh over it; a line either one names is rewritten before
-  anything is posted, and the command that posts it spells that path out (\`-F body=@<that path>\`), since the
-  guards refuse a path a shell variable holds;
+are one: prepare the fullest once and name every index it stands for. For each other entry:
+- write its text with your Write tool to exactly ${a.scratch}/issue${a.issue}/entry<index>.md and run
+  tools/checks/machine-leak.sh and tools/checks/untraced.sh over it; a line either one names is rewritten;
 - an entry whose body carries \`Decision:\` or \`Decision D<n>:\`, or whose home is an epic (a title that starts with \`Epic:\`),
   opens an issue of its own, whatever it reports, and its body ends with \`Part of #<home>.\` when it has a
   home;
 - no entry goes to #${a.issue}, which the pull request of this change closes, whoever opens it, and what is
   appended to it closes unread with it: one that belongs there opens an issue of its own, whose body ends with
   \`Found while implementing #${a.issue}.\`;
-- an entry whose home is an open issue goes to that issue: its body is appended to the issue's own under a
-  line \`Update: <title> (#${source})\`, with that number as it stands, and the issue carries one severity
-  label, the higher of its own and the entry's; the whole body is written with your Write tool to exactly
-  ${a.scratch}/issue${a.issue}/issue<n>.md before the command that posts it, since the guards refuse a file
-  the same command writes;
+- an entry whose home is an open issue is appended to that issue: its file holds the text the session adds
+  after the issue's body and a blank line, opening with a line \`Update: <title> (#${source})\`, with that
+  number as it stands, and the issue keeps one severity label, the higher of its own and the entry's;
 - an entry that reports what an open issue already reports, read in that issue and not guessed from its
   title, goes to it the same way;
-- any other entry opens an issue with its title, its body as it stands and the label
-  \`severity: <its severity>\`;
-- the body carries the entry's contract on a line of its own, \`Contract: <contract>\`, the promise its
+- any other entry opens an issue with its title, its file as the body and the label \`severity: <its severity>\`;
+- the text carries the entry's contract on a line of its own, \`Contract: <contract>\`, the promise its
   severity was read against.
 
-Your answer names, for every entry by its index, the issue or the pull request that holds it when you read it
-back from GitHub; an entry no write reached stays out of filed, and notes carry the refusal word for word.
+Your answer is writes, one for each prepared entry and each skipped one, every index of ENTRIES in exactly one:
+create with the title, the file and the severity, append with the issue, the file and the severity, or skip
+with the issue or the pull request that holds it.
 
 THE REVIEW'S FINDINGS, each with its disposition:
 ${JSON.stringify(findings, null, 2)}
@@ -304,7 +280,7 @@ const FIXED = { type: 'object', properties: {
   notes: { type: 'string' },
 }, required: ['head', 'caused', 'findings_left', 'notes'] }
 
-const OPENED = { type: 'object', properties: { pr: { type: 'integer' }, labelled: { type: 'boolean' }, notes: { type: 'string' } }, required: ['pr', 'labelled'] }
+const OPENED = { type: 'object', properties: { pr: { type: 'integer' }, notes: { type: 'string' } }, required: ['pr'] }
 
 const GROOMED = { type: 'object', properties: {
   verdict: { type: 'string', enum: ['implement', 'reshape', 'decline'] },
@@ -317,14 +293,15 @@ const GROOMED = { type: 'object', properties: {
   notes: { type: 'string' },
 }, required: ['verdict', 'merit', 'shapes', 'update', 'sources', 'notes'] }
 
-const UPDATED = { type: 'object', properties: { updated: { type: 'boolean' }, notes: { type: 'string' } }, required: ['updated'] }
-
-const FILED = { type: 'object', properties: {
-  filed: { type: 'array', items: { type: 'object', properties: {
-    index: { type: 'integer' }, number: { type: 'integer' }, action: { type: 'string', enum: ['created', 'updated', 'skipped'] },
-  }, required: ['index', 'number', 'action'] } },
+const PREPARED = { type: 'object', properties: {
+  writes: { type: 'array', items: { type: 'object', properties: {
+    action: { type: 'string', enum: ['create', 'append', 'skip'] },
+    indexes: { type: 'array', items: { type: 'integer' } },
+    issue: { type: 'integer', description: 'append: the issue the text goes to; skip: the issue or pull request that holds the entry' },
+    title: { type: 'string' }, file: { type: 'string' }, severity: { type: 'string', enum: ['low', 'medium', 'high'] },
+  }, required: ['action', 'indexes'] } },
   notes: { type: 'string' },
-}, required: ['filed'] }
+}, required: ['writes'] }
 
 const reviewArgs = (impl, extra) => ({
   pr: 0, branch: impl.branch, base: impl.base, scratch: a.scratch, validated: null, examples: impl.examples, defects: impl.defects,
@@ -336,7 +313,7 @@ const passed = (build) => build && build.clean && /fail:0\b/.test(build.totals |
 const unrun = (impl, build) => (impl.examples || []).filter(e =>
   ![...(build?.examples || []), ...(build?.loaded || []).map(l => l.example)].includes(e))
 
-let groomed = null, updated = null
+let groomed = null
 if ((a.agents || {}).groom) {
   phase('Groom')
   groomed = await agent(GROOM, { label: `groom:${a.issue}`, phase: 'Groom', schema: GROOMED, ...role('groom') })
@@ -344,22 +321,14 @@ if ((a.agents || {}).groom) {
     log(`#${a.issue} ${groomed ? `groomed: ${groomed.verdict}` : 'not groomed: the groomer died'}; the session reads the result`)
     return { issue: a.issue, groomed, pr: 0 }
   }
-  if (groomed.update) {
-    const update = await agent(UPDATE(groomed.update), {
-      label: `update:${a.issue}`, phase: 'Groom', agentType: 'lunatik-github', schema: UPDATED, ...githubber,
-    })
-    updated = !!update?.updated
-    if (!updated)
-      log(`#${a.issue} without the groomer's Update: ${update?.notes || 'the agent gave no reason'}; the session appends it`)
-  }
 }
 
 phase('Implement')
-const implemented = await agent(IMPLEMENT + (groomed ? GROOMING(groomed, updated) : ''), {
+const implemented = await agent(IMPLEMENT + (groomed ? GROOMING(groomed) : ''), {
   label: `implement:${a.issue}`, phase: 'Implement', schema: IMPLEMENTED, ...implementer,
 })
 
-let review = null, build = null, pr = 0, labelled = false
+let review = null, build = null, pr = 0
 const fixes = [], reruns = []
 if (implemented?.branch && a.push !== false) {
   try {
@@ -393,9 +362,6 @@ if (implemented?.branch && a.push !== false) {
       label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
     })
     pr = opened?.pr || 0
-    labelled = !!opened?.labelled
-    if (pr && !labelled)
-      log(`#${pr} opened without workflow-reviewed: ${opened.notes || 'the agent gave no reason'}; the session adds it`)
   } else {
     const why = !passed(build) ? 'the host run did not pass' : missing.length ? `the host run left ${missing.join(', ')} unrun`
       : unsourced.length ? `the review kept ${unsourced.map(b => b.mechanism).join('; ')} without a source` : 'gh is absent'
@@ -413,18 +379,20 @@ if (a.gh === false && findings_left.length)
 else if (findings_left.length) {
   phase('File')
   filing = await agent(FILE(findings_left, pr || a.issue, review?.reviewer?.findings || [], fixes), {
-    label: `file:${a.issue}`, phase: 'File', agentType: 'lunatik-github', schema: FILED, ...githubber,
+    label: `file:${a.issue}`, phase: 'File', agentType: 'lunatik-github', schema: PREPARED, ...githubber,
   })
 }
-const filed = filing?.filed || []
 // the pull request closes the issue, and an entry appended to it closes unread with it
-const closing = filed.filter(f => f.number === a.issue && f.action === 'updated').map(f => f.index)
-if (closing.length)
-  log(`entries ${closing.join(', ')} went to #${a.issue}, which the pull request of this change closes; the session files them`)
-const unfiled = findings_left.filter((_, index) => closing.includes(index) || !filed.some(f => f.index === index))
-if (unfiled.length) {
+const closes = w => w.action === 'append' && w.issue === a.issue
+const prepared = (filing?.writes || []).filter(w => !closes(w))
+const unfiled = findings_left.filter((_, index) => !prepared.some(w => w.indexes.includes(index)))
+if (unfiled.length)
   log(`${unfiled.length} of ${findings_left.length} left unfiled: ${unfiled.map(f => f.title).join('; ')}${filing?.notes ? `; ${filing.notes}` : ''}`)
-}
-const issues = [...new Set(filed.filter(f => f.action !== 'skipped').map(f => f.number))]
-return { issue: a.issue, groomed, updated, pr, labelled, implemented, review, build, fixes, findings_left, filed, issues, unfiled }
+// a workflow agent's write to GitHub is refused by the auto mode classifier, and the session's is not
+const writes = [
+  ...(pr ? [{ action: 'label', issue: pr, label: 'workflow-reviewed' }] : []),
+  ...(groomed?.update ? [{ action: 'append', issue: a.issue, text: /^Update:/.test(groomed.update) ? groomed.update : `Update: ${groomed.update}` }] : []),
+  ...prepared.filter(w => w.action !== 'skip'),
+]
+return { issue: a.issue, groomed, pr, implemented, review, build, fixes, findings_left, writes, prepared, unfiled }
 
