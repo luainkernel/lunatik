@@ -9,8 +9,9 @@
 # netdevice callback's contract with a body that named one of the three the list carried, and the
 # two it left, linkflap and netfailover, acted on a homonym from another namespace until the review
 # ran them. Takes the body file and the changed files; prints each example the list carries that
-# the body does not name and exits 1, silent otherwise. An example is named by its directory or
-# file name under examples/, as the list prints it.
+# the body does not name and exits 1, silent otherwise. An example is named as examples/<name>, as
+# the list prints it, ended by a character a name cannot carry, or as <name> in backticks, never as
+# a bare word, which a body uses for something else, as shared in "the shared host".
 # Usage: examples-named.sh <body> <changed file>...
 
 body=$1
@@ -23,8 +24,8 @@ listed=$(bash "$(dirname "$0")/examples-touched.sh" "$@" 2> /dev/null |
 
 status=0
 for example in $listed; do
-	grep -qw -- "$example" "$body" && continue
-	echo "$body: examples/$example uses a binding the change touches, and the body does not say whether it ran"
+	grep -qE -- "examples/$example([^A-Za-z0-9_-]|\$)|\`$example\`" "$body" && continue
+	echo "$body: examples/$example uses a binding the change touches, and the body does not say whether it ran; name it as examples/$example or \`$example\`"
 	status=1
 done
 exit $status
