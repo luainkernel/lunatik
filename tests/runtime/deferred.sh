@@ -30,7 +30,6 @@ MODULE="luabyteorder"
 FIX="lunatik_deferirq"
 RELEASES="lunatik_deferred/lunatik_releaseruntime"
 CHILDREN=2 # one per writer, a softirq and a hardirq runtime
-TRIES=50
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -51,8 +50,6 @@ slept() { dmesg_since | grep -c "deferred test: slept on kworker/"; }
 closed() { [ "$(deferred | wc -l)" -ge "$CHILDREN" ]; }
 released() { [ "$(refcnt)" -eq "$before" ]; }
 reported() { [ "$(slept)" -ge "$CHILDREN" ]; }
-# polls a condition the deferred closes reach after the script returns
-awaited() { for _ in $(seq $TRIES); do "$1" && return; sleep 0.1; done; }
 
 trap cleanup EXIT
 cleanup
