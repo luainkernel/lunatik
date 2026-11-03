@@ -484,7 +484,9 @@ one that AGENTS.md, CLAUDE.md and `.agents/` do not hold: a reply recommended a 
 AGENTS asks" for it, of a rule nobody had written. `tldr.sh` names a reply of more than 15 lines that
 does not open with a TL;DR of five lines at most, since the maintainer asked for one after a plan of
 20 and a report of 21. `settled.sh` names a decision line that asks whether to file a finding, which
-the conventions settle: the finding is filed and the reply says its number.
+the conventions settle: the finding is filed and the reply says its number. It names one that asks
+whether to post the label, the `Update:` or an issue an implement-issue run returned too, which the
+maintainer ordered posted always.
 
 `.claude/hooks/on-compact.sh`, run as a session starts again after a compaction (`SessionStart`, matcher
 `compact`), prints into its context the rules a compacted session broke, each read from AGENTS.md or
