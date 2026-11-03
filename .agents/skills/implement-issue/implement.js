@@ -137,7 +137,8 @@ you take it, what you read, decided, committed and measured, and your answer bef
    covers disabled (.agents/rules/tests.md), as a patch over the head: edit the tree, see that \`make\`
    builds it, \`git diff > ${a.scratch}/issue${a.issue}/defect<n>.patch\`, then \`git apply -R\` of that patch.
    A defect that removes a crash guard is not written, since its test rests on the message it asserts.
-   Your answer's defects names each patch, the suite that runs the test and the cases it should fail.
+   Your answer's defects names each patch, the suite that runs the test and the cases it should fail:
+   the build plants each after one reload and runs that whole suite, never the test alone.
 5. Run "Before opening a pull request" with the pr-prep skill, except what needs the host: the suite and
    the examples run once, after the review, in an agent of their own, and a failure comes back to a fix.
    Run no install, reload, suite or example yourself. List the examples tools/checks/examples-touched.sh

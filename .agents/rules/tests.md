@@ -48,7 +48,11 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   same line. The defective
   side has to compile: a header reverted while its callers still pass the argument it drops stops at
   `too many arguments`, the suite then runs against the modules already installed, and that green run
-  reads as a test that does not discriminate. The proof is run, not argued: a message the header
+  reads as a test that does not discriminate. The defect is keyed on something only its test
+  produces; where it cannot be, it is planted right after a reload and its test run alone, never keyed
+  on a count or a state the suite's earlier scripts also reach: #2073's dropped every second packet
+  answered `-ENXIO`, through a counter the scripts before its test also moved, and the whole suite
+  passed with it (#2121). The proof is run, not argued: a message the header
   says `check_dmesg` reads is one `KTAP_ERRORS` in `tests/lib.sh` matches, and the line the
   defective build prints is one that build printed; `tools/checks/test-harness.sh` names a claimed message the pattern does not match;
 * a test that wedges the host when the fix is absent, rather than failing, checks before its stimulus
