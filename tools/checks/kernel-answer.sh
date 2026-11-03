@@ -14,15 +14,16 @@
 #
 # This one reads commits, not files, since the comparison belongs in the body.
 # A commit that adds primitives of a family (RCU, locking, reference counts,
-# deferred work) together with a new function or field, the shape of a
+# module references, deferred work) with a new function or field, the shape of a
 # mechanism and not of a one-line fix, is named when its body carries neither a
 # Documentation/ path nor one of the family's own facilities. A field added beside an
 # embedded kernel object, a bool unlinked beside the hlist_node whose unlink
 # already leaves pprev NULL for hlist_unhashed_lockless, is named with what the
 # object records: #1179's first shape carried that field. It fires on
-# 5a8ae5a82, the lock operations of lunatik_lock.h, and on af1827434, the
-# kprobe a percpu script's runtimes share, both mechanisms of the kind it asks
-# about. Heuristic: it nudges a review, it does not rewrite.
+# 5a8ae5a82, the lock operations of lunatik_lock.h, on af1827434, the kprobe a
+# percpu script's runtimes share, and on b5b767889, the module a clone's
+# metatables hold, all mechanisms of the kind it asks about. Heuristic: it
+# nudges a review, it does not rewrite.
 #
 # Usage: bash tools/checks/kernel-answer.sh <commit or range>...   (default HEAD)
 
@@ -38,11 +39,15 @@ primitives_refcount='\b(kref_init|kref_get|kref_put|kref_get_unless_zero|refcoun
 answers_refcount='Documentation/core-api/(kref|refcount)|\bkref\b|refcount_t|percpu_ref|rcuref'
 docs_refcount='Documentation/core-api/kref.rst, Documentation/core-api/refcount-vs-atomic.rst'
 
+primitives_module='\b(__module_get|try_module_get|module_put|__symbol_get|symbol_get|__symbol_put|symbol_put|symbol_put_addr)\b'
+answers_module='Documentation/kernel-hacking/hacking|include/linux/module\.h|kernel/module/|\.owner\b|fops_get|module_put_and_kthread_exit'
+docs_module='Documentation/kernel-hacking/hacking.rst (the owner field), include/linux/module.h (when __module_get suffices)'
+
 primitives_deferral='\b(INIT_WORK|INIT_DELAYED_WORK|queue_work|schedule_work|schedule_delayed_work|timer_setup|mod_timer|tasklet_init|tasklet_schedule|irq_work_queue|kthread_run|kthread_create)\b'
 answers_deferral='Documentation/core-api/workqueue|Documentation/timers|workqueue|delayed_work|irq_work|kthread_worker|tasklet'
 docs_deferral='Documentation/core-api/workqueue.rst, Documentation/timers/, Documentation/core-api/irq/'
 
-families="rcu locking refcount deferral"
+families="rcu locking refcount module deferral"
 
 # a function definition at column zero, a definer macro, or a declaration at one tab with no initializer
 mechanism='^\+((static |extern )?(inline |noinline )?[A-Za-z_][A-Za-z0-9_ ]*[ *]+[A-Za-z_][A-Za-z0-9_]*\(.*\)$|(DEFINE_[A-Z_]+|LIST_HEAD|DECLARE_[A-Z_]+)\(|'$'\t''(struct |unsigned |bool |int |long |size_t |u8 |u16 |u32 |u64 |atomic_t |refcount_t |spinlock_t |struct mutex |lunatik_)[A-Za-z0-9_ *]*;$)'
