@@ -31,17 +31,9 @@ local function format_percentage(metric, total)
 	return string.format("%d.%02d", int_part, frac)
 end
 
--- Helper function to sum all stats values in a table
--- Note: guest and guest_nice are already included in user and nice respectively
--- according to the Linux kernel documentation, so we must exclude them from the total
+-- CPU states only: guest and guest_nice are counted in user and nice, forceidle on top of the task that ran
 local function sum_stats(stats)
-	local sum = 0
-	stats["guest"] = 0
-	stats["guest_nice"] = 0
-	for _, value in pairs(stats) do
-		sum = sum + value
-	end
-	return sum
+	return stats.user + stats.nice + stats.system + stats.idle + stats.iowait + stats.irq + stats.softirq + stats.steal
 end
 
 -- returns per cpu stats, total_stats tables
@@ -70,10 +62,11 @@ local function cpu_usage()
 		for metric, value in pairs(current_stats[cpu_id]) do
 			local metric_delta = value - (last_stats[cpu_id][metric] or 0)
 
+			-- the kernel adds a guest tick to user before guest, and cpu.stats can read between the two adds
 			if metric == "user" then
-				metric_delta = metric_delta - guest_delta
+				metric_delta = math.max(metric_delta - guest_delta, 0)
 			elseif metric == "nice" then
-				metric_delta = metric_delta - guest_nice_delta
+				metric_delta = math.max(metric_delta - guest_nice_delta, 0)
 			end
 			usage[cpu_id][metric] = format_percentage(metric_delta, total_delta)
 		end
