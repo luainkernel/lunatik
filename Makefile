@@ -296,13 +296,13 @@ install: scripts_install modules_install
 		sed -i "\|^$$mod$$|d" $(MODULES_ORDER_FILE); \
 		echo "$$mod" >> $(MODULES_ORDER_FILE); \
 	done
-	depmod -a
+	depmod -a ${KERNEL_RELEASE}
 
 uninstall: scripts_uninstall modules_uninstall examples_uninstall tests_uninstall
 	for mod in $(MODULES_ORDER_LIST); do \
 		sed -i "\|^$$mod$$|d" $(MODULES_ORDER_FILE); \
 	done
-	depmod -a
+	depmod -a ${KERNEL_RELEASE}
 
 lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
