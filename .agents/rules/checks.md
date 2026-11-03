@@ -146,7 +146,8 @@ time and over a pull request's diff and annotates rather than fails, since two r
 share three fields can be two different hooks. It also names a block of four lines or more that a
 change adds, read against `CHECK_BASE`, and a script beside it already carries, which is a module they share.
 It names a module a file requires twice, which one local holds, as `.agents/rules/lua.md` asks of `linux.genl`,
-and an append spelled `t[#t + 1] = v`, which is `table.insert`.
+and an append spelled `t[#t + 1] = v`, which is `table.insert`. It reads the file's own requires: one inside
+a long string or comment is text, or a chunk the file hands elsewhere, as `bin/lunatik` hands two to `dostring`.
 
 `test-harness.sh` reads a test's Lua script as well as its `.sh`, for a case the script runs under a
 condition: when the condition is false the case reports nothing and the script's one KTAP line
