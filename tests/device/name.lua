@@ -1,0 +1,10 @@
+--
+-- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+-- Kernel-side script for the device name test (see name.sh).
+
+local device = require("device")
+
+device.new({name = "lunatik%%device"})
+

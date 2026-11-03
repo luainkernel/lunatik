@@ -362,6 +362,12 @@ each script allocates before its cases, and each case that runs
   it, while the script's collector, stopped, keeps every refused object alive.
   An `open`, `read`, `write` or `release` that holds a string or a boolean is
   refused the same way, with `function expected` and the field's name.
+- **name**: `device.new()` uses the driver's `name` as given, never as a format:
+  a device named `lunatik%%device` is listed under that name in
+  `/sys/class/luadevice/` and gets the node `/dev/lunatik%%device`. A build
+  that formats the name lists `lunatik%device`, since `%%` takes no argument,
+  so the case fails there; no case names a device with a directive that takes
+  one.
 
 ### cli
 
