@@ -132,7 +132,7 @@ static inline int luafsnotify_toverdict(lua_State *L)
 		pr_err_ratelimited("invalid errno\n");
 		return LUAFSNOTIFY_ALLOW;
 	}
-	return IS_ERR_VALUE(verdict) ? (int)verdict : LUAFSNOTIFY_ALLOW;
+	return lunatik_iserrno(verdict) ? (int)verdict : LUAFSNOTIFY_ALLOW;
 }
 
 static int luafsnotify_callback(lua_State *L, luafsnotify_t *watch, luafsnotify_event_t *event, int *verdict)
