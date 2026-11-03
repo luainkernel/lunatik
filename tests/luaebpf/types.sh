@@ -27,7 +27,7 @@ ktap_header
 ktap_plan $CASES
 
 lua5.5 -e 'assert(package.searchpath("luaebpf.emit.frame", package.path))' 2>/dev/null \
-	|| { for i in $(seq $CASES); do ktap_skip "luaebpf: luaebpf is not installed; run make and make install"; done; ktap_totals; exit 0; }
+	|| skip_script "luaebpf: luaebpf is not installed; run make and make install"
 
 mark_dmesg
 

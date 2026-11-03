@@ -45,11 +45,7 @@ expect() { # expect <line> <description> [<family>]
 ktap_header
 ktap_plan 14
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
 mark_dmesg
 run_script "$SCRIPT"

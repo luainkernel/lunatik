@@ -50,8 +50,6 @@ source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 export LC_ALL=C
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 cleanup() {
 	exec 3<&- 4<&- 5<&-
 	lunatik stop "$SCRIPT" 2>/dev/null
@@ -69,12 +67,12 @@ trap cleanup EXIT
 cleanup
 
 grep -Eq " luadevice_free[[:space:]]\[luadevice\]$" /proc/kallsyms 2>/dev/null ||
-	skip_all "no luadevice_free in the loaded luadevice: a held file would read freed memory"
-echo "p:$PROBE luadevice_free" >> "$TRACING/kprobe_events" 2>/dev/null || skip_all "no kprobe events in tracefs"
+	skip_script "no luadevice_free in the loaded luadevice: a held file would read freed memory"
+echo "p:$PROBE luadevice_free" >> "$TRACING/kprobe_events" 2>/dev/null || skip_script "no kprobe events in tracefs"
 echo "p:$OBJECTS lunatik_releaseobject" >> "$TRACING/kprobe_events" 2>/dev/null ||
-	skip_all "couldn't place a kprobe on lunatik_releaseobject"
-mkdir "$INSTANCE" && echo 1 > "$INSTANCE/events/$PROBE/enable" || skip_all "couldn't enable the kprobe on luadevice_free"
-echo 1 > "$INSTANCE/events/$OBJECTS/enable" || skip_all "couldn't enable the kprobe on lunatik_releaseobject"
+	skip_script "couldn't place a kprobe on lunatik_releaseobject"
+mkdir "$INSTANCE" && echo 1 > "$INSTANCE/events/$PROBE/enable" || skip_script "couldn't enable the kprobe on luadevice_free"
+echo 1 > "$INSTANCE/events/$OBJECTS/enable" || skip_script "couldn't enable the kprobe on lunatik_releaseobject"
 
 hits() { awk -v event="${1#*/}" '$1 == event { print $2 }' "$TRACING/kprobe_profile"; }
 frees() { hits "$PROBE"; }

@@ -69,9 +69,7 @@ command -v bpftool >/dev/null || reason="bpftool is not installed"
 lua5.5 -e 'assert(package.searchpath("luaebpf.insn", package.path))' 2>/dev/null \
 	|| reason="luaebpf is not installed; run make and make install"
 if [ -n "$reason" ]; then
-	for i in $(seq $CASES); do ktap_skip "luaebpf: $reason"; done
-	ktap_totals
-	exit 0
+	skip_script "luaebpf: $reason"
 fi
 
 WORK=$(mktemp -d)

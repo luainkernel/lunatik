@@ -38,14 +38,12 @@ cleanup()
 	lunatik stop "$TAKE" > /dev/null 2>&1
 }
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 refcnt() { cat "/sys/module/$MODULE/refcnt" 2>/dev/null; }
 
 trap cleanup EXIT
 cleanup
 
-before=$(refcnt) || skip_all "$MODULE not loaded"
+before=$(refcnt) || skip_script "$MODULE not loaded"
 
 ktap_header
 ktap_plan 4

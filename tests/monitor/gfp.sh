@@ -53,8 +53,6 @@ cleanup()
 	fi
 }
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 # the first flag and the gfp of each allocation the script's task asked for, from $1 to WIDTH past it
 allocations()
 {
@@ -91,7 +89,7 @@ cleanup
 
 mkdir "$INSTANCE" 2>/dev/null &&
 	echo "bytes_req >= $DATA && bytes_req < $((STRING + WIDTH))" > "$EVENT/filter" &&
-	echo 1 > "$EVENT/enable" || skip_all "couldn't trace kmem:kmalloc in an instance of its own"
+	echo 1 > "$EVENT/enable" || skip_script "couldn't trace kmem:kmalloc in an instance of its own"
 
 ktap_header
 ktap_plan 9

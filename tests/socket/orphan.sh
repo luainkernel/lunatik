@@ -47,21 +47,16 @@ cleanup
 ktap_header
 ktap_plan 3
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
-skip() { ktap_skip "$1"; ktap_totals; exit 0; }
-command -v nsenter > /dev/null 2>&1 || skip "orphan: nsenter not available"
-unshare --pid --fork true 2> /dev/null || skip "orphan: no pid namespaces"
-initpidns || skip "orphan: suite runs in a pid namespace of its own"
-command -v nft > /dev/null 2>&1 || skip "orphan: nft not available"
-netns_up || skip "orphan: cannot create a network namespace"
-ip -n "$NETNS" link set lo up 2> /dev/null || skip "orphan: cannot bring loopback up in the namespace"
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
+command -v nsenter > /dev/null 2>&1 || skip_script "orphan: nsenter not available"
+unshare --pid --fork true 2> /dev/null || skip_script "orphan: no pid namespaces"
+initpidns || skip_script "orphan: suite runs in a pid namespace of its own"
+command -v nft > /dev/null 2>&1 || skip_script "orphan: nft not available"
+netns_up || skip_script "orphan: cannot create a network namespace"
+ip -n "$NETNS" link set lo up 2> /dev/null || skip_script "orphan: cannot bring loopback up in the namespace"
 ip netns exec "$NETNS" sysctl -q -w net.ipv4.tcp_orphan_retries=$ORPHAN_RETRIES 2> /dev/null ||
-	skip "orphan: cannot set tcp_orphan_retries in the namespace"
-ip netns exec "$NETNS" nft -f - 2> /dev/null <<EOF || skip "orphan: cannot drop packets in the namespace"
+	skip_script "orphan: cannot set tcp_orphan_retries in the namespace"
+ip netns exec "$NETNS" nft -f - 2> /dev/null <<EOF || skip_script "orphan: cannot drop packets in the namespace"
 table ip lunatik {
 	chain output {
 		type filter hook output priority filter; policy accept;
@@ -70,7 +65,7 @@ table ip lunatik {
 }
 EOF
 ip link add "$WITNESS" type veth peer name "$WITNESS" netns "$NETNS" 2> /dev/null ||
-	skip "orphan: cannot create a veth pair"
+	skip_script "orphan: cannot create a veth pair"
 
 echo "return {holder = $NSPID}" > "$PIDMOD"
 ip netns del "$NETNS"

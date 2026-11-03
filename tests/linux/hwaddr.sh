@@ -38,20 +38,18 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-skip() { ktap_skip "$1"; ktap_totals; exit 0; }
-
 ktap_header
 ktap_plan 2
 
-[ -e /sys/module/$MODULE ] || skip "linux/hwaddr: $MODULE not loaded"
-ip link add "$DEV" type dummy 2>/dev/null || skip "linux/hwaddr: cannot create a dummy device"
-ip link add "$MOVED" type dummy 2>/dev/null || skip "linux/hwaddr: cannot create a dummy device"
-ip netns add "$NETNS" 2>/dev/null || skip "linux/hwaddr: cannot create a network namespace"
+[ -e /sys/module/$MODULE ] || skip_script "linux/hwaddr: $MODULE not loaded"
+ip link add "$DEV" type dummy 2>/dev/null || skip_script "linux/hwaddr: cannot create a dummy device"
+ip link add "$MOVED" type dummy 2>/dev/null || skip_script "linux/hwaddr: cannot create a dummy device"
+ip netns add "$NETNS" 2>/dev/null || skip_script "linux/hwaddr: cannot create a network namespace"
 moved=$(cat "/sys/class/net/$MOVED/ifindex")
-ip link set "$MOVED" netns "$NETNS" 2>/dev/null || skip "linux/hwaddr: cannot move a device into $NETNS"
+ip link set "$MOVED" netns "$NETNS" 2>/dev/null || skip_script "linux/hwaddr: cannot move a device into $NETNS"
 [ "$(ip -n "$NETNS" -o link show "$MOVED" 2>/dev/null | cut -d: -f1)" = "$moved" ] ||
-	skip "linux/hwaddr: $MOVED took another index in $NETNS"
-ip -o link show | cut -d: -f1 | grep -qx "$moved" && skip "linux/hwaddr: index $moved was given to another device"
+	skip_script "linux/hwaddr: $MOVED took another index in $NETNS"
+ip -o link show | cut -d: -f1 | grep -qx "$moved" && skip_script "linux/hwaddr: index $moved was given to another device"
 echo "return {moved = $moved}" > "$INDEXMOD"
 
 run_test "$SCRIPT" || fail "linux.ifindex or linux.hwaddr answered a device wrong, or answered an index out of bounds"

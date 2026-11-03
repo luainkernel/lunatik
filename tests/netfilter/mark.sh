@@ -36,14 +36,12 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 # reported <hook> <mark>: the callback of that hook ran for the ping that carried that mark
 reported() {
 	dmesg_since | grep -qE "${PREFIX}$1 $2\$"
 }
 
-[ -e /sys/module/$MODULE ] || skip "netfilter/mark: $MODULE not loaded"
+[ -e /sys/module/$MODULE ] || skip_script "netfilter/mark: $MODULE not loaded"
 
 ktap_header
 ktap_plan 9

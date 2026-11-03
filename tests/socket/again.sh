@@ -43,11 +43,7 @@ cleanup
 ktap_header
 ktap_plan 2
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
 if run_test "$SCRIPT"; then
 	ktap_pass "socket again: receive and accept answer nil and EAGAIN, and send answers false, for a wait that ends with nothing"
