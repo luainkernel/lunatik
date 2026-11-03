@@ -13,6 +13,8 @@
 #include <lunatik.h>
 #include "lunatik_core.h"
 
+#define lunatik_foreachdata(percpu, i)	for (unsigned int i = 0; i < (percpu)->ndata; i++)
+
 /***
 * Set of runtimes, one per CPU id, running the same script. A callback dispatched
 * through it reaches the runtime of the CPU it fired on.
@@ -20,9 +22,7 @@
 */
 static lunatik_object_t *lunatik_finddata(lunatik_percpu_t *percpu, const lunatik_class_t *class)
 {
-	unsigned int i;
-
-	for (i = 0; i < percpu->ndata; i++)
+	lunatik_foreachdata(percpu, i)
 		if (percpu->data[i]->class == class)
 			return percpu->data[i];
 	return NULL;
@@ -60,9 +60,8 @@ EXPORT_SYMBOL(lunatik_percpudata);
 static void lunatik_stopdata(lunatik_object_t *object)
 {
 	lunatik_percpu_t *percpu = lunatik_topercpu(object);
-	unsigned int i;
 
-	for (i = 0; i < percpu->ndata; i++) {
+	lunatik_foreachdata(percpu, i) {
 		lunatik_closeprivate(percpu->data[i]); /* the class's release runs here, before the runtimes close */
 		lunatik_putobject(percpu->data[i]);
 		lunatik_putobject(object);
