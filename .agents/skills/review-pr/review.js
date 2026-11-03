@@ -169,7 +169,14 @@ the code does not reach is dropped.
 
 ${FIXUP} Its SHA goes in the checkpoint line. Ask of each one whether the finding is answered by removing
 rather than adding. A fixup that changes C must at least \`make\` clean before it leaves your phase; the suite
-is the Build phase's.
+is the Build phase's.${(a.defects || []).length ? `
+
+The Build phase plants each defect below over your tip, and a fixup over a line one carries leaves it unable to
+apply. After your last fixup, run \`git apply --check <patch>\` of each over your tip; one that no longer
+applies you write again at the same path, carrying the defect the old patch carries: edit the tree, see that
+\`make\` builds it, \`git diff > <patch>\`, then \`git apply -R <patch>\`, each a call of its own. Note each one
+written again in the checkpoint.
+${JSON.stringify(a.defects, null, 2)}` : ''}
 `
 
 const unrun = (a.examples || []).filter(e => !(a.validated?.examples || []).includes(e))
@@ -190,9 +197,10 @@ ${(a.defects || []).length ? `Once the suite passed, plant each defect below in 
 fail: \`git apply <patch>\` in a call of its own, so crash-guard.sh reads the tree it leaves, then \`make\`, and only
 when it builds the install, the reload and \`lunatik test <suite>\` through tools/lunatik-host; the cases it names
 should fail, and no other. \`git apply -R <patch>\`, in a call of its own, reverts it before the next. After the
-last, build, install and reload the tip again and run those suites once more. A patch that does not apply and a
-call a guard refuses are reported, not tried another way. Your answer's discrimination says, for each patch, the
-cases that failed.
+last, build, install and reload the tip again and run those suites once more. A patch \`git apply\` refuses
+plants nothing and answers applied false with failed empty; it and a call a guard refuses are reported, not
+tried another way. Your answer's discrimination says, for each patch, whether it applied and the cases that
+failed.
 ${JSON.stringify(a.defects, null, 2)}` : ''}
 ${a.validated && !unrun.length ? `Before any of that: \`${a.head}\` already passed (${a.validated.suite}, core ${a.validated.core}),
 so ask what the branch changed since in what the host reads, \`(cd ${repo} && bash tools/checks/functional.sh ${a.head} ${tip})\`.
@@ -247,9 +255,10 @@ const BUILD_OUT = {
       example: { type: 'string' }, why: { type: 'string' },
     }, required: ['example', 'why'] }, description: 'the examples that only loaded and stopped, or could not run on this host' },
     discrimination: { type: 'array', items: { type: 'object', properties: {
-      patch: { type: 'string' }, failed: { type: 'array', items: { type: 'string' }, description: 'the cases that failed with the defect planted' },
+      patch: { type: 'string' }, applied: { type: 'boolean', description: 'false when git apply refused the patch, which planted nothing' },
+      failed: { type: 'array', items: { type: 'string' }, description: 'the cases that failed with the defect planted' },
       notes: { type: 'string' },
-    }, required: ['patch', 'failed'] } },
+    }, required: ['patch', 'applied', 'failed'] } },
     findings_left: LEFT,
   },
   required: ['totals', 'core', 'head', 'clean', 'findings_left'],
