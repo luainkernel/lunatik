@@ -56,7 +56,7 @@ ktap_plan 6
 mark_dmesg
 output=$(lunatik spawn "$SCRIPT" 2>&1)
 [ -z "$output" ] || fail "$output"
-awaited reported "concurrent"
+awaited passed "concurrent"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 
 verdict "closed" "a to-be-closed variable stops a thread, through the stop it holds as __close"

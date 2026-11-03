@@ -51,6 +51,9 @@ check_dmesg() {
 	return 1
 }
 
+# passed <case>: tests.lib reports PASS and the name of each case that passed
+passed() { dmesg_since | grep -qE "PASS[[:space:]]$1\$"; }
+
 comment() { while IFS= read -r line; do echo "# $line"; done <<< "$1"; }
 
 # polls a condition the kernel reaches on another task after the stimulus returns, a deferred
