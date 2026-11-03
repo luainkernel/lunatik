@@ -122,8 +122,24 @@ for file in "$@"; do
 			if (p ~ /^[A-Za-z_][A-Za-z0-9_]* ?= ?[^=]/) { sub(/ ?= ?/, "=", p); pairs[n, p] = 1; count[n]++ }
 		}
 	}
+	# the line outside long brackets, whose text is a chunk the file hands elsewhere or a comment
+	function own(s,   out, ends, i) {
+		while (s != "") {
+			if (inlong) {
+				ends = "]" level "]"
+				if (!(i = index(s, ends))) break
+				s = substr(s, i + length(ends)); inlong = 0
+			}
+			else if (match(s, /\[=*\[/)) {
+				out = out substr(s, 1, RSTART - 1); level = substr(s, RSTART + 1, RLENGTH - 2); inlong = 1
+				s = substr(s, RSTART + RLENGTH)
+			}
+			else return out s
+		}
+		return out
+	}
 	{
-		code = $0; sub(/^[[:space:]]*--.*$/, "", code); sub(/[[:space:]]--[^"\047]*$/, "", code)
+		code = own($0); sub(/^[[:space:]]*--.*$/, "", code); sub(/[[:space:]]--[^"\047]*$/, "", code)
 		while (match(code, /require[[:space:]]*\(?[[:space:]]*"[^"]+"/)) {
 			module = substr(code, RSTART, RLENGTH); sub(/^[^"]*"/, "", module); sub(/"$/, "", module)
 			if (module in required)
