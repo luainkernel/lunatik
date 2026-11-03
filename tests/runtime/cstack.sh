@@ -32,7 +32,6 @@ SCRIPT="tests/runtime/cstack"
 THREAD="tests/runtime/cstack_thread"
 MODULE="lunatik"
 BUDGET="lunatik_maxccalls"
-WAIT=50	# tenths of a second the spawned body has to report
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -73,10 +72,7 @@ ktap_pass "a recursing message handler ends in error in error handling"
 
 output=$(lunatik spawn "$THREAD" 2>&1)
 [ -n "$output" ] && fail "spawn failed: $output"
-for _ in $(seq $WAIT); do
-	[ "$(reported thread)" = 1 ] && break
-	sleep 0.1
-done
+awaited dmesg_reaches "cstack test: thread raises" 1
 lunatik stop "$THREAD" > /dev/null 2>&1
 [ "$(reported thread)" = 1 ] || fail "a recursion in a kernel thread's body did not raise C stack overflow"
 ktap_pass "a recursion in a kernel thread's body raises C stack overflow"

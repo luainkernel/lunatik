@@ -109,10 +109,7 @@ send 1
 ip netns exec "$NETNS" ethtool -K "$PEER" tx-udp-segmentation on
 send "$GSO_SEGMENTS"
 
-for _ in $(seq 20); do
-	[ "$(dmesg_since | grep -c "skb copy: ")" -ge 3 ] && break
-	sleep 0.5
-done
+TRIES=100 awaited dmesg_reaches "skb copy: " 3
 lunatik stop "$SCRIPT"
 
 out=$(dmesg_since)
