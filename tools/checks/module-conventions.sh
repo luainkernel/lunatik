@@ -84,7 +84,7 @@ check() {
 		cw != "" && $0 !~ /^[[:space:]]*(\/\*|\*[[:space:]\/]|\/\/)/ && $0 !~ /^[[:space:]]*$/ {
 			gsub(/"([^"\\]|\\.)*"/, "\"\"")
 			n=split(cw, w, " ")
-			for (i=1;i<=n;i++) if (w[i]!="" && $0 ~ ("[^A-Za-z0-9_]" w[i] "[^A-Za-z0-9_]")) { print pn; break }
+			for (i=1;i<=n;i++) if ($0 ~ ("[^A-Za-z0-9_]" w[i] "[^A-Za-z0-9_]")) { print pn; break }
 			cw="" }
 		{ if ($0 ~ /^[[:space:]]*(\/\*|\*[[:space:]\/]|\/\/)/) { cw=sig($0); pn=NR } else if ($0 !~ /^[[:space:]]*$/) cw="" }
 	' "$file" 2>/dev/null | \
