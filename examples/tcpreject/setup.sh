@@ -34,6 +34,7 @@ ip -n $NETNS route add default via $HOST_ADDR
 ip -n $NETNS -6 route add default via $HOST_ADDR6
 
 # forwarding + masquerade so the namespace can reach the internet
+sysctl net.ipv4.ip_forward net.ipv6.conf.all.forwarding > /run/tcpreject.sysctl
 echo 1 > /proc/sys/net/ipv4/ip_forward
 echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
 nft add table ip tcpreject
