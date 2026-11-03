@@ -12,7 +12,13 @@
 # depends on it:
 # - kernel/zfs/, where Ubuntu's kernels carry ZFS before 26.04, zfs.ko and zlua.ko;
 # - updates/dkms/, where DKMS puts it on Debian and Ubuntu, zfs.ko and zlua.ko;
-# - ubuntu/dkms/zfs/, where 26.04's kernels carry it, zfs.ko.
+# - ubuntu/dkms/zfs/, where 26.04's kernels carry it, zfs.ko;
+# - extra/, where OpenZFS's own make install puts it, as archzfs's package does on Arch, and
+#   where DKMS puts it on Fedora, CentOS and RHEL, zfs.ko;
+# - updates/, where DKMS puts it on SUSE and openSUSE, zfs.ko;
+# - extra/zfs/, where OpenZFS's kmod package for RHEL puts it, zfs.ko;
+# - weak-updates/zfs/, where RHEL's weak-modules links that package's module for each later
+#   compatible kernel, zfs.ko.
 # The stand-in exports a name from ZFS's own Lua rather than one read from lunatik.ko, so it
 # stands for ZFS whatever names lunatik.ko exports. Nothing is loaded, and the host's module tree
 # is only read. Skipped where the running kernel has no build tree to build the stand-in against.
@@ -20,7 +26,7 @@
 # Usage: sudo bash tests/install/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
-ZFS="kernel/zfs/zfs.ko kernel/zfs/zlua.ko updates/dkms/zfs.ko updates/dkms/zlua.ko ubuntu/dkms/zfs/zfs.ko"
+ZFS="kernel/zfs/zfs.ko kernel/zfs/zlua.ko updates/dkms/zfs.ko updates/dkms/zlua.ko ubuntu/dkms/zfs/zfs.ko extra/zfs.ko updates/zfs.ko extra/zfs/zfs.ko weak-updates/zfs/zfs.ko"
 RELEASE=$(uname -r)
 INSTALLED="/lib/modules/$RELEASE"
 TMP=""
