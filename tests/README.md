@@ -881,7 +881,7 @@ each case runs `depmod -b` over a tree of the suite's own.
   `asm-generic/unistd.h` defines as their `__NR3264_` numbers, `mmap` among
   them, are in `linux.syscall.numbers`.
 - **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, refuses a
-  timeout outside 0 to 2^31 - 1 with `out of bounds` and takes 0, and in
+  timeout outside 0 to 2^31 - 1 with `out of bounds` and takes 0, and sleeps in
   the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
   body, the armed state a hook calls from, each refuses with "not allowed once the runtime is
   armed". A build without the refusal sleeps under the armed runtime's spinlock, so the test skips
