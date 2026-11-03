@@ -48,7 +48,7 @@ ktap_plan 4
 mark_dmesg
 output=$(lunatik spawn "$SCRIPT" 2>&1)
 [ -z "$output" ] || fail "$output"
-awaited reported "hardirq"
+awaited passed "hardirq"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 
 verdict "softirq" "the end of a runtime a softirq runtime's write drops stops its thread on a worker"
