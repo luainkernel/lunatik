@@ -51,17 +51,6 @@ typedef struct luarcu_entry_s {
 
 /***
 * RCU hash table object, indexed as a Lua table.
-*
-* `t[key]` reads the value (RCU-protected, lockless): `nil` for a key without an
-* entry, and for one whose object a writer is releasing.
-*
-* `t[key] = value` sets the value, and `nil` removes the entry (serialized). A key
-* takes up to 255 bytes, and a longer one raises `out of bounds`; a failed
-* allocation raises `not enough memory`. The value an assignment replaces or removes
-* is released on the assigning task once the table's lock is dropped, so a runtime or a
-* socket whose last reference the entry held closes there; when the writer holds a softirq
-* or hardirq runtime's lock, which keeps bottom halves or IRQs off, it closes on a
-* kernel worker instead.
 * @type rcu_table
 * @usage
 *  local t = rcu.table()
@@ -296,6 +285,13 @@ int luarcu_setvalue(lunatik_object_t *table, const char *key, size_t keylen, lun
 }
 EXPORT_SYMBOL(luarcu_setvalue);
 
+/***
+* `t[key]` reads the value (RCU-protected, lockless).
+* @function __index
+* @tparam string key
+* @return the value, or `nil` for a key without an entry and for one whose object a
+* writer is releasing
+*/
 static int luarcu_index(lua_State *L)
 {
 	lunatik_object_t *table = lunatik_checkobjectclass(L, 1, &luarcu_class);
@@ -308,6 +304,19 @@ static int luarcu_index(lua_State *L)
 	return 1; /* value */
 }
 
+/***
+* `t[key] = value` sets the value, and `nil` removes the entry (serialized).
+*
+* The value an assignment replaces or removes is released on the assigning task once
+* the table's lock is dropped, so a runtime or a socket whose last reference the entry
+* held closes there; when the writer holds a softirq or hardirq runtime's lock, which
+* keeps bottom halves or IRQs off, it closes on a kernel worker instead.
+* @function __newindex
+* @tparam string key up to 255 bytes
+* @param value
+* @raise `out of bounds` when the key is longer than 255 bytes; `not enough memory`
+* when an allocation fails
+*/
 static int luarcu_newindex(lua_State *L)
 {
 	lunatik_object_t *table = lunatik_checkobjectclass(L, 1, &luarcu_class);
