@@ -375,7 +375,10 @@ each script allocates before its cases, and each case that runs
   `/sys/class/luadevice/` and gets the node `/dev/lunatik%%device`. A build
   that formats the name lists `lunatik%device`, since `%%` takes no argument,
   so the case fails there; no case names a device with a directive that takes
-  one.
+  one. A name that is empty as a C string, `""`, and `"\0x"`, whose Lua length
+  is 2, is refused with `bad field 'name' (empty)` before the device registers
+  anything: `/proc/devices` lists no major with an empty name, and the kernel
+  logs no WARNING, which `kobject_add_internal` prints for such a name.
 
 ### cli
 
