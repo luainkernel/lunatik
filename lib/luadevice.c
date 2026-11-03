@@ -357,8 +357,10 @@ static int luadevice_stop(lua_State *L)
 * @tparam table driver A table defining the device driver's properties and callbacks.
 *   It **must** contain the field:
 *
-*   - `name` (string): The name of the device. This name will be used to create
-*     the device file `/dev/<name>`.
+*   - `name` (string): The name of the device. devtmpfs creates the device file
+*     `/dev/<name>` from it. A file already at that path is left in place, also
+*     when the device stops, and `device.new` does not raise: the device is then
+*     reached through its dev_t, `major:minor` in `/sys/class/luadevice/<name>/dev`.
 *
 *   It **might** optionally contain the following fields (callback functions),
 *   each of which receives, after its own arguments, `file`: a table private to
