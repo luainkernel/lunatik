@@ -46,7 +46,9 @@ code() {
 status=0
 while read -r path; do
 	case "$path" in
-		*.md|config.ld|doc/*|.agents/*|.claude/*|.github/*|tools/checks/*|.gitignore|*/.gitignore) continue ;;
+		# the one script under tools/ the install reads, beside the darken suite
+		tools/shade.sh) ;;
+		*.md|config.ld|doc/*|.agents/*|.claude/*|.github/*|tools/*|.gitignore|*/.gitignore) continue ;;
 		# the binding template, which no Kbuild line builds
 		lib/luaskel.c) continue ;;
 	esac
