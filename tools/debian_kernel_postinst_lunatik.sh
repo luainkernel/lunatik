@@ -7,7 +7,8 @@ LUNATIK_DIR="/opt/lunatik"
 XDP_DIR="/opt/xdp-tools"
 KERNEL_RELEASE="$1"
 # This ugly hack is needed because Ubuntu has a weird kernel package versionning.
-KERNEL_VERSION=$([ -e /proc/version_signature ] && grep -o '[0-9.]*$' /proc/version_signature || echo $KERNEL_RELEASE | grep -o '^[0-9.]*')
+KERNEL_VERSION=$(sed -n 's/^CONFIG_VERSION_SIGNATURE=".* \([0-9.]*\)"$/\1/p' "/boot/config-${KERNEL_RELEASE}" 2>/dev/null)
+KERNEL_VERSION=${KERNEL_VERSION:-$(echo $KERNEL_RELEASE | grep -o '^[0-9.]*')}
 # kernel.org names the first release of a series linux-x.y, not linux-x.y.0
 [[ "${KERNEL_VERSION}" == *.*.0 ]] && KERNEL_VERSION=${KERNEL_VERSION%.0}
 KERNEL_VERSION_MAJOR=$(echo "${KERNEL_VERSION}" | grep -o '^[0-9]*')
