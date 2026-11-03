@@ -21,6 +21,7 @@ check() {
 	local file="$1" findings
 
 	case "$file" in
+		*.bpf.c) return 0 ;;
 		*/tests/*.c|tests/*.c) ;;
 		*) return 0 ;;
 	esac
