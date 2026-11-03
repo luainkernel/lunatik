@@ -72,7 +72,8 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
 - The run's agents write nothing to GitHub but the pull request: the auto mode classifier refuses a
   workflow agent's write ("External System Writes"), as it refused every label and every groomer's
   `Update:` of #2234's, #2238's and #2240's runs. The run returns `writes`, which the session posts in
-  order as soon as it returns, each read back from GitHub: `label`, the `workflow-reviewed` label on the
+  order as soon as it returns, without asking (AGENTS.md, *Deciding what to change*), each read back
+  from GitHub: `label`, the `workflow-reviewed` label on the
   pull request; `append`, a blank line and the text or the file after the issue's body as GitHub has it
   then, and for an entry the higher of the issue's severity label and the entry's; `create`, an issue with
   the title, the file as its body and `severity: <severity>`.
