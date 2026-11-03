@@ -139,7 +139,7 @@ run_case()
 	bpftool prog load "$DIR/$obj" "$pin" type xdp ||
 		{ ktap_fail "$label: failed to load XDP program"; return 1; }
 	bpftool net attach xdp pinned "$pin" dev "$IFACE" ||
-		{ ktap_fail "$label: failed to attach XDP program"; bpftool prog unpin "$pin"; return 1; }
+		{ ktap_fail "$label: failed to attach XDP program"; rm -f "$pin"; return 1; }
 
 	mark_dmesg
 	run_script "$@" "tests/xdp/$script"
@@ -171,7 +171,7 @@ detach_case()
 	bpftool prog load "$DIR/xdp_detach.bpf.o" "${PIN}_detach" type xdp ||
 		{ ktap_fail "xdp detach: failed to load XDP program"; return 1; }
 	bpftool net attach xdp pinned "${PIN}_detach" dev "$IFACE" ||
-		{ ktap_fail "xdp detach: failed to attach XDP program"; bpftool prog unpin "${PIN}_detach"; return 1; }
+		{ ktap_fail "xdp detach: failed to attach XDP program"; rm -f "${PIN}_detach"; return 1; }
 
 	mark_dmesg
 	run_script --context=softirq "tests/xdp/detach"
@@ -199,7 +199,7 @@ zerokey_case()
 	bpftool prog load "$DIR/xdp_zerokey.bpf.o" "${PIN}_zerokey" type xdp ||
 		{ ktap_fail "xdp zero-key: failed to load XDP program"; return 1; }
 	bpftool net attach xdp pinned "${PIN}_zerokey" dev "$IFACE" ||
-		{ ktap_fail "xdp zero-key: failed to attach XDP program"; bpftool prog unpin "${PIN}_zerokey"; return 1; }
+		{ ktap_fail "xdp zero-key: failed to attach XDP program"; rm -f "${PIN}_zerokey"; return 1; }
 
 	mark_dmesg
 	ip netns exec "$NETNS" ping -c 1 -W 2 "$TARGET" > /dev/null 2>&1
@@ -220,7 +220,7 @@ process_case()
 	bpftool prog load "$DIR/xdp_process.bpf.o" "${PIN}_process" type xdp ||
 		{ ktap_fail "xdp process: failed to load XDP program"; return 1; }
 	bpftool net attach xdp pinned "${PIN}_process" dev "$IFACE" ||
-		{ ktap_fail "xdp process: failed to attach XDP program"; bpftool prog unpin "${PIN}_process"; return 1; }
+		{ ktap_fail "xdp process: failed to attach XDP program"; rm -f "${PIN}_process"; return 1; }
 
 	mark_dmesg
 	run_script "tests/xdp/process"
@@ -249,7 +249,7 @@ percpu_case()
 	bpftool prog load "$DIR/xdp_percpu.bpf.o" "${PIN}_percpu" type xdp ||
 		{ ktap_fail "xdp percpu: failed to load XDP program"; return 1; }
 	bpftool net attach xdp pinned "${PIN}_percpu" dev "$IFACE" ||
-		{ ktap_fail "xdp percpu: failed to attach XDP program"; bpftool prog unpin "${PIN}_percpu"; return 1; }
+		{ ktap_fail "xdp percpu: failed to attach XDP program"; rm -f "${PIN}_percpu"; return 1; }
 
 	mark_dmesg
 	run_script --context=softirq --percpu "tests/xdp/percpu"
@@ -296,7 +296,7 @@ verdict_case()
 	bpftool prog load "$DIR/xdp_verdict.bpf.o" "${PIN}_verdict" type xdp ||
 		{ verdict_fail "failed to load XDP program"; return 1; }
 	bpftool net attach xdp pinned "${PIN}_verdict" dev "$IFACE" ||
-		{ verdict_fail "failed to attach XDP program"; bpftool prog unpin "${PIN}_verdict"; return 1; }
+		{ verdict_fail "failed to attach XDP program"; rm -f "${PIN}_verdict"; return 1; }
 
 	mark_dmesg
 	run_script --context=softirq "tests/xdp/verdict"
