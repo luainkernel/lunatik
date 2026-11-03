@@ -32,8 +32,6 @@ source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
 cleanup() { lunatik stop "$SCRIPT" > /dev/null 2>&1; }
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 refcnt() { lunatik -e "collectgarbage()" > /dev/null; cat "/sys/module/$MODULE/refcnt" 2>/dev/null; }
 
 released() { dmesg_since | grep -qF "${PREFIX}released"; }
@@ -43,7 +41,7 @@ settled() { [ "$(refcnt)" -eq "$before" ]; }
 trap cleanup EXIT
 cleanup
 
-before=$(refcnt) || skip_all "$MODULE not loaded"
+before=$(refcnt) || skip_script "$MODULE not loaded"
 
 ktap_header
 ktap_plan 2

@@ -30,17 +30,9 @@ cleanup
 ktap_header
 ktap_plan 4
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
-ip -4 rule show > /dev/null 2>&1 || {
-	echo "# SKIP: the kernel keeps no IPv4 routing table but local and main"
-	ktap_totals
-	exit 0
-}
+ip -4 rule show > /dev/null 2>&1 || skip_script "the kernel keeps no IPv4 routing table but local and main"
 
 mark_dmesg
 run_script "$SCRIPT"

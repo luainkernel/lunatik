@@ -44,17 +44,9 @@ cleanup
 ktap_header
 ktap_plan 7
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
-[ -e /proc/net/packet ] || {
-	echo "# SKIP: no AF_PACKET support"
-	ktap_totals
-	exit 0
-}
+[ -e /proc/net/packet ] || skip_script "no AF_PACKET support"
 
 mark_dmesg
 run_script "$SCRIPT"

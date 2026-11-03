@@ -49,15 +49,10 @@ SUB_ERR="$(mktemp)"
 ktap_header
 ktap_plan 10
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
-skip() { ktap_skip "$1"; ktap_totals; exit 0; }
-command -v genl > /dev/null 2>&1 || skip "channel: genl tool unavailable"
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
+command -v genl > /dev/null 2>&1 || skip_script "channel: genl tool unavailable"
 
-build_peer "$DIR/channel_subscriber.c" "$SUB_BIN" || skip "channel: no subscriber, without gcc or failing to build"
+build_peer "$DIR/channel_subscriber.c" "$SUB_BIN" || skip_script "channel: no subscriber, without gcc or failing to build"
 
 output=$(lunatik run --context=softirq --percpu "$SCRIPT" 2>&1)
 echo "$output" | grep -q "not allowed in a percpu runtime" || fail "percpu run did not refuse the channel: $output"

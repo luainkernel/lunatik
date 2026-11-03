@@ -21,11 +21,7 @@ ktap_header
 ktap_plan 1
 
 for mod in luafifo luacompletion; do
-	cat /sys/module/$mod/refcnt > /dev/null 2>&1 || {
-		echo "# SKIP: $mod not loaded"
-		ktap_totals
-		exit 0
-	}
+	cat /sys/module/$mod/refcnt > /dev/null 2>&1 || skip_script "$mod not loaded"
 done
 
 mark_dmesg

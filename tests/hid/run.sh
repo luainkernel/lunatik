@@ -46,13 +46,11 @@ LONGNAME=$(printf 'x%.0s' $(seq 1 254)) # NAME_MAX - 1, the longest name hid.reg
 NAMES="lunatik_hid_one lunatik_hid_max lunatik_hid_top lunatik_hid_after $LONGNAME"
 TOTAL=$(echo $NAMES | wc -w)
 
-skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 cleanup() { lunatik stop "$SCRIPT" > /dev/null 2>&1; }
 trap cleanup EXIT
 cleanup
 
-[ -d /sys/bus/hid ] || skip "hid: the kernel has no HID bus"
+[ -d /sys/bus/hid ] || skip_script "hid: the kernel has no HID bus"
 
 ktap_header
 ktap_plan 3

@@ -46,8 +46,6 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 # reported <mark>: how many pings carrying that mark a callback saw
 reported() {
 	dmesg_since | grep -cE "${PREFIX}$1\$"
@@ -87,8 +85,8 @@ stops() {
 	check_dmesg && ktap_pass "$2: no Lua errors, kernel warnings or oopses"
 }
 
-[ -e /sys/module/$MODULE ] || skip "netfilter/stop: $MODULE not loaded"
-command -v taskset > /dev/null 2>&1 || skip "netfilter/stop: taskset not available"
+[ -e /sys/module/$MODULE ] || skip_script "netfilter/stop: $MODULE not loaded"
+command -v taskset > /dev/null 2>&1 || skip_script "netfilter/stop: taskset not available"
 
 ktap_header
 ktap_plan 12
