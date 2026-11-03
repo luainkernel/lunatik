@@ -84,8 +84,6 @@ source "$DIR/../lib.sh"
 
 export LC_ALL=C
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 cleanup() {
 	lunatik stop "$SCRIPT" 2>/dev/null
 	rm -f "$FAULT_BIN"
@@ -94,9 +92,9 @@ trap cleanup EXIT
 cleanup
 
 [ "$(cat /sys/module/$MODULE/srcversion 2>/dev/null)" = "$(modinfo -F srcversion $MODULE 2>/dev/null)" ] ||
-	skip_all "the loaded $MODULE is not the installed one: a callback's return could raise with no handler"
+	skip_script "the loaded $MODULE is not the installed one: a callback's return could raise with no handler"
 grep -qaF "$PROTECTED" "$(modinfo -n $MODULE 2>/dev/null)" ||
-	skip_all "the installed $MODULE does not carry the protected call: a callback's return would raise with no handler"
+	skip_script "the installed $MODULE does not carry the protected call: a callback's return would raise with no handler"
 
 # fails unless the command fails with the error named
 refuses() {

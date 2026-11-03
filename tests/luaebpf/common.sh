@@ -51,14 +51,12 @@ luaebpf_maygoto() {
 
 # the plan, the skips a missing tool turns every case into, and a scratch directory of its own
 luaebpf_start() {
-	local reason i
+	local reason
 	ktap_header
 	ktap_plan "$1"
 	reason=$(luaebpf_reason)
 	if [ -n "$reason" ]; then
-		for i in $(seq "$1"); do ktap_skip "luaebpf: $reason"; done
-		ktap_totals
-		exit 0
+		skip_script "luaebpf: $reason"
 	fi
 	cleanup
 	LUAEBPF_WORK=$(mktemp -d)

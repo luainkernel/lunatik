@@ -66,8 +66,6 @@ PEER=""
 
 source "$DIR/../lib.sh"
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 # ends the peer, whose exit destroys its devices
 peer_stop() {
 	[ -n "$PEER" ] && kill "$PEER" 2>/dev/null && wait "$PEER" 2>/dev/null
@@ -82,11 +80,11 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-[ -c /dev/uhid ] || skip_all "hid/device: no /dev/uhid to create a device with (CONFIG_UHID)"
+[ -c /dev/uhid ] || skip_script "hid/device: no /dev/uhid to create a device with (CONFIG_UHID)"
 CONFIG=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null)
 [ -n "$CONFIG" ] && ! grep -qx 'CONFIG_HIDRAW=y' <<< "$CONFIG" &&
-	skip_all "hid/device: no hidraw to read the reports from (CONFIG_HIDRAW)"
-build_peer "$DIR/uhid.c" "$PEER_BIN" || skip_all "hid/device: no peer to create a device, without gcc or failing to build"
+	skip_script "hid/device: no hidraw to read the reports from (CONFIG_HIDRAW)"
+build_peer "$DIR/uhid.c" "$PEER_BIN" || skip_script "hid/device: no peer to create a device, without gcc or failing to build"
 
 # runs the peer over the products given until it reported, leaving it holding its devices
 peer_start() {

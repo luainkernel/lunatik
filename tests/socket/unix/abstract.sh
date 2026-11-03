@@ -52,17 +52,9 @@ procname() {
 ktap_header
 ktap_plan 8
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
-[ -e /proc/net/unix ] || {
-	echo "# SKIP: no AF_UNIX support"
-	ktap_totals
-	exit 0
-}
+[ -e /proc/net/unix ] || skip_script "no AF_UNIX support"
 
 mark_dmesg
 lunatik spawn "$SCRIPT_SERVER"

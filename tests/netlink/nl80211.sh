@@ -25,15 +25,10 @@ cleanup
 ktap_header
 ktap_plan 4
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
-skip() { ktap_skip "$1"; ktap_totals; exit 0; }
-modinfo mac80211_hwsim > /dev/null 2>&1 || skip "nl80211: mac80211_hwsim unavailable"
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
+modinfo mac80211_hwsim > /dev/null 2>&1 || skip_script "nl80211: mac80211_hwsim unavailable"
 if ! lsmod | grep -q '^mac80211_hwsim'; then
-	modprobe mac80211_hwsim radios=2 2>/dev/null || skip "nl80211: mac80211_hwsim failed to load"
+	modprobe mac80211_hwsim radios=2 2>/dev/null || skip_script "nl80211: mac80211_hwsim failed to load"
 	HWSIM_LOADED=1
 	for _ in $(seq 1 20); do ip -br link show 2>/dev/null | grep -q wlan && break; sleep 0.1; done
 fi

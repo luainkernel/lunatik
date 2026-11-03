@@ -36,9 +36,7 @@ trap cleanup EXIT
 cleanup
 TMP=$(mktemp -d)
 
-skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
-command -v lunatic >/dev/null || skip "luac: lunatic not installed"
+command -v lunatic >/dev/null || skip_script "luac: lunatic not installed"
 
 ktap_header
 ktap_plan 16

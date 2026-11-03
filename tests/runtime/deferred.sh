@@ -41,8 +41,6 @@ cleanup()
 	kprobe_remove "$RELEASES"
 }
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 refcnt() { cat "/sys/module/$MODULE/refcnt" 2>/dev/null; }
 # the hits a kworker took, each line led by its task, then its CPU and its flags
 deferred() { awk -v event="${RELEASES#*/}:" '$1 ~ /^kworker\// && $5 == event' "$TRACING/instances/${RELEASES%%/*}/trace"; }
@@ -57,9 +55,9 @@ awaited() { for _ in $(seq $TRIES); do "$1" && return; sleep 0.1; done; }
 trap cleanup EXIT
 cleanup
 
-grep -qw "$FIX" /proc/kallsyms || skip_all "the loaded core does not carry $FIX: a finalizer would sleep under the writer's lock"
-before=$(refcnt) || skip_all "$MODULE not loaded"
-kprobe_place "$RELEASES" lunatik_releaseruntime || skip_all "couldn't place a kprobe on lunatik_releaseruntime"
+grep -qw "$FIX" /proc/kallsyms || skip_script "the loaded core does not carry $FIX: a finalizer would sleep under the writer's lock"
+before=$(refcnt) || skip_script "$MODULE not loaded"
+kprobe_place "$RELEASES" lunatik_releaseruntime || skip_script "couldn't place a kprobe on lunatik_releaseruntime"
 
 ktap_header
 ktap_plan 4

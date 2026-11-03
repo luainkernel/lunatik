@@ -29,20 +29,10 @@ cleanup
 ktap_header
 ktap_plan "$CASES"
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
-skip_all() {
-	for _ in $(seq "$CASES"); do ktap_skip "list_family: $1"; done
-	ktap_totals
-	exit 0
-}
-
-ip -6 addr show dev lo 2>/dev/null | grep -q 'inet6 ::1/' || skip_all "lo holds no ::1"
-ip -4 rule show > /dev/null 2>&1 && ip -6 rule show > /dev/null 2>&1 || skip_all "the kernel keeps no FIB rules of a family"
+ip -6 addr show dev lo 2>/dev/null | grep -q 'inet6 ::1/' || skip_script "list_family: lo holds no ::1"
+ip -4 rule show > /dev/null 2>&1 && ip -6 rule show > /dev/null 2>&1 || skip_script "list_family: the kernel keeps no FIB rules of a family"
 
 mark_dmesg
 run_script "$SCRIPT"

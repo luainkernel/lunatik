@@ -40,18 +40,13 @@ cleanup
 ktap_header
 ktap_plan 6
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
-skip() { ktap_skip "$1"; ktap_totals; exit 0; }
-command -v nsenter > /dev/null 2>&1 || skip "link_netns: nsenter not available"
-initpidns || skip "link_netns: suite runs in a pid namespace of its own"
-netns_up || skip "link_netns: cannot create a network namespace"
-ip -n "$NETNS" link add "$DEV" type dummy 2> /dev/null || skip "link_netns: cannot create a dummy device"
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
+command -v nsenter > /dev/null 2>&1 || skip_script "link_netns: nsenter not available"
+initpidns || skip_script "link_netns: suite runs in a pid namespace of its own"
+netns_up || skip_script "link_netns: cannot create a network namespace"
+ip -n "$NETNS" link add "$DEV" type dummy 2> /dev/null || skip_script "link_netns: cannot create a dummy device"
 ip link add "$WITNESS" type veth peer name "$WITNESS" netns "$NETNS" 2> /dev/null ||
-	skip "link_netns: cannot create a veth pair"
+	skip_script "link_netns: cannot create a veth pair"
 
 true &
 REAPED=$!
@@ -69,9 +64,7 @@ dmesg | grep -q "netlink link_netns: initial namespace lists lo, not $DEV" || fa
 ktap_pass "rt.link() without a pid lists the initial namespace"
 
 if dmesg | grep -q "netlink link_netns: a task's namespace is refused: EOPNOTSUPP"; then
-	for _ in $(seq 2 6); do ktap_skip "a task's namespace: this kernel refuses it"; done
-	ktap_totals
-	exit 0
+	skip_script "a task's namespace: this kernel refuses it"
 fi
 
 dmesg | grep -q "netlink link_netns: holder's namespace lists $DEV" || fail "the holder's pid did not reach its namespace"

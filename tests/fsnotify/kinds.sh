@@ -53,9 +53,7 @@ mkdir -p -m 0700 "$MOUNT" "$BIND"
 
 if ! mount -t tmpfs -o size=1M,mode=0700 lunatik-fsnotify "$MOUNT" 2>/dev/null || \
 	! mountpoint -q "$MOUNT"; then
-	for _ in $(seq 8); do ktap_skip "fsnotify/kinds: no tmpfs to mark"; done
-	ktap_totals
-	exit 0
+	skip_script "fsnotify/kinds: no tmpfs to mark"
 fi
 
 if ! printf '6.10\n%s\n' "$(uname -r)" | sort -CV; then
@@ -71,9 +69,7 @@ if ! printf '6.10\n%s\n' "$(uname -r)" | sort -CV; then
 	[ -n "$errs" ] && fail "Lua error in kernel: $errs"
 	ktap_pass "mark and find refuse the mount kind before 6.10"
 
-	for _ in $(seq 7); do ktap_skip "fsnotify/kinds: no mount kind before 6.10"; done
-	ktap_totals
-	exit 0
+	skip_script "fsnotify/kinds: no mount kind before 6.10"
 fi
 ktap_skip "mark and find refuse the mount kind before 6.10: this kernel has it"
 

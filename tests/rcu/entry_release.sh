@@ -39,8 +39,6 @@ cleanup()
 	grep -q ":$RELEASES " "$TRACING/kprobe_events" 2>/dev/null && echo "-:$RELEASES" >> "$TRACING/kprobe_events"
 }
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 refcnt() { cat "/sys/module/$MODULE/refcnt" 2>/dev/null; }
 # the first flag of each hit the writing task took: `b` or `D` with bottom halves off
 flags() { awk '$1 ~ /^lunatik-/ && $5 == "lunatik_releaseobject:" { print substr($3, 1, 1) }' "$INSTANCE/trace"; }
@@ -48,9 +46,9 @@ flags() { awk '$1 ~ /^lunatik-/ && $5 == "lunatik_releaseobject:" { print substr
 trap cleanup EXIT
 cleanup
 
-before=$(refcnt) || skip_all "$MODULE not loaded"
-echo "p:$RELEASES lunatik_releaseobject" >> "$TRACING/kprobe_events" 2>/dev/null || skip_all "no kprobe events in tracefs"
-mkdir "$INSTANCE" && echo 1 > "$INSTANCE/events/$RELEASES/enable" || skip_all "couldn't enable the kprobe on lunatik_releaseobject"
+before=$(refcnt) || skip_script "$MODULE not loaded"
+echo "p:$RELEASES lunatik_releaseobject" >> "$TRACING/kprobe_events" 2>/dev/null || skip_script "no kprobe events in tracefs"
+mkdir "$INSTANCE" && echo 1 > "$INSTANCE/events/$RELEASES/enable" || skip_script "couldn't enable the kprobe on lunatik_releaseobject"
 
 ktap_header
 ktap_plan 3

@@ -31,17 +31,9 @@ cleanup
 ktap_header
 ktap_plan 5
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
-ip -4 rule show > /dev/null 2>&1 || {
-	echo "# SKIP: the kernel keeps no IPv4 FIB rules"
-	ktap_totals
-	exit 0
-}
+ip -4 rule show > /dev/null 2>&1 || skip_script "the kernel keeps no IPv4 FIB rules"
 
 mark_dmesg
 run_script "$SCRIPT"

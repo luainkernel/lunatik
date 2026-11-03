@@ -33,9 +33,7 @@ cleanup()
 trap cleanup EXIT
 cleanup
 
-skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
-[ -d /sys/bus/hid ] || skip "hid/stop: the kernel has no HID bus"
+[ -d /sys/bus/hid ] || skip_script "hid/stop: the kernel has no HID bus"
 
 ktap_header
 ktap_plan 6

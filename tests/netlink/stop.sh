@@ -35,10 +35,8 @@ cleanup()
 trap cleanup EXIT
 cleanup
 
-skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip "netlink/stop: $MODULE not loaded"
-command -v genl > /dev/null 2>&1 || skip "netlink/stop: genl tool unavailable"
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "netlink/stop: $MODULE not loaded"
+command -v genl > /dev/null 2>&1 || skip_script "netlink/stop: genl tool unavailable"
 
 registered() { genl ctrl get name "$1" > /dev/null 2>&1; }
 

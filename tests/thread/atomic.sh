@@ -35,14 +35,12 @@ TRIES=100
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 source "$(dirname "$(readlink -f "$0")")/driver.sh"
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 cleanup() { lunatik stop "$SCRIPT" > /dev/null 2>&1; }
 trap cleanup EXIT
 cleanup
 
 grep -Eq " $DEFER[[:space:]]\[$MODULE\]$" /proc/kallsyms 2>/dev/null ||
-	skip_all "no $DEFER in the loaded $MODULE: the end of a runtime would stop its thread in atomic context"
+	skip_script "no $DEFER in the loaded $MODULE: the end of a runtime would stop its thread in atomic context"
 
 ktap_header
 ktap_plan 4

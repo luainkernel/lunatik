@@ -39,23 +39,18 @@ cleanup
 ktap_header
 ktap_plan 4
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
-skip() { ktap_skip "$1"; ktap_totals; exit 0; }
-command -v iw > /dev/null 2>&1 && command -v nsenter > /dev/null 2>&1 || skip "nl80211_station: iw or nsenter not available"
-initpidns || skip "nl80211_station: suite runs in a pid namespace of its own"
-modinfo mac80211_hwsim > /dev/null 2>&1 || skip "nl80211_station: mac80211_hwsim unavailable"
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
+command -v iw > /dev/null 2>&1 && command -v nsenter > /dev/null 2>&1 || skip_script "nl80211_station: iw or nsenter not available"
+initpidns || skip_script "nl80211_station: suite runs in a pid namespace of its own"
+modinfo mac80211_hwsim > /dev/null 2>&1 || skip_script "nl80211_station: mac80211_hwsim unavailable"
 if ! lsmod | grep -q '^mac80211_hwsim'; then
-	modprobe mac80211_hwsim radios=2 2>/dev/null || skip "nl80211_station: mac80211_hwsim failed to load"
+	modprobe mac80211_hwsim radios=2 2>/dev/null || skip_script "nl80211_station: mac80211_hwsim failed to load"
 	HWSIM_LOADED=1
 	for _ in $(seq 1 20); do ip -br link show 2>/dev/null | grep -q wlan && break; sleep 0.1; done
 fi
 
-netns_up || skip "nl80211_station: cannot create a network namespace"
-netns_wiphy || skip "nl80211_station: cannot move a hwsim wiphy into $NETNS"
+netns_up || skip_script "nl80211_station: cannot create a network namespace"
+netns_wiphy || skip_script "nl80211_station: cannot move a hwsim wiphy into $NETNS"
 echo "return $NSPID" > "$PIDMOD"
 
 mark_dmesg

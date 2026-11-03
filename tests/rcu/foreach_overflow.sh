@@ -31,8 +31,6 @@ HANDLES="lunatik_rcu_overflow/luarcu_foreach_handle"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 cleanup()
 {
 	lunatik stop "$SCRIPT" > /dev/null 2>&1
@@ -44,9 +42,9 @@ cleanup()
 trap cleanup EXIT
 cleanup
 
-kprobe_place "$FREED" luadata_release || skip_all "couldn't place a kprobe on luadata_release"
-kprobe_place "$WALKS" luarcu_lforeach || skip_all "couldn't place a kprobe on luarcu_lforeach"
-kprobe_place "$HANDLES" luarcu_foreach_handle || skip_all "couldn't place a kprobe on luarcu_foreach_handle"
+kprobe_place "$FREED" luadata_release || skip_script "couldn't place a kprobe on luadata_release"
+kprobe_place "$WALKS" luarcu_lforeach || skip_script "couldn't place a kprobe on luarcu_lforeach"
+kprobe_place "$HANDLES" luarcu_foreach_handle || skip_script "couldn't place a kprobe on luarcu_foreach_handle"
 
 ktap_header
 ktap_plan 3

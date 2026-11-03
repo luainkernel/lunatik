@@ -37,15 +37,13 @@ cleanup
 ktap_header
 ktap_plan 1
 
-skip() { ktap_skip "$1"; ktap_totals; exit 0; }
-
 isasync() {
 	awk -v driver="$1" '$1 == "driver" {current = $3}
 		$1 == "async" && current == driver && $3 == "yes" {found = 1}
 		END {exit !found}' /proc/crypto
 }
 
-modinfo cryptd > /dev/null 2>&1 || skip "crypto/async: cryptd unavailable"
+modinfo cryptd > /dev/null 2>&1 || skip_script "crypto/async: cryptd unavailable"
 lsmod | grep -q '^cryptd ' || CRYPTD_LOADED=1
 
 if ! run_test "$SCRIPT"; then
@@ -55,7 +53,7 @@ if ! run_test "$SCRIPT"; then
 fi
 
 for driver in $DRIVERS; do
-	isasync "$driver" || skip "crypto/async: the kernel registered no asynchronous $driver"
+	isasync "$driver" || skip_script "crypto/async: the kernel registered no asynchronous $driver"
 done
 ktap_pass "crypto/async"
 ktap_totals

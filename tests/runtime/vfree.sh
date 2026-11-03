@@ -48,8 +48,6 @@ cleanup()
 	rm -f "$SIZES"
 }
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 # the calls the function tracer saw on a task, outside an interrupt, with interrupts off: a free
 # that ran under the lock
 inplace() { awk '$5 == "vfree" && $3 ~ /^[dD].\./' "$INSTANCE/trace" | wc -l; }
@@ -62,11 +60,11 @@ freed() { [ "$(held)" -eq 0 ]; }
 trap cleanup EXIT
 cleanup
 
-grep -Eq " $FIX[[:space:]]\[lunatik\]$" /proc/kallsyms || skip_all "the loaded core does not export $FIX: it frees in place in a probe handler"
-command -v setarch > /dev/null 2>&1 || skip_all "setarch not available"
-kprobe_place "$EVENT" vfree || skip_all "couldn't place a kprobe on vfree"
+grep -Eq " $FIX[[:space:]]\[lunatik\]$" /proc/kallsyms || skip_script "the loaded core does not export $FIX: it frees in place in a probe handler"
+command -v setarch > /dev/null 2>&1 || skip_script "setarch not available"
+kprobe_place "$EVENT" vfree || skip_script "couldn't place a kprobe on vfree"
 { echo vfree > "$INSTANCE/set_ftrace_filter" && echo function > "$INSTANCE/current_tracer"; } 2>/dev/null ||
-	skip_all "couldn't trace vfree with the function tracer"
+	skip_script "couldn't trace vfree with the function tracer"
 
 page=$(getconf PAGESIZE)
 kmalloc=$(kmalloc_max)

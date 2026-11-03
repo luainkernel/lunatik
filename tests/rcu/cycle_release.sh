@@ -36,15 +36,14 @@ cleanup()
 	kprobe_remove "$RELEASED"
 }
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
 # the releases a kworker ran, each trace line led by its task
 deferred() { awk -v event="${RELEASED#*/}:" '$1 ~ /^kworker\// && $5 == event' "$TRACING/instances/${RELEASED%%/*}/trace" | wc -l; }
 
 trap cleanup EXIT
 cleanup
 
-command -v setarch > /dev/null 2>&1 || skip_all "setarch not available"
-kprobe_place "$RELEASED" luarcu_release || skip_all "couldn't place a kprobe on luarcu_release"
+command -v setarch > /dev/null 2>&1 || skip_script "setarch not available"
+kprobe_place "$RELEASED" luarcu_release || skip_script "couldn't place a kprobe on luarcu_release"
 
 ktap_header
 ktap_plan 4

@@ -25,13 +25,9 @@ cleanup
 ktap_header
 ktap_plan 2
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
-ip link add "$NAME" type dummy || { echo "# SKIP: cannot add dummy"; ktap_totals; exit 0; }
+ip link add "$NAME" type dummy || skip_script "cannot add dummy"
 
 mark_dmesg
 run_script "$SCRIPT"

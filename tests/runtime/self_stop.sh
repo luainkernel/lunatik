@@ -49,21 +49,9 @@ cleanup
 ktap_header
 ktap_plan 3
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
-[ "$(cat /sys/module/$MODULE/srcversion)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] || {
-	echo "# SKIP: the loaded $MODULE is not the installed one: a self stop would wait on its own lock"
-	ktap_totals
-	exit 0
-}
-grep -qaF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)" || {
-	echo "# SKIP: the installed $MODULE does not carry the refusal: a self stop would wait on its own lock"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
+[ "$(cat /sys/module/$MODULE/srcversion)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] || skip_script "the loaded $MODULE is not the installed one: a self stop would wait on its own lock"
+grep -qaF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)" || skip_script "the installed $MODULE does not carry the refusal: a self stop would wait on its own lock"
 
 reported()
 {
