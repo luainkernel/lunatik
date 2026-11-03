@@ -184,7 +184,7 @@ cli() {
 fail() {
 	ktap_fail "$*"
 	echo "# FAIL: $*" >&2
-	lunatik stop "${SCRIPT:-}" 2>/dev/null
+	[ -z "${SCRIPT:-}" ] || lunatik stop "$SCRIPT" 2>/dev/null
 	cleanup 2>/dev/null || true
 	ktap_totals
 	exit 1
