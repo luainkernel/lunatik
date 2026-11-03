@@ -91,10 +91,8 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-[ "$(cat /sys/module/$MODULE/srcversion 2>/dev/null)" = "$(modinfo -F srcversion $MODULE 2>/dev/null)" ] ||
-	skip_script "the loaded $MODULE is not the installed one: a callback's return could raise with no handler"
-grep -qaF "$PROTECTED" "$(modinfo -n $MODULE 2>/dev/null)" ||
-	skip_script "the installed $MODULE does not carry the protected call: a callback's return would raise with no handler"
+carries $MODULE "$PROTECTED" ||
+	skip_script "the loaded $MODULE does not carry the protected call: a callback's return would raise with no handler"
 
 # fails unless the command fails with the error named
 refuses() {

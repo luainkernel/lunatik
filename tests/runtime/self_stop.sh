@@ -50,8 +50,7 @@ ktap_header
 ktap_plan 3
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
-[ "$(cat /sys/module/$MODULE/srcversion)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] || skip_script "the loaded $MODULE is not the installed one: a self stop would wait on its own lock"
-grep -qaF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)" || skip_script "the installed $MODULE does not carry the refusal: a self stop would wait on its own lock"
+carries $MODULE "$REFUSAL" || skip_script "the loaded $MODULE does not carry the refusal: a self stop would wait on its own lock"
 
 reported()
 {
