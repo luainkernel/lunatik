@@ -10,7 +10,7 @@ KERNEL_RELEASE="$1"
 KERNEL_VERSION=$([ -e /proc/version_signature ] && grep -o '[0-9.]*$' /proc/version_signature || echo $KERNEL_RELEASE | grep -o '^[0-9.]*')
 KERNEL_VERSION_MAJOR=$(echo "${KERNEL_VERSION}" | grep -o '^[0-9]*')
 CPU_CORES=$(grep -m1 'cpu cores' /proc/cpuinfo | grep -o '[0-9]*$' || echo 1)
-echo "Installing Lunatik for kernel version ${KERNEL_VERSION} release {$KERNEL_RELEASE}"
+echo "Installing Lunatik for kernel version ${KERNEL_VERSION} release ${KERNEL_RELEASE}"
 
 echo "Checking git linux-headers-${KERNEL_RELEASE} lua5.5 clang llvm libelf-dev libpcap-dev pahole are installed..."
 dpkg --get-selections | grep 'git\s' | grep install &&\
