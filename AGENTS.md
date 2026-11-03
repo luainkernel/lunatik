@@ -179,9 +179,10 @@ writes to GitHub, runs in the agents `.agents/agents/` defines, which load no CL
 smaller model. The implementer's prompt names the rule a step needs and restates
 none: every agent loads this file, and a rule pasted into a prompt is a copy the next change here
 does not reach.
-What the implementer and the review leave as issues, their `findings_left`, the workflow files as its
-last stage, each under its severity label or appended to the open issue it belongs to, so no finding
-waits on a session to copy it out and the numbers come back with the result. An entry quotes the
+What the implementer and the review leave as issues, their `findings_left`, the workflow prepares as its
+last stage, each under its severity label or appended to the open issue it belongs to, and returns as
+`writes` with the pull request's label and the groomer's `Update:`, which the session posts as the run
+returns: the auto mode classifier refuses a workflow agent's write to GitHub. An entry quotes the
 contract its severity was read against, which the issue carries as a `Contract:` line. The implementer's
 answer and the reviewer's each carry the smallest shape beside the size of the diff and what every
 mechanism past it buys, and the hand-back shows it.
