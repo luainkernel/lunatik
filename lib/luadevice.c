@@ -400,6 +400,7 @@ static int luadevice_stop(lua_State *L)
 *   stops nothing, and the device stays until `stop` or the end of the runtime.
 * @raise Error if the device cannot be allocated or registered in the kernel,
 *   if the `name` field is missing or not a string, or if called from a percpu runtime;
+*   `bad field 'name' (empty)` if `name` is the empty string or starts with a NUL byte;
 *   `bad field 'mode' (number expected, got <type>)` if `mode` is present and not a number;
 *   `bad field '<field>' (function expected, got <type>)` if `open`, `read`, `write` or
 *   `release` is present and not a function;
@@ -461,6 +462,8 @@ static int luadevice_new(lua_State *L)
 
 	lunatik_checkfield(L, 1, "name", LUA_TSTRING);
 	name = lua_tostring(L, -1);
+	if (name[0] == '\0') /* kobject_add_internal WARNs on an empty name */
+		luaL_error(L, "bad field 'name' (empty)");
 
 	object = lunatik_newobject(L, &luadevice_class, 0, LUNATIK_OPT_NONE);
 	luadev = (luadevice_t *)lunatik_checkzalloc(L, sizeof(luadevice_t));
