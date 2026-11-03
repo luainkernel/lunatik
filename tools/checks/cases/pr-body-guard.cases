@@ -4,6 +4,8 @@
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -F body=@silent.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@named.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@ticked.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@bare.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=fifo -F draft=true -F body=@silent.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=local-base -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=gone -F draft=true -F body=@silent.md

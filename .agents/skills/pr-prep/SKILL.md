@@ -40,7 +40,8 @@ no "Test plan" section, no em dashes. On top of it:
   the list is `bash tools/checks/examples-touched.sh` over the changed files, taken on the branch's
   base when the change is written, and `bash tools/checks/examples-named.sh <body> <changed files>`
   fails a body that leaves one of them unnamed, which `pr-body-guard.sh` runs when the pull request
-  opens.
+  opens. An example is named as `examples/<name>` or as `<name>` in backticks, "`dnsblock`,
+  `dnsdoctor` ran", never as a bare word, which the check does not read.
 - The body is written as AGENTS.md, "Patches and commits", says: the need, what the change lets a
   script or a user do with the code they write in a fenced block that reads on its own, what changes
   from today and what it costs; four short paragraphs at most, an example counting as none;

@@ -6,8 +6,9 @@
 # Builds, in the empty directory <dir>, the repository pr-body-guard.cases reads: a binding and the
 # example that requires it on master, a commit that changes the binding, which origin/fifo and the local
 # branch local-base hold while the local branch fifo stays on master, and fifo-test, which changes only a
-# test on top of it; beside them the bodies the cases post, one that names the example and one that does
-# not, and the JSON gh api sends for each base.
+# test on top of it; beside them the bodies the cases post, one that names the example as
+# examples/<name>, one that names it in backticks, one that carries its name only as a bare word and one
+# that does not carry it, and the JSON gh api sends for each base.
 #
 # Usage: bash tools/checks/cases/pr-body-guard.fixture.sh <dir>
 
@@ -34,6 +35,8 @@ git checkout -q master
 
 printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nThe case now forces the fallback.\n' > silent.md
 printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran.\n' > named.md
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nThe spyglass of the host ran.\n' > bare.md
+printf "A fifo of a megabyte fails to load on a fragmented host.\n\n\`spyglass\` ran.\n" > ticked.md
 for base in master fifo; do
 	jq -n --arg base "$base" --rawfile body silent.md '{head: "fifo-test", base: $base, draft: true, body: $body}' > "$base.json"
 done
