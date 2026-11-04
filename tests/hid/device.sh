@@ -30,6 +30,9 @@
 #   gets no remove;
 # - a device whose probe returned and whose descriptor the HID core then fails
 #   to parse gets the remove, with the table report_fixup saw;
+# - that device's remove raises, which is logged, and its table is released all
+#   the same: the finalizer probe set on it runs in the full collection a later
+#   remove makes, which a table left in the registry would escape;
 # - the report raw_event is handed is closed once the callback returns, also
 #   after the last report of the seven, which it raises on: remove reads the
 #   view raw_event kept and finds it closed, where a view left on the kernel's
@@ -110,7 +113,7 @@ callback() { logged "luahid: $1: $2"; }
 probefailed() { dmesg_since | grep -qE "0003:$VENDOR:$1\.[0-9A-F]+.* failed with error $2"; }
 
 ktap_header
-ktap_plan 11
+ktap_plan 12
 
 mark_dmesg
 run_script --context=softirq "$SCRIPT"
@@ -154,6 +157,11 @@ ktap_pass "a probe that raises fails the bind with ECANCELED, logs the error and
 grep -qx "$BREAK unbound" "$OUT" && logged "hid/device: remove lunatik_hid_$BREAK $BROKEN" ||
 	fail "a probe the HID core failed after it returned did not get its remove"
 ktap_pass "a device whose probe returned and whose descriptor fails to parse gets the remove"
+
+# remove's raise brings the first phase to 10 logged errors, DEFAULT_RATELIMIT_BURST: one more goes in a phase of its own
+callback "$RAISED" remove && logged "hid/device: released lunatik_hid_$BREAK" ||
+	fail "a remove that raised did not log, or left the device's table referenced"
+ktap_pass "a remove that raises logs the error, and the device's table is released"
 
 raised=$(dmesg_since | grep -c "luahid: $RAISED: raw_event")
 peer_start -r "$STORM" "$SOUND" || fail "the peer did not report: $(cat "$OUT")"
