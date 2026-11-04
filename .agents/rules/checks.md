@@ -381,7 +381,12 @@ typed. The guard keys on loading an example, not on the name of one already know
 `consumers.sh` names the out-of-tree scripts that load a binding the changed files touch, reading the
 clones listed in `LUNATIK_CONSUMERS`; `consumers-guard.sh`, wired before a shell call, blocks opening or
 editing a pull request that changes such a binding until the command carries `CONSUMERS_OK=1`, set once
-those scripts were read. A product built on Lunatik is a consumer this tree cannot grep. A failure reported from a consumer's
+those scripts were read. The change is the pull request's, from the base to the head the write names, as
+`pr-body-guard.sh` reads its examples, and an edit's head and base are the ones GitHub has, since a
+retarget moves none of its commits: the HEAD of the directory a command ran in held a stacked pull request
+for the branch below it, and let one opened from a checkout on another branch through. A change the
+checkout cannot read is refused.
+A product built on Lunatik is a consumer this tree cannot grep. A failure reported from a consumer's
 build is read from that build's own configuration before any mechanism is theorised.
 
 `examples-touched.sh` and `consumers.sh` read what a change reaches through `modules.sh`: the module a

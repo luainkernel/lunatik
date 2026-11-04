@@ -11,5 +11,7 @@ pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=local-base
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=gone -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls --input master.json
 pass	gh api repos/luainkernel/lunatik/pulls --input fifo.json
+block	gh pr create --head fifo-test --base master --body-file silent.md
+pass	gh pr create --head fifo-test --base master --body-file named.md
 pass	EXAMPLES_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@silent.md
 
