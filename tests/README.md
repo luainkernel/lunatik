@@ -2245,11 +2245,18 @@ pid, what a valid call does, and where it refuses to run.
   packet's MAC header at the inner IPv4 header, past `skb->data`: `skb:forward()`
   raises "MAC header past the data" and the hook drops the packet. A ping to the
   loopback address reaches `PRE_ROUTING` on `lo` with its MAC header before
-  `skb->data`: `forward()` sends a clone back out through `lo`, and the hook sees
+  `skb->data`: `forward()` sends a copy back out through `lo`, and the hook sees
   it arrive. The tunnel's remote end is its local one, so a second ping over it
   comes back decapsulated to `PRE_ROUTING` on the tunnel with its MAC header at
-  `skb->data`: `forward()` sends a clone back into the tunnel, and the hook sees
-  that one arrive too. The tunnel runs over loopback; its cases skip without
+  `skb->data`: `forward()` sends a copy back into the tunnel, and the hook sees
+  that one arrive too. The hook flips the last byte of the original through its
+  view after `forward()`, and each copy arrives with the byte as it was; on `lo` it
+  also writes a byte drawn per run into the Ethernet source address before
+  `forward()` and flips it after, and the copy arrives with the drawn byte. A
+  build that sends a clone, whose head `lo` transmits as the original's, fails
+  the `lo` case, and so does one that leaves the copy's MAC header unwritten;
+  `ip_tunnel_xmit` gives a clone a head of its own before the write, so the
+  tunnel's case passes either. The tunnel runs over loopback; its cases skip without
   `ipip`, and unless the loaded `luaskb` is the installed one and carries the
   refusal, since a module without it panics the host.
 
@@ -2570,6 +2577,12 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   weak table shows; on the fourth the second callback finds that copy without its
   device too. A build whose copies read the hook's device in a later callback
   fails at the second echo reply.
+
+- **tc resend**: the callback forwards the echo reply to a ping from the
+  namespace, flips its ICMP type through the view it read the reply by and
+  drops it, so the ping is answered only if the frame `forward()` sent left with
+  the type it had. A build whose `forward()` sends a clone, which shares the head
+  the callback writes, fails the ping.
 
 - **tc macsec**: the program on the egress of a netdevsim port a MACsec SecY
   offloads to, set up as the kernel's rtnetlink selftest sets one; one ping goes

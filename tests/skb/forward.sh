@@ -3,20 +3,26 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Tests where skb:forward() in a netfilter hook refuses a packet and where it sends a clone.
+# Tests where skb:forward() in a netfilter hook refuses a packet and where it sends a copy.
 #
 # A ping over an ipip tunnel reaches LOCAL_OUT with the outer packet's MAC header at the inner
 # IPv4 header, past skb->data by the outer header: forward() refuses it with "MAC header past
 # the data", and the hook drops it. A ping to the loopback address reaches PRE_ROUTING on lo
-# with its MAC header before skb->data: forward() sends a clone back out through lo, and the
-# hook sees the clone arrive. The tunnel's remote end is its local one, so a second ping over it
+# with its MAC header before skb->data: forward() sends a copy back out through lo, and the
+# hook sees the copy arrive. The tunnel's remote end is its local one, so a second ping over it
 # comes back decapsulated to PRE_ROUTING on the tunnel with its MAC header at skb->data:
-# forward() sends a clone back into the tunnel, and the hook sees that one arrive too. That hook
+# forward() sends a copy back into the tunnel, and the hook sees that one arrive too. That hook
 # counts echo requests only, since an echo reply carries the ping's mark where
-# net.ipv4.fwmark_reflect is set and would pass for the clone. The tunnel runs over loopback and
-# needs only the ipip module; its cases skip without it. A luaskb without the refusal pushes the
-# clone below its head and panics the host, so the tunnel's cases also skip unless the loaded
-# luaskb is the installed one and the installed one carries the refusal.
+# net.ipv4.fwmark_reflect is set and would pass for the copy. After forward() the hook flips
+# the last byte of the original through its view, and the copy arrives with the byte as it was:
+# a build that sends a clone, whose head lo transmits as the original's, fails the lo case on
+# it, while ip_tunnel_xmit gives a clone a head of its own before the write. On lo the hook
+# also writes a byte drawn per run into the Ethernet source address before forward() and flips
+# it after, and the copy arrives with the drawn byte, so a build that pushes the copy over its
+# headroom unwritten fails there too. The tunnel runs over loopback and needs only the ipip
+# module; its cases skip without it. A luaskb without the refusal pushes the copy below its
+# head and panics the host, so the tunnel's cases also skip unless the loaded luaskb is the
+# installed one and the installed one carries the refusal.
 #
 # Usage: sudo bash tests/skb/forward.sh
 
@@ -31,8 +37,8 @@ PAST_MARK=1291   # PAST_MARK in forward.lua
 BEFORE_MARK=1292 # BEFORE_MARK in forward.lua
 AT_MARK=1293     # AT_MARK in forward.lua
 PAST="forward: refuses a MAC header past the data"
-BEFORE="forward: sends a clone when the MAC header precedes the data"
-AT="forward: sends a clone when the MAC header is at the data"
+BEFORE="forward: sends a copy of its own when the MAC header precedes the data"
+AT="forward: sends a copy of its own when the MAC header is at the data"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 

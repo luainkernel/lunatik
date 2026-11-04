@@ -323,12 +323,15 @@ static int luaskb_checksum(lua_State *L)
 }
 
 /***
-* Transmits a clone of the skb out of `skb->dev`, the device `skb:ifindex()` names.
+* Transmits a copy of the skb, from its MAC header on, out of `skb->dev`, the device
+* `skb:ifindex()` names. The copy's linear bytes are its own, so a write through a view after
+* `forward()` does not reach the frame it sent.
 * The original is untouched and still takes the hook's verdict, so a callback that forwards a
 * packet returns `DROP` to not send it twice.
 * @function forward
 * @raise if skb has no device, is a copy that would leave unencrypted where its device encrypts
-* the original by IPsec or MACsec offload, MAC header is not set or is past the data, or clone fails
+* the original by IPsec or MACsec offload, MAC header is not set or is past the data, or the copy's
+* allocation fails
 */
 static int luaskb_forward(lua_State *L)
 {
@@ -341,10 +344,13 @@ static int luaskb_forward(lua_State *L)
 	luaL_argcheck(L, skb_mac_header_was_set(skb), 1, "MAC header not set");
 	luaL_argcheck(L, skb_mac_header(skb) <= skb->data, 1, "MAC header past the data");
 
-	struct sk_buff *nskb = lunatik_checknull(L, skb_clone(skb, GFP_ATOMIC));
+	struct sk_buff *nskb = lunatik_checknull(L, pskb_copy(skb, GFP_ATOMIC));
+	size_t maclen = skb->data - skb_mac_header(skb);
 
+	/* 7.0 and earlier: pskb_copy leaves it clear on the copy */
+	skb_shinfo(nskb)->flags |= skb_shinfo(skb)->flags & SKBFL_SHARED_FRAG;
 	nskb->dev = dev;
-	skb_push(nskb, nskb->data - skb_mac_header(nskb));
+	memcpy(skb_push(nskb, maclen), skb_mac_header(skb), maclen); /* pskb_copy copies from skb->data */
 	dev_queue_xmit(nskb);
 	return 0;
 }
