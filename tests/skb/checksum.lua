@@ -40,10 +40,16 @@ local pending = {
 	[PRIORITY + 8] = "ihl4",
 	[PRIORITY + 9] = "zero6",
 	[PRIORITY + 10] = "raw6",
+	[PRIORITY + 11] = "seed4",
+	[PRIORITY + 12] = "seed6",
 }
 
 local function iphlen(data)
 	return (data:getuint8(0) & 0x0f) * 4
+end
+
+local function seeded(data, addrs, addrslen, offset, check, proto)
+	return data:getuint16(offset + check) == csum.seed(data, addrs, addrslen, offset, proto)
 end
 
 local function unchanged(data, before)
@@ -58,6 +64,13 @@ end
 local prepare = {}
 
 function prepare.fits4(skb)
+	local data = skb:data()
+	data:setuint16(IP_CHECK, 0)
+	data:setuint16(iphlen(data) + UDP_CHECK, 0)
+	return data
+end
+
+function prepare.seed4(skb)
 	local data = skb:data()
 	data:setuint16(IP_CHECK, 0)
 	data:setuint16(iphlen(data) + TCP_CHECK, 0)
@@ -102,6 +115,7 @@ function prepare.ihl4(skb)
 	return data
 end
 
+prepare.seed6 = prepare.fits6
 prepare.past4 = shrink
 prepare.past6 = shrink
 prepare.raw6 = prepare.fits6
@@ -117,7 +131,16 @@ local verify = {
 
 function verify.fits4(data)
 	local hlen = iphlen(data)
-	return data:checksum(0, hlen) == 0 and csum.summed(data, IP_ADDRS, IP_ADDRSLEN, hlen, TCP)
+	return data:checksum(0, hlen) == 0 and csum.summed(data, IP_ADDRS, IP_ADDRSLEN, hlen, UDP)
+end
+
+function verify.seed4(data)
+	local hlen = iphlen(data)
+	return data:checksum(0, hlen) == 0 and seeded(data, IP_ADDRS, IP_ADDRSLEN, hlen, TCP_CHECK, TCP)
+end
+
+function verify.seed6(data)
+	return seeded(data, IP6_ADDRS, IP6_ADDRSLEN, IP6_HDRLEN, UDP_CHECK, UDP)
 end
 
 function verify.fits6(data)
