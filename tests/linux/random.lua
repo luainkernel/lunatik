@@ -30,3 +30,22 @@ test("linux.random(m, n) stays within a negative range", function()
 	end
 end)
 
+test("linux.random(m, n) answers m when m == n and stays within the widest interval", function()
+	assert(linux.random(5, 5) == 5, "linux.random(5, 5) is not 5")
+	for _ = 1, 1000 do
+		assert(linux.random(0, math.maxinteger) >= 0, "out of [0, math.maxinteger]")
+	end
+end)
+
+test("linux.random(m, n) is uniform over a range that does not divide 2^64", function()
+	local up, half, draws, below = (3 << 61) - 1, 1 << 62, 10000, 0
+	for _ = 1, draws do
+		if linux.random(0, up) < half then
+			below = below + 1
+		end
+	end
+	local uniform, modulo = draws * 2 // 3, draws * 3 // 4
+	assert(math.abs(below - uniform) < math.abs(below - modulo),
+		below .. " of " .. draws .. " draws below 2^62, " .. uniform .. " when uniform")
+end)
+
