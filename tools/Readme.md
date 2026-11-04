@@ -49,6 +49,16 @@ GH_TOKEN=... bash tools/issues.sh 657     # the fsnotify epic and its phases
 GH_TOKEN=... bash tools/issues.sh 1001    # one issue and the pull requests that name it
 ```
 
+## issue-since.sh
+
+Lists the commits master took since an issue was opened that touch the files the issue names, so an
+issue the tree answered after it was filed is read as answered before an agent is launched on it. The
+implement-issue skill runs it before each launch; the commits are read, not obeyed.
+
+```sh
+GH_TOKEN=... bash tools/issue-since.sh 2131    # names 097d27e13, which added the case the issue asks for
+```
+
 ## oops.sh
 
 Captures the last kernel oops before a reboot takes it away: the `dmesg` block, the instructions

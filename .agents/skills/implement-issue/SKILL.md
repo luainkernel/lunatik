@@ -16,6 +16,13 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   the reviewer's own reading. Its prompt names the rule each step needs and restates none, since every
   agent loads AGENTS.md and the machine's CLAUDE.local.md; what belongs to the machine, a credential or how
   it gets root, stays in the latter, and `machine-leak.sh` keeps it out of the tree.
+- Before a launch the session runs `tools/issue-since.sh <N>`, which lists the commits master took since the
+  issue was opened that touch the files it names, and reads them against the issue: one a commit already
+  answers, the case it says no test covers since added, closes with that commit named, and no agent is
+  launched on it. Four issues of the 2026-11-04 batch, each saying a case was missing, reached their
+  groomers that way, the cases having landed days after the issues were filed. A groomer's `decline` that
+  shows an issue a workflow filed answered, or its premise false, closes it the same way, with the trace
+  as its comment and no decision brought to the maintainer, who ordered it so that day.
 - `notes` carries what only the session knows: what the maintainer asked for, what was already traced,
   what the issue leaves out. A rule pasted there is a copy of AGENTS.md its next change does not reach.
   A shape of the API the session settled after filing goes into the issue, under an `Update:` line, before the
