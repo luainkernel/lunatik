@@ -59,20 +59,34 @@ jobs:
         cd "linux-${VERSION}"
         make mrproper
         make ${{ matrix.defconfig }}
-        echo "CONFIG_STACK_VALIDATION=n" >> .config
-        echo "CONFIG_WERROR=n" >> .config
-        echo "CONFIG_BPF_SYSCALL=y" >> .config
-        # sched_ext depends on BPF_JIT and DEBUG_INFO_BTF; without them
-        # syncconfig drops SCHED_CLASS_EXT and luascx builds its stub
-        echo "CONFIG_BPF_JIT=y" >> .config
-        echo "CONFIG_DEBUG_INFO_REDUCED=n" >> .config
-        echo "CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y" >> .config
-        echo "CONFIG_DEBUG_INFO_BTF=y" >> .config
-        echo "CONFIG_SCHED_CLASS_EXT=y" >> .config
-        # v7.2 and later: the rng API luacrypto calls is built only for a user, here DRBG, its default stdrng
-        echo "CONFIG_CRYPTO_DRBG=y" >> .config
+        options=(
+          CONFIG_STACK_VALIDATION=n
+          CONFIG_WERROR=n
+          CONFIG_BPF_SYSCALL=y
+          # sched_ext depends on BPF_JIT and DEBUG_INFO_BTF; without them
+          # syncconfig drops SCHED_CLASS_EXT and luascx builds its stub
+          CONFIG_BPF_JIT=y
+          CONFIG_DEBUG_INFO_REDUCED=n
+          CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y
+          CONFIG_DEBUG_INFO_BTF=y
+          CONFIG_SCHED_CLASS_EXT=y
+          # v7.2 and later: the rng API luacrypto calls is built only for a user, here DRBG, its default stdrng
+          CONFIG_CRYPTO_DRBG=y
+        )
+        printf '%s\n' "${options[@]}" >> .config
         # modpost resolves our modules' symbols against the Module.symvers this full build writes
         make -j$(nproc) vmlinux modules
+        # syncconfig drops an option whose dependency is unmet, and the build passes without it
+        for option in "${options[@]}"; do
+          symbol=${option%=*}
+          held=$(grep -E "^(# )?${symbol}[= ]" .config || true)
+          case $option in
+          *=n) [[ $held =~ =[ym]$ ]] || continue ;;
+          # a symbol no Kconfig of the series defines, as SCHED_CLASS_EXT before v6.12, is not required
+          *) [[ $held != "$option" ]] && grep -rqE "^\s*(menu)?config\s+${symbol#CONFIG_}\s*$" --include='Kconfig*' . || continue ;;
+          esac
+          echo "$option requested, .config holds ${held:-no $symbol line}"; exit 1
+        done
         echo "KERNEL_DIR=$(pwd)" >> $GITHUB_ENV
     - name: Build Lunatik
       # not the checkout and holding no Makefile, so a build file that takes the checkout from PWD fails here
