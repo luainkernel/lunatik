@@ -179,17 +179,26 @@ int lunatik_deleteobject(lua_State *L)
 }
 EXPORT_SYMBOL(lunatik_deleteobject);
 
-static inline int lunatik_stopgc(lua_State *L)
+typedef struct lunatik_gc_s {
+	int running;
+	int kbytes;
+} lunatik_gc_t;
+
+static inline lunatik_gc_t lunatik_stopgc(lua_State *L)
 {
-	int running = lua_gc(L, LUA_GCISRUNNING);
+	lunatik_gc_t gc = {lua_gc(L, LUA_GCISRUNNING), lua_gc(L, LUA_GCCOUNT)};
 	lua_gc(L, LUA_GCSTOP);
-	return running;
+	return gc;
 }
 
-static inline void lunatik_restartgc(lua_State *L, int running)
+static inline void lunatik_restartgc(lua_State *L, lunatik_gc_t gc)
 {
-	if (running)
+	if (gc.running) {
 		lua_gc(L, LUA_GCRESTART);
+		/* a loop that allocates only inside methods reaches no other step */
+		if (lua_gc(L, LUA_GCCOUNT) > gc.kbytes)
+			lua_gc(L, LUA_GCSTEP, 0);
+	}
 }
 
 #define lunatik_iscallhook(mask)	((mask) & (LUA_MASKCALL | LUA_MASKRET)) /* the only hooks a C method fires */
@@ -221,13 +230,13 @@ static int lunatik_pcallobject(lua_State *L, lunatik_object_t *object, int n)
 	lunatik_try(L, lunatik_lockkillable, object);
 	gfp_t gfp = lunatik_gfp(runtime);
 	runtime->gfp = lunatik_gfp(object); /* the method allocates under the object's lock */
-	int running = lunatik_stopgc(L);
+	lunatik_gc_t gc = lunatik_stopgc(L);
 	lunatik_hook_t hook = lunatik_unhook(L);
 	int ret = lua_pcall(L, n, LUA_MULTRET, 0);
 	lunatik_rehook(L, hook);
-	lunatik_restartgc(L, running);
 	runtime->gfp = gfp;
 	lunatik_unlock(object);
+	lunatik_restartgc(L, gc); /* after the unlock: its step may run a __gc that locks this object */
 	return ret;
 }
 
