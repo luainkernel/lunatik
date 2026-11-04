@@ -8,8 +8,10 @@
 # it: four issues of a batch on 2026-11-04, each saying no case covered something, were declined by
 # their groomers after the launch, the cases having landed days after the issues were filed. A file
 # the issue names is a path under a top-level directory of the tree, or a root source, in its body,
-# with a `:line` suffix dropped; one the base does not hold is listed apart. The commits are read,
-# not obeyed: one that touches a named file need not answer the issue.
+# with a `:line` suffix dropped; one named without its extension, as a suite's case is,
+# `tests/skb/resize`, stands for the files the base holds under it with one, and one the base holds
+# neither way is listed apart. The commits are read, not obeyed: one that touches a named file need
+# not answer the issue.
 #
 # Usage: GH_TOKEN=... bash tools/issue-since.sh <issue> [<base>]   (base: origin/master, as fetched)
 
@@ -26,9 +28,19 @@ top='lib|tests|tools|examples|bin|autogen|common|doc|include|\.agents|\.github'
 named=$(grep -oE "(^|[^A-Za-z0-9_./-])(($top)/[A-Za-z0-9_./-]*[A-Za-z0-9_]|lunatik[A-Za-z0-9_]*\.[ch]|Makefile|Kbuild|driver\.lua)" <<< "$body" \
 	| sed -E 's/^[^A-Za-z.]//' | sort -u)
 
+stems() {
+	git ls-tree --name-only "$base" -- "${1%/*}/" | awk -v stem="$1." 'index($0, stem) == 1'
+}
+
 held=() gone=()
 for path in $named; do
-	if git cat-file -e "$base:$path" 2> /dev/null; then held+=("$path"); else gone+=("$path"); fi
+	if git cat-file -e "$base:$path" 2> /dev/null; then
+		held+=("$path")
+	elif files=$(stems "$path") && [ -n "$files" ]; then
+		held+=($files)
+	else
+		gone+=("$path")
+	fi
 done
 
 echo "#$issue $title (opened $created)"
