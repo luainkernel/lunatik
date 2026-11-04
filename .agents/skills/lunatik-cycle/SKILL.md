@@ -171,10 +171,14 @@ The recovery paths are under "What the shared host does" above: the orphan modul
 reload, the stale autogen output after a branch switch, the pinned core, the vermagic mismatch
 after a kernel upgrade. Match the symptom there before improvising.
 
-Normal readings, not leaks: `lsmod` showing luathread/luadevice/lualinux with refcnt=1 on an
-idle system is the driver runtime's require-pins (a kernel `require()` pins the owning module
-until that state's `lua_close`). `/sys/module/X/holders` lists only symbol dependencies, not
-require-pins; `refcnt` is the complete in-degree.
+Normal readings, not leaks: an idle module's `refcnt` counts one pin per state that required it,
+held until that state's `lua_close`; one per live object of its classes, released with the object
+however many states hold it, a running kernel thread keeping its thread object live; one per state
+where a clone created the class's metatables without a require; and one per module that links its
+symbols. Right after `lunatik reload`, the driver runtime gives luadevice=2 (driver.lua's require
+and the driver's own device object), luathread=1 (the require from `lunatik.runner`) and
+lualinux=0 (the driver requires nothing from it). `/sys/module/X/holders` lists only the last
+kind; `refcnt` is the complete in-degree.
 
 # A wedged device: before and after the reboot
 
