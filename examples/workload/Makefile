@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 
+.PHONY: all clean
+
 all: scheduler.o
 
 vmlinux.h:
