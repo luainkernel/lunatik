@@ -15,7 +15,8 @@ sudo make install         		# installs Lunatik and the examples
 sudo lunatik run --context=softirq examples/xiaomi/driver 	# runs xiaomi driver
 ```
 
-Then insert the Xiaomi Silent Mouse with bluetooth mode on and it should work properly.
+The Xiaomi Silent Mouse, with Bluetooth mode on, then works properly, whether it was connected before
+the script ran or after.
 Only the Bluetooth mode (bus `0x05`) is matched.
 
 Stop it with:

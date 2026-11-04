@@ -578,6 +578,16 @@ constructor whose object no callback of such a runtime can use calls it, as `net
 does, whose send re-enables bottom halves where an nlmon tap is up. It reads the runtime's context
 rather than the CPU's state, so the refusal comes from the script body, which runs with interrupts on.
 
+### lunatik\_checkregistrant
+```C
+void lunatik_checkregistrant(lua_State *L, struct task_struct *registrant, const char *call);
+```
+Raises a Lua error, `"not allowed inside <call>"`, when the calling task is `registrant`: the task a
+binding records around a kernel registration that delivers callbacks on the registering task, which
+the binding runs there, as `hid.register` and a hid driver's `stop` do. Such a callback runs holding
+what the registration holds, a device lock among them, so an entry point that would take it again
+refuses there, in whatever runtime or coroutine the task runs.
+
 ### lunatik\_percpudata
 ```C
 lunatik_object_t *lunatik_percpudata(lua_State *L, const lunatik_class_t *class, size_t size);
