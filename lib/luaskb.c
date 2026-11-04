@@ -53,11 +53,12 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *, &luaskb_class,
 	luaL_argcheck(L, private->skb != NULL, ix, "skb is not set");
 );
 
+#define luaskb_isfraglist(skb)	(skb_shinfo(skb)->gso_type & SKB_GSO_FRAGLIST)
+
 /* FRAGLIST GSO skbs hold segments in frag_list; skb_copy refuses to copy
  * them (ambiguous semantics: copy the container or the segments?). */
 #define luaskb_checkfraglist(L, lskb, ix)				\
-	luaL_argcheck(L, !(skb_shinfo((lskb)->skb)->gso_type &		\
-		SKB_GSO_FRAGLIST), (ix), "FRAGLIST GSO skbs cannot be copied")
+	luaL_argcheck(L, !luaskb_isfraglist((lskb)->skb), (ix), "FRAGLIST GSO skbs cannot be copied")
 
 #define luaskb_csum4(skb, iph, iphlen, off)				\
 	csum_tcpudp_magic((iph)->saddr, (iph)->daddr,			\
@@ -70,6 +71,14 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *, &luaskb_class,
 		ntohs((ip6h)->payload_len), (ip6h)->nexthdr,		\
 		skb_checksum((skb), (off),				\
 			ntohs((ip6h)->payload_len), 0))
+
+#define luaskb_seed4(iph, iphlen)					\
+	~csum_tcpudp_magic((iph)->saddr, (iph)->daddr,			\
+		ntohs((iph)->tot_len) - (iphlen), (iph)->protocol, 0)
+
+#define luaskb_seed6(ip6h)						\
+	~csum_ipv6_magic(&(ip6h)->saddr, &(ip6h)->daddr,		\
+		ntohs((ip6h)->payload_len), (ip6h)->nexthdr, 0)
 
 /***
 * Represents a socket buffer (`sk_buff`).
@@ -308,15 +317,56 @@ static inline void luaskb_csum(struct sk_buff *skb, int off, u8 proto, __sum16 c
 		((struct tcphdr *)(skb->data + off))->check = csum;
 }
 
+#define luaskb_ispending(skb, off)							\
+	((skb)->ip_summed == CHECKSUM_PARTIAL && skb_checksum_start(skb) == (skb)->data + (off) &&	\
+	 !luaskb_isfraglist(skb))
+#define luaskb_issummable(skb, proto)							\
+	(((proto) == IPPROTO_TCP || (proto) == IPPROTO_UDP) &&				\
+	 (skb)->ip_summed != CHECKSUM_PARTIAL && !skb_is_gso(skb))
+
+static inline void luaskb_setcsum4(struct sk_buff *skb, struct iphdr *iph, int off)
+{
+	if (luaskb_ispending(skb, off))
+		luaskb_csum(skb, off, iph->protocol, luaskb_seed4(iph, ip_hdrlen(skb)));
+	else if (luaskb_issummable(skb, iph->protocol)) {
+		luaskb_csum(skb, off, iph->protocol, 0);
+		luaskb_csum(skb, off, iph->protocol, luaskb_csum4(skb, iph, ip_hdrlen(skb), off) ?: CSUM_MANGLED_0);
+		skb->ip_summed = CHECKSUM_NONE;
+	}
+}
+
+static inline void luaskb_setcsum6(struct sk_buff *skb, struct ipv6hdr *ip6h, int off)
+{
+	if (luaskb_ispending(skb, off))
+		luaskb_csum(skb, off, ip6h->nexthdr, luaskb_seed6(ip6h));
+	else if (luaskb_issummable(skb, ip6h->nexthdr)) {
+		luaskb_csum(skb, off, ip6h->nexthdr, 0);
+		luaskb_csum(skb, off, ip6h->nexthdr, luaskb_csum6(skb, ip6h, off) ?: CSUM_MANGLED_0);
+		skb->ip_summed = CHECKSUM_NONE;
+	}
+}
+
 /***
 * Recomputes IP and transport-layer (TCP/UDP) checksums and writes them into the packet.
 * On IPv4 it recomputes the header checksum and the TCP or UDP checksum; on IPv6, the TCP or UDP
-* checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, an IPv6
-* packet with extension headers, a packet whose IP header gives a length past its end, or on IPv4
-* shorter than the header or an IHL below 5, and one too short to hold its TCP or UDP checksum
-* field are left unchanged; `resize` does not rewrite that length. The skb is linearized and
-* unshared first, as `data` does; in a tc callback it is neither, and one whose head a clone shares
-* raises.
+* checksum when that header follows the fixed one. What it writes in the TCP or UDP checksum field
+* follows what the stack does with that field afterwards:
+*
+* - where the checksum pending is another header's, as an inner one of a VXLAN or Geneve packet,
+*   or the packet is a GSO one that keeps the headers of its segments or has no checksum pending
+*   at that header, it leaves the field as it is;
+* - otherwise, where the stack or the device completes that header's checksum on the way out, as for
+*   the TCP segments the host sends, it writes the pseudo-header sum the completion starts from, and
+*   the field then reads back that sum, not the checksum. The completion sums to the end of the
+*   packet, so it also sums the bytes past an IP length the script shortened without `resize`;
+* - elsewhere it writes the complete checksum, and the stack no longer checks the packet against a
+*   sum the device took on receipt.
+*
+* A packet that is neither IPv4 nor IPv6, an IPv6 packet with extension headers, a packet whose IP
+* header gives a length past its end, or on IPv4 shorter than the header or an IHL below 5, and one
+* too short to hold its TCP or UDP checksum field are left unchanged; `resize` does not rewrite that
+* length. The skb is linearized and unshared first, as `data` does; in a tc callback it is neither,
+* and one whose head a clone shares raises.
 * @function checksum
 * @raise if the skb is not writable, in a tc callback or after a failed unshare
 */
@@ -332,16 +382,14 @@ static int luaskb_checksum(lua_State *L)
 		if (!luaskb_iswhole4(skb, iph, off))
 			return 0;
 		ip_send_check(iph);
-		luaskb_csum(skb, off, iph->protocol, 0);
-		luaskb_csum(skb, off, iph->protocol, luaskb_csum4(skb, iph, ip_hdrlen(skb), off) ?: CSUM_MANGLED_0);
+		luaskb_setcsum4(skb, iph, off);
 	}
 	else if (skb->protocol == htons(ETH_P_IPV6)) {
 		struct ipv6hdr *ip6h = ipv6_hdr(skb);
 		int off = skb_network_offset(skb) + sizeof(struct ipv6hdr);
 		if (!luaskb_iswhole6(skb, ip6h, off))
 			return 0;
-		luaskb_csum(skb, off, ip6h->nexthdr, 0);
-		luaskb_csum(skb, off, ip6h->nexthdr, luaskb_csum6(skb, ip6h, off) ?: CSUM_MANGLED_0);
+		luaskb_setcsum6(skb, ip6h, off);
 	}
 	return 0;
 }
