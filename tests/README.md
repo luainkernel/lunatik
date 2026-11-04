@@ -2224,9 +2224,13 @@ pid, what a valid call does, and where it refuses to run.
   requested length, a grow reads the bytes it added as zeros, one that answers
   `false` leaves `#skb` as it was, and dmesg carries no `WARNING`. Skips without `socat`.
 - **checksum**: a `LOCAL_OUT` netfilter hook calls `skb:checksum()` on one packet
-  per sender, picked by its `SO_PRIORITY`. A TCP segment over `127.0.0.1` and a
-  UDP datagram over `::1`, their checksum fields zeroed, are summed: the IPv4
-  header sums to 0 and each segment verifies against its pseudo-header. A TCP
+  per sender, picked by its `SO_PRIORITY`. A UDP datagram over `127.0.0.1` and one
+  over `::1`, sent without a checksum and so `CHECKSUM_NONE`, their checksum fields
+  zeroed, are summed: the IPv4 header sums to 0 and each datagram verifies against
+  its pseudo-header. A TCP segment over `127.0.0.1` and a UDP datagram over `::1`
+  sent with a checksum leave `CHECKSUM_PARTIAL`, and their zeroed field gets the
+  pseudo-header sum alone, which the device completes, where a build that writes
+  the complete checksum there leaves one the completion sums twice. A TCP
   segment whose `tot_len` is one byte short of its header, a TCP segment and a
   UDP datagram shrunk with `skb:resize`, whose IP length then runs past their
   end, and a UDP datagram carrying a destination options header, whose
@@ -2234,12 +2238,34 @@ pid, what a valid call does, and where it refuses to run.
   unchanged, as are a UDP datagram over `127.0.0.1`, sent without a checksum so
   that `resize` may cut it, shrunk to 26 bytes with `tot_len` rewritten to fit,
   short of its check field, and a TCP segment whose IHL reads 4. A UDP datagram over
-  `::1` whose sum folds to 0 gets the check field `0xffff`, `CSUM_MANGLED_0`,
+  `::1` sent without a checksum whose sum folds to 0 gets the check field `0xffff`, `CSUM_MANGLED_0`,
   which an IPv6 receiver accepts where it drops a 0. A build that sums a length past the packet hits `skb_checksum`'s
   `BUG_ON` and panics the host, and its check has no symbol or message, so the
   packets past their end are sent only once the loaded `luaskb` left the short
   `tot_len` unchanged, a stimulus such a build sums and survives. Skips
   without `socat`, and the IPv6 cases where `lo` has no `::1`.
+- **checksum_offload**: `skb:checksum()` on packets whose checksum the stack
+  completes after the hook, read where they reach the wire. Two namespaces of the
+  test's own, SRC and DST, join the initial one by veth pairs; the end towards DST
+  has tx checksum offload off, so a `CHECKSUM_PARTIAL` packet is completed there in
+  software and a GSO one segmented with each segment's checksum computed, and DST
+  verifies every packet and counts a wrong one in `InCsumErrors`. A `POST_ROUTING`
+  hook calls `checksum()` on what leaves through that end and counts the packets and
+  the GSO skbs, until a datagram of its own length closes the case. Each case passes
+  when the hook saw its packets, a GSO skb for a GSO case, and DST counted no error:
+  a TCP segment and a bulk TCP stream the host sends over IPv4 and IPv6, which leave
+  `CHECKSUM_PARTIAL` and get the pseudo-header sum, where a build that writes the
+  complete checksum has DST count errors; a UDP datagram over each, which leaves
+  `CHECKSUM_NONE` and gets the complete one; a UDP datagram, a `UDP_SEGMENT` GSO one
+  and a bulk TCP stream SRC sends with tx offload on, forwarded; a UDP datagram over
+  a VXLAN device with outer checksums, whose outer checksum `checksum()` leaves as
+  it is, since the one pending is the inner one; and a `UDP_SEGMENT` datagram SRC
+  sends over a bridge whose port segments it in software, which fraglist GRO
+  aggregates into one `CHECKSUM_UNNECESSARY` FRAGLIST GSO skb, forwarded with no
+  `WARNING`, where a build that sets it `CHECKSUM_NONE` has its segmentation warn of
+  a bad offload. Forwarding is on for the test's devices only, over IPv4. Skips
+  without veth, `socat` or `ethtool`; the IPv6 cases where IPv6 is off, the VXLAN
+  case without `vxlan` and the fraglist case without fraglist GRO on veth.
 
 - **forward**: a ping over an ipip tunnel reaches `LOCAL_OUT` with the outer
   packet's MAC header at the inner IPv4 header, past `skb->data`: `skb:forward()`
