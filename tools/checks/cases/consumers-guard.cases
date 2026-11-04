@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run in the repository consumers-guard.fixture.sh builds, checked out on docs
+# env: LUNATIK_CONSUMERS=consumer
+# env: PATH=stub:/usr/local/bin:/usr/bin:/bin
+block	gh api repos/luainkernel/lunatik/pulls -f head=bump -f base=master -F body=@b.md
+block	gh api -X POST repos/luainkernel/lunatik/pulls -f head=bump -F body=@b.md
+block	gh api --method POST repos/luainkernel/lunatik/pulls -f head=bump -f base=master
+block	gh api repos/luainkernel/lunatik/pulls --input bump.json
+block	gh pr create --head bump --base master --body-file b.md
+block	cd consumer && gh api repos/luainkernel/lunatik/pulls -f head=bump -f base=master -F body=@b.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=docs -f base=master -F body=@b.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=stacked -f base=bump -F draft=true -F body=@b.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=stacked -f base=master -F body=@b.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=gone -f base=master -F body=@b.md
+block	gh pr create --base master --body-file b.md
+block	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 -F body=@b.md
+block	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 -f base=master
+pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/8 -f title=fallback
+pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/8 -f base=master
+pass	gh pr edit 8 --base master
+block	gh api -X PATCH repos/luainkernel/lunatik/pulls/7 -f base=master
+block	gh api -X PATCH repos/luainkernel/lunatik/pulls/6 -F body=@b.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=stacked -f base=lag -F draft=true -F body=@b.md
+pass	gh pr create --head stacked --base lag --draft --body-file b.md
+pass	gh api -X POST repos/luainkernel/lunatik/pulls/9/comments -f body=x
+pass	gh api -X POST repos/luainkernel/lunatik/pulls/9/reviews -F body=@b.md
+pass	gh api -X PUT repos/luainkernel/lunatik/pulls/9/merge -f merge_method=rebase
+pass	gh api repos/luainkernel/lunatik/pulls/9 --jq .head.sha
+pass	gh api repos/luainkernel/lua/pulls -f head=bump -f base=master -F body=@b.md
+pass	echo gh api -X POST repos/luainkernel/lunatik/pulls -f head=bump -f base=master
+pass	git log -1	gh api -X POST repos/luainkernel/lunatik/pulls -f head=bump
+pass	CONSUMERS_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=bump -f base=master -F body=@b.md
+# env: LUNATIK_CONSUMERS=
+pass	gh api repos/luainkernel/lunatik/pulls -f head=gone -f base=master -F body=@b.md
+

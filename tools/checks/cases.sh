@@ -9,10 +9,13 @@
 # `# tool: Agent` or `# tool: Workflow` line names the subagent type or the script instead, and a
 # second tab the description the call carries beside it, which a guard reads for no verdict; a
 # `# agent: <id>` line gives the cases after it the agent_id of a subagent's call, and `# agent:` takes
-# it away. Only the guards whose verdict the command decides, alone or with the repository it runs
-# in or the processes beside it, have cases, and no case asks GitHub; <guard>.fixture.sh, beside the
-# cases of one that reads the repository, builds it in a scratch directory the cases run in, and
-# beside one that reads the process table, starts there a process that ends with the directory.
+# it away; a `# env: <name>=<value>` line sets that variable for the guard in the cases after it, as a
+# session's settings set LUNATIK_CONSUMERS, a relative path in it read from the fixture's directory.
+# Only the guards whose verdict the command decides, alone or with the repository it runs in or the
+# processes beside it, have cases, and no case asks GitHub, which a gh the fixture writes on PATH
+# answers for; <guard>.fixture.sh, beside the cases of one that reads the repository, builds it in a
+# scratch directory the cases run in, and beside one that reads the process table, starts there a
+# process that ends with the directory.
 # Prints each wrong verdict and a count, and exits 1 when one is wrong.
 #
 # Usage: bash tools/checks/cases.sh [<cases file>...]   (default every file under tools/checks/cases)
@@ -34,10 +37,12 @@ for cases in "$@"; do
 	fi
 	tool=Bash
 	agent=
+	envs=()
 	while IFS=$'\t' read -r want value description; do
 		case "$want" in
 			"# tool: "*) tool=${want#\# tool: }; continue ;;
 			"# agent:"*) agent=${want#\# agent:}; agent=${agent# }; continue ;;
+			"# env: "*) envs+=("${want#\# env: }"); continue ;;
 			""|"#"*) continue ;;
 		esac
 		case "$tool" in
@@ -48,7 +53,7 @@ for cases in "$@"; do
 		jq -nc --arg tool "$tool" --arg field "$field" --arg value "$value" --arg description "$description" --arg agent "$agent" --arg cwd "$cwd" \
 			'{tool_name: $tool, tool_input: ({($field): $value} + if $description == "" then {} else {description: $description} end)}
 			+ if $agent == "" then {} else {agent_id: $agent} end + if $cwd == "" then {} else {cwd: $cwd} end' |
-			(cd "${cwd:-.}" && bash "$guard") > /dev/null 2>&1
+			(cd "${cwd:-.}" && env "${envs[@]}" bash "$guard") > /dev/null 2>&1
 		rc=$?
 		got=pass
 		[ $rc -eq 2 ] && got=block

@@ -451,3 +451,69 @@ gh_body() {
 	}'
 }
 
+# the gh api field <name> the write <post> passes, -f <name>=<value> in any spelling gh takes
+gh_field() {
+	printf '%s' "$1" | grep -oE -- "(-f|-F|--raw-field|--field)[ =]$2=[\"']?[^[:space:]\"']+" | head -n 1 | sed "s/.*$2=[\"']\{0,1\}//"
+}
+
+# the value the gh pr write <post> passes to its option <long>, or to <short>
+gh_option() {
+	printf '%s\n' "$1" | awk -v long="$2" -v short="$3" '
+	{
+		for (i = 3; i <= NF; i++)
+			if ($i == long || $i == short) {
+				print $(i + 1)
+				exit
+			}
+			else if (index($i, long "=") == 1) {
+				print substr($i, length(long) + 2)
+				exit
+			}
+	}'
+}
+
+# the base and the head, "<base> <head>", of the pull request the gh write <post> opens or edits: a
+# create's from the write, head= and base= or the JSON gh api sends, or gh pr's --head and --base, master
+# when it names no base; an edit's from GitHub's pulls/<N>, asked with the credential the hook input
+# <input> carries, the base too, since a retarget moves none of its commits, and one onto master after
+# its base merged by rebase would read that base's commits, under their old SHAs, as its own
+gh_refs() {
+	local base head body repo number
+	number=$(gh_number "$2")
+	if [ -n "$number" ]; then
+		repo=$(gh_repo "$2")
+		read -r head base <<< "$(GH_TOKEN=$(gh_token "$1") gh api "repos/${repo:-{owner\}/{repo\}}/pulls/$number" \
+			--jq '.head.sha + " " + .base.ref' 2> /dev/null)"
+	elif [ "$(printf '%s' "$2" | awk '{ print $2 }')" = pr ]; then
+		base=$(gh_option "$2" --base -B)
+		head=$(gh_option "$2" --head -H)
+	else
+		body=$(gh_body "$2")
+		if [ "${body%% *}" = input ]; then
+			base=$(jq -r '.base // empty' "${body#* }" 2> /dev/null)
+			head=$(jq -r '.head // empty' "${body#* }" 2> /dev/null)
+		else
+			base=$(gh_field "$2" base)
+			head=$(gh_field "$2" head)
+		fi
+	fi
+	printf '%s %s\n' "${base:-master}" "$head"
+}
+
+# the files the change from <base> to <head> carries, read in the checkout <project>; it fails when the
+# checkout cannot read one of them. A stacked pull request's change is what its head adds to the branch
+# below it, and read against master it carries that branch's too, so the base is the tip GitHub has, in
+# the repository the gh write <post> targets, asked with the credential the hook input <input> carries.
+# A push through a URL moves no remote-tracking ref, so one fetched before the base was rebased reads a
+# change of master as the pull request's own; the remote-tracking ref stands in when GitHub does not
+# answer or names a commit this checkout lacks, and the local branch when neither is there
+gh_change() {
+	local repo ref
+	repo=$(gh_repo "$2")
+	ref=$(GH_TOKEN=$(gh_token "$1") gh api "repos/${repo:-{owner\}/{repo\}}/branches/$3" --jq .commit.sha 2> /dev/null)
+	git -C "$5" cat-file -e "$ref^{commit}" 2> /dev/null || ref=origin/$3
+	git -C "$5" rev-parse -q --verify "$ref^{commit}" > /dev/null || ref=$3
+	ref=$(git -C "$5" merge-base "$ref" "$4" 2> /dev/null) || return 1
+	git -C "$5" diff --name-only "$ref" "$4"
+}
+

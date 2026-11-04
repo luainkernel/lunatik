@@ -161,29 +161,10 @@ unread() {
 	$1 ~ /^([^ ]*\/)?gh$/ && $2 == "api" && $3 == "graphql"')"
 }
 
-# the gh api field <name> the write <post> passes, -f <name>=<value> in any spelling gh takes
-field() {
-	printf '%s' "$1" | grep -oE -- "(-f|-F|--raw-field|--field)[ =]$2=[\"']?[^[:space:]\"']+" | head -n 1 | sed "s/.*$2=[\"']\{0,1\}//"
-}
-
-# the commit at the tip of the branch <name> on GitHub, in the repository the write <post> targets,
-# asked with the credential the command carries; it fails when GitHub does not answer
-tip() {
-	local repo
-	repo=$(gh_repo "$1")
-	[ -n "$repo" ] || return 1
-	GH_TOKEN=$(gh_token "$input") gh api "repos/$repo/branches/$2" --jq .commit.sha 2> /dev/null
-}
-
-# a pull request opened on a branch names every example its change touches (examples-named.sh); the
-# head and the base are read from the write, `head=<branch>` and `base=<branch>` or the JSON's, and
-# resolved in this checkout, the base as the tip GitHub has first: a stacked pull request's change is
-# what its head adds to the branch below it, and read against master it carries that branch's too. A
-# push through a URL moves no remote-tracking ref, so one fetched before the base was rebased reads a
-# change of master as the pull request's own; the remote-tracking ref stands in when GitHub does not
-# answer or names a commit this checkout lacks, and the local branch when neither is there
+# a pull request opened on a branch names every example its change touches (examples-named.sh), the
+# change from the base to the head the write names
 examples() {
-	local post body file head target ref base files findings project
+	local post body file head target files findings project
 	project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
 	while IFS= read -r post; do
 		[ -n "$post" ] || continue
@@ -193,24 +174,15 @@ examples() {
 		[ -f "$file" ] || continue
 		case $file in /*) ;; *) file=$PWD/$file ;; esac # examples-named.sh reads it from the project
 		if [ "${body%% *}" = input ]; then
-			head=$(jq -r '.head // empty' "$file" 2> /dev/null)
-			target=$(jq -r '.base // empty' "$file" 2> /dev/null)
 			jq -r '.body // empty' "$file" > "$tmp/examples-body" 2> /dev/null
 			file=$tmp/examples-body
-		else
-			head=$(field "$post" head)
-			target=$(field "$post" base)
 		fi
+		read -r target head <<< "$(gh_refs "$input" "$post")"
 		[ -n "$head" ] || continue
-		target=${target:-master}
-		ref=$(tip "$post" "$target")
-		git -C "$project" cat-file -e "$ref^{commit}" 2> /dev/null || ref=origin/$target
-		git -C "$project" rev-parse -q --verify "$ref^{commit}" > /dev/null || ref=$target
-		if ! base=$(git -C "$project" merge-base "$ref" "$head" 2> /dev/null); then
+		if ! files=$(gh_change "$input" "$post" "$target" "$head" "$project"); then
 			echo "pr-body-guard: the head $head or the base $target is not a ref this checkout can read, so the examples its change touches cannot be listed; fetch it, or pass EXAMPLES_OK=1 once the body says of each what it did." >&2
 			exit 2
 		fi
-		files=$(git -C "$project" diff --name-only "$base" "$head")
 		findings=$(cd "$project" && bash "$(dirname "$0")/examples-named.sh" "$file" $files) && continue
 		echo "pr-body-guard: ${findings//$tmp\/examples-body/the body}" >&2
 		echo "pr-body-guard: say of each what it did, ran, only loaded or not run and why, or pass EXAMPLES_OK=1 once the body does." >&2
