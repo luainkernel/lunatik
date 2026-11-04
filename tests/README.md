@@ -2235,7 +2235,10 @@ pid, what a valid call does, and where it refuses to run.
   that `resize` may cut it, shrunk to 26 bytes with `tot_len` rewritten to fit,
   short of its check field, and a TCP segment whose IHL reads 4. A UDP datagram over
   `::1` whose sum folds to 0 gets the check field `0xffff`, `CSUM_MANGLED_0`,
-  which an IPv6 receiver accepts where it drops a 0. A build that sums a length past the packet hits `skb_checksum`'s
+  which an IPv6 receiver accepts where it drops a 0. A UDP datagram over `::1`
+  from an `IPPROTO_RAW` socket, which reaches `LOCAL_OUT` with its transport
+  header at the IPv6 header, is summed as the first one is, from past its IPv6
+  header. A build that sums a length past the packet hits `skb_checksum`'s
   `BUG_ON` and panics the host, and its check has no symbol or message, so the
   packets past their end are sent only once the loaded `luaskb` left the short
   `tot_len` unchanged, a stimulus such a build sums and survives. Skips
@@ -2560,6 +2563,14 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   handed again after the program's `bpf_skb_pull_data(skb, skb->len)`, the
   callback reads and copies the whole packet and shrinks it, then drops it,
   and TCP sends it again. Skips without `socat`.
+
+- **tc checksum**: the host sends a UDP datagram to the namespace without a
+  checksum (`SO_NO_CHECK`), picked by its sender's `SO_PRIORITY`. The callback
+  zeroes its IP and UDP checks and calls `skb:checksum()` on a frame whose
+  `skb->data` is the MAC header: read through `skb:data("net")`, the IPv4
+  header sums to 0 and the datagram verifies against its pseudo-header. A build
+  that counts the segment's offset from `skb->data` sums it from 14 bytes too
+  early. Skips without `socat`.
 
 - **tc copy**: four pings, one step of the callback on each echo reply. On the
   first it keeps a copy, whose `ifindex()` is the hook's skb's; on the second

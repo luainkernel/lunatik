@@ -59,16 +59,16 @@ LUNATIK_PRIVATECHECKER(luaskb_check, luaskb_t *, &luaskb_class,
 	luaL_argcheck(L, !(skb_shinfo((lskb)->skb)->gso_type &		\
 		SKB_GSO_FRAGLIST), (ix), "FRAGLIST GSO skbs cannot be copied")
 
-#define luaskb_csum4(skb, iph, iphlen)					\
+#define luaskb_csum4(skb, iph, iphlen, off)				\
 	csum_tcpudp_magic((iph)->saddr, (iph)->daddr,			\
 		ntohs((iph)->tot_len) - (iphlen), (iph)->protocol,	\
-		skb_checksum((skb), (iphlen),				\
+		skb_checksum((skb), (off),				\
 			ntohs((iph)->tot_len) - (iphlen), 0))
 
-#define luaskb_csum6(skb, ip6h)						\
+#define luaskb_csum6(skb, ip6h, off)					\
 	csum_ipv6_magic(&(ip6h)->saddr, &(ip6h)->daddr,			\
 		ntohs((ip6h)->payload_len), (ip6h)->nexthdr,		\
-		skb_checksum((skb), skb_transport_offset(skb),		\
+		skb_checksum((skb), (off),				\
 			ntohs((ip6h)->payload_len), 0))
 
 /***
@@ -271,23 +271,23 @@ static int luaskb_resize(lua_State *L)
 	return 1;
 }
 
-#define luaskb_csumend(skb, proto)						\
-	(skb_transport_offset(skb) + ((proto) == IPPROTO_TCP ? offsetofend(struct tcphdr, check) :	\
+#define luaskb_csumend(off, proto)						\
+	((off) + ((proto) == IPPROTO_TCP ? offsetofend(struct tcphdr, check) :	\
 	 (proto) == IPPROTO_UDP ? offsetofend(struct udphdr, check) : 0))
-#define luaskb_iswhole4(skb, iph)							\
+#define luaskb_iswhole4(skb, iph, off)							\
 	((iph)->ihl >= 5 && ntohs((iph)->tot_len) >= ip_hdrlen(skb) &&			\
 	 skb_network_offset(skb) + ntohs((iph)->tot_len) <= (skb)->len &&		\
-	 luaskb_csumend(skb, (iph)->protocol) <= (skb)->len)
-#define luaskb_iswhole6(skb, ip6h)							\
-	(skb_transport_offset(skb) + ntohs((ip6h)->payload_len) <= (skb)->len &&	\
-	 luaskb_csumend(skb, (ip6h)->nexthdr) <= (skb)->len)
+	 luaskb_csumend(off, (iph)->protocol) <= (skb)->len)
+#define luaskb_iswhole6(skb, ip6h, off)							\
+	((off) + ntohs((ip6h)->payload_len) <= (skb)->len &&				\
+	 luaskb_csumend(off, (ip6h)->nexthdr) <= (skb)->len)
 
-static inline void luaskb_csum(struct sk_buff *skb, u8 proto, __sum16 csum)
+static inline void luaskb_csum(struct sk_buff *skb, int off, u8 proto, __sum16 csum)
 {
 	if (proto == IPPROTO_UDP)
-		udp_hdr(skb)->check = csum;
+		((struct udphdr *)(skb->data + off))->check = csum;
 	else if (proto == IPPROTO_TCP)
-		tcp_hdr(skb)->check = csum;
+		((struct tcphdr *)(skb->data + off))->check = csum;
 }
 
 /***
@@ -306,18 +306,20 @@ static int luaskb_checksum(lua_State *L)
 
 	if (skb->protocol == htons(ETH_P_IP)) {
 		struct iphdr *iph = ip_hdr(skb);
-		if (!luaskb_iswhole4(skb, iph))
+		int off = skb_network_offset(skb) + ip_hdrlen(skb);
+		if (!luaskb_iswhole4(skb, iph, off))
 			return 0;
 		ip_send_check(iph);
-		luaskb_csum(skb, iph->protocol, 0);
-		luaskb_csum(skb, iph->protocol, luaskb_csum4(skb, iph, ip_hdrlen(skb)) ?: CSUM_MANGLED_0);
+		luaskb_csum(skb, off, iph->protocol, 0);
+		luaskb_csum(skb, off, iph->protocol, luaskb_csum4(skb, iph, ip_hdrlen(skb), off) ?: CSUM_MANGLED_0);
 	}
 	else if (skb->protocol == htons(ETH_P_IPV6)) {
 		struct ipv6hdr *ip6h = ipv6_hdr(skb);
-		if (!luaskb_iswhole6(skb, ip6h))
+		int off = skb_network_offset(skb) + sizeof(struct ipv6hdr);
+		if (!luaskb_iswhole6(skb, ip6h, off))
 			return 0;
-		luaskb_csum(skb, ip6h->nexthdr, 0);
-		luaskb_csum(skb, ip6h->nexthdr, luaskb_csum6(skb, ip6h) ?: CSUM_MANGLED_0);
+		luaskb_csum(skb, off, ip6h->nexthdr, 0);
+		luaskb_csum(skb, off, ip6h->nexthdr, luaskb_csum6(skb, ip6h, off) ?: CSUM_MANGLED_0);
 	}
 	return 0;
 }

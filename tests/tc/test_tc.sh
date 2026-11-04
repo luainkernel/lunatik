@@ -29,6 +29,15 @@
 # four data objects; a build whose skb leaves its views registered frees one. The
 # case skips where the kprobe cannot be placed.
 #
+# The checksum case sends a UDP datagram from the host to the namespace, picked by its sender's
+# SO_PRIORITY, a value outside 0..6. Its frame reaches the classifier with skb->data at the MAC
+# header, 14 bytes before the IPv4 one. The callback zeroes the IP and UDP checks, calls
+# skb:checksum() and reads both back through skb:data("net"): the IP header sums to 0 and the
+# datagram verifies against its pseudo-header. A build that sums the segment from the IP header's
+# length counted from skb->data sums 14 bytes too early and fails it. The datagram leaves without a
+# checksum (SO_NO_CHECK), so it is CHECKSUM_NONE, as checksum.sh's short datagram is. The case skips
+# without socat.
+#
 # The copy case sends four pings, and copy.lua takes a step on each echo reply: on the
 # first the callback keeps a copy, which names the device the hook's skb does; on the
 # second that copy has no ifindex(), its forward() raises "skb has no device" and its
@@ -127,6 +136,10 @@ CT_HOST2="lunatikct2"
 CT_PEER="lunatikctp"
 CT_NET="10.199.11"
 CT_BOUND=100 # tenths of a second the second namespace's veth end has to go in
+CHECKSUMMED="tc checksum: a UDP datagram is summed from the IPv4 header past the frame's MAC header"
+CSUM_PAYLOAD=256
+CSUM_PRIORITY=$((0x17020000)) # PRIORITY in checksum.lua
+NOCHECK="1:11:1"              # SOL_SOCKET, SO_NO_CHECK: the datagram leaves without a checksum
 ROUTED="tc route: a copy drops the route the echo reply carries as it is made"
 ROUTE_GROUP="lunatik_tcdst"
 
@@ -191,7 +204,7 @@ copy_releases() {
 }
 
 ktap_header
-ktap_plan 26
+ktap_plan 27
 
 skip_all()
 {
@@ -206,6 +219,7 @@ skip_all()
 	ktap_skip "tc data: \"net\" starts at the IP header, and the views end at the frame's tail"
 	ktap_skip "$REFUSED"
 	ktap_skip "$PULLED"
+	ktap_skip "$CHECKSUMMED"
 	ktap_skip "$COPIED"
 	ktap_skip "$DETACHED"
 	ktap_skip "$MACSEC"
@@ -239,6 +253,7 @@ cleanup()
 	lunatik stop tests/tc/attach_sleepable > /dev/null 2>&1
 	lunatik stop tests/tc/data > /dev/null 2>&1
 	lunatik stop tests/tc/nonlinear > /dev/null 2>&1
+	lunatik stop tests/tc/checksum > /dev/null 2>&1
 	lunatik stop tests/tc/copy > /dev/null 2>&1
 	lunatik stop tests/tc/macsec > /dev/null 2>&1
 	lunatik stop tests/tc/verdict > /dev/null 2>&1
@@ -423,6 +438,28 @@ nonlinear_case()
 	check_dmesg || { ktap_fail "$REFUSED"; ktap_fail "$PULLED"; return 1; }
 	cells_verdict nonlinear "$REFUSED" data copy resize
 	cells_verdict nonlinear "$PULLED" pulled
+}
+
+checksum_case()
+{
+	command -v socat > /dev/null 2>&1 ||
+		{ echo "# SKIP: socat not available"; ktap_skip "$CHECKSUMMED"; return 0; }
+	tc_load tc_checksum.bpf.o || { ktap_fail "$CHECKSUMMED: failed to load/attach TC program"; return 1; }
+
+	mark_dmesg
+	run_script --context=softirq "tests/tc/checksum"
+	head -c "$CSUM_PAYLOAD" /dev/zero | tr '\0' x |
+		timeout 5 socat -u - "UDP:$TARGET:$PORT,priority=$CSUM_PRIORITY,setsockopt-int=$NOCHECK" 2>/dev/null
+	for _ in $(seq 20); do
+		dmesg_since | grep -qF "tc checksum: summed" && break
+		sleep 0.5
+	done
+
+	tc_unload
+	lunatik stop tests/tc/checksum > /dev/null 2>&1
+
+	check_dmesg || { ktap_fail "$CHECKSUMMED"; return 1; }
+	cells_verdict checksum "$CHECKSUMMED" summed
 }
 
 copy_case()
@@ -681,6 +718,7 @@ run_case tc_data.bpf.o data.lua yes "tc data" \
 	"tc data: \"net\" starts at the IP header, and the views end at the frame's tail" --context=softirq
 
 nonlinear_case
+checksum_case
 copy_case
 macsec_case
 teardown_case
