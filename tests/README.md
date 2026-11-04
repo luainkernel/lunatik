@@ -1306,7 +1306,12 @@ hooks it keeps off the object's lock).
   returns, and its `pop` past the capacity, which raises, then restarts the collector and
   calls `pop` both ways again. `collectgarbage("isrunning")` reads stopped after the calls
   made while stopped and running after the others: the monitor stops the collector around
-  the method and restarts only one it found running.
+  the method and restarts only one it found running. A loop of a shared `data` buffer's
+  `getstring`, which allocates only inside the method, grows `collectgarbage("count")` by less
+  than a quarter of what it allocated, since a method that grew the heap is followed by one
+  collector step after the lock is dropped; with the collector stopped the loop leaves it
+  stopped and the heap holding all of it, and a loop of `getbyte`, which allocates nothing,
+  runs the collector through fewer than 8 cycles.
 - **name**: a process runtime calls a `fifo`'s `pop` past the capacity and reads the raise
   whole, `bad argument #2 to 'pop' (out of bounds)`: the method runs under a protected call
   from C, where `luaL_argerror` writes `to '?'` for its name, and the monitor rewrites that
