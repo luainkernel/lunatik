@@ -13,6 +13,7 @@
 * @module linux
 */
 
+#include <linux/bitops.h>
 #include <linux/random.h>
 #include <linux/stat.h>
 #include <linux/sched.h>
@@ -24,6 +25,18 @@
 #include <lunatik.h>
 
 #include "lualinux.h"
+
+/* based on project() @ lua/lmathlib.c */
+static lua_Unsigned lualinux_project(lua_Unsigned n)
+{
+	lua_Unsigned lim = n ? GENMASK_ULL(fls64(n) - 1, 0) : 0;
+	lua_Unsigned rand;
+
+	do {
+		rand = get_random_u64() & lim;
+	} while (rand > n);  /* redraw: a modulo would favour the values below 2^64 % (n + 1) */
+	return rand;
+}
 
 /***
 * Generates pseudo-random integers.
@@ -71,7 +84,7 @@ static int lualinux_random(lua_State *L)
 	luaL_argcheck(L, low <= up, 1, "interval is empty");
 	luaL_argcheck(L, low >= 0 || up <= LUA_MAXINTEGER + low, 1, "interval too large");
 
-	rand = low + (lua_Integer)(get_random_u64() % ((lua_Unsigned)up - (lua_Unsigned)low + 1));
+	rand = low + (lua_Integer)lualinux_project((lua_Unsigned)up - (lua_Unsigned)low);
 	lua_pushinteger(L, rand);
 	return 1;
 }
