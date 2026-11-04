@@ -60,11 +60,18 @@ local function seen(hdev)
 	hdev.seen = hdev.seen + 1
 end
 
+local function released(hdev)
+	print(format("hid/device: released %s", hdev.name))
+end
+
 local function probe(_, hdev, id)
 	if hdev.product == RAISE then
 		raises()
 	end
 	hdev.seen = 1
+	if hdev.product == BREAK then
+		setmetatable(hdev, {__gc = released}) -- its remove raises
+	end
 	print(format("hid/device: probe %s %04x %d", hdev.name, id.vendor, id.driver_data))
 end
 
@@ -81,11 +88,15 @@ local function raw_event(_, hdev, _, raw)
 end
 
 local function remove(_, hdev)
+	collectgarbage() -- finalizes the table of a device whose remove raised before
 	seen(hdev)
 	print(format("hid/device: remove %s %d", hdev.name, hdev.seen))
 	if hdev.view ~= nil then
 		local open = pcall(hdev.view.getbyte, hdev.view, 0)
 		print(format("hid/device: view %s %s", hdev.name, open and "open" or "closed"))
+	end
+	if hdev.product == BREAK then
+		raises()
 	end
 end
 
