@@ -13,6 +13,7 @@ local STOPPED <const> = 226
 local CLOSED  <const> = 227
 local KEPT    <const> = 228
 local ONCE    <const> = 229
+local AGAIN   <const> = 230
 
 local once
 
@@ -39,6 +40,11 @@ end
 local stopped = register(report, STOPPED)
 stopped:stop()
 stopped:stop()
+
+local again = register(report, AGAIN)
+again:stop()
+register(report, AGAIN)
+again:stop()
 
 scope(CLOSED)
 register(report, KEPT)

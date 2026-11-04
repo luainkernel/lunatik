@@ -220,6 +220,16 @@ static void luanetfilter_checkspec(lua_State *L, int ix, luanetfilter_hook_t *sp
 	lua_pop(L, 2); /* hook and mark */
 }
 
+static bool luanetfilter_islive(lua_State *L, const luanetfilter_hook_t *hook)
+{
+	int top = lua_gettop(L);
+	lunatik_object_t *handle = lunatik_getregistryobject(L, hook);
+	bool live = handle != NULL && lunatik_getregistry(L, handle->private) == LUA_TTABLE;
+
+	lua_settop(L, top);
+	return live;
+}
+
 static luanetfilter_hook_t *luanetfilter_share(lua_State *L, lunatik_object_t *percpu, const luanetfilter_hook_t *spec)
 {
 	struct hlist_head *hooks = lunatik_percpudata(L, &luanetfilter_hooks_class, sizeof(struct hlist_head))->private;
@@ -229,10 +239,8 @@ static luanetfilter_hook_t *luanetfilter_share(lua_State *L, lunatik_object_t *p
 		hook = luanetfilter_register(L, percpu, spec);
 		hlist_add_head(&hook->node, hooks);
 	}
-	else if (lunatik_getregistry(L, hook) != LUA_TNIL)
+	else if (luanetfilter_islive(L, hook))
 		luaL_error(L, "hook already registered");
-	else
-		lua_pop(L, 1);
 	return hook;
 }
 
@@ -318,7 +326,8 @@ static const lunatik_class_t luanetfilter_class = {
 *   32 bits, or `priority` is past an `int`; `bad field 'mark' (bits outside 'mask')` if `mark`
 *   sets a bit `mask` leaves out, which no packet could match; if the hook cannot be
 *   registered; in a percpu script, if this runtime already registered the same `pf`,
-*   `hooknum`, `priority` and `mask`, with the same `mark` or both times without one
+*   `hooknum`, `priority` and `mask`, with the same `mark` or both times without one, and has
+*   not stopped that hook
 * @usage
 *   local netfilter = require("netfilter")
 *   local nf        = require("linux.nf")
