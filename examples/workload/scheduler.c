@@ -23,7 +23,6 @@ struct luascx_task_class {
 struct task_entry {
 	struct luascx_task_class cls;
 	u64 exec_id;
-	bool valid; /* zeroed storage is born with exec_id 0, which an unexec'd task also has */
 };
 
 static char runtime[] = "examples/workload/workload";
@@ -84,12 +83,6 @@ void BPF_STRUCT_OPS(workload_dispatch, s32 cpu, struct task_struct *prev)
 		scx_min_dsq_move_to_local(DSQ_BATCH);
 }
 
-static __always_inline void default_class(struct luascx_task_class *cls)
-{
-	cls->dsq = DSQ_DEFAULT;
-	cls->slice_ns = SCX_SLICE_DFL;
-}
-
 /* the Lua policy is untrusted input: inserting into a DSQ that does not exist aborts the whole scheduler */
 static __always_inline void sanitize(struct luascx_task_class *cls)
 {
@@ -103,26 +96,25 @@ static __always_inline void sanitize(struct luascx_task_class *cls)
 
 void BPF_STRUCT_OPS(workload_enqueue, struct task_struct *p, u64 enq_flags)
 {
-	struct luascx_task_class cls;
-	struct task_entry *entry = bpf_task_storage_get(&task_classes, p, 0, BPF_LOCAL_STORAGE_GET_F_CREATE);
+	struct task_entry *cached = bpf_task_storage_get(&task_classes, p, 0, 0);
 
-	if (entry && entry->valid && entry->exec_id == p->self_exec_id) { /* an exec changes the command the policy matched */
-		scx_min_dsq_insert(p, entry->cls.dsq, entry->cls.slice_ns, enq_flags);
+	if (cached && cached->exec_id == p->self_exec_id) { /* an exec changes the command the policy matched */
+		scx_min_dsq_insert(p, cached->cls.dsq, cached->cls.slice_ns, enq_flags);
 		return;
 	}
 
-	default_class(&cls);
-	if (bpf_luascx_run((char *)runtime, sizeof(runtime), p, &cls) == 0) {
-		sanitize(&cls);
-		if (entry) {
-			entry->cls = cls;
-			entry->exec_id = p->self_exec_id;
-			entry->valid = true;
-		}
-	} else
-		default_class(&cls); /* a failed run may leave cls half written */
+	struct task_entry entry = {
+		.cls = { .dsq = DSQ_DEFAULT, .slice_ns = SCX_SLICE_DFL },
+		.exec_id = p->self_exec_id,
+	};
 
-	scx_min_dsq_insert(p, cls.dsq, cls.slice_ns, enq_flags);
+	if (bpf_luascx_run(runtime, sizeof(runtime), p, &entry.cls) == 0) {
+		sanitize(&entry.cls);
+		cached = bpf_task_storage_get(&task_classes, p, &entry, BPF_LOCAL_STORAGE_GET_F_CREATE);
+		if (cached)
+			*cached = entry; /* the storage of a task classified before an exec comes back as it was */
+	}
+	scx_min_dsq_insert(p, entry.cls.dsq, entry.cls.slice_ns, enq_flags);
 }
 
 SEC(".struct_ops")
