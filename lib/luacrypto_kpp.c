@@ -32,6 +32,26 @@ LUACRYPTO_CHECKER(kpp, struct crypto_kpp);
 
 LUACRYPTO_RELEASERCTX(kpp, struct crypto_kpp, crypto_free_kpp);
 
+static const struct {
+	const char *name;
+	unsigned int size;
+} luacrypto_kpp_curves[] = {
+	{"ecdh-nist-p192", 24},
+	{"ecdh-nist-p256", 32},
+	{"ecdh-nist-p384", 48},
+};
+
+/* crypto_kpp_maxsize sizes the output buffer: 64 bytes on hisi_hpre for a 48-byte P-192 point */
+static unsigned int luacrypto_kpp_curvesize(struct crypto_kpp *tfm)
+{
+	const char *name = crypto_tfm_alg_name(crypto_kpp_tfm(tfm));
+
+	for (size_t i = 0; i < ARRAY_SIZE(luacrypto_kpp_curves); i++)
+		if (strcmp(name, luacrypto_kpp_curves[i].name) == 0)
+			return luacrypto_kpp_curves[i].size;
+	return 0;
+}
+
 static int luacrypto_kpp_compute(luacrypto_ctx_t *ctx, luacrypto_kpp_op_t op, struct scatterlist *src,
 	unsigned int srclen, char *output, unsigned int outputlen)
 {
@@ -56,11 +76,11 @@ static int luacrypto_kpp_compute(luacrypto_ctx_t *ctx, luacrypto_kpp_op_t op, st
 static int luacrypto_kpp_publickey(lua_State *L)
 {
 	luacrypto_ctx_t *ctx = luacrypto_kpp_checkctx(L, 1);
-	unsigned int len = crypto_kpp_maxsize(ctx->tfm);
-	char *buffer = luacrypto_newbuffer(L, len + 1); /* the NUL lunatik_pushexternalstring writes */
+	unsigned int maxsize = crypto_kpp_maxsize(ctx->tfm);
+	char *buffer = luacrypto_newbuffer(L, maxsize + 1); /* the NUL lunatik_pushexternalstring writes */
 
-	int ret = luacrypto_kpp_compute(ctx, crypto_kpp_generate_public_key, NULL, 0, buffer, len);
-	return luacrypto_pushbuffer(L, buffer, ret, len, false);
+	int ret = luacrypto_kpp_compute(ctx, crypto_kpp_generate_public_key, NULL, 0, buffer, maxsize);
+	return luacrypto_pushbuffer(L, buffer, ret, 2 * luacrypto_kpp_curvesize(ctx->tfm), false);
 }
 
 /***
@@ -79,20 +99,21 @@ static int luacrypto_kpp_sharedsecret(lua_State *L)
 	luacrypto_ctx_t *ctx = luacrypto_kpp_checkctx(L, 1);
 	size_t peerlen;
 	const char *peer = luaL_checklstring(L, 2, &peerlen);
-	unsigned int publiclen = crypto_kpp_maxsize(ctx->tfm);
-	unsigned int len = publiclen / 2; /* the x coordinate: ECDH writes no dst_len back */
+	unsigned int len = luacrypto_kpp_curvesize(ctx->tfm); /* the x coordinate: ECDH writes no dst_len back */
+	unsigned int publiclen = 2 * len;
 	struct scatterlist src;
 
 	if (peerlen != publiclen) /* the copy below reads this many bytes of it */
 		return lunatik_pushfail(L, -EINVAL);
 
-	/* room for the whole point, where the NUL lunatik_pushexternalstring writes lands, then the peer's key */
-	char *buffer = luacrypto_newbuffer(L, 2 * publiclen);
-	memcpy(buffer + publiclen, peer, publiclen); /* a scatterlist maps linear memory */
-	sg_init_one(&src, buffer + publiclen, publiclen);
+	unsigned int maxsize = crypto_kpp_maxsize(ctx->tfm);
+	/* room for the output, where the NUL lunatik_pushexternalstring writes lands, then the peer's key */
+	char *buffer = luacrypto_newbuffer(L, maxsize + publiclen);
+	memcpy(buffer + maxsize, peer, publiclen); /* a scatterlist maps linear memory */
+	sg_init_one(&src, buffer + maxsize, publiclen);
 
-	/* hisi_hpre refuses an output shorter than the point and writes x first */
-	int ret = luacrypto_kpp_compute(ctx, crypto_kpp_compute_shared_secret, &src, publiclen, buffer, publiclen);
+	/* hisi_hpre refuses a shorter output and writes x first */
+	int ret = luacrypto_kpp_compute(ctx, crypto_kpp_compute_shared_secret, &src, publiclen, buffer, maxsize);
 	return luacrypto_pushbuffer(L, buffer, ret, len, ret == -EINVAL);
 }
 
@@ -136,6 +157,13 @@ const lunatik_class_t luacrypto_kpp_class = {
 /* packed as the kernel's ECDH users pack it; an empty key makes the transform generate one */
 static void luacrypto_kpp_setsecret(lua_State *L, struct crypto_kpp *tfm, const char *key, size_t keylen)
 {
+	unsigned int size = luacrypto_kpp_curvesize(tfm);
+
+	if (size == 0)
+		lunatik_throw(L, -EINVAL);
+	if (key != NULL && keylen != size)
+		lunatik_throw(L, -EINVAL);
+
 	struct ecdh params = {.key = (char *)key, .key_size = keylen};
 	unsigned int len = crypto_ecdh_key_len(&params);
 	char *secret = luacrypto_newbuffer(L, len);
@@ -145,9 +173,6 @@ static void luacrypto_kpp_setsecret(lua_State *L, struct crypto_kpp *tfm, const 
 	kfree_sensitive(secret);
 	if (ret < 0)
 		lunatik_throw(L, ret);
-	/* curve25519 takes a packed key the size of its own as raw bytes; key_size truncates */
-	if (key != NULL && keylen * 2 != crypto_kpp_maxsize(tfm))
-		lunatik_throw(L, -EINVAL);
 }
 
 int luacrypto_kpp_new(lua_State *L)

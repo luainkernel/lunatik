@@ -86,6 +86,9 @@ end)
 test("crypto.kpp agrees a secret between two generated keys", function()
 	agree("ecdh-nist-p256", 64)
 	agree("ecdh-nist-p384", 96)
+	agree("ecdh-nist-p256-generic", 64)
+	local ok, err = pcall(agree, "ecdh-nist-p192", 48) -- FIPS mode serves no ecdh-nist-p192
+	assert(ok or err == "ENOENT", tostring(err))
 end)
 
 test("crypto.kpp opens a secret wrapped for a key generated in the kernel", function()

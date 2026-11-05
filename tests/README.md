@@ -157,7 +157,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   vector answers its public key and, with its peer's key, its shared secret.
   Two generated `ecdh-nist-p256` keys differ and agree a 32-byte secret both ways
   over 64-byte public keys, two `ecdh-nist-p384` ones a 48-byte secret over
-  96-byte keys. A sender's generated key wraps a string with `gcm(aes)` under an
+  96-byte keys, two allocated by the driver name `ecdh-nist-p256-generic` a
+  32-byte secret over 64-byte keys, and two `ecdh-nist-p192` ones, where the
+  kernel serves it, a 24-byte secret over 48-byte keys.
+  A sender's generated key wraps a string with `gcm(aes)` under an
   `hkdf` of its secret with a key generated in the kernel, which unwraps it from
   the sender's public key. `sharedsecret` answers nil and `EINVAL` for the peer's
   key off the curve, 63 and 65 bytes long and all zero, and the vector's peer
