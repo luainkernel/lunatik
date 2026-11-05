@@ -12,9 +12,6 @@
 #define DSQ_BATCH    1
 #define DSQ_DEFAULT  2
 
-/* the upper bound for a slice the policy may ask for: a typo must not give a task the CPU for seconds */
-#define MAX_SLICE_NS (100ULL * 1000 * 1000)
-
 struct luascx_task_class {
 	u64 dsq;
 	u64 slice_ns;
@@ -83,17 +80,6 @@ void BPF_STRUCT_OPS(workload_dispatch, s32 cpu, struct task_struct *prev)
 		scx_min_dsq_move_to_local(DSQ_BATCH);
 }
 
-/* the Lua policy is untrusted input: inserting into a DSQ that does not exist aborts the whole scheduler */
-static __always_inline void sanitize(struct luascx_task_class *cls)
-{
-	if (cls->dsq > DSQ_DEFAULT)
-		cls->dsq = DSQ_DEFAULT;
-	if (!cls->slice_ns)
-		cls->slice_ns = SCX_SLICE_DFL;
-	else if (cls->slice_ns > MAX_SLICE_NS)
-		cls->slice_ns = MAX_SLICE_NS;
-}
-
 void BPF_STRUCT_OPS(workload_enqueue, struct task_struct *p, u64 enq_flags)
 {
 	struct task_entry *cached = bpf_task_storage_get(&task_classes, p, 0, 0);
@@ -109,7 +95,6 @@ void BPF_STRUCT_OPS(workload_enqueue, struct task_struct *p, u64 enq_flags)
 	};
 
 	if (bpf_luascx_run(runtime, sizeof(runtime), p, &entry.cls) == 0) {
-		sanitize(&entry.cls);
 		cached = bpf_task_storage_get(&task_classes, p, &entry, BPF_LOCAL_STORAGE_GET_F_CREATE);
 		if (cached)
 			*cached = entry; /* the storage of a task classified before an exec comes back as it was */
