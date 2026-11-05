@@ -15,8 +15,9 @@
 * before its key is set, and
 * "not enough memory" when the binding cannot allocate its own state, its output or the copy of its
 * input. An AEAD message that does not authenticate is no error: `decrypt` answers nil and
-* "EBADMSG" for it, and a signature that does not verify is none either: `verify` answers false and
-* the errno's name.
+* "EBADMSG" for it, a signature that does not verify is none either: `verify` answers false and
+* the errno's name, and nor is a peer's key the curve refuses: `sharedsecret` answers nil and
+* "EINVAL" for it.
 * @module crypto
 */
 
@@ -109,6 +110,28 @@
 */
 
 /***
+* Creates an ECDH key agreement object, which holds one private key for its life.
+* Without a key the kernel generates one, which only its public half, `publickey()`, ever leaves;
+* with one, it is the private scalar, big-endian and of the curve's size, 32 bytes for P-256, the
+* `privateKey` octets of SEC1 that tools export. The name is one of the kernel's `ecdh-nist-p192`,
+* `ecdh-nist-p256` and `ecdh-nist-p384`; no other key agreement is served, X25519 among them, which
+* the kernel offers as a library and not through this API from 6.18. Absent where the kernel is
+* built without `CONFIG_CRYPTO_ECDH`, which every ECDH implementation selects.
+* @function kpp
+* @tparam string algname algorithm name (e.g., "ecdh-nist-p256")
+* @tparam[opt] string key the private key; without it the kernel generates one
+* @treturn crypto_kpp
+* @raise "ENOENT" for an unknown algorithm, "EINVAL" for the name of another key agreement, such as
+*   `ffdhe2048(dh)`, and for a key of another length than the curve's or out of its range, "ENOMEM"
+*   or "not enough memory" on allocation failure
+* @usage
+*   local kpp = require("crypto").kpp
+*   local machine = kpp("ecdh-nist-p256")
+*   local public = machine:publickey()
+*   local shared, err = machine:sharedsecret(peer)
+*/
+
+/***
 * Creates a compression transform. Absent on 6.15 and later, whose kernel has no synchronous
 * compression API.
 * @function comp
@@ -137,6 +160,9 @@ static const luaL_Reg luacrypto_lib[] = {
 	{"aead", luacrypto_aead_new},
 	{"rng", luacrypto_rng_new},
 	{"sig", luacrypto_sig_new},
+#if IS_REACHABLE(CONFIG_CRYPTO_ECDH)
+	{"kpp", luacrypto_kpp_new},
+#endif
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 	{"comp", luacrypto_comp_new},
 #endif
@@ -149,6 +175,9 @@ static const lunatik_class_t *luacrypto_classes[] = {
 	&luacrypto_aead_class,
 	&luacrypto_rng_class,
 	&luacrypto_sig_class,
+#if IS_REACHABLE(CONFIG_CRYPTO_ECDH)
+	&luacrypto_kpp_class,
+#endif
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 	&luacrypto_comp_class,
 #endif

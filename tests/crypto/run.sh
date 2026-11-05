@@ -5,7 +5,7 @@
 #
 # Runs all crypto tests and reports aggregated KTAP results.
 #
-# shash, skcipher, aead, rng, sig and hkdf allocate each algorithm their cases use before the first of them, through
+# shash, skcipher, aead, rng, sig, kpp and hkdf allocate each algorithm their cases use before the first of them, through
 # tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script names.
 #
 # context: a crypto object refused for its execution context leaves nothing
@@ -22,6 +22,12 @@
 # sig: crypto.sig verifies the kernel's own ECDSA P-256 vector and an RSA PKCS#1 v1.5 pair openssl
 # signed, each verifier allocated by its 6.13 name and, on ENOENT, by the name of 6.12 and earlier.
 #
+# kpp: crypto.kpp agrees ECDH secrets the kernel's P-256 vector gives and two generated keys agree on,
+# opens a secret an ephemeral key wrapped for a key generated in the kernel through hkdf and gcm(aes),
+# answers nil and EINVAL for a peer's key the curve refuses, and refuses a private key of another length,
+# out of range, or for another key agreement. crypto.kpp is nil where the kernel has no ECDH, and the
+# script then raises as for an algorithm the kernel does not serve.
+#
 # comp is served only where the kernel still has the crypto_comp API, which
 # Linux 6.15 removed: lib/luacrypto_comp.c compiles to nothing there and
 # crypto.comp is nil. hascomp asks the runtime for the binding, so the suite
@@ -33,7 +39,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="shash skcipher aead rng sig hkdf comp"
+TESTS="shash skcipher aead rng sig kpp hkdf comp"
 TOTAL=$(echo $TESTS | wc -w)
 PROBE="tests/crypto/hascomp"
 
