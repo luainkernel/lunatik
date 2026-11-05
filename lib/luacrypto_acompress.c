@@ -57,7 +57,6 @@ typedef struct luacrypto_acompress_req_s {
 	lunatik_defer_t defer;
 	u8 *inbuf;
 	u8 *outbuf;
-	size_t outbuf_len;
 	int err;	/* the outcome the callback receives */
 	bool busy;
 } luacrypto_acompress_req_t;
@@ -127,19 +126,17 @@ static int luacrypto_acompress_req_invoke(lua_State *L)
 }
 
 /*
- * Completes an operation on the given Lua state: frees the input copy, drops
- * the callback's anchor and invokes it protected with (err | nil, output | nil),
- * where err is the errno name (e.g. "EINVAL"), then drops the reference the
- * submission took. The request is not read once the callback may have run,
- * since the callback, or a sharer, may close it.
+ * Completes an operation on the given Lua state: drops the callback's anchor
+ * and invokes it protected with (err | nil, output | nil), where err is the
+ * errno name (e.g. "EINVAL"), then drops the reference the submission took.
+ * The request is not read once the callback may have run, since the callback,
+ * or a sharer, may close it.
  */
 static int luacrypto_acompress_req_complete(lua_State *L, luacrypto_acompress_req_t *obj)
 {
 	lunatik_object_t *object = obj->object;
 	luacrypto_acompress_call_t call = {.obj = obj, .called = false};
 
-	lunatik_free(obj->inbuf);
-	obj->inbuf = NULL;
 	if (lunatik_catch(L, luacrypto_acompress_req_invoke, &call, "acompress callback") != 0 && !call.called)
 		obj->busy = false;
 	lunatik_putobject(object);
@@ -182,19 +179,14 @@ static void luacrypto_acompress_req_docall(void *data, int err)
 /*
  * Copies the input into kmalloc'd memory the scatterlist can map: a Lua
  * string may live in vmalloc. Runs while the submitter holds the runtime
- * lock, so the string cannot be collected underneath the copy. The output
- * buffer is kept across operations and grown when too small; the input copy
- * belongs to the request until the completion frees it.
+ * lock, so the string cannot be collected underneath the copy.
  */
 static void luacrypto_acompress_req_prepare(luacrypto_acompress_req_t *obj, lua_State *L,
 	const char *in_buf, size_t in_len, unsigned int out_len)
 {
-	if (obj->outbuf_len < out_len) {
-		u8 *outbuf = luacrypto_newbuffer(L, out_len);
-		lunatik_free(obj->outbuf);
-		obj->outbuf = outbuf;
-		obj->outbuf_len = out_len;
-	}
+	u8 *outbuf = luacrypto_newbuffer(L, out_len);
+	lunatik_free(obj->outbuf);
+	obj->outbuf = outbuf;
 
 	u8 *inbuf = luacrypto_newbuffer(L, in_len);
 	memcpy(inbuf, in_buf, in_len);
