@@ -90,18 +90,9 @@ static void luacrypto_acompress_req_release(void *private)
 	}
 }
 
-/* Drops the anchors, leaving the callback on the stack. */
 static void luacrypto_acompress_req_unanchor(lua_State *L, luacrypto_acompress_req_t *obj)
 {
-	if (lunatik_getregistry(L, obj->object) != LUA_TTABLE)	/* anchors */
-		luaL_error(L, "couldn't find anchor table for acomp request");
-
-	lua_getfield(L, -1, "cb");	/* anchors, cb */
-	lua_pushnil(L);
-	lua_rawseti(L, -3, 1);	/* drop anchors so cb may submit again */
-	lua_pushnil(L);
-	lua_setfield(L, -3, "cb");
-	lua_remove(L, -2);	/* cb */
+	lunatik_getregistry(L, obj->object);	/* cb */
 	lunatik_unregister(L, obj->object);
 }
 
@@ -120,7 +111,6 @@ static int luacrypto_acompress_req_invoke(lua_State *L)
 	luacrypto_acompress_req_t *obj = call->obj;
 
 	luacrypto_acompress_req_unanchor(L, obj);	/* cb */
-	luaL_checktype(L, -1, LUA_TFUNCTION);
 	if (obj->err == 0) {
 		lua_pushnil(L);
 		lua_pushlstring(L, (const char *)obj->outbuf, obj->req->dlen);
@@ -137,7 +127,7 @@ static int luacrypto_acompress_req_invoke(lua_State *L)
 
 /*
  * Completes an operation on the given Lua state: frees the input copy, drops
- * the anchors and invokes the callback protected with (err | nil, output | nil),
+ * the callback's anchor and invokes it protected with (err | nil, output | nil),
  * where err is the errno name (e.g. "EINVAL"). The request is not read once the
  * callback may have run, since the callback, or a sharer, may close it.
  */
@@ -167,7 +157,7 @@ static int luacrypto_acompress_req_handler(lua_State *L, luacrypto_acompress_req
 	return 0;
 }
 
-/* A runtime that is gone is not entered: the request is only marked idle, its anchors dying with the state. */
+/* A runtime that is gone is not entered: the request is only marked idle, its callback dying with the state. */
 static void luacrypto_acompress_req_resume(luacrypto_acompress_req_t *obj)
 {
 	lunatik_object_t *runtime = obj->runtime;
@@ -228,19 +218,9 @@ static void luacrypto_acompress_req_prepare(luacrypto_acompress_req_t *obj, lua_
 	acomp_request_set_params(obj->req, &obj->sg_in, &obj->sg_out, in_len, out_len);
 }
 
-/* Anchors the request and the callback under the request object while the
- * operation is in flight; the completion unregisters them. */
-static void luacrypto_acompress_req_anchor(lua_State *L, luacrypto_acompress_req_t *obj,
-	int self_ix, int cb_ix)
+static void luacrypto_acompress_req_anchor(lua_State *L, luacrypto_acompress_req_t *obj, int cb_ix)
 {
-	lua_createtable(L, 2, 1);
-	lua_pushvalue(L, self_ix);
-	lua_rawseti(L, -2, 1);
-	lua_pushvalue(L, cb_ix);
-	lua_setfield(L, -2, "cb");
-	lunatik_register(L, -1, obj->object);
-	lua_pop(L, 1);
-
+	lunatik_register(L, cb_ix, obj->object);
 	obj->busy = true;
 }
 
@@ -249,8 +229,8 @@ static int luacrypto_acompress_req_async(lua_State *L, luacrypto_acompress_req_t
 {
 	acomp_request_set_callback(obj->req, CRYPTO_TFM_REQ_MAY_BACKLOG | CRYPTO_TFM_REQ_MAY_SLEEP,
 		luacrypto_acompress_req_docall, obj);
-	luacrypto_acompress_req_anchor(L, obj, 1, 4);
-	obj->runtime = lunatik_toruntime(L);	/* the anchors live in its registry */
+	luacrypto_acompress_req_anchor(L, obj, 4);
+	obj->runtime = lunatik_toruntime(L);	/* the callback is in its registry */
 	lunatik_getobject(obj->runtime);
 	lunatik_getobject(obj->object);	/* held until the operation completes */
 	int ret = op(obj->req);
