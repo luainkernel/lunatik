@@ -205,6 +205,9 @@ static void luacrypto_acompress_req_docall(void *data, int err)
 {
 	luacrypto_acompress_req_t *obj = (luacrypto_acompress_req_t *)data;
 
+	if (err == -EINPROGRESS) /* a backlogged request entered the queue: its outcome is still to come */
+		return;
+
 	obj->err = err;
 	if (lunatik_isatomic())
 		lunatik_defer(&obj->defer);
