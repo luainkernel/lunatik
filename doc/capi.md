@@ -1641,6 +1641,18 @@ Allocates the `size` bytes an operation reads its input from and writes its outp
 [`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which frees it with the state's
 allocator.
 
+### luacrypto\_pushbuffer
+```C
+int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, size_t len, bool outcome);
+```
+Answers a request that wrote its result into `buffer`, a [`luacrypto_newbuffer`](#luacrypto_newbuffer)
+of at least `len + 1` bytes, from `ret`, what the kernel returned for it: pushes the first `len` bytes
+as a string with [`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which then owns the
+buffer, and returns `1`; for a negative `ret` frees the buffer with [`lunatik_free`](#lunatik_free)
+and raises the errno's name, or, with `outcome` set, returns the `2` values of
+[`lunatik_pushfail`](#lunatik_pushfail), nil and that name, for a result the method's contract
+reports rather than raises, as `decrypt` does with `EBADMSG` and `sharedsecret` with `EINVAL`.
+
 ### luacrypto\_shash\_class
 ```C
 extern const lunatik_class_t luacrypto_shash_class;
