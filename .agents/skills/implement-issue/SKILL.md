@@ -87,7 +87,7 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   `Update:` of #2234's, #2238's and #2240's runs. The run returns `writes`, which the session posts in
   order as soon as it returns, without asking (AGENTS.md, *Deciding what to change*), each read back
   from GitHub: `label`, the `workflow-reviewed` label on the
-  pull request; `append`, a blank line and the text or the file after the issue's body as GitHub has it
+  pull request, and the `complexity:` label `tools/complexity.sh` printed for it; `append`, a blank line and the text or the file after the issue's body as GitHub has it
   then, and for an entry the higher of the issue's severity label and the entry's; `create`, an issue with
   the title, the file as its body and `severity: <severity>`.
 - A dead run is resumed as the review-pr card says, from `journal.jsonl` and `resumeFromRunId`; the

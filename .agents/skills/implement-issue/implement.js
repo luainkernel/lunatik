@@ -38,7 +38,7 @@
 //               a change whose done criteria are a run of its own tool spells that run here
 //
 // It returns the implementer's answer, the review's, the last host run's build, the pull request, the
-// writes the session posts to GitHub in order, the label, the groomer's Update and each entry of
+// writes the session posts to GitHub in order, the labels, the groomer's Update and each entry of
 // findings_left the filing prepared, and any entry left unfiled.
 // findings_left holds what the implementer, the review, each fix and each build run again after one left.
 
@@ -195,7 +195,8 @@ ${JSON.stringify(body)}
 Write the body with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it, and pass that
 path spelled out in the command that opens the pull request (\`-F body=@${bodyFile}\`): the guards before a shell
 call read the file the command names, and refuse a path a shell variable holds. Label nothing: the session
-labels it. Your answer is the pull request's number; a write refused goes in notes, word for word.
+labels it, with the label \`bash tools/complexity.sh <number>\` prints, which your answer carries as
+complexity. Your answer is the pull request's number; a write refused goes in notes, word for word.
 `
 
 const FILE = (entries, source, findings, fixes) => `
@@ -289,7 +290,10 @@ const FIXED = { type: 'object', properties: {
   notes: { type: 'string' },
 }, required: ['head', 'caused', 'findings_left', 'notes'] }
 
-const OPENED = { type: 'object', properties: { pr: { type: 'integer' }, notes: { type: 'string' } }, required: ['pr'] }
+const OPENED = { type: 'object', properties: {
+  pr: { type: 'integer' }, complexity: { type: 'string', enum: ['complexity: small', 'complexity: medium', 'complexity: large'] },
+  notes: { type: 'string' },
+}, required: ['pr'] }
 
 const GROOMED = { type: 'object', properties: {
   verdict: { type: 'string', enum: ['implement', 'reshape', 'decline'] },
@@ -337,7 +341,7 @@ const implemented = await agent(IMPLEMENT + (groomed ? GROOMING(groomed) : ''), 
   label: `implement:${a.issue}`, phase: 'Implement', schema: IMPLEMENTED, ...implementer,
 })
 
-let review = null, build = null, pr = 0
+let review = null, build = null, pr = 0, complexity = null
 const fixes = [], reruns = []
 if (implemented?.branch && a.push !== false) {
   try {
@@ -371,6 +375,7 @@ if (implemented?.branch && a.push !== false) {
       label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
     })
     pr = opened?.pr || 0
+    complexity = opened?.complexity || null
   } else {
     const why = !passed(build) ? 'the host run did not pass' : missing.length ? `the host run left ${missing.join(', ')} unrun`
       : unsourced.length ? `the review kept ${unsourced.map(b => b.mechanism).join('; ')} without a source` : 'gh is absent'
@@ -400,6 +405,7 @@ if (unfiled.length)
 // a workflow agent's write to GitHub is refused by the auto mode classifier, and the session's is not
 const writes = [
   ...(pr ? [{ action: 'label', issue: pr, label: 'workflow-reviewed' }] : []),
+  ...(pr && complexity ? [{ action: 'label', issue: pr, label: complexity }] : []),
   ...(groomed?.update ? [{ action: 'append', issue: a.issue, text: /^Update:/.test(groomed.update) ? groomed.update : `Update: ${groomed.update}` }] : []),
   ...prepared.filter(w => w.action !== 'skip'),
 ]

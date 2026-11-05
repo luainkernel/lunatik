@@ -505,6 +505,11 @@ named, not one discovered at that consumer's build.
   the replacement closes #N in the same breath: one left open is a claim about the queue nobody made.
   `tools/pr-status.sh` marks an open pull request a merged body names that way as superseded and
   keeps it out of `--ready`.
+* A pull request carries the `complexity:` label `tools/complexity.sh` prints for it, `small`,
+  `medium` or `large` by the lines it adds: the maintainer picks what he reviews by that label, the
+  small first, and asked on 2026-11-05 that every pull request take it. An implement-issue run returns
+  it among its writes, one opened otherwise takes it as it opens, and one a push moves past its tier,
+  a review's fixups among them, takes the new one in place of the old.
 * A pull request is one mechanism, read in one screen of diff and one paragraph of body. A body that
   needs a section per mechanism describes several pull requests: stack them, each on the one below.
   A defect master carries that the change fixes on the way, because it reaches the code the defect
