@@ -13,7 +13,7 @@ local FLOWS    <const> = 3
 local function hash_hook(skb)
 	local flow = skb:priority() - PRIORITY
 	if flow >= 1 and flow <= FLOWS then
-		print("skb hash: " .. flow .. " " .. skb:hash())
+		print("skb hash: " .. flow .. " " .. skb:hash() .. " " .. skb:copy():hash())
 	end
 	return nf.action.ACCEPT
 end

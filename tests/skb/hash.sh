@@ -12,7 +12,10 @@
 # its datagrams on the way out and both read 0, where a build that computes the hash, as
 # skb_get_hash does, answers a nonzero one. Flows 2 and 3 come from connected sockets (socat UDP),
 # whose datagrams carry the random sk_txhash connect() drew: each reads one nonzero hash on both of
-# its datagrams, and the two flows read two different ones.
+# its datagrams, and the two flows read two different ones. The hook prints the hash of the
+# datagram's skb:copy() beside it, which reads the original's on every datagram of every flow,
+# where a build whose copy clears the hash, as it clears the route and the conntrack entry, reads
+# 0 on the connected flows' copies.
 #
 # Usage: sudo bash tests/skb/hash.sh
 
@@ -33,10 +36,10 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-CASES="unset flow apart"
+CASES="unset flow apart copy"
 
 ktap_header
-ktap_plan 4
+ktap_plan 5
 
 if ! command -v socat > /dev/null 2>&1; then
 	for c in $CASES; do ktap_skip "hash $c — socat unavailable"; done
@@ -69,7 +72,12 @@ out=$(dmesg_since)
 
 # hashes <flow>: the hashes the hook printed for the flow's datagrams, one per line
 hashes() {
-	echo "$out" | sed -n "s/.*skb hash: $1 \([0-9]*\)$/\1/p"
+	echo "$out" | sed -n "s/.*skb hash: $1 \([0-9]*\) [0-9]*$/\1/p"
+}
+
+# pairs: the hash and the copy's hash the hook printed for each datagram, one pair per line
+pairs() {
+	echo "$out" | sed -n "s/.*skb hash: [0-9]* \([0-9]* [0-9]*\)$/\1/p"
 }
 
 # one <flow>: the flow's hash when its datagrams read one, nonzero, and nothing otherwise
@@ -101,6 +109,13 @@ if [ -n "$h2" ] && [ -n "$h3" ] && [ "$h2" != "$h3" ]; then
 else
 	ktap_fail "hash reads two connected sockets apart"
 	comment "flow 2 read: ${h2:-none}, flow 3 read: ${h3:-none}"
+fi
+
+if [ "$(pairs | wc -l)" -eq $((NFLOWS * DATAGRAMS)) ] && [ -z "$(pairs | awk '$1 != $2')" ]; then
+	ktap_pass "hash reads the original's hash on a copy"
+else
+	ktap_fail "hash reads the original's hash on a copy"
+	comment "hash and copy's hash read: $(pairs | tr '\n' ',')"
 fi
 
 check_dmesg && ktap_pass "no Lua errors, kernel warnings or oopses"
