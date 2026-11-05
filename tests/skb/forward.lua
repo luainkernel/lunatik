@@ -15,13 +15,14 @@ local ECHO        <const> = 8
 local PAST_MARK   <const> = 1291 -- PAST_MARK in forward.sh
 local BEFORE_MARK <const> = 1292 -- BEFORE_MARK in forward.sh
 local AT_MARK     <const> = 1293 -- AT_MARK in forward.sh
+local COPY_MARK   <const> = 1294 -- COPY_MARK in forward.sh
 local REFUSAL     <const> = "MAC header past the data"
 local SOURCE      <const> = 11 -- the last byte of the Ethernet source address
 local FLIP        <const> = 0xff -- the bits a write after forward() changes
 
 local format = string.format
 
-local cells = {[BEFORE_MARK] = "before", [AT_MARK] = "at"}
+local cells = {[BEFORE_MARK] = "before", [AT_MARK] = "at", [COPY_MARK] = "copy"}
 local forwarded = {}
 local stamp = linux.random(1, FLIP) -- drawn per run, so a copy whose MAC bytes were never written reads another
 
@@ -46,6 +47,20 @@ local function written(view, offset, want)
 	return got ~= want and format("byte %d reads %d, not %d", offset, got, want)
 end
 
+-- a copy's views, taken before forward(), still read its own head after the resize that follows
+local function resendcopy(skb)
+	local copy = skb:copy()
+	local packet, mac = copy:data(), copy:data("mac")
+	local last = #packet - 1
+	mac:setuint8(SOURCE, stamp)
+	forwarded.copy = packet:getuint8(last)
+	copy:forward()
+	copy:resize(#copy + 1)
+	packet:setuint8(last, forwarded.copy ~ FLIP)
+	mac:setuint8(SOURCE, stamp ~ FLIP)
+	return nf.action.ACCEPT
+end
+
 local function resend(skb)
 	local packet = skb:data()
 	if packet:getuint8(IP_PROTO) ~= ipproto.ICMP or packet:getuint8(ICMP_TYPE) ~= ECHO then
@@ -59,6 +74,9 @@ local function resend(skb)
 		local failure = written(packet, last, byte) or header and written(mac, SOURCE, stamp)
 		print("skb forward: " .. cell .. (failure and " FAIL " .. failure or " ok"))
 		return nf.action.ACCEPT
+	end
+	if cell == "copy" then
+		return resendcopy(skb)
 	end
 	if header then
 		mac:setuint8(SOURCE, stamp)
