@@ -153,6 +153,7 @@ config LUNATIK_CRYPTO
 	  Linux Crypto API support (hash, cipher, AEAD, RNG, compression,
 	  signature verification). Signature verification links
 	  crypto_alloc_sig, which CRYPTO_SIG2 builds.
+	  Compression links crypto_alloc_acomp, which CRYPTO_ACOMP2 builds.
 
 config LUNATIK_DARKEN
 	tristate "Lunatik Darken (Encrypted Script) Support"
