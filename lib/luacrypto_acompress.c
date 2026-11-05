@@ -24,7 +24,8 @@
 
 typedef struct luacrypto_acompress_s {
 	struct crypto_acomp *tfm;
-	atomic_t requests;	/* a request's release runs from the GC, maybe inside a method holding this lock */
+	/* atomic: a request's release, which the GC runs inside this transform's methods, cannot take its lock */
+	atomic_t requests;
 } luacrypto_acompress_t;
 
 LUNATIK_PRIVATECHECKER(luacrypto_acompress_checkctx, luacrypto_acompress_t *,
