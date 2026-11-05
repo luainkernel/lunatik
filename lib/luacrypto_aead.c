@@ -129,7 +129,7 @@ static int luacrypto_aead_encrypt(lua_State *L)
 	size_t output_len = request.crypt_len + request.authsize;
 	char *buffer = luacrypto_aead_prepare(L, &request, output_len);
 	int ret = crypto_aead_encrypt(request.aead);
-	return luacrypto_pushbuffer(L, buffer, ret, request.aad_len, output_len);
+	return luacrypto_pushbuffer(L, buffer, ret, 0, request.aad_len, output_len);
 }
 
 /***
@@ -154,11 +154,7 @@ static int luacrypto_aead_decrypt(lua_State *L)
 	size_t output_len = request.crypt_len - request.authsize;
 	char *buffer = luacrypto_aead_prepare(L, &request, output_len);
 	int ret = crypto_aead_decrypt(request.aead);
-	if (ret == -EBADMSG) {
-		lunatik_free(buffer);
-		return lunatik_pushfail(L, ret);
-	}
-	return luacrypto_pushbuffer(L, buffer, ret, request.aad_len, output_len);
+	return luacrypto_pushbuffer(L, buffer, ret, -EBADMSG, request.aad_len, output_len);
 }
 
 /***

@@ -148,14 +148,18 @@ config LUNATIK_COMPLETION
 
 config LUNATIK_CRYPTO
 	tristate "Lunatik Crypto Support"
+	depends on CRYPTO_ECDH || !CRYPTO_ECDH
 	default m
 	help
 	  Linux Crypto API support (hash, cipher, AEAD, RNG, compression,
-	  signature verification). Signature verification links
-	  crypto_alloc_sig, which CRYPTO_SIG2 builds. The RNG links
+	  signature verification, ECDH key agreement). Signature verification
+	  links crypto_alloc_sig, which CRYPTO_SIG2 builds. The RNG links
 	  crypto_alloc_rng and crypto_rng_reset, which CRYPTO_RNG2 builds,
 	  and raises EOPNOTSUPP without it. Compression links
-	  crypto_alloc_acomp, which CRYPTO_ACOMP2 builds.
+	  crypto_alloc_acomp, which CRYPTO_ACOMP2 builds. Key agreement links
+	  crypto_ecdh_encode_key, which CRYPTO_ECDH builds, and is absent
+	  without it; where CRYPTO_ECDH is a module this is one too, since a
+	  built-in one could not link it.
 
 config LUNATIK_DARKEN
 	tristate "Lunatik Darken (Encrypted Script) Support"

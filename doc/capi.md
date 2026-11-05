@@ -1588,9 +1588,10 @@ typedef struct luacrypto_ctx_s {
 	u8 *iv;
 } luacrypto_ctx_t;
 ```
-The private of a class whose operations take a request and an IV, `crypto.skcipher`, `crypto.aead`
-and `crypto.comp` (whose IV is `NULL` and whose constructor is written by hand because it admits an
-asynchronous implementation): the transform, its request and its IV, `NULL` for a cipher that takes none. They are
+The private of a class whose operations take a request and an IV, `crypto.skcipher`, `crypto.aead`,
+`crypto.comp` and `crypto.kpp`, whose IV is `NULL` and whose constructors are written by hand, comp's because it
+admits an asynchronous implementation and kpp's because it sets the private key: the transform, its request and
+its IV, `NULL` for a cipher that takes none. They are
 allocated once, when the object is created, so an operation allocates only what it returns.
 
 ### LUACRYPTO\_NEWCTX
@@ -1663,15 +1664,17 @@ allocator.
 
 ### luacrypto\_pushbuffer
 ```C
-int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, size_t offset, size_t len);
+int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, int outcome, size_t offset, size_t len);
 ```
 Answers a request that wrote its result at `offset` into `buffer`, a
 [`luacrypto_newbuffer`](#luacrypto_newbuffer) of at least `offset + len + 1` bytes, from `ret`, what the
 kernel returned for it: moves the `len` bytes at `offset` to the buffer's start, as the result of
 `crypto.aead`, which follows its associated data, needs, pushes them as a string with
-[`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which then owns the buffer, and returns `1`;
-for a negative `ret` frees the buffer with [`lunatik_free`](#lunatik_free) and raises the errno's name,
-having moved nothing.
+[`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which then owns the buffer, and returns `1`.
+For a negative `ret` it frees the buffer with [`lunatik_free`](#lunatik_free), having moved nothing, and
+raises the errno's name, or, where `ret` is `outcome`, the errno a script reads as an outcome, as
+`crypto.aead`'s `EBADMSG` and `crypto.kpp`'s `EINVAL` are, pushes nil and its name with
+[`lunatik_pushfail`](#lunatik_pushfail) and returns `2`; an `outcome` of `0` names none.
 
 ### LUACRYPTO\_DECLARE
 ```C
@@ -1679,10 +1682,11 @@ having moved nothing.
 ```
 Declares `extern const lunatik_class_t luacrypto_<name>_class` and `int luacrypto_<name>_new(lua_State *L)`,
 the class and the constructor of `crypto.<name>`, as `luacrypto.h` does for `shash`, `skcipher`, `aead`,
-`rng`, `sig` and `comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
-what each constructor raises. `luacrypto_rng_class` is defined where `CONFIG_CRYPTO_RNG2` is reachable,
+`rng`, `sig`, `kpp` and `comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference
+says what each constructor raises. `luacrypto_rng_class` is defined where `CONFIG_CRYPTO_RNG2` is reachable,
 since `luacrypto_rng.c` links `crypto_alloc_rng` and `crypto_rng_reset` from it, and `luacrypto_rng_new`
-raises `EOPNOTSUPP` where it is not.
+raises `EOPNOTSUPP` where it is not; `crypto.kpp` is declared where `CONFIG_CRYPTO_ECDH` is reachable, since
+`luacrypto_kpp.c` links `crypto_ecdh_encode_key` from it.
 
 ---
 
