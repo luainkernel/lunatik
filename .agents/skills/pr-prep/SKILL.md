@@ -52,6 +52,8 @@ no "Test plan" section, no em dashes. On top of it:
 - A push, forced or not, is a command of its own, after the rebase before it is read as finished
   in `git status`; chained after one that stopped on a conflict, it publishes the base as the branch.
 - After any force-push, re-read the title and body against the branch as it now stands.
+- Once open, the pull request takes the label `bash tools/complexity.sh <N>` prints, and after a push
+  that changes its size, the one it prints then in place of the old (AGENTS.md, *Patches and commits*).
 - A pull request on another pull request's branch opens as a draft (`-F draft=true`), which GitHub
   will not merge before its base; `stacked-guard.sh` refuses one that does not.
 

@@ -150,7 +150,9 @@ author from GitHub with the credential the command carries.
   editing the body down to the verdict and re-posting each finding inline — rework, not repair.
 - Once the review is posted, label the pull request as read end to end:
   `gh api -X POST repos/.../issues/<N>/labels -f 'labels[]=workflow-reviewed'`; `tools/pr-status.sh`
-  reads that label as the sign that someone read it.
+  reads that label as the sign that someone read it. One whose `complexity:` label is not the one
+  `bash tools/complexity.sh <N>` prints, since the review's fixups moved it or since it carries none,
+  takes that one in the same call, and the old one is removed (AGENTS.md, *Patches and commits*).
 
 # After the merge
 

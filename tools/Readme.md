@@ -21,6 +21,15 @@ installed, the Lua heap of a runtime in each context after a full collection, an
 of an empty runtime in each context, 64 of them held against none. A ref is not built below 1024 MB
 free under the work directory.
 
+## complexity.sh
+
+Prints the `complexity:` label each pull request carries, by the lines it adds: up to 40 `small`, up to
+150 `medium`, past that `large`. The maintainer picks what he reviews by it, the small first.
+
+```sh
+GH_TOKEN=... bash tools/complexity.sh 2340    # complexity: medium
+```
+
 ## debian_kernel_postinst_lunatik.sh
 
 Under Debian, copy this script into /etc/kernel/postinst.d/
