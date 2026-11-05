@@ -191,7 +191,8 @@ PHASE: BUILD of ${a.pr ? `pull request #${a.pr}` : `the branch \`${a.branch}\``}
 ${a.machine ? 'THIS MACHINE: ' + a.machine : 'Root commands run as `sudo <cmd>`; confirm that works without a prompt (`sudo -n true`) and, where it does not, skip the build and say so.'}
 
 In a worktree of your own under ${a.scratch}/ at \`${tip}\`, the tip of \`${a.branch}\` with every fixup
-(\`git -C ${repo} worktree add --detach <abs path> ${tip}\`, then \`git submodule update --init\`): ${typeof a.build === 'string' ? a.build : `\`make\` clean, then install, reload and the whole suite through tools/lunatik-host as the
+(\`git -C ${repo} worktree add --detach <abs path> ${tip}\`, then \`git submodule update --init\`): ${typeof a.build === 'string' ? `${a.build}
+Your answer's clean says whether that run passed.` : `\`make\` clean, then install, reload and the whole suite through tools/lunatik-host as the
 lunatik-cycle skill orders it, then the examples the change touches through tools/watchdog.sh, each one
 driven as its README says and stopped, with dmesg read after.`}
 ${(a.examples || []).length ? `The examples the change touches: ${a.examples.join(', ')}. Your answer's examples names

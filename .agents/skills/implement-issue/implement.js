@@ -321,7 +321,9 @@ const reviewArgs = (impl, extra) => ({
   focus: a.focus || a.notes, smallest: impl.smallest, body: impl.body, effort: reviewer.effort, model: reviewer.model, push: a.push,
   agents: { build: (a.agents || {}).build }, build: a.build, repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
 })
-const passed = (build) => build && build.clean && (build.skipped || /fail:0\b/.test(build.totals || ''))
+// a run a.build spells in place of the suite may print no suite totals, and then its clean is the verdict
+const passed = (build) => build && build.clean && (build.skipped || /fail:0\b/.test(build.totals || '')
+  || typeof a.build === 'string' && !/fail:\d/.test(build.totals || ''))
 // an example the host only loaded, or a skipped build ran none of, is accounted for, and the body says so
 const unrun = (impl, build) => build?.skipped ? [] : (impl.examples || []).filter(e =>
   ![...(build?.examples || []), ...(build?.loaded || []).map(l => l.example)].includes(e))
