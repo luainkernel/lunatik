@@ -33,8 +33,15 @@ Verify:
 sudo bpftool struct_ops show
 ```
 
-Task storage cannot be dumped with `bpftool map dump`, so to see a task's class, change the
-policy and watch where the task lands, for example with `perf sched` or `schedtop`.
+Task storage cannot be dumped with `bpftool map dump`. sched_ext's debug dump names the queue each
+runnable task waits in, `dsq_id=0x1` for one the policy sent to `BATCH`, read through its tracepoint:
+
+```sh
+echo 1 | sudo tee /sys/kernel/tracing/events/sched_ext/sched_ext_dump/enable
+echo D | sudo tee /proc/sysrq-trigger
+sudo grep -A2 'firefox\[' /sys/kernel/tracing/trace
+echo 0 | sudo tee /sys/kernel/tracing/events/sched_ext/sched_ext_dump/enable
+```
 
 Tear it down with:
 
