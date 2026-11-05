@@ -128,32 +128,20 @@ static int luacrypto_acompress_req_invoke(lua_State *L)
 /*
  * Completes an operation on the given Lua state: frees the input copy, drops
  * the callback's anchor and invokes it protected with (err | nil, output | nil),
- * where err is the errno name (e.g. "EINVAL"). The request is not read once the
- * callback may have run, since the callback, or a sharer, may close it.
+ * where err is the errno name (e.g. "EINVAL"), then drops the reference the
+ * submission took. The request is not read once the callback may have run,
+ * since the callback, or a sharer, may close it.
  */
-static void luacrypto_acompress_req_complete(lua_State *L, luacrypto_acompress_req_t *obj, int err)
-{
-	obj->err = err;
-	lunatik_free(obj->inbuf);
-	obj->inbuf = NULL;
-	luacrypto_acompress_call_t call = {.obj = obj, .called = false};
-
-	if (lunatik_catch(L, luacrypto_acompress_req_invoke, &call, "acompress callback") != 0 && !call.called)
-		obj->busy = false;
-}
-
-/* Delivers the outcome and drops the reference the submission took. */
-static void luacrypto_acompress_req_finish(lua_State *L, luacrypto_acompress_req_t *obj, int err)
+static int luacrypto_acompress_req_complete(lua_State *L, luacrypto_acompress_req_t *obj)
 {
 	lunatik_object_t *object = obj->object;
+	luacrypto_acompress_call_t call = {.obj = obj, .called = false};
 
-	luacrypto_acompress_req_complete(L, obj, err);
+	lunatik_free(obj->inbuf);
+	obj->inbuf = NULL;
+	if (lunatik_catch(L, luacrypto_acompress_req_invoke, &call, "acompress callback") != 0 && !call.called)
+		obj->busy = false;
 	lunatik_putobject(object);
-}
-
-static int luacrypto_acompress_req_handler(lua_State *L, luacrypto_acompress_req_t *obj, int err)
-{
-	luacrypto_acompress_req_finish(L, obj, err);
 	return 0;
 }
 
@@ -164,7 +152,7 @@ static void luacrypto_acompress_req_resume(luacrypto_acompress_req_t *obj)
 	lunatik_object_t *object = obj->object;
 	int ret;
 
-	lunatik_run(runtime, luacrypto_acompress_req_handler, ret, obj, obj->err);
+	lunatik_run(runtime, luacrypto_acompress_req_complete, ret, obj);
 	if (ret != 0) {
 		obj->busy = false;
 		lunatik_putobject(object);
@@ -235,8 +223,9 @@ static int luacrypto_acompress_req_async(lua_State *L, luacrypto_acompress_req_t
 	lunatik_getobject(obj->object);	/* held until the operation completes */
 	int ret = op(obj->req);
 	if (ret != -EINPROGRESS && ret != -EBUSY) {
+		obj->err = ret;
 		lunatik_putobject(obj->runtime);
-		luacrypto_acompress_req_finish(L, obj, ret);
+		luacrypto_acompress_req_complete(L, obj);
 	}
 	return 0;
 }
