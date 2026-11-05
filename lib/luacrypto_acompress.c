@@ -68,11 +68,6 @@ static void luacrypto_acompress_req_release(void *private)
 {
 	luacrypto_acompress_req_t *obj = (luacrypto_acompress_req_t *)private;
 
-	if (obj->runtime) {
-		lunatik_putobject(obj->runtime);
-		obj->runtime = NULL;
-	}
-
 	if (obj->req) {
 		acomp_request_free(obj->req);
 		obj->req = NULL;
@@ -183,14 +178,12 @@ static void luacrypto_acompress_req_resume(luacrypto_acompress_req_t *obj)
 	lunatik_object_t *object = obj->object;
 	int ret;
 
-	/* the call may free the request, and with it the last reference the request held */
-	lunatik_getobject(runtime);
 	lunatik_run(runtime, luacrypto_acompress_req_handler, ret, obj, obj->err);
 	if (ret != 0) {
 		obj->busy = false;
 		lunatik_putobject(object);
 	}
-	lunatik_putobject(runtime);
+	lunatik_putobject(runtime);	/* the submission's: the call may have freed the request */
 }
 
 static void luacrypto_acompress_req_deferred(struct work_struct *work)
@@ -277,10 +270,14 @@ static int luacrypto_acompress_req_async(lua_State *L, luacrypto_acompress_req_t
 			CRYPTO_TFM_REQ_MAY_BACKLOG,
 		luacrypto_acompress_req_docall, obj);
 	luacrypto_acompress_req_anchor(L, obj, 1, 4);
+	obj->runtime = lunatik_toruntime(L);	/* the anchors live in its registry */
+	lunatik_getobject(obj->runtime);
 	lunatik_getobject(obj->object);	/* held until the operation completes */
 	int ret = op(obj->req);
-	if (ret != -EINPROGRESS && ret != -EBUSY)
+	if (ret != -EINPROGRESS && ret != -EBUSY) {
+		lunatik_putobject(obj->runtime);
 		luacrypto_acompress_req_finish(L, obj, ret);
+	}
 	return 0;
 }
 
@@ -290,6 +287,7 @@ static int luacrypto_acompress_req_##name(lua_State *L)						\
 	luacrypto_acompress_req_t *obj = luacrypto_acompress_req_check(L, 1);			\
 	if (obj->busy)										\
 		return luaL_error(L, LUACRYPTO_ACOMPRESS_ERR_BUSY);				\
+	lunatik_checkclosing(L);								\
 												\
 	size_t in_len;										\
 	const char *in_buf = luaL_checklstring(L, 2, &in_len);					\
@@ -318,7 +316,8 @@ static int luacrypto_acompress_req_##name(lua_State *L)						\
 * @tparam string data The data to compress.
 * @tparam integer max_len The maximum size of the output buffer.
 * @tparam function callback Receives `err` and `data` when the operation completes.
-* @raise Error if the request object is busy or if parameters are invalid.
+* @raise Error if the request object is busy or if parameters are invalid; "not allowed while the
+*   runtime closes" from a finalizer that runs at its close.
 */
 LUACRYPTO_ACOMPRESS_REQ_OPERATION(compress)
 
@@ -333,7 +332,8 @@ LUACRYPTO_ACOMPRESS_REQ_OPERATION(compress)
 * @tparam string data The compressed data to decompress.
 * @tparam integer max_len The maximum size of the output buffer.
 * @tparam function callback Receives `err` and `data` when the operation completes.
-* @raise Error if the request object is busy or if parameters are invalid.
+* @raise Error if the request object is busy or if parameters are invalid; "not allowed while the
+*   runtime closes" from a finalizer that runs at its close.
 */
 LUACRYPTO_ACOMPRESS_REQ_OPERATION(decompress)
 
@@ -432,8 +432,6 @@ static int luacrypto_acompress_request(lua_State *L)
 	lunatik_getobject(req->tfm);
 	atomic_inc(&acomp->requests);	/* under the monitor's lock, which close reads it under */
 	req->object = object;
-	req->runtime = lunatik_toruntime(L);
-	lunatik_getobject(req->runtime);
 	lunatik_initdefer(&req->defer, luacrypto_acompress_req_deferred);
 
 	req->req = lunatik_checknull(L, luacrypto_acompress_request_alloc(acomp->tfm, L));
