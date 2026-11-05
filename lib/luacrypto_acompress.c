@@ -200,15 +200,6 @@ static void luacrypto_acompress_req_docall(void *data, int err)
 	lunatik_defer(&obj->defer);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
-#define luacrypto_acompress_request_alloc(tfm, L) ({	\
-	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));	\
-	acomp_request_alloc(tfm, gfp);			\
-})
-#else
-#define luacrypto_acompress_request_alloc(tfm, L)	acomp_request_alloc(tfm)
-#endif
-
 /*
  * Copies the input into kmalloc'd memory the scatterlist can map: a Lua
  * string may live in vmalloc. Runs while the submitter holds the runtime
@@ -426,7 +417,7 @@ static int luacrypto_acompress_request(lua_State *L)
 	req->object = object;
 	lunatik_initdefer(&req->defer, luacrypto_acompress_req_deferred);
 
-	req->req = lunatik_checknull(L, luacrypto_acompress_request_alloc(acomp->tfm, L));
+	req->req = lunatik_checknull(L, acomp_request_alloc(acomp->tfm));
 
 	return 1;
 }
