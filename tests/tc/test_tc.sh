@@ -55,6 +55,13 @@
 # it through. A build whose forward() sends a clone, which shares the head the callback writes and
 # which the veth hands to the peer's backlog unread, fails the ping.
 #
+# The shared case puts its program on the ingress of the host's veth end, where a packet socket a
+# second script holds open on that end takes a clone of each frame before the classifier, so the
+# echo request of a ping from the namespace reaches the callback with a head the clone shares:
+# skb:data() returns a view that reads it and whose setters raise "read only", and skb:resize() and
+# skb:checksum() raise "skb is not writable". Each call writes, if at all, the bytes the frame holds,
+# so a build that writes into the shared head fails the case without changing a frame.
+#
 # The teardown case puts the copy program on the egress of a veth end in a namespace of its own
 # whose conntrack an nft rule engages, where copy.lua's first step keeps a copy of the echo reply
 # to a ping from the host, deletes that namespace, then a second one, and reads that the second's
@@ -122,6 +129,7 @@ RELOADED="tc reload: the callback runs after lunatik_run reloads under an attach
 NOTCX="tcx needs libbpf 1.3.0"
 IFNAME="tc ifname: the callback reads the name and the index of a device of another namespace"
 RESENT="tc resend: forward() sends a frame the callback's later write through its view does not reach"
+SHARED="tc shared: a frame whose head a clone shares reads through a read only view, and resize and checksum refuse it"
 MACSEC="tc macsec: a copy's forward() refuses a frame its device encrypts by MACsec offload, and sends one it does not"
 NSIM_ID=1321
 MACSEC_DEV="lunatikmacsec0"
@@ -158,21 +166,21 @@ source "$DIR/../lib.sh"
 
 # load with bpftool (current libbpf) and attach the pinned program, so the suite
 # does not depend on the distribution's iproute2 being new enough to load it:
-# tc_load <object> [<device> <tc>] attaches it on the egress of IFACE, or of the
-# device given through the command given in place of tc, and tc_unload
-# [<device> <tc>] detaches it there
+# tc_load <object> [<device> <tc> <direction>] attaches it on the egress of IFACE, or of the
+# device given through the command given in place of tc, in the direction given, and tc_unload
+# [<device> <tc> <direction>] detaches it there
 tc_load()
 {
-	local dev="${2:-$IFACE}" tc="${3:-tc}"
+	local dev="${2:-$IFACE}" tc="${3:-tc}" direction="${4:-egress}"
 	$tc qdisc add dev "$dev" clsact 2>/dev/null
 	bpftool prog load "$DIR/$1" "$PIN" 2>/dev/null &&
-		$tc filter add dev "$dev" egress bpf da object-pinned "$PIN"
+		$tc filter add dev "$dev" "$direction" bpf da object-pinned "$PIN"
 }
 
 tc_unload()
 {
-	local dev="${1:-$IFACE}" tc="${2:-tc}"
-	$tc filter del dev "$dev" egress 2>/dev/null
+	local dev="${1:-$IFACE}" tc="${2:-tc}" direction="${3:-egress}"
+	$tc filter del dev "$dev" "$direction" 2>/dev/null
 	rm -f "$PIN"
 }
 
@@ -199,7 +207,7 @@ copy_releases() {
 }
 
 ktap_header
-ktap_plan 27
+ktap_plan 28
 
 skip_all()
 {
@@ -217,6 +225,7 @@ skip_all()
 	ktap_skip "$COPIED"
 	ktap_skip "$DETACHED"
 	ktap_skip "$RESENT"
+	ktap_skip "$SHARED"
 	ktap_skip "$MACSEC"
 	ktap_skip "$TEARDOWN"
 	ktap_skip "$ROUTED"
@@ -251,6 +260,8 @@ cleanup()
 	lunatik stop tests/tc/copy > /dev/null 2>&1
 	lunatik stop tests/tc/macsec > /dev/null 2>&1
 	lunatik stop tests/tc/resend > /dev/null 2>&1
+	lunatik stop tests/tc/shared > /dev/null 2>&1
+	lunatik stop tests/tc/shared_tap > /dev/null 2>&1
 	lunatik stop tests/tc/verdict > /dev/null 2>&1
 	lunatik stop tests/tc/compiled_pass > /dev/null 2>&1
 	lunatik stop tests/tc/compiled_drop > /dev/null 2>&1
@@ -452,6 +463,24 @@ copy_case()
 	check_dmesg || { ktap_fail "$COPIED"; ktap_fail "$DETACHED"; return 1; }
 	cells_verdict copy "$COPIED" inside past
 	cells_verdict copy "$DETACHED" detach detached
+}
+
+shared_case()
+{
+	tc_load tc_shared.bpf.o "$IFACE" tc ingress ||
+		{ tc_unload "$IFACE" tc ingress; ktap_fail "$SHARED: failed to load/attach TC program"; return 1; }
+
+	mark_dmesg
+	run_script "tests/tc/shared_tap"
+	run_script --context=softirq "tests/tc/shared"
+	ip netns exec "$NETNS" ping -c 1 -W 2 "$HOST" > /dev/null 2>&1
+
+	tc_unload "$IFACE" tc ingress
+	lunatik stop tests/tc/shared > /dev/null 2>&1
+	lunatik stop tests/tc/shared_tap > /dev/null 2>&1
+
+	check_dmesg || { ktap_fail "$SHARED"; return 1; }
+	cells_verdict shared "$SHARED" data resize checksum
 }
 
 macsec_case()
@@ -693,6 +722,7 @@ run_case tc_data.bpf.o data.lua yes "tc data" \
 nonlinear_case
 copy_case
 run_case tc_resend.bpf.o resend.lua yes "tc resend" "$RESENT" --context=softirq
+shared_case
 macsec_case
 teardown_case
 route_case

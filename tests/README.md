@@ -2256,7 +2256,11 @@ pid, what a valid call does, and where it refuses to run.
   build that sends a clone, whose head `lo` transmits as the original's, fails
   the `lo` case, and so does one that leaves the copy's MAC header unwritten;
   `ip_tunnel_xmit` gives a clone a head of its own before the write, so the
-  tunnel's case passes either. The tunnel runs over loopback; its cases skip without
+  tunnel's case passes either. A second ping to the loopback address has the hook
+  take a copy and its views, `forward()` the copy, `skb:resize` it and only then
+  write through those views, and the copy's frame arrives with both bytes as they
+  were: a build whose `forward()` leaves the copy's head shared, which the resize
+  then reallocates under the views, fails there. The tunnel runs over loopback; its cases skip without
   `ipip`, and unless the loaded `luaskb` is the installed one and carries the
   refusal, since a module without it panics the host.
 
@@ -2276,6 +2280,16 @@ pid, what a valid call does, and where it refuses to run.
   read a "mac" view, so a build that returns one where the header is absent fails
   without an out-of-bounds access. The tunnel runs over loopback; its cases skip
   without `ipip`.
+- **shared**: a packet socket for every ethertype on `lo` takes a clone of a small
+  UDP datagram on the way out and another on the way in, so a `PRE_ROUTING` hook
+  receives a linear skb whose head the two clones share. The datagram is sent from
+  a kernel script with no UDP checksum and a mark that picks one hook, to a socket
+  of the script's own, and once it is delivered the script reads the frames the
+  packet socket holds: a write through `skb:data("net")` reaches the delivered
+  datagram and no frame, and `skb:checksum()` alone leaves each frame's checksum
+  0. A build whose `data()` or `checksum()` writes into the shared head, as one
+  that linearizes and does not unshare, fails the case of that method. Skips
+  without `AF_PACKET`.
 
 - **copy**: a veth pair joins the initial namespace to one of the test's own, the
   initial end aggregating UDP with fraglist GRO and the other segmenting UDP in
@@ -2583,6 +2597,14 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   drops it, so the ping is answered only if the frame `forward()` sent left with
   the type it had. A build whose `forward()` sends a clone, which shares the head
   the callback writes, fails the ping.
+
+- **tc shared**: the program on the ingress of the host's veth end, where a packet
+  socket a second script holds open there takes a clone of each frame before the
+  classifier, so the echo request of a ping from the namespace reaches the callback
+  with a head the clone shares: `skb:data()` returns a view that reads it and whose
+  setters raise "read only", and `skb:resize()` and `skb:checksum()` raise "skb is
+  not writable". Each call writes, if at all, the bytes the frame holds, so a build
+  that writes into the shared head fails without changing a frame.
 
 - **tc macsec**: the program on the egress of a netdevsim port a MACsec SecY
   offloads to, set up as the kernel's rtnetlink selftest sets one; one ping goes

@@ -19,7 +19,11 @@
 # it, while ip_tunnel_xmit gives a clone a head of its own before the write. On lo the hook
 # also writes a byte drawn per run into the Ethernet source address before forward() and flips
 # it after, and the copy arrives with the drawn byte, so a build that pushes the copy over its
-# headroom unwritten fails there too. The tunnel runs over loopback and needs only the ipip
+# headroom unwritten fails there too. A second ping to the loopback address has the hook make a
+# copy of the original and take its views, forward() the copy, resize it and only then write
+# through those views: the frame the copy sent arrives with both bytes as they were, so a build
+# whose forward() leaves the copy's head shared, which the resize then reallocates under the
+# views, fails there. The tunnel runs over loopback and needs only the ipip
 # module; its cases skip without it. A luaskb without the refusal pushes the copy below its
 # head and panics the host, so the tunnel's cases also skip unless the loaded luaskb is the
 # installed one and the installed one carries the refusal.
@@ -36,9 +40,11 @@ PEER="10.199.1.2"
 PAST_MARK=1291   # PAST_MARK in forward.lua
 BEFORE_MARK=1292 # BEFORE_MARK in forward.lua
 AT_MARK=1293     # AT_MARK in forward.lua
+COPY_MARK=1294   # COPY_MARK in forward.lua
 PAST="forward: refuses a MAC header past the data"
 BEFORE="forward: sends a copy of its own when the MAC header precedes the data"
 AT="forward: sends a copy of its own when the MAC header is at the data"
+COPY="forward: a copy's resize after forward() leaves the views it took on the head they read"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -64,13 +70,14 @@ verdict() {
 }
 
 ktap_header
-ktap_plan 3
+ktap_plan 4
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 	echo "# SKIP: $MODULE not loaded"
 	ktap_skip "$PAST"
 	ktap_skip "$AT"
 	ktap_skip "$BEFORE"
+	ktap_skip "$COPY"
 	ktap_totals
 	exit 0
 }
@@ -96,7 +103,9 @@ if [ -z "$skip" ]; then
 		ping -c 1 -W 1 -m "$mark" -I "$TUNNEL" "$PEER" > /dev/null 2>&1
 	done
 fi
-ping -c 1 -W 1 -m "$BEFORE_MARK" "$LOCAL" > /dev/null 2>&1
+for mark in "$BEFORE_MARK" "$COPY_MARK"; do
+	ping -c 1 -W 1 -m "$mark" "$LOCAL" > /dev/null 2>&1
+done
 lunatik stop "$SCRIPT" 2>/dev/null
 
 out=$(dmesg_since)
@@ -110,5 +119,6 @@ else
 	verdict at "$AT"
 fi
 verdict before "$BEFORE"
+verdict copy "$COPY"
 ktap_totals
 
