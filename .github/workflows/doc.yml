@@ -27,18 +27,12 @@ jobs:
         # a release builds the site from master too, which serves master/ and every page's header
         ref: ${{ github.event_name == 'release' && 'master' || '' }}
         fetch-depth: 0
-    - name: Setup Lua
-      uses: leafo/gh-actions-lua@v8
-      with:
-        luaVersion: 5.4
-    - name: Setup Lua Rocks
-      uses: leafo/gh-actions-luarocks@v4
     - name: Setup dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libmarkdown2-dev
-        luarocks install ldoc
-        luarocks install discount DISCOUNT_INCDIR=/usr/include/$(gcc -print-multiarch) DISCOUNT_LIBDIR=/usr/lib/$(gcc -print-multiarch)
+        # LDoc runs on lua5.4, the newest Lua the archive builds it for, and discount, which the archive dropped, comes from luarocks for that Lua
+        sudo apt-get install -y lua5.5 lua5.4 lua-ldoc luarocks liblua5.4-dev libmarkdown2-dev
+        sudo luarocks --lua-version=5.4 install discount DISCOUNT_INCDIR=/usr/include/$(gcc -print-multiarch) DISCOUNT_LIBDIR=/usr/lib/$(gcc -print-multiarch)
     - name: List the releases the site serves
       env:
         GH_TOKEN: ${{ github.token }}
@@ -50,7 +44,7 @@ jobs:
         test -n "$releases" || { echo "no published release listed"; exit 1; }
         echo "RELEASES=$releases" >> "$GITHUB_ENV"
     - name: Build docs
-      run: make doc-site LUA=lua DOC_TAGS= DOC_RELEASES="$RELEASES"
+      run: make doc-site DOC_TAGS= DOC_RELEASES="$RELEASES"
     - name: Deploy master
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       uses: peaceiris/actions-gh-pages@v3
@@ -65,7 +59,7 @@ jobs:
           git worktree add "$RUNNER_TEMP/$tag" "$tag"
           # the release's content, under the header, style and recipe of the tree checked out
           git -C "$RUNNER_TEMP/$tag" checkout "$head" -- doc/style
-          make -C "$RUNNER_TEMP/$tag" -f "$GITHUB_WORKSPACE/Makefile" doc-site LUA=lua DOC_TAGS="$tag" DOC_RELEASES="$RELEASES"
+          make -C "$RUNNER_TEMP/$tag" -f "$GITHUB_WORKSPACE/Makefile" doc-site DOC_TAGS="$tag" DOC_RELEASES="$RELEASES"
         done
         # the latest release at the root, each other one under its own version, master under master/
         set -- $RELEASES
