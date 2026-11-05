@@ -109,8 +109,7 @@
 */
 
 /***
-* Creates a compression transform. Absent on 6.15 and later, whose kernel has no synchronous
-* compression API.
+* Creates a compression transform.
 * @function comp
 * @tparam string algname algorithm name (e.g., "lz4", "deflate")
 * @treturn crypto_comp
@@ -137,9 +136,7 @@ static const luaL_Reg luacrypto_lib[] = {
 	{"aead", luacrypto_aead_new},
 	{"rng", luacrypto_rng_new},
 	{"sig", luacrypto_sig_new},
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 	{"comp", luacrypto_comp_new},
-#endif
 	{NULL, NULL}
 };
 
@@ -149,9 +146,7 @@ static const lunatik_class_t *luacrypto_classes[] = {
 	&luacrypto_aead_class,
 	&luacrypto_rng_class,
 	&luacrypto_sig_class,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 	&luacrypto_comp_class,
-#endif
 	NULL
 };
 

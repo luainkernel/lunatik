@@ -72,3 +72,8 @@ test("COMP close releases the transform, and __close is close", function()
 	closing.check(comp("lz4"), "compress", "data", 64)
 end)
 
+test("COMP refuses an unknown name with ENOENT", function()
+	local status, err = pcall(comp, "nosuchcomp")
+	assert(not status and err == "ENOENT", "comp raised " .. tostring(err))
+end)
+

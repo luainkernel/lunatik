@@ -163,9 +163,7 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   and decompresses back into an exact or a larger buffer; an empty string with
   a size of 0 is refused as out of bounds, and a buffer one byte short of the
   output with `EINVAL`; a method called on another class's object is refused
-  naming `crypto.comp`. Skipped where `crypto.comp` is not built: `hascomp`
-  asks the runtime for the binding, instead of the suite reading the kernel
-  version.
+  naming `crypto.comp`, and an unknown name with `ENOENT`.
 - **context**: an object refused for its execution context leaves nothing
   allocated. `crypto.shash("sha256")`, `crypto.comp("lz4")` and
   `crypto.sig("ecdsa-nist-p256")` from an armed softirq runtime are refused
@@ -182,18 +180,20 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   `authenc` of it, names no script asks for; `/proc/crypto` listing each instance
   as asynchronous shows the refusal answered one and not an unknown name. Skips
   when the kernel registered none, and unloads `cryptd` when the test loaded it.
-- **large**: `skcipher` and `aead` cipher a copy of their input in one kmalloc
-  block, since a scatterlist maps linear memory and a string past a page may be
-  vmalloc's. Data of two pages and a block, and associated data of two pages and
-  a byte, go through it whole: `cbc(aes)` matches its pages chained by their last
-  block, `gcm(aes)` seals into what `ctr(aes)` gives from the second counter and
-  opens back, and a byte flipped in the last page of either answers nil and
-  `EBADMSG`. A string past `KMALLOC_MAX_SIZE`,
+- **large**: `skcipher`, `aead` and `comp` take a copy of their input in one
+  kmalloc block, since a scatterlist maps linear memory and a string past a page
+  may be vmalloc's. Data of two pages and a block, and associated data of two
+  pages and a byte, go through it whole: `cbc(aes)` matches its pages chained by
+  their last block, `gcm(aes)` seals into what `ctr(aes)` gives from the second
+  counter and opens back, and a byte flipped in the last page of either answers
+  nil and `EBADMSG`; `lz4` compresses data of a page and a block and
+  decompresses it back whole. A string past `KMALLOC_MAX_SIZE`,
   always vmalloc's, is refused with "not enough memory" as the data of each
-  `encrypt` and `decrypt` and as `aead`'s associated data, with no warning in
-  `dmesg`. Skips unless the loaded `luacrypto` lists `luacrypto_newbuffer` in
-  `/proc/kallsyms`, since a build that maps the string oopses on arm64, and
-  where the kernel serves no `cbc(aes)`, `gcm(aes)` or `ctr(aes)`.
+  `encrypt`, `decrypt`, `compress` and `decompress` and as `aead`'s associated
+  data, with no warning in `dmesg`. Skips unless the loaded `luacrypto` lists
+  `luacrypto_newbuffer` in `/proc/kallsyms`, since a build that maps the string
+  oopses on arm64, and where the kernel serves no `cbc(aes)`, `gcm(aes)`,
+  `ctr(aes)` or `lz4`.
 - **seed**: `rng` and `reset` without a seed seed an algorithm with `seedsize()`
   random bytes the kernel draws. `ansi_cprng`, which refuses a seed under 32
   bytes with `EINVAL`, is created, reports a seed size of 48 and gives other
@@ -1878,10 +1878,9 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   without opening the library or adding a `package.loaded` entry: `data`
   into a softirq runtime, where the clone must not sleep, and
   `set`, the crypto classes and the `bpf` maps into a process
-  one. The `crypto.comp` case skips where the kernel has no crypto_comp
-  API (6.15 and later), the `bpf` one where bpftool cannot pin a map, and
-  the first where the kernel serves no `sha256`, `cbc(aes)`, `gcm(aes)` or
-  `stdrng`.
+  one. The `bpf` case skips where bpftool cannot pin a map, and
+  the first where the kernel serves no `sha256`, `cbc(aes)`, `gcm(aes)`,
+  `stdrng` or `lz4`.
 
 - **require_reopen**: a library opened in a state that already has its
   classes (the `_ENV` object's clone creates the `rcu.table` metatables,

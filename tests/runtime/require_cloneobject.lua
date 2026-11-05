@@ -15,6 +15,7 @@ local shash    = alloc(crypto.shash, "sha256")
 local skcipher = alloc(crypto.skcipher, "cbc(aes)")
 local aead     = alloc(crypto.aead, "gcm(aes)")
 local rng      = alloc(crypto.rng, "stdrng")
+local comp     = alloc(crypto.comp, "lz4")
 
 check.clones(data.new(4), "softirq")
 check.clones(set.new({key = 1}))
@@ -22,4 +23,5 @@ check.clones(shash)
 check.clones(skcipher)
 check.clones(aead)
 check.clones(rng)
+check.clones(comp)
 
