@@ -16,7 +16,8 @@ inside code, the trailing comment past the width, a comment on a signature line 
 `static inline` or function-like macro and one naming the file or function that reads a value
 (`comment-style.sh`), a comment a change adds to one definition of a block whose others carry none
 (`comment-siblings.sh`), a sequence of calls a change adds that another C file already makes
-(`core-helper.sh`), a deferral a change adds to the core or a binding (`deferral.sh`), the
+(`core-helper.sh`), a function a change adds that spells a run of code another project wrote
+(`copied.sh`), a deferral a change adds to the core or a binding (`deferral.sh`), the
 branches, argument tables, inline functions and repeated blocks the Lua style rules settle
 (`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script
 skips (`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
@@ -122,6 +123,16 @@ spells `lua_pushnil`, `lunatik_pusherrname` and `return 2`. It runs at edit time
 diff and annotates, since two encryptions that set up one request each are two callers of the
 kernel's API and not a helper missing; the review answers each line it prints with the helper or
 the reason the calls are the kernel's sequence.
+
+`copied.sh` reads the functions a change adds or edits in a C file, against `CHECK_BASE`, for a run of
+16 tokens or more, comments and literals left out, that a function of `lua/`, `luac/` or klibc spells
+too, made of sequences no other C file of the tree spells: code another project wrote is reused, not
+copied (AGENTS.md, *Deciding what to change*), and #2347 copied 22 tokens of `project()` under no note.
+A sequence the tree spells elsewhere is its own idiom, a call of the Lua API or of the kernel's, and a
+function under a note `based on <function>() @ <path>` follows that function on purpose; neither is named.
+It runs at edit time and over a pull request's diff and annotates, since a copy spread over two files of
+the tree reads as the tree's own idiom, and one that renames a local it repeats reads as none, as #2347's
+does with `lim` renamed; it reads nothing where the submodules are not checked out.
 
 `deferral.sh` reads the lines a change adds to the C of the core or a binding, against `CHECK_BASE`,
 for a deferral: an item of `lunatik_defer`, a work, an irq_work or a tasklet. A hazard is refused in

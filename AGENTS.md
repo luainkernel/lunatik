@@ -311,6 +311,16 @@ line each keeper has for each. An earlier push of #2099 read `nf_queue` and the 
 for the device alone and dropped the copy's route, as `ip_frag_queue` does, where those two force it
 with `skb_dst_force`, as the merged one does.
 
+Code another project wrote is reused, not copied: what the Lua of `lua/` compiles is exported from the
+Lunatik side, as `lunatik_core.c` exports `luaS_hash` for `luarcu`, what klibc offers is linked, as
+`Kbuild` links its division helpers into `lunatik.ko`, and what neither offers is written over the
+kernel's primitives. A function that still follows another's method names it in a note of one line
+above it, `/* based on math_random() @ lua/lmathlib.c */` in `lib/lualinux.c`; the copyright lines of
+a header name who wrote the file, and a third party's does not go there. #2347 first copied the loop
+of `project()` into `lib/lualinux.c` under no note, and its fixup then put Lua.org's copyright on the
+whole file. `tools/checks/copied.sh` names a function a change adds that spells a run of another
+project's tokens under no note.
+
 Reshaping or renaming an API means updating every consumer, grepped for — including consumers in
 stacked or sibling pull requests that will rebase onto the change. A caller left on the old shape
 compiles against a Lua module and only fails when its code path runs. The grep is taken on the
