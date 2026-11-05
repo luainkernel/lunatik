@@ -7,5 +7,5 @@
 local crypto = require("crypto")
 local check  = require("tests.runtime.check")
 
-check.clones(crypto.comp("lz4"))
+check.clones(require("tests.lib").alloc(crypto.comp, "lz4"))
 

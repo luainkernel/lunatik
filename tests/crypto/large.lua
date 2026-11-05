@@ -8,6 +8,7 @@ local crypto = require("crypto")
 local lib = require("tests.lib")
 local test = lib.test
 local sizes = require("tests.crypto.large_sizes")
+local refused = require("tests.crypto.refused")
 
 local concat, insert = table.concat, table.insert
 local char, rep, sub = string.char, string.rep, string.sub
@@ -64,12 +65,6 @@ end
 local function unauthentic(name, plain, err)
 	assert(plain == nil and err == EBADMSG, name .. ": expected nil and '" .. EBADMSG .. "', got: " ..
 		tostring(plain) .. ", " .. tostring(err))
-end
-
-local function refused(expected, name, method, c, ...)
-	local ok, err = pcall(method, c, ...)
-	assert(not ok, name .. " should be refused")
-	assert(err == expected, name .. ": expected '" .. expected .. "', got: " .. tostring(err))
 end
 
 test("SKCIPHER AES-128-CBC data spanning pages matches its pages chained", function()
