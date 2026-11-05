@@ -194,6 +194,18 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   `luacrypto_newbuffer` in `/proc/kallsyms`, since a build that maps the string
   oopses on arm64, and where the kernel serves no `cbc(aes)`, `gcm(aes)`,
   `ctr(aes)` or `lz4`.
+- **deferred**: `comp` waits for an asynchronous implementation. No software
+  acomp answers asynchronously and no test host carries an engine, so the test
+  builds `deferred.c` against the running kernel and loads it:
+  `lunatik-deferred`, whose `compress` answers `-EINPROGRESS` and whose
+  `decompress` answers `-EBUSY` with the request backlogged, or `-ENOSPC`
+  without `CRYPTO_TFM_REQ_MAY_BACKLOG`, and a worker writes the output and
+  completes each request after the call returned, with a synchronous twin under
+  the same name that 6.15 and later allocate as the fallback. It names itself
+  through `algname`, `compress` and `decompress` return the input whole, and
+  an output shorter than the input raises from either the `EINVAL` the
+  completion carries; the module counts one completion from the worker per
+  call. Skips where the running kernel has no build tree.
 - **seed**: `rng` and `reset` without a seed seed an algorithm with `seedsize()`
   random bytes the kernel draws. `ansi_cprng`, which refuses a seed under 32
   bytes with `EINVAL`, is created, reports a seed size of 48 and gives other
