@@ -24,11 +24,14 @@ journal() {
 	jq -cR 'fromjson? // empty' "$1/journal.jsonl"
 }
 
-# the calls whose last entry in the journal is a start, the retry of a failed one among them, each
-# with the last entry of its agent's log
+# the agent each label started last, while the last entry of its call is that start, each with the
+# last entry of its log: a resume that changes an agent's options starts it under another key, and
+# the call it stopped keeps a start with no result
 running() {
-	journal "$1" | jq -rs 'map(select(.key)) | group_by(.key) | map(last)[]
-		| select(.type == "started") | "\(.agentId) \(.label)"' |
+	journal "$1" | jq -rs 'map(select(.key)) as $entries | $entries | map(select(.type == "started"))
+		| group_by(.label) | map(last)[]
+		| select(.key as $key | last($entries[] | select(.key == $key)).type == "started")
+		| "\(.agentId) \(.label)"' |
 	while read -r id label; do
 		last=$(tail -n 1 "$1/agent-$id.jsonl" 2>/dev/null | jq -r '[.type,
 			(.message.content? // [] | if type == "array" then map(select(.type == "tool_use") | .name) | join(",") else "" end)]
