@@ -2202,7 +2202,8 @@ pid, what a valid call does, and where it refuses to run.
   since nothing hashed them, where a build that computes the hash as `skb_get_hash`
   does answers a nonzero one; each connected socket's read the one nonzero hash
   `connect()` drew for it, and the two connected sockets read two different ones.
-  Skips without `socat`.
+  The `skb:copy()` of each datagram reads the original's hash, where a build whose
+  copy clears it reads 0 on the connected sockets' copies. Skips without `socat`.
 - **ifname**: a veth pair joins the initial namespace to one of the test's own, and
   once the script is loaded the initial end gets a VLAN sub-interface enslaved to a
   bridge. A datagram the other namespace sends over its own sub-interface arrives
