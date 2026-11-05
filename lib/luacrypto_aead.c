@@ -113,13 +113,8 @@ static inline char *luacrypto_aead_prepare(lua_State *L, luacrypto_aead_request_
 static inline int luacrypto_aead_finish(lua_State *L, luacrypto_aead_request_t *request,
 	char *buffer, int ret, size_t output_len)
 {
-	if (ret < 0) {
-		lunatik_free(buffer);
-		lunatik_throw(L, ret);
-	}
 	memmove(buffer, buffer + request->aad_len, output_len); /* the string frees the buffer from its start */
-	lunatik_pushexternalstring(L, buffer, output_len);
-	return 1;
+	return luacrypto_pushbuffer(L, buffer, ret, output_len);
 }
 
 /***
