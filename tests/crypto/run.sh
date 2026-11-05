@@ -29,7 +29,8 @@
 #
 # acompress submits every compression and decompression with a callback: its
 # script checks the submissions it refuses and the transform's lifetime, and
-# acompress_callback reads from dmesg what each callback received.
+# acompress_callback reads from dmesg what each callback received, and acompress_close that a request
+# closed from a callback run during its call is refused.
 #
 # Usage: sudo bash tests/crypto/run.sh
 
@@ -77,6 +78,8 @@ echo ""
 bash "$DIR/async.sh" || RESULT=1
 echo ""
 bash "$DIR/acompress_callback.sh" || RESULT=1
+echo ""
+bash "$DIR/acompress_close.sh" || RESULT=1
 echo ""
 bash "$DIR/large.sh" || RESULT=1
 echo ""

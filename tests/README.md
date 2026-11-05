@@ -186,6 +186,12 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   reusable", which are read from `dmesg` after the body returns, where an
   asynchronous driver runs the callbacks, a synchronous one during it. Skipped
   where the kernel serves no `lz4`.
+- **acompress_close**: a request closed from the callback a synchronous driver
+  runs during `compress` is refused with "not allowed from the runtime itself",
+  and closes once the call returned. Skipped unless the module file carries the
+  refusal's message and the loaded `luacrypto`, if any, is that file, since one
+  without it waits on the request's lock forever, where the kernel serves no
+  `lz4`, and where its driver completes asynchronously.
 - **context**: an object refused for its execution context leaves nothing
   allocated. `crypto.shash("sha256")`, `crypto.comp("lz4")`,
   `crypto.acompress("lz4")` and `crypto.sig("ecdsa-nist-p256")` from an armed

@@ -355,7 +355,8 @@ static int luacrypto_acompress_req_busy(lua_State *L)
 * nothing, and every other method raises "closed object" afterwards.
 * @function close
 * @treturn nil
-* @raise Error if an operation is still in flight.
+* @raise Error if an operation is still in flight, or "not allowed from the runtime itself" from
+*   the callback a synchronous driver runs during `compress` or `decompress`.
 */
 static int luacrypto_acompress_req_close(lua_State *L)
 {
@@ -364,6 +365,8 @@ static int luacrypto_acompress_req_close(lua_State *L)
 	luacrypto_acompress_req_t *obj;
 	bool busy;
 
+	/* a synchronous driver runs the callback inside compress, which holds object's lock */
+	lunatik_checkowner(L, object);
 	/* close is outside the monitor: the read and the detach it decides take one hold */
 	lunatik_lock(object);
 	obj = (luacrypto_acompress_req_t *)object->private;
