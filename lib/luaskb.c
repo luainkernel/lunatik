@@ -173,6 +173,18 @@ LUNATIK_INTEGERGETTER(luaskb_hash, luaskb_check, private->skb->hash);
 	luaL_argcheck((L), (lskb)->kfunc ? !skb_is_nonlinear((lskb)->skb) : !skb_linearize((lskb)->skb),	\
 		(ix), "skb is not linear")
 
+static inline bool luaskb_writable(luaskb_t *lskb)
+{
+	struct sk_buff *skb = lskb->skb;
+
+	if (lskb->kfunc)
+		return !skb_cloned(skb) || skb_clone_writable(skb, skb->len);
+	return skb_ensure_writable(skb, skb->len) == 0;
+}
+
+#define luaskb_checkwritable(L, lskb, ix)	\
+	luaL_argcheck((L), luaskb_writable(lskb), (ix), "skb is not writable")
+
 static lunatik_object_t *luaskb_pushview(lua_State *L, lunatik_object_t **view)
 {
 	if (*view != NULL)
@@ -201,29 +213,33 @@ static unsigned char *luaskb_start(struct sk_buff *skb, int layer)
 }
 
 /***
-* Linearizes the skb and returns a view from where `layer` starts to the end of
-* the packet: "net" at the network header and "mac" at the MAC header, or, with no
-* `layer`, at `skb->data`, where the packet starts as the hook sees it: the network
-* header in an IPv4 or IPv6 netfilter hook and the MAC header in a tc callback. In a
-* tc callback the skb is not linearized, and a non-linear one raises.
+* Linearizes the skb, gives it a head of its own where a clone shares it, as a packet socket's
+* does, and returns a view from where `layer` starts to the end of the packet: "net" at the
+* network header and "mac" at the MAC header, or, with no `layer`, at `skb->data`, where the
+* packet starts as the hook sees it: the network header in an IPv4 or IPv6 netfilter hook and the
+* MAC header in a tc callback. In a tc callback the skb is neither linearized nor unshared: a
+* non-linear one raises, and one whose head a clone shares returns a read only view, whose setters
+* raise "read only".
 *
 * The skb keeps one view per start: the view with no layer and the "net" and "mac"
 * views are three objects, and a second call returns the same view, ending at the
 * tail as it is then: a `resize` alone does not move a view's end. The skb stays
-* linear once a view is taken, so no later call moves the bytes a view reads. A view
-* is valid until the callback that received the skb returns, or, for a copy, until
-* the copy is collected: afterwards its length is 0 and every access raises "out of
+* linear once a view is taken, and in a netfilter hook its head its own, so no later call moves
+* the bytes a view reads. A view is valid until the callback that received the skb returns, or, for a
+* copy, until the copy is collected: afterwards its length is 0 and every access raises "out of
 * bounds".
 * @function data
 * @tparam[opt] string layer "net" or "mac"
 * @treturn data the view, or nil when the layer's header is not set or lies past the tail
-* @raise if the skb is not linear, in a tc callback or after a failed linearization, or if
-* layer is invalid
+* @raise if the skb is not linear, in a tc callback or after a failed linearization, if it is not
+* writable after a failed unshare, or if layer is invalid
 */
 static int luaskb_data(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	luaskb_checklinear(L, lskb, 1);
+	bool writable = luaskb_writable(lskb);
+	luaL_argcheck(L, writable || lskb->kfunc, 1, "skb is not writable");
 
 	struct sk_buff *skb = lskb->skb;
 	static const char *const layers[] = {"net", "mac", NULL};
@@ -232,7 +248,7 @@ static int luaskb_data(lua_State *L)
 
 	if (luaskb_ispresent(skb, start))
 		luadata_reset(luaskb_pushview(L, &lskb->view[layer]), start, skb_tail_pointer(skb) - start,
-			LUADATA_OPT_NONE);
+			writable ? LUADATA_OPT_NONE : LUADATA_OPT_READONLY);
 	else
 		lua_pushnil(L);
 	return 1;
@@ -241,15 +257,16 @@ static int luaskb_data(lua_State *L)
 /***
 * Expands (skb_put_zero) or shrinks (pskb_trim_rcsum) the skb data area; the bytes an
 * expansion adds read as zeros, and a shrink keeps the checksum a received skb carries. The
-* skb is linearized first, so `n` is the length of the whole packet, which `#skb` returns
-* afterwards. In a tc callback the skb is not linearized, and a non-linear one raises.
+* skb is linearized and unshared first, as `data` does, so `n` is the length of the whole packet,
+* which `#skb` returns afterwards. In a tc callback the skb is neither linearized nor unshared, and a
+* non-linear one, or one whose head a clone shares, raises.
 * @function resize
 * @tparam integer n desired size in bytes, from 0 up to `UINT_MAX`
 * @treturn boolean `true` once resized, and `false`, with the skb as it was, when an expansion
 *   does not fit in the tailroom or a shrink would cut the checksum field the stack has yet to
 *   fill, as a TCP segment's on the way out
 * @raise if out of bounds, if the skb is not linear, in a tc callback or after a failed
-* linearization
+* linearization, or if it is not writable, in a tc callback or after a failed unshare
 */
 static int luaskb_resize(lua_State *L)
 {
@@ -257,6 +274,7 @@ static int luaskb_resize(lua_State *L)
 	struct sk_buff *skb = lskb->skb;
 	size_t new_size = (size_t)lunatik_checkinteger(L, 2, 0, UINT_MAX);
 	luaskb_checklinear(L, lskb, 1);
+	luaskb_checkwritable(L, lskb, 1);
 	size_t cur_size = skb->len;
 
 	if (new_size <= cur_size) {
@@ -296,13 +314,17 @@ static inline void luaskb_csum(struct sk_buff *skb, u8 proto, __sum16 csum)
 * checksum when that header follows the fixed one. A packet that is neither IPv4 nor IPv6, an IPv6
 * packet with extension headers, a packet whose IP header gives a length past its end, or on IPv4
 * shorter than the header or an IHL below 5, and one too short to hold its TCP or UDP checksum
-* field are left unchanged; `resize` does not rewrite that length.
+* field are left unchanged; `resize` does not rewrite that length. The skb is linearized and
+* unshared first, as `data` does; in a tc callback it is neither, and one whose head a clone shares
+* raises.
 * @function checksum
+* @raise if the skb is not writable, in a tc callback or after a failed unshare
 */
 static int luaskb_checksum(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct sk_buff *skb = lskb->skb;
+	luaskb_checkwritable(L, lskb, 1);
 
 	if (skb->protocol == htons(ETH_P_IP)) {
 		struct iphdr *iph = ip_hdr(skb);

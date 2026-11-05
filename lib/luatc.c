@@ -200,7 +200,10 @@ static int luatc_detach(lua_State *L)
 * such as a locally sent TCP segment or a GRO-merged one: the verifier keeps the program's packet
 * pointers across a kfunc, and linearizing can move the packet out from under them. A program whose
 * callback reads the whole packet calls `bpf_skb_pull_data(skb, skb->len)` before `bpf_luatc_run`,
-* after which the verifier has it reload its packet pointers.
+* after which the verifier has it reload its packet pointers. For the same reason a packet whose head
+* a clone shares, as a packet socket's on ingress, is not unshared: `skb:data()` returns a read only
+* view of it, and `skb:resize()` and `skb:checksum()` raise "skb is not writable". The same
+* `bpf_skb_pull_data` gives the packet a head of its own.
 *
 * @function attach
 * @tparam function callback Lua function to call. It receives one argument:
