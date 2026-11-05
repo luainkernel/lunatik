@@ -103,10 +103,12 @@ static inline u8 *luacrypto_checkiv(lua_State *L, int idx, u8 *iv, size_t expect
 
 char *luacrypto_newbuffer(lua_State *L, size_t size);
 
-static inline int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, size_t offset, size_t len)
+static inline int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, int outcome, size_t offset, size_t len)
 {
 	if (ret < 0) {
 		lunatik_free(buffer);
+		if (ret == outcome)
+			return lunatik_pushfail(L, ret);
 		lunatik_throw(L, ret);
 	}
 	if (offset)
@@ -120,6 +122,9 @@ LUACRYPTO_DECLARE(skcipher);
 LUACRYPTO_DECLARE(aead);
 LUACRYPTO_DECLARE(rng);
 LUACRYPTO_DECLARE(sig);
+#if IS_REACHABLE(CONFIG_CRYPTO_ECDH)
+LUACRYPTO_DECLARE(kpp);
+#endif
 LUACRYPTO_DECLARE(comp);
 
 #endif /* _LUACRYPTO_H */

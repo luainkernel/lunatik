@@ -94,7 +94,7 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 
 	luacrypto_skcipher_setrequest(&request, buffer);
 	int ret = crypt(request.skcipher);
-	return luacrypto_pushbuffer(L, buffer, ret, 0, request.data_len);
+	return luacrypto_pushbuffer(L, buffer, ret, 0, 0, request.data_len);
 }
 
 #define LUACRYPTO_SKCIPHER_CRYPT(op)					\

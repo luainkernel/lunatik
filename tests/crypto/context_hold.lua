@@ -22,4 +22,5 @@ hold(crypto.shash, "sha256") -- the kernel may serve no sha256
 hold(crypto.skcipher, "ctr(aes)") -- nor ctr(aes)
 hold(crypto.comp, "lz4") -- lz4 may not be built
 hold(crypto.sig, "ecdsa-nist-p256") -- ECDSA may not be built
+hold(crypto.kpp, "ecdh-nist-p256") -- the binding has no kpp without ECDH
 

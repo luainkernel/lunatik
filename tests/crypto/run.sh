@@ -5,8 +5,8 @@
 #
 # Runs all crypto tests and reports aggregated KTAP results.
 #
-# shash, skcipher, aead, rng, sig, hkdf, comp, quic and hardirq allocate each algorithm their cases use before the
-# first of them, through tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script
+# shash, skcipher, aead, rng, sig, kpp, hkdf, comp, quic and hardirq allocate each algorithm their cases use before
+# the first of them, through tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script
 # names. rng skips where the kernel's configuration has no CONFIG_CRYPTO_RNG2, without which crypto.rng raises
 # EOPNOTSUPP, and fails where it has the option and crypto.rng raises it.
 #
@@ -34,13 +34,21 @@
 # sig: crypto.sig verifies the kernel's own ECDSA P-256 vector and an RSA PKCS#1 v1.5 pair openssl
 # signed, each verifier allocated by its 6.13 name and, on ENOENT, by the name of 6.12 and earlier.
 #
+# kpp: crypto.kpp agrees ECDH secrets the kernel's P-256 vector gives and two generated keys agree on,
+# opens a secret an ephemeral key wrapped for a key generated in the kernel through hkdf and gcm(aes),
+# answers nil and EINVAL for a peer's key the curve refuses, and refuses a private key of another length,
+# out of range, or for another key agreement. crypto.kpp is nil where the kernel has no ECDH, and the
+# script then raises as for an algorithm the kernel does not serve; where the kernel serves
+# ecdh-nist-p256, which /proc/crypto lists once crypto-ecdh loads, that raise is a binding that was not
+# built, and the case fails.
+#
 # Usage: sudo bash tests/crypto/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="shash skcipher aead rng sig hkdf quic hardirq comp"
+TESTS="shash skcipher aead rng sig kpp hkdf quic hardirq comp"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {
@@ -54,9 +62,23 @@ cleanup
 ktap_header
 ktap_plan $TOTAL
 
+# the kernel's config, where it can be read, builds ECDH, and /proc/crypto lists the curve once its module loads
+ecdh_served() {
+	lacks CONFIG_CRYPTO_ECDH && return 1
+	modprobe -q crypto-ecdh
+	grep -qE '^name[[:space:]]+: ecdh-nist-p256$' /proc/crypto
+}
+
 for t in $TESTS; do
 	if [ "$t" = rng ] && lacks CONFIG_CRYPTO_RNG2; then
 		ktap_skip "crypto/rng: needs CONFIG_CRYPTO_RNG2"
+	elif [ "$t" = kpp ] && ecdh_served; then
+		if output=$(run_test "tests/crypto/$t"); then
+			ktap_pass "crypto/$t"
+		else
+			[ -n "$output" ] && echo "$output"
+			ktap_fail "crypto/$t"
+		fi
 	else
 		served_case "crypto/$t" run_test "tests/crypto/$t"
 	fi

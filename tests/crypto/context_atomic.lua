@@ -17,6 +17,9 @@ local constructors = {
 	["ecdsa-nist-p256"] = {new = crypto.sig, refusal = CLASS},
 	lz4 = {new = crypto.comp, refusal = CLASS},
 }
+if crypto.kpp then -- the binding has no kpp without ECDH
+	constructors["ecdh-nist-p256"] = {new = crypto.kpp, refusal = CLASS}
+end
 
 local function refuse()
 	for _ = 1, ATTEMPTS do

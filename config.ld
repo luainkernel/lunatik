@@ -32,6 +32,7 @@ file = {
 	'./lib/crypto/hkdf.lua',
 	'./lib/luacrypto_aead.c',
 	'./lib/luacrypto_comp.c',
+	'./lib/luacrypto_kpp.c',
 	'./lib/luacrypto_rng.c',
 	'./lib/luacrypto_shash.c',
 	'./lib/luacrypto_sig.c',
