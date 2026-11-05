@@ -239,7 +239,8 @@ sudo make install
 
 
 <p><code>sudo make btf_install</code> copies the running kernel&rsquo;s BTF, <code>/sys/kernel/btf/vmlinux</code>, into the
-headers the modules build against. Without it the modules are built with no BTF of their own:
+headers the modules build against. It serves the running release alone, and refuses a
+<code>KERNEL_RELEASE</code> that names another. Without it the modules are built with no BTF of their own:
 <a href="../modules/xdp.html#">xdp</a> and <a href="../modules/tc.html#">tc</a>, and <a href="../modules/scx.html#">scx</a> on a kernel with sched_ext, still load, but log <code>missing module BTF</code> in
 the kernel log and leave their kfunc unregistered, so an eBPF program that calls one, such as
 <code>bpf_luaxdp_run</code>, fails to load.</p>
@@ -328,7 +329,7 @@ and remove <code>/etc/kernel/postinst.d/zz-update-lunatik</code> if you installe
 <a href="../../topics/01-getting-started.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/01-getting-started.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-05 10:44:58</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-05 10:46:01</span>
 </div>
 </footer>
 </body>
