@@ -90,6 +90,8 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   pull request, and the `complexity:` label `tools/complexity.sh` printed for it; `append`, a blank line and the text or the file after the issue's body as GitHub has it
   then, and for an entry the higher of the issue's severity label and the entry's; `create`, an issue with
   the title, the file as its body and `severity: <severity>`.
-- A dead run is resumed as the review-pr card says, from `journal.jsonl` and `resumeFromRunId`; the
-  implementer's checkpoint is `<scratch>/issue<N>/IMPLEMENT.md`, and the review's its own.
+- The session watches a run with `tools/workflow-watch.sh <run id>` as a Monitor's command, which names
+  the agent a quiet run waits on and the last entry of its log. A dead run is resumed as the review-pr
+  card says, from `journal.jsonl` and `resumeFromRunId`; the implementer's checkpoint is
+  `<scratch>/issue<N>/IMPLEMENT.md`, and the review's its own.
 

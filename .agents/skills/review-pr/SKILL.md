@@ -114,8 +114,9 @@ after it. #2189's first review was stopped this way, an empty checkpoint and som
 reading gone, and the maintainer asked for the review back.
 
 A fan-out of agents is bounded before it is launched, not after: one unit as a pilot and timed, a
-wall-clock cap, and an inactivity monitor over the agents' own logs with the launching session left
-idle so it can stop them. Report what a run cost before launching another, since the workflow runner
+wall-clock cap, and an inactivity monitor over the agents' own logs, `tools/workflow-watch.sh` as a
+Monitor's command, with the launching session left idle so it can stop them. Report what a run cost
+before launching another, since the workflow runner
 restarts an agent from zero on a provider error and nothing else counts the restarts. What the reviews
 catch is read with `tools/review-stat.sh`: the commits and the comments each reviewed pull request
 still took after its label.
