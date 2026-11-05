@@ -154,7 +154,8 @@ config LUNATIK_CRYPTO
 	  signature verification). Signature verification links
 	  crypto_alloc_sig, which CRYPTO_SIG2 builds. The RNG links
 	  crypto_alloc_rng and crypto_rng_reset, which CRYPTO_RNG2 builds,
-	  and raises EOPNOTSUPP without it.
+	  and raises EOPNOTSUPP without it. Compression links
+	  crypto_alloc_acomp, which CRYPTO_ACOMP2 builds.
 
 config LUNATIK_DARKEN
 	tristate "Lunatik Darken (Encrypted Script) Support"

@@ -13,17 +13,15 @@
 # A data object crosses into a softirq receiver, where the clone runs under the
 # spinlock of the monitored resume and must not sleep. set, the crypto classes
 # and the bpf maps cross into a process receiver, the context the crypto classes
-# need. crypto_comp exists on 6.14 and earlier, so its case skips where
-# luacrypto carries no luacrypto_comp_new; the bpf maps are pinned with bpftool,
-# and their case skips where it cannot pin them. The first case skips where the
-# kernel serves no sha256, cbc(aes), gcm(aes) or stdrng, which the script names,
-# and where the kernel's configuration has no CONFIG_CRYPTO_RNG2, without which
-# crypto.rng raises EOPNOTSUPP.
+# need. The bpf maps are pinned with bpftool, and their case skips where it
+# cannot pin them. The first case skips where the kernel serves no sha256,
+# cbc(aes), gcm(aes), stdrng or lz4, which the script names, and where the
+# kernel's configuration has no CONFIG_CRYPTO_RNG2, without which crypto.rng
+# raises EOPNOTSUPP.
 #
 # Usage: sudo bash tests/runtime/require_cloneobject.sh
 
 SCRIPT="tests/runtime/require_cloneobject"
-COMP="tests/runtime/require_cloneobject_comp"
 BPF="tests/runtime/require_cloneobject_bpf"
 MODULE="luadata"
 
@@ -36,7 +34,6 @@ source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 cleanup()
 {
 	lunatik stop "$SCRIPT" 2>/dev/null
-	lunatik stop "$COMP" 2>/dev/null
 	lunatik stop "$BPF" 2>/dev/null
 	rm -f "$HASH_MAP" "$QUEUE_MAP"
 }
@@ -50,20 +47,14 @@ clones()
 }
 
 ktap_header
-ktap_plan 3
+ktap_plan 2
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
 if lacks CONFIG_CRYPTO_RNG2; then
 	ktap_skip "data, set and the crypto classes: crypto.rng needs CONFIG_CRYPTO_RNG2"
 else
-	clones "$SCRIPT" "data, set and crypto.shash, skcipher, aead and rng reach a runtime that never required them"
-fi
-
-if grep -qw luacrypto_comp_new /proc/kallsyms; then
-	clones "$COMP" "crypto.comp reaches a runtime that never required crypto"
-else
-	ktap_skip "crypto.comp: the binding is not built on this kernel"
+	clones "$SCRIPT" "data, set and crypto.shash, skcipher, aead, rng and comp reach a runtime that never required them"
 fi
 
 mountpoint -q "$BPF_FS" || mount -t bpf bpf "$BPF_FS"
