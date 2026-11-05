@@ -53,7 +53,7 @@ typedef struct luacrypto_acompress_req_s {
 	lunatik_object_t *object;	/* held while an operation is in flight */
 	lunatik_object_t *tfm;
 	lunatik_object_t *runtime;
-	lunatik_defer_t defer;	/* an atomic completion runs its work */
+	lunatik_defer_t defer;
 	u8 *inbuf;
 	u8 *outbuf;
 	size_t outbuf_len;
@@ -167,11 +167,7 @@ static int luacrypto_acompress_req_handler(lua_State *L, luacrypto_acompress_req
 	return 0;
 }
 
-/*
- * Re-enters the runtime from process context. A runtime that is gone or whose
- * lock the submitting task holds is not entered: the request is only marked
- * idle, and its anchors die with the state.
- */
+/* A runtime that is gone is not entered: the request is only marked idle, its anchors dying with the state. */
 static void luacrypto_acompress_req_resume(luacrypto_acompress_req_t *obj)
 {
 	lunatik_object_t *runtime = obj->runtime;
@@ -192,8 +188,6 @@ static void luacrypto_acompress_req_deferred(struct work_struct *work)
 		luacrypto_acompress_req_t, defer));
 }
 
-/* A driver may complete from softirq or hardirq, where lunatik_run's runtime
- * mutex may not be taken, so an atomic completion is handed to the workqueue. */
 static void luacrypto_acompress_req_docall(void *data, int err)
 {
 	luacrypto_acompress_req_t *obj = (luacrypto_acompress_req_t *)data;
@@ -202,10 +196,8 @@ static void luacrypto_acompress_req_docall(void *data, int err)
 		return;
 
 	obj->err = err;
-	if (lunatik_isatomic())
-		lunatik_defer(&obj->defer);
-	else
-		luacrypto_acompress_req_resume(obj);
+	/* the driver's context, an IRQ or its own worker, does not wait on the runtime */
+	lunatik_defer(&obj->defer);
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
