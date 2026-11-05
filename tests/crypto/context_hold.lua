@@ -19,6 +19,6 @@ local function hold(new, algname)
 end
 
 hold(crypto.shash, "sha256") -- the kernel may serve no sha256
-hold(crypto.comp, "lz4") -- the binding has no comp from 6.15 on, and lz4 may not be built
+hold(crypto.comp, "lz4") -- lz4 may not be built
 hold(crypto.sig, "ecdsa-nist-p256") -- ECDSA may not be built
 

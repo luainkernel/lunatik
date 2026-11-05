@@ -5,8 +5,11 @@
 
 local comp = require("crypto").comp
 local data = require("data")
-local test = require("tests.lib").test
+local lib = require("tests.lib")
+local test = lib.test
 local closing = require("tests.crypto.closing")
+
+lib.alloc(comp, "lz4") -- so run.sh skips where the kernel lacks it
 
 test("COMP compress empty string (error)", function()
 	local c = comp"lz4"
@@ -56,6 +59,15 @@ test("COMP decompress with too small buffer (expect error)", function()
 	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
+test("COMP compress with too small buffer (expect error)", function()
+	local c = comp"lz4"
+	local original_data = string.rep("abcdefghijklmnopqrstuvwxyz", 100) .. string.rep("A", 500) .. string.rep("B", 500)
+	local compressed = c:compress(original_data, #original_data * 2) -- Allow for some overhead
+	local status, err = pcall(c.compress, c, original_data, #compressed - 1)
+	assert(not status, "Compression into a too small buffer should fail")
+	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
+end)
+
 test("COMP refuses an object of another class, naming crypto.comp", function()
 	local c = comp"lz4"
 	local status, err = pcall(c.compress, data.new(8), "x", 16)
@@ -70,5 +82,10 @@ end)
 
 test("COMP close releases the transform, and __close is close", function()
 	closing.check(comp("lz4"), "compress", "data", 64)
+end)
+
+test("COMP refuses an unknown name with ENOENT", function()
+	local status, err = pcall(comp, "nosuchcomp")
+	assert(not status and err == "ENOENT", "comp raised " .. tostring(err))
 end)
 
