@@ -247,10 +247,7 @@ static void luacrypto_acompress_req_anchor(lua_State *L, luacrypto_acompress_req
 static int luacrypto_acompress_req_async(lua_State *L, luacrypto_acompress_req_t *obj,
 	int (*op)(struct acomp_req *))
 {
-	acomp_request_set_callback(obj->req,
-		lunatik_gfp(lunatik_toruntime(L)) == GFP_KERNEL ?
-			CRYPTO_TFM_REQ_MAY_BACKLOG | CRYPTO_TFM_REQ_MAY_SLEEP :
-			CRYPTO_TFM_REQ_MAY_BACKLOG,
+	acomp_request_set_callback(obj->req, CRYPTO_TFM_REQ_MAY_BACKLOG | CRYPTO_TFM_REQ_MAY_SLEEP,
 		luacrypto_acompress_req_docall, obj);
 	luacrypto_acompress_req_anchor(L, obj, 1, 4);
 	obj->runtime = lunatik_toruntime(L);	/* the anchors live in its registry */
