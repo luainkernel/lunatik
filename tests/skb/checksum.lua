@@ -5,6 +5,7 @@
 -- Kernel-side script for the checksum test (see checksum.sh).
 
 local filter    = require("tests.skb.filter")
+local csum      = require("tests.skb.csum")
 local byteorder = require("byteorder")
 local nf        = require("linux.nf")
 
@@ -38,25 +39,11 @@ local pending = {
 	[PRIORITY + 7] = "short4",
 	[PRIORITY + 8] = "ihl4",
 	[PRIORITY + 9] = "zero6",
+	[PRIORITY + 10] = "raw6",
 }
 
 local function iphlen(data)
 	return (data:getuint8(0) & 0x0f) * 4
-end
-
-local function fold(sum)
-	while sum > ONES do
-		sum = (sum & ONES) + (sum >> 16)
-	end
-	return sum
-end
-
--- data:checksum complements the folded sum; a segment and its pseudo-header that verify fold to ONES
-local function summed(data, addrs, addrslen, offset, proto)
-	local len = #data - offset
-	local sum = (ONES - data:checksum(addrs, addrslen)) + (ONES - data:checksum(offset, len)) +
-		byteorder.hton16(proto) + byteorder.hton16(len)
-	return fold(sum) == ONES
 end
 
 local function unchanged(data, before)
@@ -87,11 +74,8 @@ end
 function prepare.zero6(skb)
 	local data = prepare.fits6(skb)
 	local word = IP6_HDRLEN + UDP_HDRLEN
-	local len = #data - IP6_HDRLEN
 	data:setuint16(word, 0)
-	local sum = (ONES - data:checksum(IP6_ADDRS, IP6_ADDRSLEN)) + (ONES - data:checksum(IP6_HDRLEN, len)) +
-		byteorder.hton16(UDP) + byteorder.hton16(len)
-	data:setuint16(word, ONES - fold(sum))
+	data:setuint16(word, ONES - csum.sum(data, IP6_ADDRS, IP6_ADDRSLEN, IP6_HDRLEN, UDP))
 	return data
 end
 
@@ -120,6 +104,7 @@ end
 
 prepare.past4 = shrink
 prepare.past6 = shrink
+prepare.raw6 = prepare.fits6
 
 local verify = {
 	below4 = unchanged,
@@ -132,12 +117,14 @@ local verify = {
 
 function verify.fits4(data)
 	local hlen = iphlen(data)
-	return data:checksum(0, hlen) == 0 and summed(data, IP_ADDRS, IP_ADDRSLEN, hlen, TCP)
+	return data:checksum(0, hlen) == 0 and csum.summed(data, IP_ADDRS, IP_ADDRSLEN, hlen, TCP)
 end
 
 function verify.fits6(data)
-	return summed(data, IP6_ADDRS, IP6_ADDRSLEN, IP6_HDRLEN, UDP)
+	return csum.summed(data, IP6_ADDRS, IP6_ADDRSLEN, IP6_HDRLEN, UDP)
 end
+
+verify.raw6 = verify.fits6
 
 function verify.zero6(data)
 	return data:getuint16(IP6_HDRLEN + UDP_CHECK) == ONES and verify.fits6(data)

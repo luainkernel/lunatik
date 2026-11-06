@@ -19,7 +19,10 @@
 # CHECKSUM_NONE, which resize may cut short of the check field; a TCP segment leaves
 # CHECKSUM_PARTIAL, whose check field resize refuses to cut. A UDP datagram over ::1 whose first payload word makes its sum
 # fold to 0 gets the check field 0xffff, CSUM_MANGLED_0, where a build that stores the sum as it
-# comes leaves 0, which an IPv6 receiver drops. The hook drops every packet it takes; TCP resends
+# comes leaves 0, which an IPv6 receiver drops. A UDP datagram over ::1 from an IPPROTO_RAW socket,
+# which writes the IPv6 header itself and so reaches LOCAL_OUT with its transport header at the
+# IPv6 header (rawv6_send_hdrinc), is summed as the first one is: a build that sums and writes from
+# the transport header writes the UDP check over the IPv6 header and leaves its own 0. The hook drops every packet it takes; TCP resends
 # it untouched, and the UDP send fails with EPERM, so the senders' errors are discarded.
 #
 # A luaskb that sums a length past the packet ends skb_checksum on BUG_ON and panics the host, and
@@ -43,9 +46,13 @@ FITS="fits4 fits6"
 GATE="below4"
 PAST="past4 past6 ext6 short4 ihl4"
 ZERO="zero6"
-CASES="$FITS $GATE $PAST $ZERO" # in the order of pending in checksum.lua
+RAW="raw6"
+CASES="$FITS $GATE $PAST $ZERO $RAW" # in the order of pending in checksum.lua
 DSTOPTS="41:59:x0000010400000000" # IPPROTO_IPV6, IPV6_DSTOPTS: an 8-byte header holding one PadN
 NOCHECK="1:11:1"                  # SOL_SOCKET, SO_NO_CHECK: the datagram leaves without a checksum
+LO6='\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01' # ::1
+# raw6's IPv6 header, then its UDP header from and to PORT (0x15bf), each length PAYLOAD + 8 (0x0108)
+RAW6='\x60\x00\x00\x00\x01\x08\x11\x40'$LO6$LO6'\x15\xbf\x15\xbf\x01\x08\x00\x00'
 NCASES=$(echo $CASES | wc -w)
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -76,22 +83,26 @@ ip -6 addr show dev lo 2>/dev/null | grep -q "inet6 ::1/" || ipv6=0
 declare -A skip
 sent=0
 
-# send <case>...: a PAYLOAD-byte packet for each case named, at the case's priority, then the
+payload() { head -c "$PAYLOAD" /dev/zero | tr '\0' x; }
+raw6() { printf "$RAW6%s" "$(payload)"; }
+
+# send <case>...: a PAYLOAD-byte payload for each case named, at the case's priority, then the
 # hook's lines for every packet sent so far
 send() {
-	local i=0 target
+	local i=0 target packet
 	for c in $CASES; do
 		i=$((i + 1))
 		case " $* " in *" $c "*) ;; *) continue ;; esac
 		target="TCP:127.0.0.1:$PORT"
+		packet=payload
 		case $c in *6)
 			[ "$ipv6" = 1 ] || { skip[$c]="lo has no ::1"; continue; }
 			target="UDP6:[::1]:$PORT" ;;
 		esac
 		[ "$c" = ext6 ] && target="$target,setsockopt=$DSTOPTS"
 		[ "$c" = short4 ] && target="UDP:127.0.0.1:$PORT,setsockopt-int=$NOCHECK"
-		head -c "$PAYLOAD" /dev/zero | tr '\0' x |
-			timeout 5 socat -u - "$target,priority=$((PRIORITY + i))" 2>/dev/null
+		[ "$c" = raw6 ] && { target="IP6-SENDTO:[::1]:255"; packet=raw6; }
+		$packet | timeout 5 socat -u - "$target,priority=$((PRIORITY + i))" 2>/dev/null
 		sent=$((sent + 1))
 	done
 	for _ in $(seq 20); do
@@ -107,7 +118,7 @@ socat -u "TCP-LISTEN:$PORT,reuseaddr,fork" OPEN:/dev/null &
 LISTENER=$!
 for _ in $(seq 20); do [ -n "$(ss -tHln "sport = :$PORT" 2>/dev/null)" ] && break; sleep 0.1; done
 
-send $FITS $GATE $ZERO
+send $FITS $GATE $ZERO $RAW
 if dmesg_since | grep -q "skb checksum: $GATE ok"; then
 	send $PAST
 else
