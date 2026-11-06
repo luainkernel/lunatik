@@ -27,6 +27,18 @@ test("rcu.foreach iterates integer values", function()
 	assert(results["b"] == -7, "expected -7, got: " .. tostring(results["b"]))
 end)
 
+test("rcu.foreach iterates string values", function()
+	local t = rcu.table(4)
+	t["text"] = "text"
+	t["empty"] = ""
+	t["nul"] = "a\0b"
+	local results = {}
+	rcu.foreach(t, function(k, v) results[k] = v end)
+	assert(results["text"] == "text", "expected text, got: " .. tostring(results["text"]))
+	assert(results["empty"] == "", "expected the empty string, got: " .. tostring(results["empty"]))
+	assert(results["nul"] == "a\0b", "expected 3 bytes, got: " .. #tostring(results["nul"]))
+end)
+
 test("rcu.foreach iterates userdata values (regression)", function()
 	local t = rcu.table(4)
 	local d = data.new(8)

@@ -2,7 +2,7 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- Clock and pacing for the kernel threads of object_grace and foreach_sync (see object_grace.sh and foreach_sync.sh).
+-- Clock and pacing for the kernel threads of the grace stresses and foreach_sync (see grace.lua and foreach_sync.sh).
 
 local linux = require("linux")
 local clock = require("linux.clock")

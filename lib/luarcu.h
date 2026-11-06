@@ -19,7 +19,10 @@ static inline lunatik_object_t *luarcu_getobject(lunatik_object_t *table, const 
 {
 	lunatik_value_t value;
 	luarcu_getvalue(table, key, keylen, &value);
-	return lunatik_isuserdata(&value) ? value.object : NULL;
+	if (lunatik_isuserdata(&value))
+		return value.object;
+	lunatik_dropvalue(&value);
+	return NULL;
 }
 
 static inline int luarcu_setobject(lunatik_object_t *table, const char *key, size_t keylen, lunatik_object_t *obj)

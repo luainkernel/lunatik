@@ -5,26 +5,18 @@
 
 -- The writer of tests/rcu/object_grace.sh: replaces the reader's key with a new, numbered object each time.
 
-local lunatik = require("lunatik")
-local data    = require("data")
-local thread  = require("thread")
-local pace    = require("tests.rcu.pace")
+local data  = require("data")
+local grace = require("tests.rcu.grace")
 
-local KEY <const> = "slot"
-local RUN_MS <const> = 10000
 local SIZE <const> = 8
 
+local function new(n)
+	local d = data.new(SIZE)
+	d:setint64(0, n)
+	return d
+end
+
 return function()
-	local grace = lunatik._ENV.grace
-	local deadline = pace.milliseconds() + RUN_MS
-	local n = 0
-	while not thread.shouldstop() and pace.milliseconds() < deadline do
-		n = n + 1
-		local d = data.new(SIZE)
-		d:setint64(0, n)
-		grace[KEY] = d
-		pace.yield()
-	end
-	grace[KEY] = nil
+	grace.write(new)
 end
 
