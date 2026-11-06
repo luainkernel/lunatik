@@ -78,6 +78,39 @@ static void luahid_release(void *private)
 		lunatik_free(hid->driver.name);
 }
 
+static DEFINE_MUTEX(luahid_mutex);		/* one body at a time registers or stops a driver */
+static struct task_struct *luahid_registrant;	/* the task running that body */
+static lunatik_object_t *luahid_body;		/* the runtime whose body it runs */
+
+/* a callback hid_register_driver or hid_unregister_driver delivers on the task running the body */
+#define luahid_isreplay(hid)	\
+	(in_task() && READ_ONCE(luahid_registrant) == current && luahid_body == (hid)->runtime)
+
+/* a callback delivered there holds the device lock a registration takes */
+#define luahid_checkregistrant(L)	\
+	lunatik_checkregistrant(L, READ_ONCE(luahid_registrant), "hid.register or stop")
+
+static inline void luahid_enter(lunatik_object_t *runtime)
+{
+	mutex_lock(&luahid_mutex);
+	luahid_body = runtime;
+	WRITE_ONCE(luahid_registrant, current);
+}
+
+static inline void luahid_leave(void)
+{
+	WRITE_ONCE(luahid_registrant, NULL);
+	mutex_unlock(&luahid_mutex);
+}
+
+static inline void luahid_unregister(luahid_t *hid)
+{
+	luahid_enter(hid->runtime);
+	hid_unregister_driver(&hid->driver);
+	luahid_leave();
+	hid->registered = false;
+}
+
 static int luahid_register(lua_State *L);
 
 static const luaL_Reg luahid_lib[] = {
@@ -91,16 +124,26 @@ static const lunatik_class_t luahid_class;
 * Unregisters the driver.
 * The devices it drives are released from it, and no callback of it runs again. Calling it
 * again does nothing, and a to-be-closed variable holding the driver stops it the same way.
+* In the script body, the call delivers `remove` for each device the driver holds, and a device
+* it releases that another driver of the runtime matches gets that driver's `probe`, both on the
+* calling task; a stop from a finalizer at the runtime's close delivers nothing.
 * @function stop
 * @treturn nil
 * @raise "not allowed once the runtime is armed" past the script body: hid_unregister_driver
-*   sleeps, and an armed runtime runs under its spinlock
+*   sleeps, and an armed runtime runs under its spinlock; "not allowed inside hid.register or stop"
+*   on a task inside either, as `hid.register` raises it
 * @usage driver:stop()
 */
 static int luahid_stop(lua_State *L)
 {
 	lunatik_checkarmed(L);
-	lunatik_stopobject(L, lunatik_checkobjectclass(L, 1, &luahid_class));
+	luahid_checkregistrant(L);
+	lunatik_object_t *object = lunatik_checkobjectclass(L, 1, &luahid_class);
+	luahid_t *hid = (luahid_t *)object->private;
+
+	if (hid != NULL && !lunatik_isclosing(hid->runtime))
+		luahid_unregister(hid); /* the removes reach the body before stopobject drops their table */
+	lunatik_stopobject(L, object);
 	return 0;
 }
 
@@ -160,8 +203,12 @@ do {						\
 #define luahid_run(op, ctx, hid, hdev, ret)					\
 do {										\
 	(ctx)->cb = #op; (ctx)->hid = hid; (ctx)->hdev = hdev;			\
-	lunatik_run(hid->runtime, lunatik_catch, ret, luahid_do##op, ctx,	\
-		(ctx)->cb);							\
+	if (luahid_isreplay(hid)) /* the body runs on this task, unlocked */	\
+		lunatik_handle(hid->runtime, lunatik_catch, ret, luahid_do##op, ctx,	\
+			(ctx)->cb);						\
+	else									\
+		lunatik_run(hid->runtime, lunatik_catch, ret, luahid_do##op, ctx,	\
+			(ctx)->cb);						\
 	if (ret == 0)								\
 		ret = (ctx)->ret;						\
 } while (0)
@@ -362,6 +409,15 @@ static const char *const luahid_callbacks[] = {"probe", "report_fixup", "raw_eve
 *   the callbacks store in it; `report` carries `id`, `type`, `size`, `application` and
 *   `maxfield`. What `report_fixup` and `remove` return is ignored, and a callback's error
 *   goes to the kernel log.
+*
+*   A device on the bus that `id_table` matches and that `hid-generic` or no driver holds gets
+*   its callbacks inside the call, on the calling task, as one plugged in after the body
+*   returns would: `probe`, its `report_fixup`, and `remove` when the HID core fails the probe
+*   after `probe` returned. A script that tells the two apart uses a flag it clears once
+*   `hid.register` returns. This holds whatever asynchronous probing the kernel command line or
+*   the module's parameters ask for. A device the HID core probes on another task while the body
+*   runs, one plugged in at that moment, is refused, and stays without a driver until it is
+*   plugged again or the script stops.
 * @treturn hid_driver the driver, which `hid.register` keeps for its runtime: dropping it stops
 *   nothing, and the driver stays registered until `stop` or the end of the runtime
 * @raise "not allowed once the runtime is armed" past the script body; from a percpu runtime; if
@@ -373,12 +429,15 @@ static const char *const luahid_callbacks[] = {"probe", "report_fixup", "raw_eve
 *   `bad field '<field>' (function expected, got <type>)` if `probe`, `report_fixup`, `raw_event`
 *   or `remove` is present and not a function; `runtime context mismatch`
 *   unless the runtime is softirq; `not allowed while the runtime closes` from a finalizer that
-*   runs at its close
+*   runs at its close; `not allowed inside hid.register or stop` on a task inside either, from a
+*   callback they deliver, a coroutine it runs or a runtime it creates, since that callback holds
+*   the device lock a registration takes
 * @within hid
 */
 static int luahid_register(lua_State *L)
 {
 	lunatik_checkarmed(L);
+	luahid_checkregistrant(L);
 	lunatik_checkpercpu(L);
 	luaL_checktype(L, 1, LUA_TTABLE);
 	lunatik_checkcallbacks(L, 1, luahid_callbacks);
@@ -395,13 +454,16 @@ static int luahid_register(lua_State *L)
 	driver->report_fixup = luahid_report_fixup;
 	driver->raw_event = luahid_raw_event;
 	driver->remove = luahid_remove;
+	driver->driver.probe_type = PROBE_FORCE_SYNCHRONOUS; /* an async worker would race the body */
 
 	hid->runtime = lunatik_checkruntime(L, luahid_class.name, luahid_class.opt);
 	lunatik_getobject(hid->runtime);
 	lunatik_attach(L, hid, data, luadata_new, LUNATIK_OPT_SINGLE);
 	lunatik_registerobject(L, 1, object);
 
+	luahid_enter(hid->runtime);
 	int ret = hid_register_driver(driver);
+	luahid_leave();
 	if (ret != 0) {
 		lunatik_unregisterobject(L, object);
 		lunatik_throw(L, ret);

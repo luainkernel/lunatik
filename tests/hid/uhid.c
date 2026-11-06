@@ -9,15 +9,18 @@
 * descriptor the device then has, sends it the reports whose first byte is 0 to
 * 6, the last one <count> times, and prints those its hidraw node received:
 * "<product> rdesc <bytes>", "<product> report <bytes>", or "<product> unbound".
-* It then prints "ready" and holds the devices until it is killed.
+* It then prints "ready" and holds the devices until it is killed. With -w, it
+* drives no device before SIGUSR1: a script loaded once the devices are bound
+* refuses their reports until its body returns.
 *
-* Usage: uhid [-r <count>] <product>...
+* Usage: uhid [-r <count>] [-w] <product>...
 */
 
 #include <fcntl.h>
 #include <glob.h>
 #include <limits.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -223,6 +226,23 @@ static void drive(peer_t *peer, int count)
 	close(hidraw);
 }
 
+static sigset_t armed;	/* -w: SIGUSR1, the script that registers the driver is loaded */
+static int waits;
+
+/* blocked from the start, so a SIGUSR1 sent before the wait stays pending for it */
+static void blockarmed(void)
+{
+	sigemptyset(&armed);
+	sigaddset(&armed, SIGUSR1);
+	sigprocmask(SIG_BLOCK, &armed, NULL);
+}
+
+static void waitarmed(void)
+{
+	if (waits)
+		sigwaitinfo(&armed, NULL);
+}
+
 int main(int argc, char *argv[])
 {
 	peer_t peers[MAXDEVS];
@@ -230,11 +250,15 @@ int main(int argc, char *argv[])
 	int n = 0;
 	int opt, i, uevents;
 
-	while ((opt = getopt(argc, argv, "r:")) != -1) {
-		if (opt != 'r')
+	while ((opt = getopt(argc, argv, "r:w")) != -1) {
+		if (opt == 'r')
+			count = atoi(optarg);
+		else if (opt == 'w')
+			waits = 1;
+		else
 			return 2;
-		count = atoi(optarg);
 	}
+	blockarmed();
 
 	if ((uevents = subscribe()) < 0) {
 		perror("uevent socket");
@@ -251,6 +275,7 @@ int main(int argc, char *argv[])
 
 	await(uevents, peers, n);
 	close(uevents);
+	waitarmed();
 	for (i = 0; i < n; i++) {
 		if (!peers[i].bound) {
 			printf("%04x unbound\n", peers[i].product);
