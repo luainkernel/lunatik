@@ -345,7 +345,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | a 'for' the compiler cannot bound needs may_goto, which this kernel lacks | `for i = 1, n`, before Linux 6.9 | known bounds |
 | 'for' step is zero | `for i = 1, 10, 0` | a step that is not 0 |
 | the map key -1 does not fit 'I4' | a key or a value outside its spec | a value its spec packs |
-| module 'byteorder' not found | `require` of a C module | a Lua module under `/lib/modules/lua/` |
+| module 'byteorder' not found | `require` of a C module | a Lua module under `/lib/modules/lua/`, or the directory `--scripts` names |
 
 ## How a program file becomes a program
 
@@ -367,7 +367,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
          |
          | 2. the Lua of the CLI (lua5.5) runs the body from that chunk;
          |    require finds bpf.xdp, bpf.tc and bpf.map, then the kernel
-         |    scripts under /lib/modules/lua/
+         |    scripts under /lib/modules/lua/, or the --scripts directory
          v
   the programs and the maps the body declared
          |
