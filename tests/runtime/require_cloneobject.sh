@@ -10,11 +10,12 @@
 # require would find nothing, and asserts package.loaded holds nothing under
 # the class name of what it got.
 #
-# A data object crosses into a softirq receiver, where the clone runs under the
-# spinlock of the monitored resume and must not sleep. set, the crypto classes
-# and the bpf maps cross into a process receiver, the context the crypto classes
-# need. crypto_comp exists on 6.14 and earlier, so its case skips where
-# luacrypto carries no luacrypto_comp_new; the bpf maps are pinned with bpftool,
+# A data object, a crypto.shash and a crypto.skcipher cross into a softirq
+# receiver, where the clone runs under the spinlock of the monitored resume and
+# must not sleep. set, the crypto classes and the bpf maps cross into a process
+# receiver, the only context crypto.aead and crypto.rng serve. crypto_comp
+# exists on 6.14 and earlier, so its case skips where luacrypto carries no
+# luacrypto_comp_new; the bpf maps are pinned with bpftool,
 # and their case skips where it cannot pin them. The first case skips where the
 # kernel serves no sha256, cbc(aes), gcm(aes) or stdrng, which the script names.
 #

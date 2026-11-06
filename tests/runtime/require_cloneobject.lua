@@ -17,6 +17,8 @@ local aead     = alloc(crypto.aead, "gcm(aes)")
 local rng      = alloc(crypto.rng, "stdrng")
 
 check.clones(data.new(4), "softirq")
+check.clones(shash, "softirq")
+check.clones(skcipher, "softirq")
 check.clones(set.new({key = 1}))
 check.clones(shash)
 check.clones(skcipher)

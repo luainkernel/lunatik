@@ -5,8 +5,8 @@
 
 --- HMAC-based Extract-and-Expand Key Derivation Function (HKDF) based on RFC 5869.
 -- This module provides functions to perform HKDF operations, utilizing the
--- underlying `crypto` C module for HMAC calculations. Like every crypto object, an instance is
--- created in a process runtime alone.
+-- underlying `crypto` C module for HMAC calculations. An instance is created where its `shash` is,
+-- in a process runtime or in a softirq script's body, whose hooks then derive keys with it.
 -- @classmod crypto.hkdf
 
 local shash = require("crypto").shash

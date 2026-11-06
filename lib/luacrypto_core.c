@@ -5,8 +5,11 @@
 
 /***
 * Lua interface to the Linux Crypto API.
-* Crypto objects are created in a process runtime alone: in a softirq or hardirq runtime a
-* constructor raises "'crypto.shash': process-context class in interrupt-context runtime", naming
+* `shash` and `skcipher` objects serve softirq runtimes too: a script body, which runs in process
+* context, creates them, or a process runtime hands them over, and the hooks set their keys and run
+* them per packet, which sleeps nowhere. Neither serves a hardirq runtime, whose callbacks run with
+* IRQs disabled. Every other object is created in a process runtime alone: in another, its
+* constructor raises "'crypto.aead': process-context class in interrupt-context runtime", naming
 * its class. Errors are raised as errno names: "ENOENT" for an unknown algorithm, "EINVAL" for a
 * wrong IV, key or state length or a block cipher input that is not a multiple of `blocksize()`,
 * and on 6.12 and later for a name whose template refuses the type the constructor asks for, such
@@ -26,7 +29,9 @@
 * @tparam string algname algorithm name (e.g., "sha256", "hmac(sha256)")
 * @treturn crypto_shash
 * @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
-*   failure
+*   failure, "not allowed in a hardirq runtime", "not allowed once the runtime is armed" from a
+*   softirq runtime past its body, since the allocation may sleep, and "not allowed under RTNL"
+*   from a callback that runs under it
 * @usage
 *   local shash = require("crypto").shash
 *   local h = shash("sha256")
@@ -41,7 +46,9 @@
 * @treturn crypto_skcipher
 * @raise "ENOENT" for an unknown algorithm or one no synchronous implementation serves ("EEXIST"
 *   on 6.12 and later for a template whose instance is asynchronous, such as `cryptd(...)`),
-*   "ENOMEM" or "not enough memory" on allocation failure
+*   "ENOMEM" or "not enough memory" on allocation failure, "not allowed in a hardirq runtime",
+*   "not allowed once the runtime is armed" from a softirq runtime past its body, since the
+*   allocation may sleep, and "not allowed under RTNL" from a callback that runs under it
 * @usage
 *   local skcipher = require("crypto").skcipher
 *   local cipher = skcipher("cbc(aes)")
