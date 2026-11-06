@@ -14,18 +14,13 @@
 #
 # async: skcipher and aead refuse an asynchronous implementation, cryptd's.
 #
-# large: skcipher and aead cipher a copy of their input in one kmalloc block, and refuse one past
-# KMALLOC_MAX_SIZE, the size past which a string is always vmalloc memory.
+# large: skcipher, aead and comp take a copy of their input in one kmalloc block, and refuse one
+# past KMALLOC_MAX_SIZE, the size past which a string is always vmalloc memory.
 #
 # seed: rng and reset without a seed seed an algorithm with seedsize() random bytes, ansi_cprng's 48.
 #
 # sig: crypto.sig verifies the kernel's own ECDSA P-256 vector and an RSA PKCS#1 v1.5 pair openssl
 # signed, each verifier allocated by its 6.13 name and, on ENOENT, by the name of 6.12 and earlier.
-#
-# comp is served only where the kernel still has the crypto_comp API, which
-# Linux 6.15 removed: lib/luacrypto_comp.c compiles to nothing there and
-# crypto.comp is nil. hascomp asks the runtime for the binding, so the suite
-# skips that test instead of failing every case in it.
 #
 # Usage: sudo bash tests/crypto/run.sh
 
@@ -35,13 +30,11 @@ source "$DIR/../lib.sh"
 
 TESTS="shash skcipher aead rng sig hkdf comp"
 TOTAL=$(echo $TESTS | wc -w)
-PROBE="tests/crypto/hascomp"
 
 cleanup() {
 	for t in $TESTS; do
 		lunatik stop "tests/crypto/$t" 2>/dev/null
 	done
-	lunatik stop "$PROBE" 2>/dev/null
 }
 trap cleanup EXIT
 cleanup
@@ -49,19 +42,8 @@ cleanup
 ktap_header
 ktap_plan $TOTAL
 
-probe=$(lunatik run "$PROBE" 2>&1)
-case "$probe" in
-	"") ;;
-	*"crypto.comp is not built"*) MISSING=comp ;;
-	*) comment "$probe"; fail "the comp probe did not run" ;;
-esac
-
 for t in $TESTS; do
-	if [ "$t" = "$MISSING" ]; then
-		ktap_skip "crypto/$t: the binding is not built on this kernel"
-	else
-		served_case "crypto/$t" run_test "tests/crypto/$t"
-	fi
+	served_case "crypto/$t" run_test "tests/crypto/$t"
 done
 
 RESULT=0

@@ -15,6 +15,7 @@ local char, rep, sub = string.char, string.rep, string.sub
 local CBC <const> = "cbc(aes)"
 local GCM <const> = "gcm(aes)"
 local CTR <const> = "ctr(aes)"
+local LZ4 <const> = "lz4"
 local KEY <const> = "0123456789abcdef"
 local IV <const> = "fedcba9876543210"
 local NONCE <const> = "abcdefghijkl"
@@ -27,11 +28,13 @@ local page = sizes.page
 local spanning = rep("a", page) .. rep("b", page) .. rep("c", BLOCK)
 local associated = rep("d", page) .. rep("e", page + 1)
 local oversized = rep("x", sizes.kmalloc + page)
+local paged = sub(spanning, 1, page + BLOCK) -- within the 128 KiB 6.14 and earlier compress in software
 
 -- the algorithms the cases allocate, before they run, so large.sh skips the test where the kernel lacks one
 lib.alloc(crypto.skcipher, CBC)
 lib.alloc(crypto.aead, GCM)
 lib.alloc(crypto.skcipher, CTR)
+lib.alloc(crypto.comp, LZ4)
 
 local function keyed(new, algorithm)
 	local c = new(algorithm)
@@ -104,5 +107,17 @@ test("AEAD AES-128-GCM data or associated data past KMALLOC_MAX_SIZE", function(
 	refused(ENOMEM, "encrypt with associated data", c.encrypt, c, NONCE, "", oversized)
 	refused(ENOMEM, "decrypt", c.decrypt, c, NONCE, oversized)
 	refused(ENOMEM, "decrypt with associated data", c.decrypt, c, NONCE, rep("y", c:authsize()), oversized)
+end)
+
+test("COMP lz4 data past a page round-trips", function()
+	local c = crypto.comp(LZ4)
+	local packed = c:compress(paged, 2 * #paged)
+	assert(c:decompress(packed, #paged) == paged, "round-trip mismatch")
+end)
+
+test("COMP lz4 data past KMALLOC_MAX_SIZE", function()
+	local c = crypto.comp(LZ4)
+	refused(ENOMEM, "compress", c.compress, c, oversized, page)
+	refused(ENOMEM, "decompress", c.decompress, c, oversized, page)
 end)
 

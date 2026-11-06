@@ -1579,25 +1579,24 @@ typedef struct luacrypto_ctx_s {
 	u8 *iv;
 } luacrypto_ctx_t;
 ```
-The private of a class whose operations take a request and an IV, `crypto.skcipher` and
-`crypto.aead`: the transform, its request and its IV, `NULL` for a cipher that takes none. They are
+The private of a class whose operations take a request, `crypto.skcipher`, `crypto.aead` and
+`crypto.comp`: the transform, its request and its IV, `NULL` for an algorithm that takes none. They are
 allocated once, when the object is created, so an operation allocates only what it returns.
 
-### LUACRYPTO\_NEW
+### LUACRYPTO\_NEWCTX
 ```C
-#define LUACRYPTO_NEW(name, T, alloc, class)
 #define LUACRYPTO_NEWCTX(name, T, alloc, class)
 void luacrypto_initctx(lua_State *L, luacrypto_ctx_t *ctx, void *request, unsigned int ivsize);
 ```
-Define `int luacrypto_<name>_new(lua_State *L)`, the constructor of `class` a script calls with the
-algorithm's name at index `1`. `LUACRYPTO_NEW` is for a `LUNATIK_OPT_EXTERNAL` class whose private
-is the transform, the `T *` that `alloc(algname, 0, 0)` returns. `LUACRYPTO_NEWCTX` is for a class
-whose private is a `luacrypto_ctx_t`: it allocates the transform with
+`LUACRYPTO_NEWCTX` defines `int luacrypto_<name>_new(lua_State *L)`, the constructor of `class` a
+script calls with the algorithm's name at index `1`, for a class whose private is a
+`luacrypto_ctx_t`: it allocates the transform with
 `alloc(algname, 0, CRYPTO_ALG_ASYNC)`, which passes over an asynchronous implementation, then hands
 `luacrypto_initctx` the request `<name>_request_alloc` allocates with the runtime's `gfp` and the
-transform's `crypto_<name>_ivsize`. `luacrypto_initctx` stores the request and allocates the IV with
+transform's `crypto_<name>_ivsize`. `luacrypto_initctx`, which a constructor written by hand calls
+too, stores the request and allocates the IV with
 [`lunatik_malloc`](#lunatik_malloc), none for a size of `0`, and raises `not enough memory` when
-either is missing. The constructors raise the errno name the transform's allocation fails with,
+either is missing. The constructor raises the errno name the transform's allocation fails with,
 `ENOENT` for an algorithm the kernel does not have, what `luaL_checkstring` raises and what
 [`lunatik_newobject`](#lunatik_newobject) raises; the object's release frees what was allocated
 before the raise.
@@ -1641,6 +1640,16 @@ Allocates the `size` bytes an operation reads its input from and writes its outp
 [`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which frees it with the state's
 allocator.
 
+### luacrypto\_pushbuffer
+```C
+int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, size_t len);
+```
+Answers a request that wrote its result into `buffer`, a [`luacrypto_newbuffer`](#luacrypto_newbuffer)
+of at least `len + 1` bytes, from `ret`, what the kernel returned for it: pushes the first `len` bytes
+as a string with [`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which then owns the
+buffer, and returns `1`; for a negative `ret` frees the buffer with [`lunatik_free`](#lunatik_free)
+and raises the errno's name.
+
 ### luacrypto\_shash\_class
 ```C
 extern const lunatik_class_t luacrypto_shash_class;
@@ -1659,7 +1668,7 @@ int luacrypto_comp_new(lua_State *L);
 ```
 The classes and constructors of `crypto.shash`, `crypto.skcipher`, `crypto.aead`, `crypto.rng`,
 `crypto.sig` and `crypto.comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
-what each constructor raises. `crypto.comp` is declared on kernels before v6.15 alone.
+what each constructor raises.
 
 ---
 
