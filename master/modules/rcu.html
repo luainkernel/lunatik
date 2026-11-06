@@ -215,6 +215,17 @@
 
 <p> See <code>examples/shared/daemon.lua</code> for a practical example.
 
+<h2 id="Class_rcu_table">Class rcu_table </h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#rcu_table:__index">rcu_table:__index (key)</a></td>
+	<td class="summary"><code>t[key]</code> reads the value (RCU-protected, lockless).</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#rcu_table:__newindex">rcu_table:__newindex (key, value)</a></td>
+	<td class="summary"><code>t[key] = value</code> sets the value, and <code>nil</code> removes the entry (serialized).</td>
+	</tr>
+</table></div>
 <h2 id="rcu">rcu</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
@@ -227,6 +238,72 @@
 	</tr>
 </table></div>
 
+    <h2 class="section-header" id="Class_rcu_table-details"><a name="Class_rcu_table"></a><a name="rcu_table"></a>Class rcu_table  in detail</h2>
+
+          <div class="section-description">
+          RCU hash table object, indexed as a Lua table.
+          </div>
+            <pre class="example"><span class="keyword">local</span> t = rcu.<span class="global">table</span>()
+t[<span class="string">"key"</span>] = <span class="keyword">true</span>        <span class="comment">-- boolean
+</span>t[<span class="string">"n"</span>]   = <span class="number">42</span>          <span class="comment">-- integer
+</span>t[<span class="string">"obj"</span>] = data.<span class="function-name">new</span>(<span class="number">8</span>) <span class="comment">-- object
+</span><span class="global">print</span>(t[<span class="string">"key"</span>])        <span class="comment">-- true
+</span>t[<span class="string">"key"</span>] = <span class="keyword">nil</span>         <span class="comment">-- delete</span></pre>
+    <dl class="function">
+    <dt id="rcu_table:__index"><a name="rcu_table:__index"></a><strong>rcu_table:__index (key)</strong></dt>
+    <dd>
+    <code>t[key]</code> reads the value (RCU-protected, lockless).
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+        the value, or <code>nil</code> for a key without an entry and for one whose object a
+ writer is releasing
+    </ol>
+
+
+
+
+</dd>
+    <dt id="rcu_table:__newindex"><a name="rcu_table:__newindex"></a><strong>rcu_table:__newindex (key, value)</strong></dt>
+    <dd>
+    <code>t[key] = value</code> sets the value, and <code>nil</code> removes the entry (serialized).</p>
+
+<p> The value an assignment replaces or removes is released on the assigning task once
+ the table&rsquo;s lock is dropped, so a runtime or a socket whose last reference the entry
+ held closes there; when the writer holds a softirq or hardirq runtime&rsquo;s lock, which
+ keeps bottom halves or IRQs off, it closes on a kernel worker instead.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         up to 255 bytes
+        </li>
+        <li><span class="parameter">value</span>
+
+        </li>
+    </ul>
+
+
+    <h3>Raises</h3>
+    <code>out of bounds</code> when the key is longer than 255 bytes; <code>not enough memory</code>
+ when an allocation fails
+
+
+
+</dd>
+</dl>
     <h2 class="section-header" id="rcu-details"><a name="rcu"></a>rcu in detail</h2>
 
     <dl class="function">
@@ -311,7 +388,7 @@
 <a href="../../modules/rcu.html">5.1 docs</a> ·
 <a href="../../5.0/modules/rcu.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-06 08:35:04</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-06 08:39:13</span>
 </div>
 </footer>
 </body>

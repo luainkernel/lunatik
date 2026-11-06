@@ -352,6 +352,8 @@ window.LUNATIK_SEARCH = [
 ["probe_regs:dump ()","modules/probe.html#probe_regs:dump","probe · Prints the registers to the kernel log."],
 ["new (symbol, handlers)","modules/probe.html#new","probe · Creates and registers a new kprobe."],
 ["rcu","modules/rcu.html","Module · RCU-synchronized hash table."],
+["rcu_table:__index (key)","modules/rcu.html#rcu_table:__index","rcu · t[key] reads the value (RCU-protected, lockless)."],
+["rcu_table:__newindex (key, value)","modules/rcu.html#rcu_table:__newindex","rcu · t[key] = value sets the value, and nil removes the entry (serialized)."],
 ["foreach (t, callback)","modules/rcu.html#foreach","rcu · Iterates over the table calling callback(key, value) for each entry."],
 ["table ([size=256])","modules/rcu.html#table","rcu · Creates a new RCU hash table."],
 ["scx","modules/scx.html","Module · Linux Extensible Scheduler (sched_ext) integration."],
