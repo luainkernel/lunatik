@@ -278,7 +278,10 @@ installs <code>tools/debian_kernel_postinst_lunatik.sh</code> as <code>/etc/kern
 The hook builds its own clone of master under <code>/opt/lunatik</code>, not your checkout. It downloads the
 kernel sources to build <code>resolve_btfids</code> and <code>bpftool</code>, and replaces <code>/usr/sbin/bpftool</code> with the one
 it built; it builds <code>xdp-loader</code> from xdp-tools under <code>/opt/xdp-tools</code>. A failure in it fails the
-kernel package&rsquo;s configuration.</p>
+kernel package&rsquo;s configuration. On an upgrade it runs under the old kernel, whose BTF does not fit the
+new one, so it builds the modules with no BTF and installs no objects for the program files: on the new
+kernel <a href="../modules/xdp.html#">xdp</a>, <a href="../modules/tc.html#">tc</a> and <a href="../modules/scx.html#">scx</a> load with their kfuncs unregistered until the rebuild above, <code>make clean</code>
+included, runs on it.</p>
 
 <p><a name="Uninstall"></a></p>
 
@@ -329,7 +332,7 @@ and remove <code>/etc/kernel/postinst.d/zz-update-lunatik</code> if you installe
 <a href="../../topics/01-getting-started.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/01-getting-started.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-06 08:32:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-06 08:35:04</span>
 </div>
 </footer>
 </body>
