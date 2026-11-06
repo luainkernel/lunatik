@@ -481,7 +481,7 @@ static int luadevice_new(lua_State *L)
 	luadevice_listadd(luadev);
 	lunatik_registerobject(L, 1, object); /* driver */
 
-	device = device_create(luadevice_devclass, NULL, luadev->devt, luadev, name); /* calls devnode */
+	device = device_create(luadevice_devclass, NULL, luadev->devt, luadev, "%s", name); /* calls devnode */
 	if (IS_ERR(device)) {
 		lunatik_unregisterobject(L, object);
 		lunatik_throw(L, PTR_ERR(device));
