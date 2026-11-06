@@ -6,25 +6,28 @@
 # A netfilter hook's stop takes its callback off, its __close is that stop, and
 # a stopped hook lets its packets through without a word in the kernel log.
 #
-# stop.lua registers four LOCAL_OUT hooks, each selecting by a mark of its own
+# stop.lua registers five LOCAL_OUT hooks, each selecting by a mark of its own
 # that the host's traffic does not carry, and reporting the mark of each packet
-# its callback sees: one stopped while the body loads, twice; one held by a
-# to-be-closed variable that goes out of scope, whose metatable holds one
-# function under __close and stop; one kept; and one whose callback stops its
-# own hook on its first packet, from softirq. One ping per mark, and a second
-# one for the hook that stops itself: every ping goes through, the kept hook
-# and the first ping of the self-stopping one are reported, and the stopped,
-# the closed and the second ping of the self-stopping one are not. The stop
+# its callback sees: one stopped while the body loads, twice; one stopped while
+# the body loads and registered again on the same mark, whose first handle is
+# stopped a second time after; one held by a to-be-closed variable that goes
+# out of scope, whose metatable holds one function under __close and stop; one
+# kept; and one whose callback stops its own hook on its first packet, from
+# softirq. One ping per mark, and a second one for the hook that stops itself:
+# every ping goes through, the kept hook, the one registered again, once, and
+# the first ping of the self-stopping one are reported, and the stopped, the
+# closed and the second ping of the self-stopping one are not. The stop
 # leaves the hook registered until the runtime closes, so each packet of a
 # stopped hook still reaches the binding, which finds no callback and logs
 # nothing: no line of the module's appears in the kernel log. The cases run on
-# a plain softirq runtime, and again on a percpu set, whose runtimes share each
-# hook and stop each their own callback; the pings leave from CPU 0, so the
-# self-stopping hook's two reach the one runtime that stopped it. A third ping
-# for that hook leaves from the last CPU: the plain runtime, whose stop took the
-# callback off for every CPU, does not report it, and the percpu set hands it to
-# that CPU's runtime, whose callback still runs and reports it, on a machine
-# with more than one CPU.
+# a plain softirq runtime, which registers a second hook for the one registered
+# again, and again on a percpu set, whose runtimes share each hook, stop each
+# their own callback and register a stopped one again in their own runtime;
+# the pings leave from CPU 0, so the self-stopping hook's two reach the one
+# runtime that stopped it. A third ping for that hook leaves from the last CPU:
+# the plain runtime, whose stop took the callback off for every CPU, does not
+# report it, and the percpu set hands it to that CPU's runtime, whose callback
+# still runs and reports it, on a machine with more than one CPU.
 #
 # Usage: sudo bash tests/netfilter/stop.sh
 
@@ -36,6 +39,7 @@ STOPPED=226
 CLOSED=227
 KEPT=228
 ONCE=229
+AGAIN=230
 LAST=$(sed 's/.*[-,]//' /sys/devices/system/cpu/online)
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -63,7 +67,7 @@ ping_marked() {
 stops() {
 	mark_dmesg
 	run_script --context=softirq $1 "$SCRIPT"
-	for mark in $STOPPED $CLOSED $KEPT $ONCE $ONCE; do
+	for mark in $STOPPED $AGAIN $CLOSED $KEPT $ONCE $ONCE; do
 		ping_marked 0 $mark
 	done
 	ping_marked $LAST $ONCE
@@ -74,6 +78,9 @@ stops() {
 
 	[ "$(reported $STOPPED)" = 0 ] || fail "$2: a stopped hook saw a packet"
 	ktap_pass "$2: a hook stopped twice sees no packet, and its packets go through"
+
+	[ "$(reported $AGAIN)" = 1 ] || fail "$2: a hook registered again after its stop saw $(reported $AGAIN) packets"
+	ktap_pass "$2: a stopped hook registers again, and a second stop of the first handle leaves the new one running"
 
 	[ "$(reported $CLOSED)" = 0 ] || fail "$2: a to-be-closed hook saw a packet after its scope"
 	ktap_pass "$2: a to-be-closed variable stops a hook, through the stop it holds as __close"
@@ -91,7 +98,7 @@ stops() {
 command -v taskset > /dev/null 2>&1 || skip "netfilter/stop: taskset not available"
 
 ktap_header
-ktap_plan 12
+ktap_plan 14
 
 stops "" "plain" 1
 stops --percpu "percpu" $((LAST > 0 ? 2 : 1))
