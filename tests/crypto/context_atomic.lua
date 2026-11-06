@@ -6,17 +6,24 @@
 
 local crypto = require("crypto")
 
+local insert = table.insert
+
 local ATTEMPTS <const> = 16
 local REFUSAL  <const> = "'crypto%.%l+': process%-context class in interrupt%-context runtime"
 
-local constructors = {sha256 = crypto.shash, ["ecdsa-nist-p256"] = crypto.sig}
+local constructors = {
+	{"sha256", crypto.shash},
+	{"ecdsa-nist-p256", crypto.sig},
+	{"lz4", crypto.acompress},
+}
 if crypto.comp then -- the binding has no comp from 6.15 on
-	constructors.lz4 = crypto.comp
+	insert(constructors, {"lz4", crypto.comp})
 end
 
 local function refuse()
 	for _ = 1, ATTEMPTS do
-		for algname, new in pairs(constructors) do
+		for _, constructor in ipairs(constructors) do
+			local algname, new = constructor[1], constructor[2]
 			local ok, err = pcall(new, algname)
 			assert(not ok, "crypto served an interrupt-context runtime: " .. algname)
 			assert(err:match(REFUSAL), "crypto raised something else: " .. err)
