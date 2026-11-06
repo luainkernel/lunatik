@@ -18,6 +18,8 @@ local rng      = alloc(crypto.rng, "stdrng")
 local comp     = alloc(crypto.comp, "lz4")
 
 check.clones(data.new(4), "softirq")
+check.clones(shash, "softirq")
+check.clones(skcipher, "softirq")
 check.clones(set.new({key = 1}))
 check.clones(shash)
 check.clones(skcipher)

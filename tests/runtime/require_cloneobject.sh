@@ -10,14 +10,15 @@
 # require would find nothing, and asserts package.loaded holds nothing under
 # the class name of what it got.
 #
-# A data object crosses into a softirq receiver, where the clone runs under the
-# spinlock of the monitored resume and must not sleep. set, the crypto classes
-# and the bpf maps cross into a process receiver, the context the crypto classes
-# need. The bpf maps are pinned with bpftool, and their case skips where it
-# cannot pin them. The first case skips where the kernel serves no sha256,
-# cbc(aes), gcm(aes), stdrng or lz4, which the script names, and where the
-# kernel's configuration has no CONFIG_CRYPTO_RNG2, without which crypto.rng
-# raises EOPNOTSUPP.
+# A data object, a crypto.shash and a crypto.skcipher cross into a softirq
+# receiver, where the clone runs under the spinlock of the monitored resume and
+# must not sleep. set, the crypto classes and the bpf maps cross into a process
+# receiver, the only context crypto.aead, crypto.rng and crypto.comp serve. The
+# bpf maps are pinned with bpftool, and their case skips where it cannot pin
+# them. The first case skips where the kernel serves no sha256, cbc(aes),
+# gcm(aes), stdrng or lz4, which the script names, and where the kernel's
+# configuration has no CONFIG_CRYPTO_RNG2, without which crypto.rng raises
+# EOPNOTSUPP.
 #
 # Usage: sudo bash tests/runtime/require_cloneobject.sh
 
