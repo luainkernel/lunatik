@@ -167,10 +167,12 @@ end
 
 -- a global is a field of the _ENV upvalue, and so is any other upvalue table's
 function loads.SETTABUP(f, pc, ins, _)
-	if maps.declares((upvalue(f, pc, ins.a))) then
+	local env, upname = upvalue(f, pc, ins.a)
+	if maps.declares(env) then
 		mapnumber(f, pc, "key")
 	end
-	refuse(f, pc, "a global cannot be assigned in a compiled function")
+	refuse(f, pc, upname == "_ENV" and "a global cannot be assigned in a compiled function"
+		or "a table cannot be written in a compiled function")
 end
 
 function loads.SETTABLE(f, pc, ins, state)

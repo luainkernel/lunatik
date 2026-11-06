@@ -16,6 +16,8 @@ local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local opcodes    = proto.opcodes
 local format     = string.format
 local mathtype   = math.type
+local insert     = table.insert
+local concat     = table.concat
 
 local NREGS    <const> = 4   -- Lua registers 0..3 live in r6..r9; the rest spill to the frame
 local FIRST    <const> = reg.R6
@@ -64,7 +66,7 @@ local BOOL <const> = newtype("boolean", "word")
 local NIL  <const> = newtype("nil", "word")
 
 -- a value the compiler knows and the kernel never sees
-local OTHER <const> = newtype("value")
+local OTHER <const> = newtype("compile-time value")
 
 local frame = {
 	NREGS = NREGS, SLOT = SLOT, NBITS = NBITS, BYTE = BYTE, RESERVED = RESERVED, ABORTED = ABORTED,
@@ -72,11 +74,22 @@ local frame = {
 	classes = classes, type = newtype, typenames = typenames,
 }
 
+-- a join is named by every type it holds, in the order the lowerings declared them
 local function typename(value)
 	if value == nil then
 		return "undefined value"
 	end
-	return typenames[value.t] or "value"
+	if value.t == OTHER and value.k ~= nil then
+		return type(value.k)
+	end
+	local names = {}
+	local mask = value.t
+	while mask ~= 0 do
+		local bit = mask & -mask
+		insert(names, typenames[bit])
+		mask = mask ~ bit
+	end
+	return concat(names, " or ")
 end
 frame.typename = typename
 
