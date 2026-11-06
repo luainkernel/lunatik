@@ -48,6 +48,13 @@
 # port's own frame goes out. A build whose forward() reads no metadata dst sends the first
 # copy. It skips without netdevsim or its MACsec offload.
 #
+# The resend case's callback forwards the echo reply to a ping from the namespace, flips its ICMP
+# type through the view it read the reply by and drops it, so only the frame forward() sent reaches
+# the peer, and the ping is answered only if that frame left with the type it had. The copy goes
+# out of the same egress, where the program's second bpf_luatc_run finds the runtime held and lets
+# it through. A build whose forward() sends a clone, which shares the head the callback writes and
+# which the veth hands to the peer's backlog unread, fails the ping.
+#
 # The teardown case puts the copy program on the egress of a veth end in a namespace of its own
 # whose conntrack an nft rule engages, where copy.lua's first step keeps a copy of the echo reply
 # to a ping from the host, deletes that namespace, then a second one, and reads that the second's
@@ -114,6 +121,7 @@ RAISED="${PREFIX}raised"
 RELOADED="tc reload: the callback runs after lunatik_run reloads under an attached program"
 NOTCX="tcx needs libbpf 1.3.0"
 IFNAME="tc ifname: the callback reads the name and the index of a device of another namespace"
+RESENT="tc resend: forward() sends a frame the callback's later write through its view does not reach"
 MACSEC="tc macsec: a copy's forward() refuses a frame its device encrypts by MACsec offload, and sends one it does not"
 NSIM_ID=1321
 MACSEC_DEV="lunatikmacsec0"
@@ -191,7 +199,7 @@ copy_releases() {
 }
 
 ktap_header
-ktap_plan 26
+ktap_plan 27
 
 skip_all()
 {
@@ -208,6 +216,7 @@ skip_all()
 	ktap_skip "$PULLED"
 	ktap_skip "$COPIED"
 	ktap_skip "$DETACHED"
+	ktap_skip "$RESENT"
 	ktap_skip "$MACSEC"
 	ktap_skip "$TEARDOWN"
 	ktap_skip "$ROUTED"
@@ -241,6 +250,7 @@ cleanup()
 	lunatik stop tests/tc/nonlinear > /dev/null 2>&1
 	lunatik stop tests/tc/copy > /dev/null 2>&1
 	lunatik stop tests/tc/macsec > /dev/null 2>&1
+	lunatik stop tests/tc/resend > /dev/null 2>&1
 	lunatik stop tests/tc/verdict > /dev/null 2>&1
 	lunatik stop tests/tc/compiled_pass > /dev/null 2>&1
 	lunatik stop tests/tc/compiled_drop > /dev/null 2>&1
@@ -682,6 +692,7 @@ run_case tc_data.bpf.o data.lua yes "tc data" \
 
 nonlinear_case
 copy_case
+run_case tc_resend.bpf.o resend.lua yes "tc resend" "$RESENT" --context=softirq
 macsec_case
 teardown_case
 route_case
