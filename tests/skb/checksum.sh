@@ -6,21 +6,26 @@
 # Tests skb:checksum on packets whose IP length fits them and on packets whose IP length does not.
 #
 # A LOCAL_OUT netfilter hook takes the first data packet of each sender, picked by its
-# SO_PRIORITY, and calls checksum() on it. A TCP segment over 127.0.0.1 and a UDP datagram over
-# ::1, their checksum fields zeroed, are summed: the IPv4 header sums to 0, and each segment
-# verifies against its pseudo-header. A TCP segment whose tot_len is one byte short of its header,
-# a TCP segment and a UDP datagram shrunk with skb:resize, whose IP length then runs past their
-# end, and a UDP datagram carrying a destination options header, whose payload_len counts that
-# header past where the UDP sum starts, are left unchanged byte for byte, as are a UDP datagram
-# over 127.0.0.1 shrunk to 26 bytes with its tot_len rewritten to fit, which no longer holds its
-# check field, and a TCP segment whose IHL reads 4, below the 5 ip_rcv_core requires; a build
-# without those refusals rewrites the IPv4 header checksum of both. The short datagram's socket
-# sends without a checksum (SO_NO_CHECK, socket option 11 of SOL_SOCKET, 1), so it leaves
-# CHECKSUM_NONE, which resize may cut short of the check field; a TCP segment leaves
-# CHECKSUM_PARTIAL, whose check field resize refuses to cut. A UDP datagram over ::1 whose first payload word makes its sum
-# fold to 0 gets the check field 0xffff, CSUM_MANGLED_0, where a build that stores the sum as it
-# comes leaves 0, which an IPv6 receiver drops. The hook drops every packet it takes; TCP resends
-# it untouched, and the UDP send fails with EPERM, so the senders' errors are discarded.
+# SO_PRIORITY, and calls checksum() on it. A UDP datagram over 127.0.0.1 and one over ::1, sent
+# without a checksum, their checksum fields zeroed, are summed: the IPv4 header sums to 0, and each
+# datagram verifies against its pseudo-header. A TCP segment over 127.0.0.1 and a UDP datagram over
+# ::1 sent with one leave CHECKSUM_PARTIAL, whose checksum the device completes from the check
+# field: zeroed, that field gets the pseudo-header sum alone, where a build that writes the complete
+# checksum there leaves a field the completion sums the segment into a second time. A TCP segment
+# whose tot_len is one byte short of its header, a TCP segment and a UDP datagram shrunk with
+# skb:resize, whose IP length then runs past their end, and a UDP datagram carrying a destination
+# options header, whose payload_len counts that header past where the UDP sum starts, are left
+# unchanged byte for byte, as are a UDP datagram over 127.0.0.1 shrunk to 26 bytes with its tot_len
+# rewritten to fit, which no longer holds its check field, and a TCP segment whose IHL reads 4,
+# below the 5 ip_rcv_core requires; a build without those refusals rewrites the IPv4 header
+# checksum of both. A datagram sent without a checksum (SO_NO_CHECK, socket option 11 of SOL_SOCKET,
+# 1, over IPv4, and UDP_NO_CHECK6_TX, option 101 of SOL_UDP, 1, over IPv6) leaves CHECKSUM_NONE,
+# which resize may cut short of the check field; a TCP segment leaves CHECKSUM_PARTIAL, whose check
+# field resize refuses to cut. A UDP datagram over ::1 sent without a checksum, whose first payload
+# word makes its sum fold to 0, gets the check field 0xffff, CSUM_MANGLED_0, where a build that
+# stores the sum as it comes leaves 0, which an IPv6 receiver drops. The hook drops every packet it
+# takes; TCP resends it untouched, and the UDP send fails with EPERM, so the senders' errors are
+# discarded.
 #
 # A luaskb that sums a length past the packet ends skb_checksum on BUG_ON and panics the host, and
 # its check has no symbol or message of its own. The packets past their end are therefore sent
@@ -43,9 +48,11 @@ FITS="fits4 fits6"
 GATE="below4"
 PAST="past4 past6 ext6 short4 ihl4"
 ZERO="zero6"
-CASES="$FITS $GATE $PAST $ZERO" # in the order of pending in checksum.lua
+SEED="seed4 seed6"
+CASES="$FITS $GATE $PAST $ZERO $SEED" # in the order of pending in checksum.lua
 DSTOPTS="41:59:x0000010400000000" # IPPROTO_IPV6, IPV6_DSTOPTS: an 8-byte header holding one PadN
 NOCHECK="1:11:1"                  # SOL_SOCKET, SO_NO_CHECK: the datagram leaves without a checksum
+NOCHECK6="17:101:1"               # SOL_UDP, UDP_NO_CHECK6_TX: the same over IPv6
 NCASES=$(echo $CASES | wc -w)
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -88,8 +95,11 @@ send() {
 			[ "$ipv6" = 1 ] || { skip[$c]="lo has no ::1"; continue; }
 			target="UDP6:[::1]:$PORT" ;;
 		esac
-		[ "$c" = ext6 ] && target="$target,setsockopt=$DSTOPTS"
-		[ "$c" = short4 ] && target="UDP:127.0.0.1:$PORT,setsockopt-int=$NOCHECK"
+		case $c in
+		fits4|short4) target="UDP:127.0.0.1:$PORT,setsockopt-int=$NOCHECK" ;;
+		fits6|zero6) target="$target,setsockopt-int=$NOCHECK6" ;;
+		ext6) target="$target,setsockopt=$DSTOPTS" ;;
+		esac
 		head -c "$PAYLOAD" /dev/zero | tr '\0' x |
 			timeout 5 socat -u - "$target,priority=$((PRIORITY + i))" 2>/dev/null
 		sent=$((sent + 1))
@@ -107,7 +117,7 @@ socat -u "TCP-LISTEN:$PORT,reuseaddr,fork" OPEN:/dev/null &
 LISTENER=$!
 for _ in $(seq 20); do [ -n "$(ss -tHln "sport = :$PORT" 2>/dev/null)" ] && break; sleep 0.1; done
 
-send $FITS $GATE $ZERO
+send $FITS $GATE $ZERO $SEED
 if dmesg_since | grep -q "skb checksum: $GATE ok"; then
 	send $PAST
 else
