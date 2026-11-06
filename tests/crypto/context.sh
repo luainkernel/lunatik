@@ -3,8 +3,9 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Regression test for the tfm crypto.shash() and crypto.comp() allocated before
-# the object that has to hold it. lunatik_newobject() raises for a
+# Regression test for the tfm crypto.shash(), crypto.comp() and
+# crypto.acompress() allocated before the object that has to hold it.
+# lunatik_newobject() raises for a
 # process-context class in an interrupt-context runtime, so an object asked for
 # from an armed softirq runtime left the tfm behind, and a tfm holds a reference
 # on the module implementing the algorithm for the rest of the boot.
@@ -13,8 +14,8 @@
 # alive names the modules that back sha256, lz4 and ecdsa-nist-p256 here,
 # whatever they are on this architecture: those /proc/crypto lists whose
 # reference count rose while the objects lived. The refusals then have to name
-# the class, crypto.shash, crypto.comp or crypto.sig, and leave those counts
-# where they found them.
+# the class, crypto.shash, crypto.comp, crypto.acompress or crypto.sig, and
+# leave those counts where they found them.
 #
 # The case only runs against the build it was installed with. The refusal is a
 # static inline compiled into luacrypto, so a build from before it allocates the
