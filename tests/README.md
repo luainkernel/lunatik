@@ -362,6 +362,12 @@ each script allocates before its cases, and each case that runs
   it, while the script's collector, stopped, keeps every refused object alive.
   An `open`, `read`, `write` or `release` that holds a string or a boolean is
   refused the same way, with `function expected` and the field's name.
+- **empty**: `device.new()` refuses a name that is empty as a C string, `""`, and
+  `"\0x"`, whose Lua length is 2, with `bad field 'name' (empty)`, before
+  the device registers anything: `/proc/devices` lists no major with an empty
+  name, and the kernel logs no WARNING. A build without the refusal reaches
+  `kobject_add_internal`'s WARN, which panics a host booted with
+  `panic_on_warn`, so the test skips there.
 
 ### cli
 
