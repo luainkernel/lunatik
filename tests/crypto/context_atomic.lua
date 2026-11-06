@@ -7,16 +7,23 @@
 local crypto = require("crypto")
 
 local ATTEMPTS <const> = 16
-local REFUSAL  <const> = "'crypto%.%l+': process%-context class in interrupt%-context runtime"
+local ARMED    <const> = "not allowed once the runtime is armed"
+local CLASS    <const> = "'crypto%.%l+': process%-context class in interrupt%-context runtime"
 
-local constructors = {sha256 = crypto.shash, ["ecdsa-nist-p256"] = crypto.sig, lz4 = crypto.comp}
+-- each constructor and the refusal it raises past the body of a softirq runtime
+local constructors = {
+	sha256 = {new = crypto.shash, refusal = ARMED},
+	["ctr(aes)"] = {new = crypto.skcipher, refusal = ARMED},
+	["ecdsa-nist-p256"] = {new = crypto.sig, refusal = CLASS},
+	lz4 = {new = crypto.comp, refusal = CLASS},
+}
 
 local function refuse()
 	for _ = 1, ATTEMPTS do
-		for algname, new in pairs(constructors) do
-			local ok, err = pcall(new, algname)
+		for algname, constructor in pairs(constructors) do
+			local ok, err = pcall(constructor.new, algname)
 			assert(not ok, "crypto served an interrupt-context runtime: " .. algname)
-			assert(err:match(REFUSAL), "crypto raised something else: " .. err)
+			assert(err:match(constructor.refusal), "crypto raised something else: " .. err)
 		end
 	end
 end

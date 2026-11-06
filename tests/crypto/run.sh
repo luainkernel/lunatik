@@ -5,14 +5,21 @@
 #
 # Runs all crypto tests and reports aggregated KTAP results.
 #
-# shash, skcipher, aead, rng, sig, hkdf and comp allocate each algorithm their cases use before the first of them,
-# through tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script names. rng skips
-# where the kernel's configuration has no CONFIG_CRYPTO_RNG2, without which crypto.rng raises EOPNOTSUPP, and fails
-# where it has the option and crypto.rng raises it.
+# shash, skcipher, aead, rng, sig, hkdf, comp, quic and hardirq allocate each algorithm their cases use before the
+# first of them, through tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script
+# names. rng skips where the kernel's configuration has no CONFIG_CRYPTO_RNG2, without which crypto.rng raises
+# EOPNOTSUPP, and fails where it has the option and crypto.rng raises it.
+#
+# quic: a softirq runtime's body creates hmac(sha256), through crypto.hkdf, ecb(aes) and ctr(aes), and its hook,
+# resumed with RFC 9001 A.2's protected client Initial, derives A.1's client keys from the packet's connection ID,
+# removes the header protection and deciphers the payload with ctr(aes) from GCM's second counter, its tag unchecked.
+#
+# hardirq: crypto.shash and crypto.skcipher refuse a hardirq runtime in its body and past it, and the methods of an
+# object handed over there refuse it, since its callbacks run with IRQs disabled.
 #
 # context: a crypto object refused for its execution context leaves nothing
 # allocated, measured on the reference a tfm holds on the module implementing
-# the algorithm, for the two constructors that allocated one before the object.
+# the algorithm, for shash, skcipher, comp and sig.
 #
 # async: skcipher and aead refuse an asynchronous implementation, cryptd's.
 #
@@ -33,7 +40,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="shash skcipher aead rng sig hkdf comp"
+TESTS="shash skcipher aead rng sig hkdf quic hardirq comp"
 TOTAL=$(echo $TESTS | wc -w)
 
 cleanup() {

@@ -38,8 +38,9 @@ typedef struct luacrypto_ctx_s {
 } luacrypto_ctx_t;
 
 /* checkctx returns the context; check returns ctx->tfm for tfm-only methods. */
-#define LUACRYPTO_CHECKER(name, T)							\
-LUNATIK_PRIVATECHECKER(luacrypto_##name##_checkctx, luacrypto_ctx_t *, &luacrypto_##name##_class)	\
+#define LUACRYPTO_CHECKER(name, T, ...)							\
+LUNATIK_PRIVATECHECKER(luacrypto_##name##_checkctx, luacrypto_ctx_t *, &luacrypto_##name##_class,	\
+	##__VA_ARGS__)										\
 static inline T *luacrypto_##name##_check(lua_State *L, int idx)				\
 {											\
 	return (T *)luacrypto_##name##_checkctx(L, idx)->tfm;				\
@@ -56,9 +57,10 @@ static inline void luacrypto_initctx(lua_State *L, luacrypto_ctx_t *ctx,
 		lunatik_enomem(L);
 }
 
-#define LUACRYPTO_NEWCTX(name, T, alloc, class)							\
+#define LUACRYPTO_NEWCTX(name, T, alloc, class, ...)						\
 int luacrypto_##name##_new(lua_State *L)							\
 {												\
+	__VA_ARGS__										\
 	const char *algname = luaL_checkstring(L, 1);						\
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L));						\
 	lunatik_object_t *object = lunatik_newobject(L, &class,				\
