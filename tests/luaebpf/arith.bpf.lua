@@ -38,7 +38,7 @@ local order = {"add", "sub", "mul", "idiv", "mod", "band", "bor", "bxor", "shl",
 	"bnot", "addk", "modk", "idivk", "bandk", "addi", "shri", "shli", "shlconst"}
 local operands = {
 	{7, 3}, {-7, 3}, {7, -3}, {-7, -3}, {0, 5}, {5, 0}, {MIN, -1}, {MIN, 1}, {-1, 63},
-	{1, 64}, {1, 65}, {1, -1}, {255, 0}, {-1, MIN}, {MAX, 2}, {MIN, MAX},
+	{1, 64}, {1, 65}, {1, -1}, {255, 0}, {-1, MIN}, {MAX, 2}, {MIN, MAX}, {7, MIN}, {MIN, MIN},
 }
 
 corpus.declare(makers, order, operands)

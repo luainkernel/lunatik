@@ -243,6 +243,26 @@ under `sudo`.
   ([Documentation/bpf/standardization/instruction-set.rst#L351-L357](https://github.com/torvalds/linux/blob/v7.2/Documentation/bpf/standardization/instruction-set.rst#L351-L357)).
   Lua raises. The emitter tests the divisor and takes the failure path, so compiled and
   interpreted code agree on every input the interpreted code accepts.
+* **A signed division divides the magnitudes.** `BPF_SDIV` and `BPF_SMOD`, `BPF_DIV` and `BPF_MOD`
+  with `off` 1, exist from v6.6, whose verifier takes them
+  ([kernel/bpf/verifier.c#L13254-L13259](https://github.com/torvalds/linux/blob/v6.6/kernel/bpf/verifier.c#L13254-L13259)),
+  but a JIT that switches on the opcode alone divides unsigned under them, and the program loads:
+  s390's of v6.6, and of the 6.6.y series as read on 2026-10-29
+  ([arch/s390/net/bpf_jit_comp.c#L932-L946](https://github.com/torvalds/linux/blob/v6.6/arch/s390/net/bpf_jit_comp.c#L932-L946)),
+  loongarch's of v6.6
+  ([arch/loongarch/net/bpf_jit.c#L536-L561](https://github.com/torvalds/linux/blob/v6.6/arch/loongarch/net/bpf_jit.c#L536-L561)),
+  powerpc64's through v6.10
+  ([arch/powerpc/net/bpf_jit_comp64.c#L519-L527](https://github.com/torvalds/linux/blob/v6.10/arch/powerpc/net/bpf_jit_comp64.c#L519-L527)),
+  and mips64's and sparc64's at v6.6 and at v7.2
+  ([arch/mips/net/bpf_jit_comp64.c#L800-L802](https://github.com/torvalds/linux/blob/v7.2/arch/mips/net/bpf_jit_comp64.c#L800-L802),
+  [arch/sparc/net/bpf_jit_comp_64.c#L950-L973](https://github.com/torvalds/linux/blob/v7.2/arch/sparc/net/bpf_jit_comp_64.c#L950-L973)).
+  The emitter divides the magnitudes with `BPF_DIV` and `BPF_MOD` and negates the quotient where
+  the signs differ and the remainder where the dividend is negative, as the interpreter's own
+  32-bit signed division does
+  ([kernel/bpf/core.c#L1810-L1824](https://github.com/torvalds/linux/blob/v6.6/kernel/bpf/core.c#L1810-L1824),
+  [#L1864-L1878](https://github.com/torvalds/linux/blob/v6.6/kernel/bpf/core.c#L1864-L1878)),
+  before Lua's floor correction. Negated, `math.mininteger` is itself, which the unsigned
+  division reads as 2^63, its magnitude.
 * **No heap, no GC.** `BPF_MAP_TYPE_ARENA`
   ([uapi/linux/bpf.h#L1048](https://github.com/torvalds/linux/blob/v7.2/include/uapi/linux/bpf.h#L1048))
   is a typed address range, not a Lua heap. Runtime tables and strings are refused; a table
