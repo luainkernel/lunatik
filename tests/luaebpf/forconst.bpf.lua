@@ -25,8 +25,31 @@ function makers.nested()
 		return s
 	end
 end
+function makers.continue()
+	return function(_)
+		local s = 0
+		for i = 1, 5 do
+			if i == 3 then goto continue end
+			s = s + i
+			::continue::
+		end
+		return s
+	end
+end
+function makers.escape()
+	return function(_)
+		local s = 0
+		for i = 1, 5 do
+			if i == 3 then goto done end
+			s = s + i
+		end
+		::done::
+		return s
+	end
+end
 
-local order = {"forward", "zerotrip", "descending", "bigstep", "onestep", "nested"}
+local order = {"forward", "zerotrip", "descending", "bigstep", "onestep", "nested", "continue",
+	"escape"}
 
 local rows = corpus.new()
 for _, op in ipairs(order) do

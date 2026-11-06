@@ -177,6 +177,7 @@ that line. Each construct links to its listing.
 | [`if v then`, `and`, `or`, `not`](09-luaebpf-by-example.md#comparisons-and-truth) | `0` is true; only `nil` and `false` are false | never | `v` may be a number on one path and nil or a boolean on another |
 | [`t.x`, `t[1]`, `t` a table of the body](09-luaebpf-by-example.md#values-of-the-body) | the value the body left there | never | the index is computed; `#t`; a write to `t` |
 | [`for i = a, b, s do`](09-luaebpf-by-example.md#loops) | the passes Lua makes | `s` is 0 | `s` is a known 0; a bound or a step is computed, before Linux 6.9 ([Loops](#loops)) |
+| [`goto continue`](09-luaebpf-by-example.md#goto) | a jump to the label | never | the label is above the `goto` |
 | [`local v = f(x)`](09-luaebpf-by-example.md#calls) | the value `f` returns | `f` stops | [Calls](#calls) says |
 | [`return f(x)`](09-luaebpf-by-example.md#calls) | | | always: a tail call |
 | [`p:getuint16(n)` and the other reads](09-luaebpf-by-example.md#the-packet) | the bytes at `n`, in the kernel's byte order | the read passes the end of the packet | [The packet](#the-packet) says |
@@ -189,8 +190,8 @@ that line. Each construct links to its listing.
 | [`return v`, the verdict](09-luaebpf-by-example.md#the-verdict) | its low 32 bits; `true` as 1, `false` as 0 | never | `v` may be nil |
 
 Besides what the table refuses, these are refused: a table constructor, `..`, a closure, an
-assignment to an upvalue or a global, a generic `for`, `while`, `repeat`, a `goto` backwards, a
-vararg function and a to-be-closed variable. [Messages](#messages) lists what each refusal says.
+assignment to an upvalue or a global, a generic `for`, `while`, `repeat`, a vararg function and a
+to-be-closed variable. [Messages](#messages) lists what each refusal says.
 
 ## The packet
 
@@ -341,7 +342,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | the verdict may be nil here; test it first | `return v`, `v` nil on one path | a verdict on every path |
 | 'half' is a float, which a compiled function cannot hold | `local half = math.sqrt(4)` in the body | an integer |
 | malformed number near '.5', which `lunatic` prints before `lunatic could not compile it` | `2.5` | an integer: the kernel's Lua has no float |
-| 'while' and 'repeat' are not compiled yet | `while`, `repeat`, a `goto` backwards | a numeric `for` |
+| 'while', 'repeat' and a 'goto' backwards are not compiled yet | `while`, `repeat`, a `goto` backwards | a numeric `for` |
 | a 'for' the compiler cannot bound needs may_goto, which this kernel lacks | `for i = 1, n`, before Linux 6.9 | known bounds |
 | 'for' step is zero | `for i = 1, 10, 0` | a step that is not 0 |
 | the map key -1 does not fit 'I4' | a key or a value outside its spec | a value its spec packs |

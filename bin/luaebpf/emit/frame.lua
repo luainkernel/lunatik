@@ -301,7 +301,7 @@ local function jumptarget(f, pc)
 	end
 	local target = pc + ins.sj + 1
 	if target <= pc then
-		refuse(f, pc, "'while' and 'repeat' are not compiled yet")
+		refuse(f, pc, "'while', 'repeat' and a 'goto' backwards are not compiled yet")
 	end
 	return target
 end
