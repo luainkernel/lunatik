@@ -142,7 +142,8 @@ end
 -- @tparam string message message to send.
 -- @treturn boolean `true` if the message was queued, `false` if the queue has no room for it.
 -- @raise "receive-only mailbox" on an inbox; "out of bounds" for a message whose length plus a
---   `size_t` exceeds the queue's capacity.
+--   `size_t` exceeds the queue's capacity; "not allowed under the runqueue lock" from an scx
+--   callback, where the message is queued before `complete` raises waking its waiter.
 function MailBox:send(message)
 	local queued = self.queue:push(string.pack("s", message))
 	if queued then
