@@ -5,6 +5,8 @@
 
 /***
 * Lua interface to synchronous message digest (hash) algorithms, including HMAC.
+* Every method raises "not allowed with IRQs disabled" where the CPU runs with them off, in every
+* callback of a hardirq runtime among them.
 * @classmod crypto_shash
 */
 
@@ -15,7 +17,9 @@
 
 #include "luacrypto.h"
 
-LUNATIK_PRIVATECHECKER(luacrypto_shash_check, struct shash_desc *, &luacrypto_shash_class);
+LUNATIK_PRIVATECHECKER(luacrypto_shash_check, struct shash_desc *, &luacrypto_shash_class,
+	lunatik_checkirqs(L); /* arm64's AES MACs set keys in NEON unguarded, a BUG with IRQs off */
+);
 
 static void luacrypto_shash_release(void *private)
 {
@@ -212,12 +216,14 @@ const lunatik_class_t luacrypto_shash_class = {
 	.name = "crypto.shash",
 	.methods = luacrypto_shash_mt,
 	.release = luacrypto_shash_release,
-	.opt = LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
+	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_MONITOR | LUNATIK_OPT_EXTERNAL,
 	.owner = THIS_MODULE,
 };
 
 int luacrypto_shash_new(lua_State *L)
 {
+	lunatik_checkhardirq(L);
+	lunatik_checkarmed(L);
 	const char *algname = luaL_checkstring(L, 1);
 	lunatik_object_t *object = lunatik_newobject(L, &luacrypto_shash_class, 0, LUNATIK_OPT_NONE);
 	struct crypto_shash *tfm = crypto_alloc_shash(algname, 0, 0);

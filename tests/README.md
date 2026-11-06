@@ -159,6 +159,21 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   quic.xargs.org; an instance closed twice raises "closed object" from
   `extract`, its HMAC transform released. Skipped where the kernel serves no
   `hmac(sha256)`, which the script allocates before its cases.
+- **quic**: a softirq runtime's body creates `hmac(sha256)` through `hkdf`,
+  `ecb(aes)` and `ctr(aes)`, and its hook, resumed with RFC 9001 A.2's
+  protected client Initial in a `data`, derives from the packet's connection
+  ID A.1's client initial secret, key, IV and header protection key, setting
+  each transform's key there, computes A.2's mask from the sample, removes the
+  header protection in place to packet number 2, and deciphers the 1162-byte
+  payload with `ctr(aes)` from GCM's second counter into the CRYPTO frame and
+  its PADDING, the tag unchecked. Skipped where the kernel serves no
+  `hmac(sha256)`, `ecb(aes)` or `ctr(aes)`, which the script allocates before
+  its case.
+- **hardirq**: `shash` and `skcipher` raise `not allowed in a hardirq runtime`
+  in a hardirq runtime's body and past it, and a `crypto.shash` and a
+  `crypto.skcipher` handed over to it raise `not allowed with IRQs disabled`
+  from a method, since its callbacks run with them off. Skipped where the
+  kernel serves no `sha256` or `ctr(aes)`.
 - **comp**: `lz4` names itself through `algname`, compresses to fewer bytes
   and decompresses back into an exact or a larger buffer; an empty string with
   a size of 0 is refused as out of bounds, and a buffer one byte short of the
@@ -167,9 +182,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   asks the runtime for the binding, instead of the suite reading the kernel
   version.
 - **context**: an object refused for its execution context leaves nothing
-  allocated. `crypto.shash("sha256")`, `crypto.comp("lz4")` and
-  `crypto.sig("ecdsa-nist-p256")` from an armed softirq runtime are refused
-  naming their class, `crypto.shash`, `crypto.comp` and `crypto.sig`, and the
+  allocated. From an armed softirq runtime, `crypto.shash("sha256")` and
+  `crypto.skcipher("ctr(aes)")` are refused with `not allowed once the runtime
+  is armed`, and `crypto.comp("lz4")` and `crypto.sig("ecdsa-nist-p256")`
+  naming their class, `crypto.comp` and `crypto.sig`, and the
   modules backing those algorithms -
   named by holding one object of each kind alive and watching which of
   `/proc/crypto`'s modules gain a reference - keep the reference counts they
@@ -1875,10 +1891,10 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 - **require_cloneobject**: an object resumed into a runtime that never
   called `require()` for its module arrives with its class metatables,
   which `lunatik_cloneobject` creates there from the class's methods
-  without opening the library or adding a `package.loaded` entry: `data`
-  into a softirq runtime, where the clone must not sleep, and
-  `set`, the crypto classes and the `bpf` maps into a process
-  one. The `crypto.comp` case skips where the kernel has no crypto_comp
+  without opening the library or adding a `package.loaded` entry: `data`,
+  `crypto.shash` and `crypto.skcipher` into a softirq runtime, where the clone
+  must not sleep, and `set`, the crypto classes and the `bpf` maps into a
+  process one. The `crypto.comp` case skips where the kernel has no crypto_comp
   API (6.15 and later), the `bpf` one where bpftool cannot pin a map, and
   the first where the kernel serves no `sha256`, `cbc(aes)`, `gcm(aes)` or
   `stdrng`.

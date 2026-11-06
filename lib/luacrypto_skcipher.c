@@ -5,6 +5,8 @@
 
 /***
 * Lua interface to symmetric-key ciphers (SKCIPHER).
+* Every method raises "not allowed with IRQs disabled" where the CPU runs with them off, in every
+* callback of a hardirq runtime among them.
 * @classmod crypto_skcipher
 */
 
@@ -16,7 +18,9 @@
 
 #include "luacrypto.h"
 
-LUACRYPTO_CHECKER(skcipher, struct crypto_skcipher);
+LUACRYPTO_CHECKER(skcipher, struct crypto_skcipher,
+	lunatik_checkirqs(L); /* arm64's AES drivers set keys and cipher in NEON unguarded, a BUG with IRQs off */
+);
 
 LUACRYPTO_RELEASERCTX(skcipher, struct crypto_skcipher, crypto_free_skcipher);
 
@@ -112,7 +116,8 @@ static int luacrypto_skcipher_##op(lua_State *L)			\
 * @tparam string data plaintext
 * @treturn string ciphertext (same length as input)
 * @raise on encryption failure or incorrect IV length, "not enough memory" when one kmalloc block
-*   cannot be allocated for the data, always past `KMALLOC_MAX_SIZE`
+*   cannot be allocated for the data without sleeping, in any runtime: always past
+*   `KMALLOC_MAX_SIZE`, and for data of several pages when memory is short
 */
 LUACRYPTO_SKCIPHER_CRYPT(encrypt)
 
@@ -123,7 +128,8 @@ LUACRYPTO_SKCIPHER_CRYPT(encrypt)
 * @tparam string data ciphertext
 * @treturn string plaintext (same length as input)
 * @raise on decryption failure or incorrect IV length, "not enough memory" when one kmalloc block
-*   cannot be allocated for the data, always past `KMALLOC_MAX_SIZE`
+*   cannot be allocated for the data without sleeping, in any runtime: always past
+*   `KMALLOC_MAX_SIZE`, and for data of several pages when memory is short
 */
 LUACRYPTO_SKCIPHER_CRYPT(decrypt)
 
@@ -163,9 +169,12 @@ const lunatik_class_t luacrypto_skcipher_class = {
 	.name = "crypto.skcipher",
 	.methods = luacrypto_skcipher_mt,
 	.release = luacrypto_skcipher_release,
-	.opt = LUNATIK_OPT_MONITOR,
+	.opt = LUNATIK_OPT_SOFTIRQ | LUNATIK_OPT_MONITOR,
 	.owner = THIS_MODULE,
 };
 
-LUACRYPTO_NEWCTX(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class);
+LUACRYPTO_NEWCTX(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacrypto_skcipher_class,
+	lunatik_checkhardirq(L);
+	lunatik_checkarmed(L);
+);
 
