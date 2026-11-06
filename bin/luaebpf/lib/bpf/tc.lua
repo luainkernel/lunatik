@@ -21,6 +21,10 @@
 -- the packet's bounds rather than numbers, and `skb:data()` is the packet from `skb->data`, read as
 -- `ctx:packet()` is in `bpf.xdp`; a layer is refused, and an skb that is not linear, where the
 -- kernel's `skb:data()` raises in a tc callback, stops the program.
+--
+-- A call into a kernel Lua runtime `bpf.runtime` names lowers to `bpf_luatc_run`: it answers the
+-- verdict the callback `tc.attach` registered returns, or nil, and the program tests the answer
+-- before it reads it.
 -- @module bpf.tc
 -- @usage
 -- local tc     = require("bpf.tc")
@@ -40,6 +44,9 @@ local action   = require("linux.tc").action
 -- (tools/lib/bpf/libbpf.c)
 local INGRESS <const> = "tcx/ingress"
 local EGRESS  <const> = "tcx/egress"
+
+-- what lib/luatc.c registers for a TC program, which libbpf resolves in the module's BTF
+local KFUNC <const> = "bpf_luatc_run"
 
 -- what a program reaches on its context, spelled as the kernel's skb object spells it
 -- (lib/luaskb.c): '#' reads len and each method the field of its name, and a method the kernel
@@ -73,7 +80,7 @@ local tc = {}
 function tc.program(fn, opts)
 	opts = opts or {}
 	return programs.declare("tc.program", fn, {section = opts.egress and EGRESS or INGRESS,
-		default = opts.default or action.OK, name = opts.name, context = context})
+		default = opts.default or action.OK, name = opts.name, context = context, kfunc = KFUNC})
 end
 
 return tc

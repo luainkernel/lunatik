@@ -3,11 +3,12 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Helpers the luaebpf cases share: the toolchain check that turns a missing tool into a skip,
-# the compile into a scratch directory, in either byte order, the kernel's BTF swapped into the
-# other, the load into a pin root, the differential run against the oracle a program file's own
-# body wrote while it compiled, and, for the loader cases, the device they attach to and what a
-# refused `lunatik run` may not leave behind.
+# Helpers the luaebpf cases share: the toolchain check that turns a missing tool into a skip, the
+# module BTF check that does the same for a case calling the kernel Lua runtime, the compile into a
+# scratch directory, in either byte order, the kernel's BTF swapped into the other, the load into a
+# pin root, the differential run against the oracle a program file's own body wrote while it
+# compiled, and, for the loader cases, the device they attach to and what a refused `lunatik run`
+# may not leave behind.
 # Source this file, and tests/lib.sh, from each case.
 
 # the program files install beside the cases, out of the tree the kernel's require reads
@@ -44,19 +45,34 @@ luaebpf_reason() {
 	[ -r "$LUAEBPF_SRC/pass.bpf.lua" ] || { echo "the program files are not installed"; return; }
 }
 
+# why a case cannot load a program calling the kernel Lua runtime through <module>'s kfunc, which
+# libbpf resolves in the module's BTF, or nothing at all
+luaebpf_kfunc() {
+	[ -r "/sys/kernel/btf/$1" ] || echo "$1 publishes no BTF; run make btf_install, then make install"
+}
+
 # whether the running kernel takes the may_goto header a loop without a proven bound needs
 luaebpf_maygoto() {
 	[ "$(printf '%s\n6.9\n' "$(uname -r | cut -d. -f1,2)" | sort -V | head -1)" = "6.9" ]
 }
 
-# the plan, the skips a missing tool turns every case into, and a scratch directory of its own
+# luaebpf_skips <count> <reason>: that many cases skipped for the reason
+luaebpf_skips() {
+	local i
+	for i in $(seq "$1"); do ktap_skip "luaebpf: $2"; done
+}
+
+# luaebpf_start <plan> [<module>]: the plan, the skips a missing tool, or the module's missing BTF
+# where the case's programs call the kernel Lua runtime through <module>'s kfunc, turns every case
+# into, and a scratch directory of its own
 luaebpf_start() {
-	local reason i
+	local reason
 	ktap_header
 	ktap_plan "$1"
 	reason=$(luaebpf_reason)
+	[ -z "$reason" ] && [ -n "${2:-}" ] && reason=$(luaebpf_kfunc "$2")
 	if [ -n "$reason" ]; then
-		for i in $(seq "$1"); do ktap_skip "luaebpf: $reason"; done
+		luaebpf_skips "$1" "$reason"
 		ktap_totals
 		exit 0
 	fi
@@ -91,17 +107,32 @@ luaebpf_verbose() {
 	bpftool -d prog loadall "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_PINS" pinmaps "$LUAEBPF_MAPS" 2>&1
 }
 
-# one program over the packet and the context the row named, or over the fourteen bytes
-# BPF_PROG_TEST_RUN demands of an XDP program where a row named none
+# luaebpf_started <script> [<option>...]: the kernel script started by lunatik run with the options
+# given, or the case failed with what the run said
+luaebpf_started() {
+	local script="$1" output
+	shift
+	output=$(lunatik run "$@" "$script" 2>&1)
+	[ -z "$output" ] || { comment "$output"; fail "luaebpf: $script did not start"; }
+}
+
+# the verdict bpftool prog run prints for the program and the arguments it is given
+luaebpf_returned() {
+	bpftool prog run "$@" 2>&1 | grep -oP 'Return value: \K[0-9]+'
+}
+
+# luaebpf_verdict <name> [<context> [<out> [<repeat>]]]: one program over the packet and the context
+# the row named, or over the fourteen bytes BPF_PROG_TEST_RUN demands of an XDP program where a row
+# named none, <repeat> times, the context it leaves written to <out>
 luaebpf_verdict() {
-	local name="$1" context="${2:-}" out="${3:-}" data="$LUAEBPF_WORK/packet.bin" args=()
+	local name="$1" context="${2:-}" out="${3:-}" count="${4:-}" data="$LUAEBPF_WORK/packet.bin" args=()
 	if [ -n "$context" ]; then
 		data="$LUAEBPF_WORK/$context.bin"
 		args=(ctx_in "$LUAEBPF_WORK/$context.ctx")
 		[ -n "$out" ] && args+=(ctx_out "$out")
 	fi
-	bpftool prog run pinned "$LUAEBPF_PINS/$name" data_in "$data" "${args[@]}" 2>&1 \
-		| grep -oP 'Return value: \K[0-9]+'
+	[ -n "$count" ] && args+=(repeat "$count")
+	luaebpf_returned pinned "$LUAEBPF_PINS/$name" data_in "$data" "${args[@]}"
 }
 
 # every row of the oracle against the program of the same name; where the interpreter raised,
@@ -119,6 +150,14 @@ luaebpf_differential() {
 	[ "$mismatch" -eq 0 ]
 }
 
+# luaebpf_written <name> [<option>...]: compiles a program file the case wrote into the scratch
+# directory, with the options given, its output left to the caller
+luaebpf_written() {
+	local name="$1"
+	shift
+	( cd "$LUAEBPF_WORK" && lunatik bpf "$@" -o "$LUAEBPF_WORK/$name.bpf.o" "$LUAEBPF_WORK/$name.bpf.lua" )
+}
+
 # luaebpf_refuses <name> <pattern> [<option>...]: a refused construct, the program file compiled with
 # the options given: the message names the file and the line, the CLI exits non-zero, and no object
 # is left behind
@@ -126,8 +165,7 @@ luaebpf_refuses() {
 	local name="$1" pattern="$2" out
 	shift 2
 	rm -f "$LUAEBPF_WORK/$name.bpf.o"
-	out=$(cd "$LUAEBPF_WORK" && lunatik bpf "$@" -o "$LUAEBPF_WORK/$name.bpf.o" \
-		"$LUAEBPF_WORK/$name.bpf.lua" 2>&1)
+	out=$(luaebpf_written "$name" "$@" 2>&1)
 	if [ $? -eq 0 ]; then
 		echo "$name: compiled, and the construct should have been refused"
 		return 1
@@ -141,6 +179,18 @@ luaebpf_refuses() {
 		return 1
 	fi
 	return 0
+}
+
+# luaebpf_refused <name> <pattern> [<option>...]: the row luaebpf_refuses decides, with what it said
+luaebpf_refused() {
+	local output
+	output=$(luaebpf_refuses "$@")
+	if [ $? -ne 0 ]; then
+		comment "$output"
+		ktap_fail "luaebpf: $1"
+	else
+		ktap_pass "luaebpf: $1 is refused with its message"
+	fi
 }
 
 # luaebpf_ordered <order> <name> [<option>...]: the program file <name> compiled, with the options

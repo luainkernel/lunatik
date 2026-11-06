@@ -16,12 +16,14 @@ local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local opcodes    = proto.opcodes
 local format     = string.format
 local mathtype   = math.type
+local max        = math.max
 
 local NREGS    <const> = 4   -- Lua registers 0..3 live in r6..r9; the rest spill to the frame
 local FIRST    <const> = reg.R6
 local SLOT     <const> = 8
 local NBITS    <const> = 64
 local BYTE     <const> = 8   -- bits
+local MAXSTACK <const> = 512 -- MAX_BPF_STACK
 
 -- the words every frame reserves: the flag a callee raises through the pointer its caller
 -- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
@@ -158,6 +160,20 @@ local function offset(i)
 	return -SLOT * (i - NREGS + 1 + RESERVED)
 end
 
+-- the bytes a frame holds: the words it reserves and the Lua registers that spill below them
+local function depth(f)
+	return (max(f.proto.maxstacksize - NREGS, 0) + RESERVED) * SLOT
+end
+frame.depth = depth
+
+-- a frame deeper than eBPF allows is refused at the line that needs it
+local function stack(f, pc, bytes)
+	if bytes > MAXSTACK then
+		refuse(f, pc, "the function needs %d bytes of stack, over the %d eBPF allows", bytes, MAXSTACK)
+	end
+end
+frame.stack = stack
+
 -- the word a Lua register holds, whatever its type
 local function fetch(f, i, scratch)
 	if spilled(i) then
@@ -168,11 +184,16 @@ local function fetch(f, i, scratch)
 end
 frame.fetch = fetch
 
+-- the value's name quoted, or what the caller says of one with none
+local function named(value, otherwise)
+	return value.name and format("'%s'", value.name) or otherwise
+end
+frame.named = named
+
 -- the verifier lets a lookup's pointer be used only where the program has tested it
 local function tested(f, pc, value)
 	if value ~= nil and (value.t & classes.untested) ~= 0 then
-		local name = value.name and format("'%s'", value.name) or "a value"
-		refuse(f, pc, "%s may be nil here; test it first", name)
+		refuse(f, pc, "%s may be nil here; test it first", named(value, "a value"))
 	end
 end
 frame.tested = tested
@@ -206,6 +227,13 @@ local function setimm(f, i, value)
 	end
 end
 frame.setimm = setimm
+
+-- dst := the address of the frame's bytes at `at`, which a call reads through a pointer
+local function address(f, dst, at)
+	f.code:alu(alu.MOV, dst, reg.FP)
+	f.code:alui(alu.ADD, dst, at)
+end
+frame.address = address
 
 local function move(f, from, scratch)
 	if from ~= scratch then
@@ -306,6 +334,31 @@ local function jumptarget(f, pc)
 	return target
 end
 frame.jumptarget = jumptarget
+
+-- the test of a word the kernel answered against `word`, its nil: `found` narrows the register on the
+-- arm that found another, the other arm holds nil's zero word, and `taken` is whether the opcode's
+-- jump is the former
+local function narrow(f, pc, ins, state, word, taken, found)
+	local code, value = f.code, state[ins.a]
+	local target = jumptarget(f, pc + 1)
+	local hit = taken and target or pc + 2
+	local miss = taken and pc + 2 or target
+	local absent = code:label()
+	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), word, absent)
+	local narrowed = copy(state)
+	found(f, pc, narrowed, ins.a, value)
+	code:jump(labelof(f, hit))
+	reach(f, hit, narrowed)
+	code:place(absent)
+	if word ~= 0 then
+		setimm(f, ins.a, 0)
+	end
+	code:jump(labelof(f, miss))
+	state[ins.a] = {t = NIL, name = value.name}
+	reach(f, miss, state)
+	return false
+end
+frame.narrow = narrow
 
 return frame
 

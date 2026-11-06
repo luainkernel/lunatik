@@ -543,11 +543,14 @@ function runners.bpf(parsed, program, ...)
 	if program == nil then misuse("bpf takes a program file") end
 	if select("#", ...) > 0 then misuse("bpf takes nothing after the program file") end
 	local luaebpf = require("luaebpf")
-	local object = luaebpf.compile(program, parsed.btf)
+	local object, calls = luaebpf.compile(program, parsed.btf)
 	local path = parsed.output or program:gsub("%.lua$", "") .. ".o"
 	local file = open(path, "wb")
 	assert(file:write(object))
 	assert(file:close())
+	for _, call in ipairs(calls) do
+		print(call)
+	end
 end
 
 local function main()

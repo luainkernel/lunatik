@@ -515,6 +515,32 @@ and its `tc` twin are the whole kernel side of the escape hatch. Facts the emitt
 * `lib/luakfunc.h` is the sequence `bpf_luaxdp_run` and `bpf_luatc_run` share; #561 closed without
   one kfunc for every type, so the emitter calls the one of the program's type, resolved through
   the module's BTF.
+* libbpf reads a kfunc call out of an object as three things: an undefined global symbol of no
+  type, a `FUNC` of extern linkage listed in a `DATASEC` named `.ksyms`
+  ([tools/lib/bpf/libbpf.c#L3821](https://github.com/torvalds/linux/blob/v6.8/tools/lib/bpf/libbpf.c#L3821)),
+  and a relocation against the symbol on a `BPF_JMP | BPF_CALL`
+  ([#L4133-L4134](https://github.com/torvalds/linux/blob/v6.8/tools/lib/bpf/libbpf.c#L4133-L4134)),
+  whose source register, immediate and offset libbpf writes from the BTF it resolved the kfunc in
+  ([#L6073-L6078](https://github.com/torvalds/linux/blob/v6.8/tools/lib/bpf/libbpf.c#L6073-L6078)).
+  An extern the `DATASEC` does not list fails the open, `failed to find BTF for extern`
+  ([#L3884-L3889](https://github.com/torvalds/linux/blob/v6.8/tools/lib/bpf/libbpf.c#L3884-L3889)),
+  and one no BTF publishes fails the load, `not found in kernel or module BTFs`
+  ([#L8236](https://github.com/torvalds/linux/blob/v6.8/tools/lib/bpf/libbpf.c#L8236)).
+* The extern's prototype is compared with the kernel's kind by kind
+  ([tools/lib/bpf/relo_core.c#L146](https://github.com/torvalds/linux/blob/v6.8/tools/lib/bpf/relo_core.c#L146)):
+  every integer matches every other, whatever its width
+  ([#L179-L183](https://github.com/torvalds/linux/blob/v6.8/tools/lib/bpf/relo_core.c#L179-L183)),
+  and a struct any struct, so an empty struct of the context's name stands for it.
+* An `int` result leaves only R0's low 32 bits defined
+  ([kernel/bpf/verifier.c#L12131-L12132](https://github.com/torvalds/linux/blob/v6.8/kernel/bpf/verifier.c#L12131-L12132),
+  [#L10572-L10576](https://github.com/torvalds/linux/blob/v6.8/kernel/bpf/verifier.c#L10572-L10576)),
+  so the caller sign-extends the answer before it compares it with `-1`.
+* The memory a `__sz` pair names is checked for a write as well as a read
+  ([verifier.c#L7337-L7360](https://github.com/torvalds/linux/blob/v6.8/kernel/bpf/verifier.c#L7337-L7360)),
+  and the kfunc writes the key's terminator, so the key lives in the frame: a `.data` section would
+  be a map libbpf names with a dot, which bpffs refuses as the pin `lunatik run` gives every map.
+* A program that calls a kfunc is GPL compatible
+  ([verifier.c#L2722-L2723](https://github.com/torvalds/linux/blob/v6.8/kernel/bpf/verifier.c#L2722-L2723)).
 
 ## Toolchain
 

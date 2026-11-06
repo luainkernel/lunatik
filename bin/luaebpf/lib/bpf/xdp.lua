@@ -19,6 +19,10 @@
 -- the receive queue it arrived in, neither writable. Any other method is refused, "the context has
 -- no method '<name>'".
 -- `ctx.data` and `ctx.data_end` are the bounds of the packet, not numbers; `#p` is its length.
+--
+-- A call into a kernel Lua runtime `bpf.runtime` names lowers to `bpf_luaxdp_run`: it answers the
+-- verdict the callback `xdp.attach` registered returns, or nil, and the program tests the answer
+-- before it reads it.
 -- @module bpf.xdp
 -- @usage
 -- local xdp    = require("bpf.xdp")
@@ -37,6 +41,9 @@ local action   = require("linux.xdp").action
 
 -- libbpf reads the program type back from the ELF section name (tools/lib/bpf/libbpf.c)
 local SECTION <const> = "xdp"
+
+-- what lib/luaxdp.c registers for an XDP program, which libbpf resolves in the module's BTF
+local KFUNC <const> = "bpf_luaxdp_run"
 
 -- what a program reaches on its context, spelled as the kernel's XDP ctx object spells it
 -- (lib/luaxdp.c): each method maps to the xdp_md field it reads. Nothing is writable:
@@ -65,7 +72,7 @@ local xdp = {}
 function xdp.program(fn, opts)
 	opts = opts or {}
 	return programs.declare("xdp.program", fn, {section = SECTION, default = opts.default or action.PASS,
-		name = opts.name, context = context})
+		name = opts.name, context = context, kfunc = KFUNC})
 end
 
 return xdp

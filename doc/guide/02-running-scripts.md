@@ -151,6 +151,11 @@ written.
 lunatik bpf filter.bpf.lua
 ```
 
+A program that [calls a kernel Lua runtime](08-luaebpf.md#calls-into-a-kernel-lua-runtime), named
+by `bpf.runtime`, runs the interpreter on the packet path at each call, so `lunatik bpf` prints on
+stdout a line per call it compiled, `<file>:<line>: calls the runtime '<name>'`, and nothing for a
+file with none.
+
 `lunatik run` is what loads and attaches the object: see [Compiled programs](#compiled-programs).
 
 The object is compiled for the kernel `lunatik.config` describes, which `make` writes from the tree
@@ -180,13 +185,13 @@ kernel: the build host's own, read by default, in a compile for a kernel of the 
 script the body requires is still read from the build host's `/lib/modules/lua/`, so its `linux.*`
 tables are the ones last installed there.
 
-`require` in the body finds the compile-time modules first, `bpf.xdp`, `bpf.tc` and `bpf.map`,
-which declares a map rather than opening the kernel's, then the compiler's own `luaebpf` modules,
-then `/lib/modules/lua/`, whose modules `lunatic` compiles as it does the program file, installed
-as source or, with `BYTECODE=1`, as chunks. It finds nothing else the CLI's Lua would, so a Lua or
-C module the host installs never stands in for a kernel script. `10 / 4` is `2` in the body as in
-the kernel; the CLI's libraries can still return a float, as `math.sqrt` does, and one reaching a
-compiled function is refused at the line that reaches it.
+`require` in the body finds the compile-time modules first, `bpf.xdp`, `bpf.tc`, `bpf.runtime` and
+`bpf.map`, which declares a map rather than opening the kernel's, then the compiler's own `luaebpf`
+modules, then `/lib/modules/lua/`, whose modules `lunatic` compiles as it does the program file,
+installed as source or, with `BYTECODE=1`, as chunks. It finds nothing else the CLI's Lua would,
+so a Lua or C module the host installs never stands in for a kernel script. `10 / 4` is `2` in the
+body as in the kernel; the CLI's libraries can still return a float, as `math.sqrt` does, and one
+reaching a compiled function is refused at the line that reaches it.
 
 ## Compiled programs
 

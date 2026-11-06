@@ -38,17 +38,6 @@ ROWS=39
 
 luaebpf_start $ROWS
 
-refused() {
-	local name="$1" message="$2" output
-	output=$(luaebpf_refuses "$name" "$message")
-	if [ $? -ne 0 ]; then
-		comment "$output"
-		ktap_fail "luaebpf: $name"
-	else
-		ktap_pass "luaebpf: $name is refused with its message"
-	fi
-}
-
 # every row is one compiled function, so the header and the trailer are the same for all of them
 row() {
 	local name="$1" message="$2" body="$3" preamble="${4:-}" params="${5:-ctx}"
@@ -60,7 +49,7 @@ row() {
 		echo "$body"
 		echo 'end)'
 	} > "$LUAEBPF_WORK/$name.bpf.lua"
-	refused "$name" "$message"
+	luaebpf_refused "$name" "$message"
 }
 
 row table_new "table_new.bpf.lua:5: a table constructor cannot run in the kernel" \
@@ -146,21 +135,21 @@ return xdp.program(function(_)
 	return 2
 end, {default = math.sqrt(4)})
 LUA
-refused floatdefault "floatdefault.bpf.lua:3: xdp.program's default verdict is not an integer"
+luaebpf_refused floatdefault "floatdefault.bpf.lua:3: xdp.program's default verdict is not an integer"
 
 cat > "$LUAEBPF_WORK/cfunction.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
 
 return xdp.program(string.len)
 LUA
-refused cfunction "xdp.program takes a Lua function"
+luaebpf_refused cfunction "xdp.program takes a Lua function"
 
 cat > "$LUAEBPF_WORK/loaded.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
 
 return xdp.program(load("return function(ctx) return 2 end")())
 LUA
-refused loaded '[string "return function(ctx) return 2 end"]:1: a compiled function is defined in the program file'
+luaebpf_refused loaded '[string "return function(ctx) return 2 end"]:1: a compiled function is defined in the program file'
 
 check_dmesg
 ktap_totals

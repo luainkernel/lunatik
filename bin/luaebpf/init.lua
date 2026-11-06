@@ -45,6 +45,7 @@ local getenv = os.getenv
 
 local TEXT    <const> = ".text"
 local MAPS    <const> = ".maps"
+local KSYMS   <const> = ".ksyms"
 local LICENSE <const> = "Dual MIT/GPL"
 local DROP    <const> = "LUAEBPF_DROP"
 
@@ -89,10 +90,13 @@ local function sources(chunk, cache)
 end
 
 local function funcinfo(types, frame, at)
-	local signature = frame.isprogram and {result = types.int, param = types.long}
-		or {result = types.long, param = types.long}
+	local params = {}
+	for _ = 1, #frame.params do
+		insert(params, types.long)
+	end
+	local signature = {result = frame.isprogram and types.int or types.long, params = params}
 	local linkage = frame.isprogram and btf.linkage.GLOBAL or btf.linkage.STATIC
-	return types:funcinfo(at, types:func(frame.name, #frame.params, linkage, signature))
+	return types:funcinfo(at, types:func(frame.name, linkage, signature))
 end
 
 local function lineinfo(types, frame, at, cache)
@@ -126,6 +130,11 @@ local function section(units, sections, name)
 	return unit
 end
 
+-- what a function's code names for the object to relocate, each kind with the relocation its
+-- instruction takes, in the order the records are written
+local relocated = {{kind = "call", type = elf.relocation.IMM32}, {kind = "map", type = elf.relocation.IMM64},
+	{kind = "kfunc", type = elf.relocation.IMM32}}
+
 local function place(types, unit, frame, cache, subprograms)
 	local at = unit.at
 	insert(unit.code, frame.code:pack(emit.bigendian))
@@ -133,13 +142,10 @@ local function place(types, unit, frame, cache, subprograms)
 	for _, record in ipairs(lineinfo(types, frame, at, cache)) do
 		insert(unit.lines, record)
 	end
-	for _, call in ipairs(frame.code:relocations("call")) do
-		insert(unit.relocations, {at = at + (call.at - 1) * insn.SIZE, name = call.name,
-			type = elf.relocation.IMM32})
-	end
-	for _, use in ipairs(frame.code:relocations("map")) do
-		insert(unit.relocations, {at = at + (use.at - 1) * insn.SIZE, name = use.name,
-			type = elf.relocation.IMM64})
+	for _, reloc in ipairs(relocated) do
+		for _, use in ipairs(frame.code:relocations(reloc.kind)) do
+			insert(unit.relocations, {at = at + (use.at - 1) * insn.SIZE, name = use.name, type = reloc.type})
+		end
 	end
 	unit.at = at + frame.code:len() * insn.SIZE
 	if not frame.isprogram then
@@ -185,14 +191,41 @@ local function maplayout(object, types, declared)
 	return symbols
 end
 
+-- The prototype libbpf compares with the kernel's kind by kind, names and integer widths aside
+-- (tools/lib/bpf/relo_core.c): a pointer to an empty struct of the context's name stands for the
+-- context, and a pointer to type 0 for the void the argument goes as.
+local function prototype(types, context)
+	return {result = types.int, params = {types:pointer(types.int), types.long,
+		types:pointer((types:struct(context, {}))), types:pointer(0), types.long}}
+end
+
+-- each kfunc a call names: a FUNC of extern linkage listed in a DATASEC named ".ksyms", whose bytes
+-- libbpf never looks for in the ELF, and the undefined symbol the call's relocation names
+local function ksyms(types, externs, hook)
+	local entries, symbols = {}, {}
+	for _, extern in ipairs(externs) do
+		insert(entries, {type = types:func(extern.name, btf.linkage.EXTERN, prototype(types, extern.context)),
+			offset = 0, size = 0})
+		insert(symbols, {name = extern.name, value = 0, size = 0, bind = elf.bind.GLOBAL,
+			type = elf.type.NOTYPE})
+	end
+	if #entries > 0 and hook ~= "ksyms" then
+		types:datasec(KSYMS, entries)
+	end
+	return symbols
+end
+
 local function write(declared, hook)
 	local object, types, cache = elf.new(emit.bigendian), btf.new(emit.bigendian), {}
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
-	local names, subprograms, order = {}, {}, {}
-	-- a map's name is taken before any function is named, so a relocation names exactly one symbol
+	local names, subprograms, order, externs, called, calls = {}, {}, {}, {}, {}, {}
+	-- maps and kfuncs take their names before any function does, so a relocation names one symbol
 	for _, map in ipairs(maps.declared()) do
 		names[map.name] = true
+	end
+	for _, program in ipairs(declared) do
+		names[program.kfunc] = true
 	end
 	for _, program in ipairs(declared) do
 		program.drop = hook
@@ -201,6 +234,13 @@ local function write(declared, hook)
 		for i, frame in ipairs(emit.program(program)) do
 			local unit = i == 1 and entries or text
 			local at = place(types, unit, frame, cache, subprograms)
+			for _, call in ipairs(frame.calls) do
+				insert(calls, format("%s:%d: calls the runtime '%s'", frame.chunk, call.line, call.key))
+			end
+			if #frame.calls > 0 and not called[program.kfunc] then
+				called[program.kfunc] = true
+				insert(externs, {name = program.kfunc, context = program.context.struct})
+			end
 			if i == 1 then
 				insert(order, {name = frame.name, section = program.section, value = at,
 					size = frame.code:len() * insn.SIZE, bind = elf.bind.GLOBAL,
@@ -217,6 +257,7 @@ local function write(declared, hook)
 		end
 	end
 	local mapsymbols = maplayout(object, types, maps.declared())
+	local kfuncs = ksyms(types, externs, hook)
 	for _, subprogram in ipairs(subprograms) do
 		indexes[subprogram.name] = object:symbol(subprogram)
 	end
@@ -224,6 +265,9 @@ local function write(declared, hook)
 		object:symbol(entry)
 	end
 	for _, symbol in ipairs(mapsymbols) do
+		indexes[symbol.name] = object:symbol(symbol)
+	end
+	for _, symbol in ipairs(kfuncs) do
 		indexes[symbol.name] = object:symbol(symbol)
 	end
 	for _, unit in ipairs(units) do
@@ -248,7 +292,7 @@ local function write(declared, hook)
 	local ext = types:ext(described) -- it interns the section names in .BTF's strings, so before pack
 	btfsection(object, ".BTF", types:pack())
 	btfsection(object, ".BTF.ext", ext)
-	return object:pack()
+	return object:pack(), calls
 end
 
 local function name(program, chunk)
@@ -262,6 +306,8 @@ end
 -- @tparam[opt] string btffile the kernel's BTF as a raw BTF file, the bytes
 --   `/sys/kernel/btf/vmlinux` serves, read once a layout is asked for; that file when absent
 -- @treturn string the BPF ELF object
+-- @treturn table a line per call into the kernel Lua runtime the compiler met, in that order,
+--   `<file>:<line>: calls the runtime '<name>'`
 -- @raise `<file>:<line>: <reason>` for every construct the subset refuses,
 --   `<path>: no program declared` when the body hands nothing to a constructor,
 --   `<btffile>: <reason>`, `<btffile> carries no BTF header` and `<btffile> is shorter than its
@@ -287,9 +333,9 @@ function luaebpf.compile(path, btffile)
 	for _, program in ipairs(declared) do
 		program.name = name(program, path)
 	end
-	local object = write(declared, getenv(DROP))
+	local object, calls = write(declared, getenv(DROP))
 	vmlinux.check(emit.bigendian)
-	return object
+	return object, calls
 end
 
 return luaebpf
