@@ -1146,28 +1146,32 @@ interpreter raises, the compiled program owes its default verdict instead.
   bytes with `string.unpack`; a method neither proxy has, `getuint64` among
   them, is refused by name, and so is an accessor called without an offset or
   with one that is not a number, and a function an earlier call compiled for a
-  number that a later one hands a packet. A read wider than a byte is refused,
-  and a byte read is not, where the kernel lacks efficient unaligned access:
-  the program file's body sets `luaebpf.emit.unaligned` to the answer such a
-  kernel gives, since the suite runs on x86 and arm64, which always have it.
+  number that a later one hands a packet. An XDP read wider than a byte is
+  refused, and a byte read is not, where the kernel lacks efficient unaligned
+  access, while a TC read that wide compiles, since `bpf_skb_load_bytes`
+  copies its bytes into the frame: the program file's body sets
+  `luaebpf.emit.unaligned` to the answer such a kernel gives, since the suite
+  runs on x86 and arm64, which always have it.
 - **bounds**: a read one byte past the last, one above the offset ceiling, one
   that lands in the whole ClientHello but past the truncated one, and one at a
   negative offset the program computed, each through `ctx:packet()` and through
   `skb:data()` and declared under either default so the answer is the verdict
   the file asked for; with `LUAEBPF_DROP=bounds` the object is still written and
-  the verifier refuses it naming an invalid packet access.
+  the verifier refuses it naming an invalid packet access, and with
+  `LUAEBPF_DROP=loadbytes`, which drops the test of what `bpf_skb_load_bytes`
+  answers, it verifies and the TC read past the last byte answers 0.
 - **nonlinear**: `skb:data()` on an skb that is not linear, which `prog run`
   builds only from v6.19: the TC program is attached with `tc` to the egress of
   a veth pair whose peer sits in a namespace, lets a packet shorter than 1024
-  bytes out, and opens `skb:data()` on a longer one and drops it, its default
-  verdict letting the packet out. A short ping is answered and a long one,
-  which `ip_append_data` builds linear, is dropped; a TCP segment carrying 1024
-  bytes, whose payload `tcp_sendmsg` keeps in page fragments, reaches the
-  listener, the default verdict taken at `skb:data()`, where the kernel's
-  `skb:data()` raises in a tc callback. The same program attached at the host
-  side's ingress, in a run of its own, answers the pings and the segment the
-  namespace sends the host the same way. Skips the device cases without `socat`
-  or `tc`.
+  bytes out, and drops a longer one whose `#skb:data()` is `#skb` and whose last
+  byte is an `X`, letting the rest out. A short ping is answered and a long one
+  of `X`, which `ip_append_data` builds linear, is dropped; of two TCP segments
+  carrying 1024 bytes, whose payload `tcp_sendmsg` keeps in page fragments past
+  the linear head, the one of `Y` reaches the listener and the one of `X` does
+  not, as the kernel's `skb:data()` reads such an skb in a tc callback. The same
+  program attached at the host side's ingress, in a run of its own, answers the
+  pings and the segments the namespace sends the host the same way. Skips the
+  device cases without `socat` or `tc`.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, each as the type its constructor names,
   and every program is run against the empty
@@ -2556,11 +2560,18 @@ was bound before, and a first attach, which finds nothing, logs nothing.
 
 - **tc nonlinear**: the host sends a TCP segment to a listener in the
   namespace, whose payload `tcp_sendmsg` keeps in page fragments, picked by
-  its sender's `SO_PRIORITY`. Handed to the callback as it is,
-  `skb:data()`, `skb:copy()` and `skb:resize()` raise "skb is not linear";
-  handed again after the program's `bpf_skb_pull_data(skb, skb->len)`, the
-  callback reads and copies the whole packet and shrinks it, then drops it,
-  and TCP sends it again. Skips without `socat`.
+  its sender's `SO_PRIORITY`. Handed to the callback as it is, `skb:data()`
+  reads the whole packet in place: `#skb:data()` is `#skb`, the last payload
+  byte, a `getuint32` and a `getint64` across the payload's start and a
+  `getstring` of the whole packet read what the sender wrote, as `tostring`
+  does, the checksum is a flat copy's of the same bytes, the "net" and "mac"
+  views end at the packet's end, a read past it raises "out of bounds" and a
+  `setbyte`, a `setstring` and a `resize` "read only", and the view reads
+  nothing once the callback returns; `skb:copy()` and `skb:resize()` raise
+  "skb is not linear". Handed again after the program's
+  `bpf_skb_pull_data(skb, skb->len)`, the callback writes the linear skb's view,
+  reads and copies the whole packet and shrinks it, then drops it, and TCP sends
+  it again. Skips without `socat`.
 
 - **tc copy**: four pings, one step of the callback on each echo reply. On the
   first it keeps a copy, whose `ifindex()` is the hook's skb's; on the second

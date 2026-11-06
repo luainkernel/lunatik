@@ -203,8 +203,8 @@ what `frame.lua` holds:
   with nil, in a program returns its default verdict, as a hook reads both alike.
 * `context.lua`: a method of the context reads the field its constructor maps it to, after storing
   there the value a setter is called with, and `#skb` reads `len`.
-* `packet.lua`: the reads of the packet proxy, each held to the packet's bounds, its length, and the
-  dispatch of a method called on either proxy.
+* `packet.lua`: the reads of the packet proxy, each held to the packet's bounds or, on TC, made
+  through `bpf_skb_load_bytes`, its length, and the dispatch of a method called on either proxy.
 * `map.lua`: a lookup, an update and a delete through the kernel's helpers, the test that narrows
   a lookup, and the value or the struct field a lookup found.
 
@@ -212,8 +212,8 @@ An opcode none of them lowers is refused with the reason `emit/init.lua` keeps f
 constructor's: "a table constructor cannot run in the kernel; build it in the file body".
 
 `LUAEBPF_DROP`, an environment variable the CLI has no option for, names one mechanism the
-compiler then leaves out, `divisor`, `bounds`, `maygoto`, `verdict` or `lineinfo`, so the suite
-shows each one is what a case rests on ([testing.md](testing.md)).
+compiler then leaves out, `divisor`, `bounds`, `loadbytes`, `maygoto`, `verdict` or `lineinfo`, so
+the suite shows each one is what a case rests on ([testing.md](testing.md)).
 
 ## Limits
 
@@ -262,8 +262,8 @@ heap.
 * A view from a layer. `skb:data(layer)` starts where the header its layer names does, which no
   compiled read reaches yet: "'data' with a layer is not compiled yet".
 * A wide read the verifier would prove aligned, on a kernel without efficient unaligned access,
-  where every read wider than a byte is refused (#2047): "'getuint16' reads more than a byte, and
-  this kernel lacks efficient unaligned access".
+  where every XDP read wider than a byte is refused (#2047): "'getuint16' reads more than a byte,
+  and this kernel lacks efficient unaligned access".
 * A `for` the compiler cannot bound, on a kernel before 6.9, which has no `may_goto`: "a 'for' the
   compiler cannot bound needs may_goto, which this kernel lacks".
 

@@ -334,20 +334,27 @@ under `sudo`.
   a test run leaves it 0, since `convert___skb_to_skb` refuses a `ctx_in` that sets it. The
   object carries no `ingress_ifindex`, so the proxy spells the four as the object does and
   refuses that one.
-* **The packet behind the skb.** The object's `data` answers a view from `skb->data` to the tail,
+* **The packet behind the skb.** The object's `data` answers a view from `skb->data` to the end,
   or, given a layer, from the network or the MAC header
   ([lib/luaskb.c#L150-L185](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaskb.c#L150-L185));
   `__sk_buff.data` is `skb->data` too, and `data_end` the end of its linear part,
   `skb->data + skb_headlen(skb)`
   ([include/linux/filter.h#L919-L926](https://github.com/torvalds/linux/blob/v7.2/include/linux/filter.h#L919-L926)).
-  The proxy spells the packet `skb:data()` and refuses a layer, which no read of the two bounds
-  reaches. In a tc callback the object raises on an skb that is not linear
-  ([lib/luaskb.c#L118-L120](https://github.com/luainkernel/lunatik/blob/b566eecc4b8713b67875ba51310345e3b546cb3d/lib/luaskb.c#L118-L120)),
-  one whose `data_len` is not zero, and `skb_headlen` is `len` less `data_len`
-  ([include/linux/skbuff.h#L2527-L2535](https://github.com/torvalds/linux/blob/v7.2/include/linux/skbuff.h#L2527-L2535)),
-  so the proxy takes the default verdict where `skb:data()` finds `__sk_buff.len` past
-  `data_end - data`. A test run builds such an skb only from v6.19, when `ctx_in`'s `data_end`
-  stops short of the packet
+  The proxy spells the packet `skb:data()` and refuses a layer, which no compiled read reaches. In
+  a tc callback the object reads an skb that is not linear, one whose `data_len` is not zero, in
+  place: its view runs to `len` and copies what lies past the linear head with
+  `skb_header_pointer`, which reads the head in place and `skb_copy_bits` the rest
+  ([include/linux/skbuff.h#L4048-L4066](https://github.com/torvalds/linux/blob/v6.8/include/linux/skbuff.h#L4048-L4066)).
+  `bpf_skb_load_bytes` is `skb_header_pointer` over a program's context, which answers `-EFAULT`
+  past `len`
+  ([net/core/filter.c#L1737-L1755](https://github.com/torvalds/linux/blob/v6.8/net/core/filter.c#L1737-L1755))
+  and which `tc_cls_act_func_proto` offers `SCHED_CLS` from v6.6
+  ([net/core/filter.c#L7968-L7974](https://github.com/torvalds/linux/blob/v6.6/net/core/filter.c#L7968-L7974)),
+  so a compiled read goes through it, `#` on the packet is `__sk_buff.len`, and a non-zero answer
+  takes the default verdict where the object raises "out of bounds". A load between `data` and
+  `data_end` would stop at the linear head, and `bpf_skb_pull_data` would linearize the skb for the
+  rest of the stack where the object only reads. A test run builds a non-linear skb only from
+  v6.19, when `ctx_in`'s `data_end` stops short of the packet
   ([net/bpf/test_run.c#L1083-L1159](https://github.com/torvalds/linux/blob/v7.2/net/bpf/test_run.c#L1083-L1159)),
   so `nonlinear.sh` attaches the program to a device instead.
 * **Section names.** libbpf maps `tcx/ingress` and `tcx/egress` to `SCHED_CLS` with the matching
@@ -385,7 +392,8 @@ under `sudo`.
   offset is tested unsigned against the last one that width can start at and only then added.
   An offset above it is out of bounds on every packet a NIC or `BPF_PROG_TEST_RUN` can build,
   and the interpreter raises there too, so the pairing the differential test asserts is
-  unchanged.
+  unchanged. A TC read hands its offset to `bpf_skb_load_bytes`, which takes its low 32 bits, so
+  the same test keeps an offset whose low 32 bits fall in the packet from reading there.
 * **A read wider than a byte needs efficient unaligned access.** `bpf_check` turns strict
   alignment on wherever `CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS` is unset
   ([kernel/bpf/verifier.c#L19840-L19842](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L19840-L19842),
@@ -396,8 +404,10 @@ under `sudo`.
   ([arch/x86/Kconfig#L236](https://github.com/torvalds/linux/blob/v7.2/arch/x86/Kconfig#L236),
   [arch/arm64/Kconfig#L199](https://github.com/torvalds/linux/blob/v7.2/arch/arm64/Kconfig#L199)),
   and the compiler reads it from `lunatik.config`, which `make` writes from the build tree's
-  `include/generated/autoconf.h`, the config the modules are built with, and refuses every read
-  wider than a byte where it is unset. A map value is held to its size the same way, without the
+  `include/generated/autoconf.h`, the config the modules are built with, and refuses every XDP
+  read wider than a byte where it is unset. A TC read loads from the frame slot
+  `bpf_skb_load_bytes` filled, at an offset of the frame the verifier proves aligned, and is not
+  refused. A map value is held to its size the same way, without the
   2, by `check_generic_ptr_alignment`
   ([#L4945-L4967](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L4945-L4967)):
   "misaligned value access", so a struct field wider than a byte is refused there as well.

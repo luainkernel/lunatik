@@ -15,8 +15,12 @@
 
 #define luadata_clear(o)	(luadata_reset((o), NULL, 0, LUADATA_OPT_KEEP))
 
+struct sk_buff;
+
 lunatik_object_t *luadata_new(lua_State *L, lunatik_opt_t opt);
 int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt);
+/* a read-only view from start, in skb's linear head, to the end of skb, read past the head as copies */
+int luadata_resetskb(lunatik_object_t *object, const struct sk_buff *skb, unsigned char *start);
 /* raises unless ix is a data that owns its memory, which it then makes read only for good */
 lunatik_object_t *luadata_checkreadonly(lua_State *L, int ix, const void **ptr, size_t *size);
 

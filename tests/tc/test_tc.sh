@@ -11,11 +11,17 @@
 # The non-linear case sends a TCP segment from the host to a listener in the
 # namespace instead: tcp_sendmsg keeps the payload in page fragments, so the skb
 # the classifier sees is non-linear. The program hands it to bpf_luatc_run, where
-# skb:data(), copy() and resize() raise "skb is not linear", then pulls it with
-# bpf_skb_pull_data and hands it again, where the callback reads, copies and
-# shrinks the whole packet and drops it; TCP sends it again. The sender's
-# SO_PRIORITY picks the segment, a value outside 0..6, which only a process with
-# CAP_NET_ADMIN or CAP_NET_RAW may set. The case skips without socat.
+# skb:data() reads the whole packet in place: its length is the skb's, the last
+# payload byte, two reads across the payload's start and getstring of the whole
+# packet read what the sender wrote, its checksum is a flat copy's of the same bytes,
+# the "net" and "mac" views end at the packet's end too, a read past it raises "out
+# of bounds" and setbyte, setstring and resize raise "read only", and the view reads
+# nothing once the callback returns, while copy() and resize() raise "skb is not
+# linear". The program then pulls it with bpf_skb_pull_data and hands it again, where
+# the callback writes the view of the linear skb, reads, copies and shrinks the whole
+# packet and drops it; TCP sends it again. The sender's SO_PRIORITY picks the
+# segment, a value outside 0..6, which only a process with CAP_NET_ADMIN or
+# CAP_NET_RAW may set. The case skips without socat.
 #
 # The detach callback detaches on the first echo reply, then holds its context only
 # in a weak table, drops its parameter and collects: the dispatcher clears that
@@ -99,9 +105,11 @@ TARGET="10.198.0.2"
 PIN="/sys/fs/bpf/lunatik_tc"
 PORT=5569
 PAYLOAD=1024             # PAYLOAD in nonlinear.lua
+FILL="X"                 # FILL in nonlinear.lua
 PRIORITY=$((0x13690000)) # PRIORITY in nonlinear.lua
-REFUSED="tc nonlinear: data, copy and resize refuse a non-linear skb"
-PULLED="tc nonlinear: a pulled skb is read, copied and resized whole"
+READ="tc nonlinear: data reads a non-linear skb whole, in place and read only"
+REFUSED="tc nonlinear: copy and resize refuse a non-linear skb"
+PULLED="tc nonlinear: a pulled skb is written, read, copied and resized whole"
 COPIED="tc copy: a copy kept past its callback has no device, forward() raises and its bytes read"
 DETACHED="tc copy: a copy made before tc.detach() and a collection in its callback loses its device as it returns"
 COPY_REPLIES=4 # the echo replies copy.lua takes a step on
@@ -191,7 +199,7 @@ copy_releases() {
 }
 
 ktap_header
-ktap_plan 26
+ktap_plan 27
 
 skip_all()
 {
@@ -204,6 +212,7 @@ skip_all()
 	ktap_skip "tc attach: refuses a sleepable runtime"
 	ktap_skip "tc zero-key: a zero-sized key is rejected without a crash"
 	ktap_skip "tc data: \"net\" starts at the IP header, and the views end at the frame's tail"
+	ktap_skip "$READ"
 	ktap_skip "$REFUSED"
 	ktap_skip "$PULLED"
 	ktap_skip "$COPIED"
@@ -389,13 +398,14 @@ nonlinear_case()
 {
 	if ! command -v socat > /dev/null 2>&1; then
 		echo "# SKIP: socat not available"
+		ktap_skip "$READ"
 		ktap_skip "$REFUSED"
 		ktap_skip "$PULLED"
 		return 0
 	fi
 
 	tc_load tc_nonlinear.bpf.o ||
-		{ ktap_fail "$REFUSED: failed to load/attach TC program"; ktap_fail "$PULLED"; return 1; }
+		{ ktap_fail "$READ: failed to load/attach TC program"; ktap_fail "$REFUSED"; ktap_fail "$PULLED"; return 1; }
 
 	mark_dmesg
 	run_script --context=softirq "tests/tc/nonlinear"
@@ -406,7 +416,8 @@ nonlinear_case()
 		ip netns exec "$NETNS" ss -Hltn "sport = :$PORT" | grep -q . && break
 		sleep 0.1
 	done
-	head -c "$PAYLOAD" /dev/zero | timeout 5 socat -u - "TCP:$TARGET:$PORT,priority=$PRIORITY" 2>/dev/null
+	head -c "$PAYLOAD" /dev/zero | tr '\0' "$FILL" |
+		timeout 5 socat -u - "TCP:$TARGET:$PORT,priority=$PRIORITY" 2>/dev/null
 	for _ in $(seq 20); do
 		dmesg_since | grep -qF "tc nonlinear: pulled " && break
 		sleep 0.5
@@ -420,9 +431,10 @@ nonlinear_case()
 	lunatik stop tests/tc/nonlinear > /dev/null 2>&1
 	kill "$listener" 2>/dev/null
 
-	check_dmesg || { ktap_fail "$REFUSED"; ktap_fail "$PULLED"; return 1; }
-	cells_verdict nonlinear "$REFUSED" data copy resize
-	cells_verdict nonlinear "$PULLED" pulled
+	check_dmesg || { ktap_fail "$READ"; ktap_fail "$REFUSED"; ktap_fail "$PULLED"; return 1; }
+	cells_verdict nonlinear "$READ" data string checksum layers readonly cleared
+	cells_verdict nonlinear "$REFUSED" copy resize
+	cells_verdict nonlinear "$PULLED" writable pulled
 }
 
 copy_case()

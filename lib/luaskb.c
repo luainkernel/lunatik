@@ -205,36 +205,41 @@ static unsigned char *luaskb_start(struct sk_buff *skb, int layer)
 * the packet: "net" at the network header and "mac" at the MAC header, or, with no
 * `layer`, at `skb->data`, where the packet starts as the hook sees it: the network
 * header in an IPv4 or IPv6 netfilter hook and the MAC header in a tc callback. In a
-* tc callback the skb is not linearized, and a non-linear one raises.
+* tc callback the skb is not linearized: the view of a non-linear one reads the whole
+* packet as well, copying each read of the bytes past the linear head
+* (`skb_header_pointer`), and is read only, its setters, `setstring` and `resize`
+* raising "read only".
 *
 * The skb keeps one view per start: the view with no layer and the "net" and "mac"
 * views are three objects, and a second call returns the same view, ending at the
-* tail as it is then: a `resize` alone does not move a view's end. The skb stays
-* linear once a view is taken, so no later call moves the bytes a view reads. A view
-* is valid until the callback that received the skb returns, or, for a copy, until
-* the copy is collected: afterwards its length is 0 and every access raises "out of
-* bounds".
+* end of the packet as it is then: a `resize` alone does not move a view's end. No
+* later call moves the bytes a view reads: the skb stays linear once a view is taken,
+* and a non-linear one in a tc callback stays as it came. A view is valid until the
+* callback that received the skb returns, or, for a copy, until the copy is
+* collected: afterwards its length is 0 and every access raises "out of bounds".
 * @function data
 * @tparam[opt] string layer "net" or "mac"
 * @treturn data the view, or nil when the layer's header is not set or lies past the tail
-* @raise if the skb is not linear, in a tc callback or after a failed linearization, or if
-* layer is invalid
+* @raise if layer is invalid, or if the skb is not linear after a failed linearization outside a tc
+* callback
 */
 static int luaskb_data(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	luaskb_checklinear(L, lskb, 1);
+	luaL_argcheck(L, lskb->kfunc || !skb_linearize(lskb->skb), 1, "skb is not linear");
 
 	struct sk_buff *skb = lskb->skb;
 	static const char *const layers[] = {"net", "mac", NULL};
 	int layer = lua_isnoneornil(L, 2) ? LUASKB_DATA : luaL_checkoption(L, 2, NULL, layers);
 	unsigned char *start = luaskb_start(skb, layer);
 
-	if (luaskb_ispresent(skb, start))
+	if (!luaskb_ispresent(skb, start))
+		lua_pushnil(L);
+	else if (skb_is_nonlinear(skb)) /* only a tc callback leaves it so */
+		luadata_resetskb(luaskb_pushview(L, &lskb->view[layer]), skb, start);
+	else
 		luadata_reset(luaskb_pushview(L, &lskb->view[layer]), start, skb_tail_pointer(skb) - start,
 			LUADATA_OPT_NONE);
-	else
-		lua_pushnil(L);
 	return 1;
 }
 

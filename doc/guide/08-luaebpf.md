@@ -155,9 +155,9 @@ fails in one of three places.
 * **Stops.** In the kernel, on a packet, the program returns its default verdict at once, and
   nothing is logged (#2098). A program stops at a read past the packet, a division or a modulo by
   0, a `for` step of 0 it computed, a map key or value its spec cannot pack, a map update or delete
-  the map refuses, a `skb:data()` of an skb that is not linear, a `skb:priority` it computed outside
-  0 to 4294967295, and in a function it called that stops. A division by a 0 the compiler knows is
-  not refused: the program stops on every packet that reaches it.
+  the map refuses, a `skb:priority` it computed outside 0 to 4294967295, and in a function it called
+  that stops. A division by a 0 the compiler knows is not refused: the program stops on every packet
+  that reaches it.
 
 ## The Lua a program may use
 
@@ -181,7 +181,7 @@ that line. Each construct links to its listing.
 | [`return f(x)`](09-luaebpf-by-example.md#calls) | | | always: a tail call |
 | [`p:getuint16(n)` and the other reads](09-luaebpf-by-example.md#the-packet) | the bytes at `n`, in the kernel's byte order | the read passes the end of the packet | [The packet](#the-packet) says |
 | [`#p`](09-luaebpf-by-example.md#the-packet) | the length of the packet | never | never |
-| [`skb:data()`](09-luaebpf-by-example.md#the-context) | the packet | the skb is not linear | a layer is given |
+| [`skb:data()`](09-luaebpf-by-example.md#the-context) | the whole packet, linear or not | never | a layer is given |
 | [`skb:priority(v)`](09-luaebpf-by-example.md#the-context) | `v`, stored as the packet's priority | `v` is outside 0 to 4294967295 | a known `v` is outside it |
 | [`m[k]`](09-luaebpf-by-example.md#maps) | the value, or nil | `k` does not fit the key's spec | a known `k` does not fit it; the value is used before `if v then` tests it |
 | [`m[k] = v`, `m[k] = nil`](09-luaebpf-by-example.md#maps) | the entry inserted or replaced, or deleted | the map refuses; `k` or `v` does not fit its spec | a known `k` or `v` does not fit it |
@@ -204,7 +204,9 @@ hook, and opens the packet:
 
 Any other method is refused: `skb:mark()` gives "the context has no method 'mark'". The packet
 is a read-only view of its bytes, with the reads of the kernel's `data` object. An offset counts
-from 0, the first byte of the Ethernet header.
+from 0, the first byte of the Ethernet header. On TC the packet is the whole skb, the bytes past
+its linear head included, as the kernel's `skb:data()` reads it in a tc callback: a segment the
+host sends carries its payload there, and `#p` is `#skb`.
 
 | Method | Reads |
 |--------|-------|
@@ -227,8 +229,9 @@ A read that passes the end of the packet, or starts past byte 65535 less its wid
 program. There is no `getuint64`, since a Lua integer is signed, and no write: "the packet has no
 method 'setbyte'". The bounds of the packet are not numbers: `ctx.data_end - ctx.data` is refused,
 "'data_end' is a packet bound, not a number; '#' on the packet is its length". On a kernel without
-efficient unaligned access, a read wider than a byte is refused (#2047): "'getuint16' reads more
-than a byte, and this kernel lacks efficient unaligned access". `skb:data(layer)` is refused:
+efficient unaligned access, an XDP read wider than a byte is refused (#2047): "'getuint16' reads
+more than a byte, and this kernel lacks efficient unaligned access"; a TC read is not, since it
+copies its bytes before it reads them. `skb:data(layer)` is refused:
 "'data' with a layer is not compiled yet".
 
 ## Maps

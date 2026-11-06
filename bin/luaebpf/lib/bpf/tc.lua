@@ -18,9 +18,9 @@
 -- priority, which `skb:priority(v)` sets to a value from 0 up to `U32_MAX`, returning it. A value
 -- outside them is refused where the compiler holds it, and stops the program where the program
 -- computes it. Any other method is refused, `skb:mark()` among them. `skb.data`/`skb.data_end` are
--- the packet's bounds rather than numbers, and `skb:data()` is the packet from `skb->data`, read as
--- `ctx:packet()` is in `bpf.xdp`; a layer is refused, and an skb that is not linear, where the
--- kernel's `skb:data()` raises in a tc callback, stops the program.
+-- the packet's bounds rather than numbers, and `skb:data()` is the whole packet from `skb->data`,
+-- `#skb` bytes long, read as `ctx:packet()` is in `bpf.xdp` whether the skb is linear or not; a
+-- layer is refused.
 -- @module bpf.tc
 -- @usage
 -- local tc     = require("bpf.tc")
@@ -41,6 +41,8 @@ local action   = require("linux.tc").action
 local INGRESS <const> = "tcx/ingress"
 local EGRESS  <const> = "tcx/egress"
 
+local SKB_LOAD_BYTES <const> = 26 -- BPF_FUNC_skb_load_bytes
+
 -- what a program reaches on its context, spelled as the kernel's skb object spells it
 -- (lib/luaskb.c): '#' reads len and each method the field of its name, and a method the kernel
 -- lets a program write takes a value. tc_cls_act_is_valid_access allows a write only to mark,
@@ -48,13 +50,14 @@ local EGRESS  <const> = "tcx/egress"
 -- wide (net/core/filter.c); that set is kernel policy rather than layout, so BTF cannot supply it.
 -- skb:data(layer) starts where the header its layer names does, which no compiled read reaches
 -- yet, so the packet proxy is the view from skb->data and refuses a layer. In a tc callback
--- skb:data() raises on an skb that is not linear, so the packet proxy opens only a linear one.
+-- skb:data() reads an skb that is not linear through skb_header_pointer, and bpf_skb_load_bytes is
+-- skb_header_pointer over the context (net/core/filter.c), so the packet proxy reads with it.
 local context = {
 	struct = "__sk_buff",
 	length = "len",
 	methods = {ifindex = "ifindex", hash = "hash", priority = "priority"},
 	writable = {priority = true},
-	packet = {method = "data", layered = true, linear = true, base = "data", limit = "data_end"},
+	packet = {method = "data", layered = true, load = SKB_LOAD_BYTES, base = "data", limit = "data_end"},
 }
 
 local tc = {}

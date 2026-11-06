@@ -1699,6 +1699,7 @@ with `LUNATIK_OPT_SINGLE`, so it stays in the runtime the callback runs on.
 ### luadata\_reset
 ```C
 int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt);
+int luadata_resetskb(lunatik_object_t *object, const struct sk_buff *skb, unsigned char *start);
 int luadata_clear(lunatik_object_t *object);
 void luadata_close(lunatik_object_t *object);
 ```
@@ -1706,7 +1707,11 @@ void luadata_close(lunatik_object_t *object);
 for `LUADATA_OPT_KEEP`, and returns `0`; it returns `-1`, leaving the object as it was, for one that
 owns its memory, `LUADATA_OPT_FREE`. The object views `ptr`, and owns it only for that flag: the
 caller keeps the memory valid until it resets or clears the object, which a script may keep past
-the callback. `luadata_clear` points it at nothing, keeping its flags, so every access raises
+the callback. `luadata_resetskb` points it, `LUADATA_OPT_READONLY`, at the bytes of `skb` from
+`start`, a pointer into its linear head, to its end, which a read copies with `skb_header_pointer`
+where they lie past the head, and returns what `luadata_reset` returns; the caller keeps the skb
+and its length as they are until it resets or clears the object. `luadata_clear` points it at
+nothing, keeping its flags, so every access raises
 `out of bounds`, and returns what `luadata_reset` returns; it is a macro, and a binding clears a
 view once its callback returns. `luadata_close` clears it and drops a reference the caller holds,
 as a binding's `release` does for a view it keeps, through [`lunatik_putobject`](#lunatik_putobject).
@@ -1968,8 +1973,8 @@ returns for each start, at the network header, at the MAC header and at `skb->da
 the hook's skb object it was copied from, which it holds and reads its device from, `NULL` for that
 object; the callbacks the object was cleared after, which a copy takes from the skb it is copied
 from, so it reads its hook's device only while that callback runs; and whether the packet comes
-through a kfunc, where `skb:data()`, `resize` and `copy` refuse a non-linear skb rather than
-linearize it. Its release frees `skb` and drops `hook`, so a binding clears the packet it does not
+through a kfunc, where `resize` and `copy` refuse a non-linear skb rather than linearize it, and
+`skb:data()` views one in place, through [`luadata_resetskb`](#luadata_reset). Its release frees `skb` and drops `hook`, so a binding clears the packet it does not
 own before the last reference goes, with [`luaskb_clear`](#luaskb_reset) or `luaskb_close`.
 
 ### luaskb\_foreachlayer

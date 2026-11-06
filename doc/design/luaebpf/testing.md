@@ -46,8 +46,9 @@ failure paths are exercised, not only the happy one. Phase 1 reads no packet, an
 suite. The emitter exposes a test hook, `LUAEBPF_DROP`, an environment variable the CLI has no
 option for, naming one mechanism to drop: `divisor` (the test before a division), `maygoto` (the header
 a loop without a proven bound needs), `lineinfo` (the `.BTF.ext` records), `verdict` (the write to
-`R0`), and `bounds` (the `data_end` test before a packet load). Each has a test that asserts the
-verifier rejects the program, that the log lacks the Lua line, or that the arithmetic changes.
+`R0`), `bounds` (the `data_end` test before a packet load) and `loadbytes` (the test of what
+`bpf_skb_load_bytes` answers a TC read). Each has a test that asserts the verifier rejects the
+program, that the log lacks the Lua line, or that the arithmetic or the read's answer changes.
 
 **Pinned object cleanup.** Programs, maps and links pinned by a test outlive it. The cleanup
 removes everything under `/sys/fs/bpf/luaebpf/` and under `/sys/fs/bpf/lunatik/tests/luaebpf/`
@@ -91,9 +92,9 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 
 | Test | Proves |
 |------|--------|
-| `packet.sh` | every accessor the kernel's `data` object publishes, `#`, a computed offset and a read inside a called function, over the corpus through `ctx:packet()` and `skb:data()`, match the interpreter's reads of the same bytes; a method neither proxy has is refused by name, and so is a read wider than a byte on a kernel without efficient unaligned access, which the program file's body stands for by setting `luaebpf.emit.unaligned` |
-| `bounds.sh` | an access one byte past `data_end`, above the offset ceiling or at a negative offset takes the default verdict, through `ctx:packet()` and `skb:data()`; the same program with the bounds check dropped by the test hook is rejected |
-| `nonlinear.sh` | a TC program attached to a veth's egress, and then to its ingress, takes its default verdict at `skb:data()` on a TCP segment whose payload sits in page fragments, where the kernel's `skb:data()` raises in a tc callback, and answers its own verdict on a linear ping of the same size |
+| `packet.sh` | every accessor the kernel's `data` object publishes, `#`, a computed offset and a read inside a called function, over the corpus through `ctx:packet()` and `skb:data()`, match the interpreter's reads of the same bytes; a method neither proxy has is refused by name, and so is an XDP read wider than a byte on a kernel without efficient unaligned access, which the program file's body stands for by setting `luaebpf.emit.unaligned`, where a TC one compiles |
+| `bounds.sh` | an access one byte past the end of the packet, above the offset ceiling or at a negative offset takes the default verdict, through `ctx:packet()` and `skb:data()`; the same program with the bounds check dropped by the test hook is rejected, and with the test of what `bpf_skb_load_bytes` answers dropped a TC read past the end answers 0 |
+| `nonlinear.sh` | a TC program attached to a veth's egress, and then to its ingress, reads `#` and the last byte of a TCP segment whose payload sits in page fragments past the linear head, as the kernel's `skb:data()` does in a tc callback, dropping the segment of the byte it drops on and letting another through, and answers its own verdict on a linear ping of the same size |
 | `ctx.sh` | `ctx:ingress()`, `ctx:queue()`, `#skb`, `skb:ifindex()`, `skb:hash()` and `skb:priority()` read back what `prog run` supplies, a `skb:priority(v)` write comes back in `ctx_out`, one past 32 bits the program computes takes the default verdict, and one object carrying both kinds loads with no type argument; a field read or assigned on either context, the fields the proxies read and one the skb object does not carry among them, a value given a boolean or a constant out of range, `ctx.data`, the packet opened under the other context's name and `skb:data` given a layer are refused with their lines |
 | `mapget.sh` | the object's maps are created and pinned by `bpftool prog loadall ... pinmaps`, a map seeded by `bpftool map update` decides the verdict, a missing key is `nil`, a lookup spilled to the frame narrows there too, a computed key outside its spec takes the default verdict, and an untested use, a string key and a declaration the object cannot carry are refused at compile time; a key the compiler holds outside its spec sits in `refuse.sh` |
 | `mapset.sh` | an update, an update under a key the program computed, a `nil` delete and a delete of a key that was never there are what `bpftool map lookup` finds afterwards; a computed value or key outside its spec takes the default verdict and leaves the map as it was, so does a write the map refuses, and a value that is not a number is refused; a value the compiler holds outside its spec sits in `refuse.sh` |

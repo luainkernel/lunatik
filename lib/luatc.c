@@ -196,11 +196,13 @@ static int luatc_detach(lua_State *L)
 * - `arg`: A pointer to arbitrary data passed from eBPF to Lua.
 * - `arg_sz`: The size of the `arg` data.
 *
-* In the callback, the skb methods that would linearize a packet raise on a non-linear one instead,
-* such as a locally sent TCP segment or a GRO-merged one: the verifier keeps the program's packet
-* pointers across a kfunc, and linearizing can move the packet out from under them. A program whose
-* callback reads the whole packet calls `bpf_skb_pull_data(skb, skb->len)` before `bpf_luatc_run`,
-* after which the verifier has it reload its packet pointers.
+* In the callback, the skb is never linearized: the verifier keeps the program's packet pointers
+* across a kfunc, and linearizing can move the packet out from under them. `skb:data()` reads a
+* non-linear one, such as a locally sent TCP segment or a GRO-merged one, in place, through a read
+* only view, and the methods that would linearize it, `skb:copy()` and `skb:resize()`, raise
+* instead. A program whose callback copies or resizes the whole packet calls
+* `bpf_skb_pull_data(skb, skb->len)` before `bpf_luatc_run`, after which the verifier has it reload
+* its packet pointers.
 *
 * @function attach
 * @tparam function callback Lua function to call. It receives one argument:
