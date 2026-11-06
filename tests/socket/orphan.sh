@@ -94,11 +94,7 @@ ktap_pass "a TCP listener and client connect over the namespace's loopback"
 [ "$HELD" = y ] || fail "the namespace went before the kernel freed the orphans"
 ktap_pass "the orphans hold the namespace past their close"
 
-for _ in $(seq 1 300); do
-	ip link show "$WITNESS" > /dev/null 2>&1 || break
-	sleep 0.1
-done
-ip link show "$WITNESS" > /dev/null 2>&1 && fail "the namespace outlived the orphans"
+TRIES=300 awaited gone "$WITNESS" || fail "the namespace outlived the orphans"
 ktap_pass "the namespace goes once the kernel frees the orphans"
 
 ktap_totals

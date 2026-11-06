@@ -94,10 +94,7 @@ send() {
 			timeout 5 socat -u - "$target,priority=$((PRIORITY + i))" 2>/dev/null
 		sent=$((sent + 1))
 	done
-	for _ in $(seq 20); do
-		[ "$(dmesg_since | grep -c "skb checksum: ")" -ge "$sent" ] && break
-		sleep 0.5
-	done
+	TRIES=100 awaited dmesg_reaches "skb checksum: " "$sent"
 }
 
 mark_dmesg
@@ -105,7 +102,7 @@ run_script --context=softirq "$SCRIPT"
 
 socat -u "TCP-LISTEN:$PORT,reuseaddr,fork" OPEN:/dev/null &
 LISTENER=$!
-for _ in $(seq 20); do [ -n "$(ss -tHln "sport = :$PORT" 2>/dev/null)" ] && break; sleep 0.1; done
+TRIES=20 awaited listens -t "$PORT"
 
 send $FITS $GATE $ZERO
 if dmesg_since | grep -q "skb checksum: $GATE ok"; then

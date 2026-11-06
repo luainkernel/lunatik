@@ -174,7 +174,8 @@ peer_tc() { nsenter --net="/run/netns/$NETNS" tc "$@"; }
 
 # tc in the teardown case's first namespace, as peer_tc is in the suite's
 ct_tc() { nsenter --net="/run/netns/$CT_NS1" tc "$@"; }
-gone() { ! ip link show "$1" > /dev/null 2>&1; }
+peer_listens() { ip netns exec "$NETNS" ss -Hltn "sport = :$PORT" | grep -q .; }
+exited() { ! kill -0 "$1" 2>/dev/null; }
 
 # the route case's probes, in a tracing instance named for their group: route_probe arms them,
 # route_unprobe takes them down, and copy_releases counts the dst_release lines that fall on a
@@ -402,19 +403,10 @@ nonlinear_case()
 
 	ip netns exec "$NETNS" socat -u "TCP-LISTEN:$PORT,reuseaddr" OPEN:/dev/null &
 	local listener=$!
-	for _ in $(seq 20); do
-		ip netns exec "$NETNS" ss -Hltn "sport = :$PORT" | grep -q . && break
-		sleep 0.1
-	done
+	TRIES=20 awaited peer_listens
 	head -c "$PAYLOAD" /dev/zero | timeout 5 socat -u - "TCP:$TARGET:$PORT,priority=$PRIORITY" 2>/dev/null
-	for _ in $(seq 20); do
-		dmesg_since | grep -qF "tc nonlinear: pulled " && break
-		sleep 0.5
-	done
-	for _ in $(seq 20); do # the listener exits once TCP delivered the dropped segment again
-		kill -0 "$listener" 2>/dev/null || break
-		sleep 0.5
-	done
+	TRIES=100 awaited dmesg_reaches "tc nonlinear: pulled " 1
+	TRIES=100 awaited exited "$listener" # the listener exits once TCP delivered the dropped segment again
 
 	tc_unload
 	lunatik stop tests/tc/nonlinear > /dev/null 2>&1

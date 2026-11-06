@@ -51,7 +51,7 @@ run_script --context=softirq "$SCRIPT"
 # a listener, so no port unreachable refuses a connected flow's second datagram
 socat -u "UDP-RECV:$PORT,reuseaddr" OPEN:/dev/null &
 LISTENER=$!
-for _ in $(seq 20); do [ -n "$(ss -uHln "sport = :$PORT" 2>/dev/null)" ] && break; sleep 0.1; done
+TRIES=20 awaited listens -u "$PORT"
 
 i=0
 for address in $FLOWS; do
@@ -59,10 +59,7 @@ for address in $FLOWS; do
 	{ echo x; sleep 0.2; echo x; } |
 		timeout 5 socat -u - "$address:127.0.0.1:$PORT,priority=$((PRIORITY + i))" 2>/dev/null
 done
-for _ in $(seq 20); do
-	[ "$(dmesg_since | grep -c "skb hash: ")" -ge $((NFLOWS * DATAGRAMS)) ] && break
-	sleep 0.5
-done
+TRIES=100 awaited dmesg_reaches "skb hash: " $((NFLOWS * DATAGRAMS))
 
 lunatik stop "$SCRIPT"
 out=$(dmesg_since)

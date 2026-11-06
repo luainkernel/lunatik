@@ -105,7 +105,7 @@ ktap_pass "unix.abstract bind: a userspace peer connects to the bound name"
 PEER_OUT=$(mktemp)
 "$PEER_BIN" serve "$PEER" > "$PEER_OUT" 2>&1 &
 PEER_PID=$!
-for _ in $(seq 1 50); do grep -q READY "$PEER_OUT" 2>/dev/null && break; sleep 0.1; done
+awaited grep -q READY "$PEER_OUT" 2>/dev/null
 
 run_script "$SCRIPT_CLIENT"
 sleep $SLEEP

@@ -26,7 +26,6 @@ THREAD="tests/runtime/errobj_raise"
 DEVICE="lunatik_errobj"
 MESSAGE="error object is not a string"
 ECANCELED="Operation canceled"
-TIMEOUT=5
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -53,11 +52,7 @@ logged "luadevice: $MESSAGE: read" || fail "the read's error is not in the kerne
 ktap_pass "a callback that raises a table is logged with the message"
 
 lunatik spawn "$THREAD" > /dev/null 2>&1
-for _ in $(seq $TIMEOUT); do
-	logged "] $MESSAGE" && break
-	sleep 1
-done
-logged "] $MESSAGE" || fail "a thread body that raises a table is not in the kernel log as the message"
+awaited logged "] $MESSAGE" || fail "a thread body that raises a table is not in the kernel log as the message"
 ktap_pass "a thread body that raises a table is logged with the message"
 
 cleanup
