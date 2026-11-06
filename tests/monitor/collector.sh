@@ -13,6 +13,16 @@
 # each call reads collectgarbage("isrunning"): stopped after the calls made while
 # stopped, running after the others.
 #
+# A method that grew the heap is followed by one collector step, taken after the lock is
+# dropped: the debt its allocations ran up is lost while the collector is stopped, so a loop
+# whose allocations all happen inside monitored methods would never collect. collector.lua
+# loops a shared data buffer's getstring, which allocates a string of the buffer's size and
+# nothing outside the method, and collectgarbage("count") grows by less than a quarter of
+# what the loop allocated; the same loop with the collector stopped leaves it stopped and
+# the heap holding all of it. A loop of getbyte, which allocates nothing, runs the collector
+# through fewer than 8 cycles, counted by a finalizer that arms itself again each cycle: a
+# method that allocated nothing takes no step.
+#
 # Usage: sudo bash tests/monitor/collector.sh
 
 SCRIPT="tests/monitor/collector"
@@ -27,7 +37,7 @@ cleanup
 passed() { dmesg_since | grep -qE "PASS[[:space:]]$1\$"; }
 
 ktap_header
-ktap_plan 5
+ktap_plan 8
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -37,7 +47,10 @@ for case in \
 	"a monitored method that returns leaves a stopped collector stopped" \
 	"a monitored method that raises leaves a stopped collector stopped" \
 	"a monitored method that returns leaves a running collector running" \
-	"a monitored method that raises leaves a running collector running"; do
+	"a monitored method that raises leaves a running collector running" \
+	"a loop of monitored methods that allocate collects as it runs" \
+	"a loop of monitored methods that allocate leaves a stopped collector stopped" \
+	"a loop of monitored methods that allocate nothing takes no collector step"; do
 	passed "$case" || fail "$case: $(dmesg_since | grep -F "$case")"
 	ktap_pass "$case"
 done

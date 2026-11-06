@@ -192,6 +192,17 @@ static inline void lunatik_restartgc(lua_State *L, int running)
 		lua_gc(L, LUA_GCRESTART);
 }
 
+static inline size_t lunatik_gccount(lua_State *L)
+{
+	return ((size_t)lua_gc(L, LUA_GCCOUNT) << 10) + lua_gc(L, LUA_GCCOUNTB);
+}
+
+static inline void lunatik_stepgc(lua_State *L, int running, size_t count)
+{
+	if (running && lunatik_gccount(L) > count)
+		lua_gc(L, LUA_GCSTEP, 0); /* a stopped luaC_step drops the debt the method ran up */
+}
+
 #define lunatik_iscallhook(mask)	((mask) & (LUA_MASKCALL | LUA_MASKRET)) /* the only hooks a C method fires */
 
 typedef struct lunatik_hook_s {
@@ -222,12 +233,14 @@ static int lunatik_pcallobject(lua_State *L, lunatik_object_t *object, int n)
 	gfp_t gfp = lunatik_gfp(runtime);
 	runtime->gfp = lunatik_gfp(object); /* the method allocates under the object's lock */
 	int running = lunatik_stopgc(L);
+	size_t count = lunatik_gccount(L);
 	lunatik_hook_t hook = lunatik_unhook(L);
 	int ret = lua_pcall(L, n, LUA_MULTRET, 0);
 	lunatik_rehook(L, hook);
 	lunatik_restartgc(L, running);
 	runtime->gfp = gfp;
 	lunatik_unlock(object);
+	lunatik_stepgc(L, running, count);
 	return ret;
 }
 
