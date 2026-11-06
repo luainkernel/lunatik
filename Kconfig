@@ -151,8 +151,10 @@ config LUNATIK_CRYPTO
 	default m
 	help
 	  Linux Crypto API support (hash, cipher, AEAD, RNG, compression,
-	  signature verification). Signature verification links
-	  crypto_alloc_sig, which CRYPTO_SIG2 builds.
+	  signature verification, ECDH key agreement). Signature verification
+	  links crypto_alloc_sig, which CRYPTO_SIG2 builds. Key agreement links
+	  crypto_ecdh_encode_key, which CRYPTO_ECDH builds, and is absent
+	  without it.
 
 config LUNATIK_DARKEN
 	tristate "Lunatik Darken (Encrypted Script) Support"

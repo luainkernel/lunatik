@@ -1579,8 +1579,8 @@ typedef struct luacrypto_ctx_s {
 	u8 *iv;
 } luacrypto_ctx_t;
 ```
-The private of a class whose operations take a request and an IV, `crypto.skcipher` and
-`crypto.aead`: the transform, its request and its IV, `NULL` for a cipher that takes none. They are
+The private of a class whose operations take a request and an IV, `crypto.skcipher`, `crypto.aead`
+and `crypto.kpp`: the transform, its request and its IV, `NULL` for a cipher that takes none. They are
 allocated once, when the object is created, so an operation allocates only what it returns.
 
 ### LUACRYPTO\_NEW
@@ -1641,6 +1641,18 @@ Allocates the `size` bytes an operation reads its input from and writes its outp
 [`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which frees it with the state's
 allocator.
 
+### luacrypto\_pushbuffer
+```C
+int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, size_t len, bool outcome);
+```
+Answers a request that wrote its result into `buffer`, a [`luacrypto_newbuffer`](#luacrypto_newbuffer)
+of at least `len + 1` bytes, from `ret`, what the kernel returned for it: pushes the first `len` bytes
+as a string with [`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which then owns the
+buffer, and returns `1`; for a negative `ret` frees the buffer with [`lunatik_free`](#lunatik_free)
+and raises the errno's name, or, with `outcome` set, returns the `2` values of
+[`lunatik_pushfail`](#lunatik_pushfail), nil and that name, for a result the method's contract
+reports rather than raises, as `decrypt` does with `EBADMSG` and `sharedsecret` with `EINVAL`.
+
 ### luacrypto\_shash\_class
 ```C
 extern const lunatik_class_t luacrypto_shash_class;
@@ -1648,6 +1660,7 @@ extern const lunatik_class_t luacrypto_skcipher_class;
 extern const lunatik_class_t luacrypto_aead_class;
 extern const lunatik_class_t luacrypto_rng_class;
 extern const lunatik_class_t luacrypto_sig_class;
+extern const lunatik_class_t luacrypto_kpp_class;
 extern const lunatik_class_t luacrypto_comp_class;
 
 int luacrypto_shash_new(lua_State *L);
@@ -1655,11 +1668,13 @@ int luacrypto_skcipher_new(lua_State *L);
 int luacrypto_aead_new(lua_State *L);
 int luacrypto_rng_new(lua_State *L);
 int luacrypto_sig_new(lua_State *L);
+int luacrypto_kpp_new(lua_State *L);
 int luacrypto_comp_new(lua_State *L);
 ```
 The classes and constructors of `crypto.shash`, `crypto.skcipher`, `crypto.aead`, `crypto.rng`,
-`crypto.sig` and `crypto.comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
-what each constructor raises. `crypto.comp` is declared on kernels before v6.15 alone.
+`crypto.sig`, `crypto.kpp` and `crypto.comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
+what each constructor raises. `crypto.kpp` is declared where `CONFIG_CRYPTO_ECDH` is reachable, since
+`luacrypto_kpp.c` links `crypto_ecdh_encode_key` from it, and `crypto.comp` on kernels before v6.15 alone.
 
 ---
 

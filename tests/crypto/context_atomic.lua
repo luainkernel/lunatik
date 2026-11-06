@@ -13,6 +13,9 @@ local constructors = {sha256 = crypto.shash, ["ecdsa-nist-p256"] = crypto.sig}
 if crypto.comp then -- the binding has no comp from 6.15 on
 	constructors.lz4 = crypto.comp
 end
+if crypto.kpp then -- the binding has no kpp without ECDH
+	constructors["ecdh-nist-p256"] = crypto.kpp
+end
 
 local function refuse()
 	for _ = 1, ATTEMPTS do

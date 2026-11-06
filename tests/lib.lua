@@ -40,5 +40,17 @@ function lib.alloc(new, name)
 	return object
 end
 
+--- Asserts that a call raises an error that contains the expected text.
+-- @tparam string expected text the error carries, such as an errno's name.
+-- @tparam function f function to call.
+-- @param ... arguments to `f`.
+-- @usage lib.raises("EINVAL", cipher.setkey, cipher, "")
+function lib.raises(expected, f, ...)
+	local ok, err = pcall(f, ...)
+	assert(not ok, "no raise where " .. expected .. " was expected")
+	err = tostring(err)
+	assert(err:find(expected, 1, true), "raised " .. err .. " where " .. expected .. " was expected")
+end
+
 return lib
 

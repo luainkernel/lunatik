@@ -106,8 +106,8 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 
 ### crypto
 
-Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
-`comp`.
+Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
+`hkdf`, `comp`.
 
 - **shash**: `sha256` and `hmac(sha256)` report a 32-byte digest and match
   known digests in one shot, in `init`/`update`/`final` parts and through
@@ -153,6 +153,26 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   and raises `ENOSYS` from `verify`; where the verifier is `pkcs1` it is `ENOENT`.
   An unknown name is `ENOENT`. Skipped where the kernel serves neither name of
   the ECDSA or of the RSA verifier, which the script allocates before its cases.
+- **kpp**: `ecdh-nist-p256` with the private key of the kernel's `testmgr.h`
+  vector answers its public key and, with its peer's key, its shared secret.
+  Two generated `ecdh-nist-p256` keys differ and agree a 32-byte secret both ways
+  over 64-byte public keys, two `ecdh-nist-p384` ones a 48-byte secret over
+  96-byte keys, two allocated by the driver name `ecdh-nist-p256-generic` a
+  32-byte secret over 64-byte keys, and two `ecdh-nist-p192` ones, where the
+  kernel serves it, a 24-byte secret over 48-byte keys.
+  A sender's generated key wraps a string with `gcm(aes)` under an
+  `hkdf` of its secret with a key generated in the kernel, which unwraps it from
+  the sender's public key. `sharedsecret` answers nil and `EINVAL` for the peer's
+  key off the curve, 63 and 65 bytes long and all zero, and the vector's peer
+  then still agrees. The constructor raises `EINVAL` for a private key of 31
+  bytes, of none, of 32 zero and 32 `0xff` bytes, and of 65568 bytes whose first
+  32 are the vector's, which `struct ecdh` would truncate to them; `EINVAL` or
+  `ENOENT`, where the kernel serves none, for `ffdhe2048(dh)` and `curve25519`,
+  also with 26 bytes, which packed are a key of curve25519's size; and `ENOENT`
+  for an unknown name. `algname` is the name; closed twice, `publickey` raises
+  "closed object". Skipped where `crypto.kpp` is not built, the kernel having
+  no ECDH, or where it serves no `ecdh-nist-p256`, `ecdh-nist-p384`, `gcm(aes)`
+  or `hmac(sha256)`, which the script allocates before its cases.
 - **hkdf**: `hkdf` matches the SHA-256 vectors of RFC 5869, `extract` without
   a salt matches it with an empty one, and `extract` and `expand` match the
   client initial secret, key and IV of the QUIC worked example at
@@ -167,9 +187,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   asks the runtime for the binding, instead of the suite reading the kernel
   version.
 - **context**: an object refused for its execution context leaves nothing
-  allocated. `crypto.shash("sha256")`, `crypto.comp("lz4")` and
-  `crypto.sig("ecdsa-nist-p256")` from an armed softirq runtime are refused
-  naming their class, `crypto.shash`, `crypto.comp` and `crypto.sig`, and the
+  allocated. `crypto.shash("sha256")`, `crypto.comp("lz4")`,
+  `crypto.sig("ecdsa-nist-p256")` and `crypto.kpp("ecdh-nist-p256")` from an
+  armed softirq runtime are refused naming their class, `crypto.shash`,
+  `crypto.comp`, `crypto.sig` and `crypto.kpp`, and the
   modules backing those algorithms -
   named by holding one object of each kind alive and watching which of
   `/proc/crypto`'s modules gain a reference - keep the reference counts they

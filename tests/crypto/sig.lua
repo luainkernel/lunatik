@@ -11,6 +11,7 @@ local lib     = require("tests.lib")
 
 local sig     = crypto.sig
 local test    = lib.test
+local raises  = lib.raises
 local hex2bin = util.hex2bin
 local char    = string.char
 local rep     = string.rep
@@ -75,13 +76,6 @@ rsa()
 
 local function flip(s, i)
 	return s:sub(1, i - 1) .. char(s:byte(i) ~ 1) .. s:sub(i + 1)
-end
-
-local function raises(expected, f, ...)
-	local ok, err = pcall(f, ...)
-	assert(not ok, "no raise where " .. expected .. " was expected")
-	err = tostring(err)
-	assert(err:find(expected, 1, true), "raised " .. err .. " where " .. expected .. " was expected")
 end
 
 local function rejects(verifier, errname, signature, digest)

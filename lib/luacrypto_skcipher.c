@@ -90,13 +90,7 @@ static int luacrypto_skcipher_crypt(lua_State *L, int (*crypt)(struct skcipher_r
 
 	luacrypto_skcipher_setrequest(&request, buffer);
 	int ret = crypt(request.skcipher);
-	if (ret < 0) {
-		lunatik_free(buffer);
-		lunatik_throw(L, ret);
-	}
-
-	lunatik_pushexternalstring(L, buffer, request.data_len);
-	return 1;
+	return luacrypto_pushbuffer(L, buffer, ret, request.data_len, false);
 }
 
 #define LUACRYPTO_SKCIPHER_CRYPT(op)					\

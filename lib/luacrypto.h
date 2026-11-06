@@ -101,6 +101,18 @@ static inline u8 *luacrypto_checkiv(lua_State *L, int idx, u8 *iv, size_t expect
 
 char *luacrypto_newbuffer(lua_State *L, size_t size);
 
+static inline int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, size_t len, bool outcome)
+{
+	if (ret < 0) {
+		lunatik_free(buffer);
+		if (outcome)
+			return lunatik_pushfail(L, ret);
+		lunatik_throw(L, ret);
+	}
+	lunatik_pushexternalstring(L, buffer, len);
+	return 1;
+}
+
 extern const lunatik_class_t luacrypto_shash_class;
 extern const lunatik_class_t luacrypto_skcipher_class;
 extern const lunatik_class_t luacrypto_aead_class;
@@ -112,6 +124,11 @@ int luacrypto_skcipher_new(lua_State *L);
 int luacrypto_aead_new(lua_State *L);
 int luacrypto_rng_new(lua_State *L);
 int luacrypto_sig_new(lua_State *L);
+
+#if IS_REACHABLE(CONFIG_CRYPTO_ECDH)
+extern const lunatik_class_t luacrypto_kpp_class;
+int luacrypto_kpp_new(lua_State *L);
+#endif
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 extern const lunatik_class_t luacrypto_comp_class;
