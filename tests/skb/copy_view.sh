@@ -40,8 +40,6 @@ TRIES=50
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
 cleanup() {
 	lunatik stop "$SCRIPT" 2>/dev/null
 	kprobe_remove "$RELEASES"
@@ -50,8 +48,8 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-kprobe_place "$RELEASES" luaskb_release || skip_all "couldn't place a kprobe on luaskb_release"
-kprobe_place "$FREED" luadata_release || skip_all "couldn't place a kprobe on luadata_release"
+kprobe_place "$RELEASES" luaskb_release || skip_script "couldn't place a kprobe on luaskb_release"
+kprobe_place "$FREED" luadata_release || skip_script "couldn't place a kprobe on luadata_release"
 
 releases() { kprobe_hits "$RELEASES"; }
 freed() { kprobe_hits "$FREED"; }

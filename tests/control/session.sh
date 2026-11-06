@@ -30,9 +30,7 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-skip_all() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
-[ -c "$DEVICE" ] || skip_all "$DEVICE not loaded"
+[ -c "$DEVICE" ] || skip_script "$DEVICE not loaded"
 
 ktap_header
 ktap_plan 5

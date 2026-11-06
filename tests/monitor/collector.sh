@@ -23,9 +23,6 @@ cleanup() { lunatik stop "$SCRIPT" 2>/dev/null; }
 trap cleanup EXIT
 cleanup
 
-# passed <case>: tests.lib reports PASS and the name of each case that passed
-passed() { dmesg_since | grep -qE "PASS[[:space:]]$1\$"; }
-
 ktap_header
 ktap_plan 5
 

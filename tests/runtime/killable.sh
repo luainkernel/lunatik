@@ -49,16 +49,8 @@ cleanup
 ktap_header
 ktap_plan 4
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
-grep -qw "$FIX" /proc/kallsyms || {
-	echo "# SKIP: the loaded $MODULE does not carry $FIX: the stop from under the lock would wait forever"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
+grep -qw "$FIX" /proc/kallsyms || skip_script "the loaded $MODULE does not carry $FIX: the stop from under the lock would wait forever"
 
 reported()
 {

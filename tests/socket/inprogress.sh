@@ -41,18 +41,13 @@ expect() { # expect <line> <description>
 ktap_header
 ktap_plan 4
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
-skip() { ktap_skip "$1"; ktap_totals; exit 0; }
-command -v nsenter > /dev/null 2>&1 || skip "inprogress: nsenter not available"
-initpidns || skip "inprogress: suite runs in a pid namespace of its own"
-command -v nft > /dev/null 2>&1 || skip "inprogress: nft not available"
-netns_up || skip "inprogress: cannot create a network namespace"
-ip -n "$NETNS" link set lo up 2> /dev/null || skip "inprogress: cannot bring loopback up in the namespace"
-ip netns exec "$NETNS" nft -f - 2> /dev/null <<EOF || skip "inprogress: cannot drop packets in the namespace"
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
+command -v nsenter > /dev/null 2>&1 || skip_script "inprogress: nsenter not available"
+initpidns || skip_script "inprogress: suite runs in a pid namespace of its own"
+command -v nft > /dev/null 2>&1 || skip_script "inprogress: nft not available"
+netns_up || skip_script "inprogress: cannot create a network namespace"
+ip -n "$NETNS" link set lo up 2> /dev/null || skip_script "inprogress: cannot bring loopback up in the namespace"
+ip netns exec "$NETNS" nft -f - 2> /dev/null <<EOF || skip_script "inprogress: cannot drop packets in the namespace"
 table ip lunatik {
 	chain input {
 		type filter hook input priority filter; policy accept;

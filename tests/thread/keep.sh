@@ -43,7 +43,7 @@ ktap_plan 5
 mark_dmesg
 output=$(lunatik spawn "$SCRIPT" 2>&1)
 [ -z "$output" ] || fail "$output"
-awaited reported "foreign"
+awaited passed "foreign"
 lunatik stop "$SCRIPT" > /dev/null 2>&1
 
 verdict "kept" "a dropped thread stays kept by the runtime that started it until a stop there"

@@ -33,11 +33,7 @@ cleanup
 ktap_header
 ktap_plan 2
 
-before=$(cat /sys/module/$MODULE/refcnt 2>/dev/null) || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
+before=$(cat /sys/module/$MODULE/refcnt 2>/dev/null) || skip_script "$MODULE not loaded"
 
 mark_dmesg
 

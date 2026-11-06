@@ -138,8 +138,7 @@ ktap_pass "one set holds a hook per target; a second registration of the same on
 late_refused --percpu
 ktap_pass "a registration from a callback, after load, is refused"
 
-if [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] &&
-	grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
+if carries $MODULE "$REFUSAL"; then
 	late_refused
 	ktap_pass "a registration from a callback of a plain softirq runtime, after load, is refused"
 

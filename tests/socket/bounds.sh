@@ -38,11 +38,7 @@ cleanup
 ktap_header
 ktap_plan 2
 
-cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
-	echo "# SKIP: $MODULE not loaded"
-	ktap_totals
-	exit 0
-}
+cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
 run_test "$SCRIPT" || fail "a socket accepted an integer past its type, net.aton misread an address, or either raised something else"
 ktap_pass "socket: an integer argument past its type is refused as out of bounds, and net.aton refuses what is not an IPv4 address"

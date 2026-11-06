@@ -10,15 +10,25 @@ KTAP_COUNT=0
 KTAP_PASS=0
 KTAP_FAIL=0
 KTAP_SKIP=0
+KTAP_PLANNED=
 
 # the core a result was produced against: a suite read without it can be measuring the
 # module a failed build left installed
 ktap_header() { echo "KTAP version 1"; echo "# core: $(cat /sys/module/lunatik/srcversion 2>/dev/null || echo "not loaded")"; }
-ktap_plan()   { echo "1..$1"; }
+ktap_plan()   { KTAP_PLANNED=$1; echo "1..$1"; }
 ktap_pass()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_PASS=$((KTAP_PASS+1)); echo "ok $KTAP_COUNT $*"; }
 ktap_fail()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_FAIL=$((KTAP_FAIL+1)); echo "not ok $KTAP_COUNT $*"; }
 ktap_skip()   { KTAP_COUNT=$((KTAP_COUNT+1)); KTAP_SKIP=$((KTAP_SKIP+1)); echo "ok $KTAP_COUNT $* # SKIP"; }
 ktap_totals() { echo "# Totals: pass:$KTAP_PASS fail:$KTAP_FAIL skip:$KTAP_SKIP"; [ "$KTAP_FAIL" -eq 0 ]; }
+
+# skip_script <reason> ends the script skipped: each planned case not yet reported skips with the
+# reason, or, before a plan, the one case of the plan it prints
+skip_script() {
+	[ -n "$KTAP_PLANNED" ] || { ktap_header; ktap_plan 1; }
+	while [ "$KTAP_COUNT" -lt "$KTAP_PLANNED" ]; do ktap_skip "$1"; done
+	ktap_totals
+	exit 0
+}
 
 # A Lua error, or a kernel complaint a script's input should not be able to provoke;
 # arm64 heads an oops with "Internal error:", and a debug trap nobody owns with the BRK line.
@@ -40,6 +50,9 @@ check_dmesg() {
 	echo "# $errs"
 	return 1
 }
+
+# passed <case>: tests.lib reports PASS and the name of each case that passed
+passed() { dmesg_since | grep -qE "PASS[[:space:]]$1\$"; }
 
 comment() { while IFS= read -r line; do echo "# $line"; done <<< "$1"; }
 
@@ -169,6 +182,15 @@ probe_refusal() {
 	fi
 }
 
+# carries <module> <message>: the installed <module> holds <message> and is the one loaded, where one
+# is: a case that would wedge the host on a build without its fix skips unless it does
+carries() {
+	local loaded="/sys/module/$1/srcversion"
+
+	{ [ ! -e "$loaded" ] || [ "$(cat "$loaded")" = "$(modinfo -F srcversion "$1" 2> /dev/null)" ]; } &&
+		grep -qaF "$2" "$(modinfo -n "$1" 2> /dev/null)" 2> /dev/null
+}
+
 # runs the CLI, keeping its status in $status, its stdout in $out and its stderr in $err
 cli() {
 	local errfile
@@ -200,10 +222,6 @@ errnames() {
 if ! errnames; then
 	suite=${0#*tests/}
 	suite=${suite%.sh}
-	ktap_header
-	ktap_plan 1
-	ktap_skip "${suite%/run}: errno names need CONFIG_SYMBOLIC_ERRNAME"
-	ktap_totals
-	exit 0
+	skip_script "${suite%/run}: errno names need CONFIG_SYMBOLIC_ERRNAME"
 fi
 

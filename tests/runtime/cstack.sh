@@ -48,11 +48,7 @@ cleanup
 ktap_header
 ktap_plan 11
 
-grep -Eq " $BUDGET[[:space:]]\[$MODULE\]$" /proc/kallsyms 2> /dev/null || {
-	echo "# SKIP: the loaded $MODULE has no $BUDGET: a recursion through C would overflow the kernel stack"
-	ktap_totals
-	exit 0
-}
+grep -Eq " $BUDGET[[:space:]]\[$MODULE\]$" /proc/kallsyms 2> /dev/null || skip_script "the loaded $MODULE has no $BUDGET: a recursion through C would overflow the kernel stack"
 
 reported()
 {

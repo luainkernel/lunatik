@@ -30,8 +30,7 @@ cleanup
 ktap_header
 ktap_plan 1
 
-if ! [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] ||
-	! grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
+if ! carries $MODULE "$REFUSAL"; then
 	ktap_skip "hid/context: the loaded $MODULE does not carry the refusal: it would register under a spinlock"
 elif run_test "$SCRIPT"; then
 	ktap_pass "hid/context"

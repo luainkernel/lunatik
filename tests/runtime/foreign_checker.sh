@@ -67,8 +67,7 @@ else
 	ktap_pass "every checker refuses another class, nil, a foreign userdata and a closed object"
 fi
 
-if [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" = "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] &&
-	grep -qaF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
+if carries $MODULE "$REFUSAL"; then
 	output=$(lunatik run "$CLOSE" 2>&1)
 	if [[ "$output" == *"the kernel serves no "* ]]; then
 		ktap_skip "the close case: ${output#lunatik: }"

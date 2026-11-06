@@ -24,13 +24,6 @@ MOUNT="$SCRATCH/mnt"
 # deny and exec assert on strerror text, which the locale sudo hands down would translate
 export LC_ALL=C
 
-perm_skip() {
-	local i
-	for i in $(seq "$1"); do ktap_skip "$2"; done
-	ktap_totals
-	exit 0
-}
-
 # perm_begin <plan> <name>
 perm_begin() {
 	ktap_header
@@ -38,12 +31,12 @@ perm_begin() {
 
 	mkdir -p -m 0700 "$MOUNT"
 	mount -t tmpfs -o size=1M,mode=0700 lunatik-fsnotify "$MOUNT" 2>/dev/null
-	mountpoint -q "$MOUNT" || perm_skip "$1" "$2: no tmpfs to mark"
+	mountpoint -q "$MOUNT" || skip_script "$2: no tmpfs to mark"
 
 	mark_dmesg
 	run_script "$PROBE"
 	lunatik stop "$PROBE" 2>/dev/null
 	dmesg_since | grep -qF "fsnotify permission probe: supported" || \
-		perm_skip "$1" "$2: no CONFIG_FANOTIFY_ACCESS_PERMISSIONS"
+		skip_script "$2: no CONFIG_FANOTIFY_ACCESS_PERMISSIONS"
 }
 

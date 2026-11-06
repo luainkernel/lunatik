@@ -33,9 +33,7 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
-[ -f "$INSTALLED/build/Makefile" ] || skip "install: no build tree at $INSTALLED/build"
+[ -f "$INSTALLED/build/Makefile" ] || skip_script "install: no build tree at $INSTALLED/build"
 
 ktap_header
 ktap_plan $(wc -w <<< "$ZFS")

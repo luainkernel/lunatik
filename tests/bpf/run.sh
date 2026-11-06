@@ -40,11 +40,9 @@ SOFTIRQ_SCRIPT=tests/bpf/map_softirq
 PROBE_SCRIPT=tests/bpf/probe
 PREFIX="bpf probe: "
 
-skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
+bpftool map show > /dev/null 2>&1 || skip_script "bpf: bpftool unavailable"
 
-bpftool map show > /dev/null 2>&1 || skip "bpf: bpftool unavailable"
-
-create_map() { bpftool map create "$@" > /dev/null || skip "bpf: cannot create pinned maps"; }
+create_map() { bpftool map create "$@" > /dev/null || skip_script "bpf: cannot create pinned maps"; }
 
 cleanup()
 {
@@ -70,7 +68,7 @@ create_map "$QUEUE_MAP" type queue key 0 value 3 entries 128 name test_queue
 create_map "$STACK_MAP" type stack key 0 value 3 entries 128 name test_stack
 create_map "$FULL_MAP" type hash key 4 value 4 entries 2 name test_full
 
-bpftool map update pinned "$MAP" key hex 66 6f 6f value hex 62 61 72 || skip "bpf: cannot seed the pinned map"
+bpftool map update pinned "$MAP" key hex 66 6f 6f value hex 62 61 72 || skip_script "bpf: cannot seed the pinned map"
 
 TESTS="map_values array lru queue stack map"
 TOTAL=$(($(echo $TESTS | wc -w) + 3))

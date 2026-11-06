@@ -70,8 +70,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 }
 
 skip=""
-if [ "$(cat /sys/module/$MODULE/srcversion 2> /dev/null)" != "$(modinfo -F srcversion $MODULE 2> /dev/null)" ] ||
-	! grep -aqF "$REFUSAL" "$(modinfo -n $MODULE 2> /dev/null)"; then
+if ! carries $MODULE "$REFUSAL"; then
 	skip="the loaded $MODULE does not carry the refusal: forward() would panic the host"
 else
 	lsmod | grep -q "^ipip " || { modprobe ipip 2>/dev/null && IPIP_LOADED=1; }

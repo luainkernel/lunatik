@@ -35,9 +35,7 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 
-skip() { ktap_header; ktap_plan 1; ktap_skip "$1"; ktap_totals; exit 0; }
-
-[ -e /sys/module/$MODULE ] || skip "netfilter/register: $MODULE not loaded"
+[ -e /sys/module/$MODULE ] || skip_script "netfilter/register: $MODULE not loaded"
 
 ktap_header
 ktap_plan 2
