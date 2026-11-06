@@ -5,8 +5,11 @@
 
 local comp = require("crypto").comp
 local data = require("data")
-local test = require("tests.lib").test
+local lib = require("tests.lib")
+local test = lib.test
 local closing = require("tests.crypto.closing")
+
+lib.alloc(comp, "lz4") -- so run.sh skips where the kernel lacks it
 
 test("COMP compress empty string (error)", function()
 	local c = comp"lz4"

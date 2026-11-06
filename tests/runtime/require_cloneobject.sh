@@ -13,10 +13,9 @@
 # A data object crosses into a softirq receiver, where the clone runs under the
 # spinlock of the monitored resume and must not sleep. set, the crypto classes
 # and the bpf maps cross into a process receiver, the context the crypto classes
-# need. crypto_comp exists on 6.14 and earlier, so its case skips where
-# luacrypto carries no luacrypto_comp_new; the bpf maps are pinned with bpftool,
-# and their case skips where it cannot pin them. The first case skips where the
-# kernel serves no sha256, cbc(aes), gcm(aes) or stdrng, which the script names.
+# need. The bpf maps are pinned with bpftool, and their case skips where it
+# cannot pin them. The first case skips where the kernel serves no sha256,
+# cbc(aes), gcm(aes) or stdrng, which the script names.
 #
 # Usage: sudo bash tests/runtime/require_cloneobject.sh
 
@@ -58,11 +57,7 @@ cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || {
 
 clones "$SCRIPT" "data, set and crypto.shash, skcipher, aead and rng reach a runtime that never required them"
 
-if grep -qw luacrypto_comp_new /proc/kallsyms; then
-	clones "$COMP" "crypto.comp reaches a runtime that never required crypto"
-else
-	ktap_skip "crypto.comp: the binding is not built on this kernel"
-fi
+clones "$COMP" "crypto.comp reaches a runtime that never required crypto"
 
 mountpoint -q "$BPF_FS" || mount -t bpf bpf "$BPF_FS"
 if bpftool map create "$HASH_MAP" type hash key 4 value 4 entries 1 name test_clone_hash > /dev/null 2>&1 &&
