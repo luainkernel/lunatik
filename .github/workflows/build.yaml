@@ -70,8 +70,6 @@ jobs:
           CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y
           CONFIG_DEBUG_INFO_BTF=y
           CONFIG_SCHED_CLASS_EXT=y
-          # v7.2 and later: the rng API luacrypto calls is built only for a user, here DRBG, its default stdrng
-          CONFIG_CRYPTO_DRBG=y
         )
         printf '%s\n' "${options[@]}" >> .config
         # modpost resolves our modules' symbols against the Module.symvers this full build writes
