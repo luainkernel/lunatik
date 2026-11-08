@@ -117,7 +117,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
 - **skcipher**: `cbc(aes)` encrypts and decrypts a known vector and reports a
   16-byte IV and block, refuses a short key, a short IV and data that is not a
   whole number of blocks with `EINVAL` and an unknown algorithm name with
-  `ENOENT`, survives 5000 round trips, and
+  `ENOENT`, encrypts and decrypts empty data to an empty string, survives 5000
+  round trips, and
   `ecb(aes)` round-trips with no IV. Skipped where the kernel serves no
   `cbc(aes)` or no `ecb(aes)`, which the script allocates before its cases.
 - **aead**: `gcm(aes)` encrypts and decrypts a known vector with associated
@@ -125,8 +126,13 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   short key, an invalid tag size and a short IV with `EINVAL` and an unknown
   algorithm name with `ENOENT`, answers a
   truncated or tampered tag with nil and `EBADMSG`, and round-trips without associated
-  data, with an empty plaintext, and 5000 times. Skipped where the kernel serves
-  no `gcm(aes)`, which the script allocates before its cases.
+  data, an empty plaintext with and without it, and 5000 times.
+  `authenc(digest_null,ecb(cipher_null))`, keyed with an empty authentication and
+  encryption key, reports no IV and a zero-byte tag, and encrypts and decrypts
+  an empty input to an empty string and any other to itself.
+  Skipped where the kernel serves no `gcm(aes)` or, without `CONFIG_CRYPTO_AUTHENC`
+  or `CONFIG_CRYPTO_NULL`, no `authenc(digest_null,ecb(cipher_null))`, which the
+  script allocates before its cases.
 - **rng**: `stdrng` gives the number of bytes asked for through `generate`,
   with or without additional input, and `getbytes`, also after a reset without
   a seed, refuses 0 bytes as out of bounds and an additional input or a seed
