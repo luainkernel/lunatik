@@ -1663,7 +1663,9 @@ int luacrypto_comp_new(lua_State *L);
 ```
 The classes and constructors of `crypto.shash`, `crypto.skcipher`, `crypto.aead`, `crypto.rng`,
 `crypto.sig` and `crypto.comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
-what each constructor raises. `crypto.comp` is declared on kernels before v6.15 alone.
+what each constructor raises. `luacrypto_rng_class` is defined where `CONFIG_CRYPTO_RNG2` is reachable,
+since `luacrypto_rng.c` links `crypto_alloc_rng` and `crypto_rng_reset` from it, and `luacrypto_rng_new`
+raises `EOPNOTSUPP` where it is not; `crypto.comp` is declared on kernels before v6.15 alone.
 
 ---
 
