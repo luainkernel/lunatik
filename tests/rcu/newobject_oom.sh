@@ -13,12 +13,12 @@
 #
 # The failure is forced on the GFP_ATOMIC path: a kmalloc past KMALLOC_MAX_SIZE
 # asks the page allocator for an order above MAX_PAGE_ORDER, which returns NULL.
-# That holds only where KMALLOC_MAX_SIZE is below the request, which the guard
-# below checks, since the kernel serves 512 MiB from kmalloc on 64K pages. In
-# process context kvmalloc() falls back to vmalloc and no bucket count fails
-# reliably. A runtime allocates with GFP_ATOMIC only once its script body has
-# returned, so the body hands back a function and the driver runs it through
-# resume().
+# That holds only where KMALLOC_MAX_SIZE, which lib.sh's kmalloc_max reads from
+# /proc/buddyinfo, is below the request, which the guard below checks, since the
+# kernel serves 512 MiB from kmalloc on 64K pages. In process context kvmalloc()
+# falls back to vmalloc and no bucket count fails reliably. A runtime allocates
+# with GFP_ATOMIC only once its script body has returned, so the body hands back
+# a function and the driver runs it through resume().
 #
 # Usage: sudo bash tests/rcu/newobject_oom.sh
 
@@ -31,21 +31,6 @@ trap cleanup EXIT
 cleanup
 
 REQUEST=$(( (1 << 23) * 8 )) # the buckets newobject_oom_atomic.lua asks for, of one hlist_head each
-
-# KMALLOC_MAX_SIZE is 1 << (MAX_PAGE_ORDER + PAGE_SHIFT) (include/linux/slab.h), and
-# MAX_PAGE_ORDER is 10 unless the architecture forces another (arch/arm64/Kconfig).
-kmalloc_max()
-{
-	local order page bits
-	order=$(grep -m1 '^CONFIG_ARCH_FORCE_MAX_ORDER=' "/boot/config-$(uname -r)" 2>/dev/null | cut -d= -f2)
-	page=$(getconf PAGESIZE)
-	bits=0
-	while [ "$page" -gt 1 ]; do
-		page=$((page / 2))
-		bits=$((bits + 1))
-	done
-	echo $(( 1 << (${order:-10} + bits) ))
-}
 
 ktap_header
 ktap_plan 1
