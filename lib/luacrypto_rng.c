@@ -5,6 +5,7 @@
 
 /***
 * Lua interface to synchronous Random Number Generators (RNG).
+* Not built where the kernel builds no user of its rng API, `CONFIG_CRYPTO_RNG2`.
 * @classmod crypto_rng
 */
 
@@ -15,6 +16,8 @@
 #include <linux/limits.h>
 
 #include "luacrypto.h"
+
+#if IS_REACHABLE(CONFIG_CRYPTO_RNG2)
 
 LUNATIK_PRIVATECHECKER(luacrypto_rng_check, struct crypto_rng *, &luacrypto_rng_class);
 
@@ -143,4 +146,11 @@ int luacrypto_rng_new(lua_State *L)
 	lunatik_try(L, crypto_rng_reset, tfm, NULL, crypto_rng_seedsize(tfm));
 	return 1;
 }
+
+#else
+int luacrypto_rng_new(lua_State *L)
+{
+	return lunatik_unsupported(L);
+}
+#endif
 

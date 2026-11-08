@@ -165,6 +165,13 @@ served_case() {
 	fi
 }
 
+# lacks <option>: the kernel's configuration, where it can be read, sets <option> neither y nor m
+lacks() {
+	local config
+	config=$({ zcat /proc/config.gz || cat "/boot/config-$(uname -r)"; } 2>/dev/null)
+	[ -n "$config" ] && ! grep -qE "^$1=[ym]\$" <<< "$config"
+}
+
 # a call refused with IRQs disabled: probe_refusal <case> <script> <prefix> runs the script in a
 # hardirq runtime, whose pre handler on the personality syscall prints "<prefix>refused" when the
 # call raises the refusal and "<prefix>" with anything else when it does not, makes the syscall with

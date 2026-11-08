@@ -64,11 +64,17 @@
 
 /***
 * Creates a random number generator and seeds it as `reset` does without a seed.
+* Needs the kernel's rng API, `CONFIG_CRYPTO_RNG2`, which the crypto manager selects on 7.0 and
+* earlier, and on 7.1 and later only with `CONFIG_CRYPTO_SELFTESTS`, so a kernel there has it
+* through a user such as `CONFIG_CRYPTO_DRBG`, `CONFIG_CRYPTO_JITTERENTROPY` or
+* `CONFIG_CRYPTO_USER_API_RNG`. The default name, `stdrng`, is the one a DRBG registers, and an
+* unknown algorithm where nothing does.
 * @function rng
 * @tparam[opt="stdrng"] string algname algorithm name
 * @treturn crypto_rng
-* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
-*   failure, or the errno of the seeding it runs at creation
+* @raise "EOPNOTSUPP" on a kernel without `CONFIG_CRYPTO_RNG2`, "ENOENT" for an unknown algorithm,
+*   "ENOMEM" or "not enough memory" on allocation failure, or the errno of the seeding it runs at
+*   creation
 * @usage
 *   local rng = require("crypto").rng
 *   local r = rng()
@@ -147,7 +153,9 @@ static const lunatik_class_t *luacrypto_classes[] = {
 	&luacrypto_shash_class,
 	&luacrypto_skcipher_class,
 	&luacrypto_aead_class,
+#if IS_REACHABLE(CONFIG_CRYPTO_RNG2)
 	&luacrypto_rng_class,
+#endif
 	&luacrypto_sig_class,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0))
 	&luacrypto_comp_class,

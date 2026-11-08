@@ -6,7 +6,9 @@
 # Runs all crypto tests and reports aggregated KTAP results.
 #
 # shash, skcipher, aead, rng, sig and hkdf allocate each algorithm their cases use before the first of them, through
-# tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script names.
+# tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script names. rng skips where the
+# kernel's configuration has no CONFIG_CRYPTO_RNG2, without which crypto.rng raises EOPNOTSUPP, and fails where it has
+# the option and crypto.rng raises it.
 #
 # context: a crypto object refused for its execution context leaves nothing
 # allocated, measured on the reference a tfm holds on the module implementing
@@ -59,6 +61,8 @@ esac
 for t in $TESTS; do
 	if [ "$t" = "$MISSING" ]; then
 		ktap_skip "crypto/$t: the binding is not built on this kernel"
+	elif [ "$t" = rng ] && lacks CONFIG_CRYPTO_RNG2; then
+		ktap_skip "crypto/rng: needs CONFIG_CRYPTO_RNG2"
 	else
 		served_case "crypto/$t" run_test "tests/crypto/$t"
 	fi

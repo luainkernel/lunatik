@@ -138,8 +138,11 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   a seed, refuses 0 bytes as out of bounds and an additional input or a seed
   that is not a string; `drbg_nopr_hmac_sha512`, a DRBG named by its driver,
   gives bytes after a reset with a seed and reports a seed size of 0. Skipped
-  where the kernel serves no `stdrng` or no `drbg_nopr_hmac_sha512`, which the
-  script allocates before its cases.
+  where the kernel's configuration has no `CONFIG_CRYPTO_RNG2`, without which
+  `crypto.rng` raises `EOPNOTSUPP`, or where the kernel serves no `stdrng` or no
+  `drbg_nopr_hmac_sha512`, which the script allocates before its cases; a
+  `crypto.rng` that raises `EOPNOTSUPP` where the configuration has the option
+  fails it.
 - **sig**: each verifier is allocated by its 6.13 name, `x962(ecdsa-nist-p256)`
   or `pkcs1(rsa,sha256)`, and on `ENOENT` by the name of 6.12 and earlier,
   `ecdsa-nist-p256` or `pkcs1pad(rsa,sha256)`. ECDSA verifies the P-256 vector of
@@ -1883,7 +1886,8 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   runtime or fifo is refused instead of dereferencing its NULL private;
   this case skips where the kernel serves no algorithm the `crypto.shash`,
   `crypto.skcipher`, `crypto.aead`, `crypto.rng` or `crypto.sig` row allocates,
-  `ecdsa-nist-p256` without `CONFIG_CRYPTO_ECDSA` among them.
+  `ecdsa-nist-p256` without `CONFIG_CRYPTO_ECDSA` among them, and where the
+  kernel's configuration has no `CONFIG_CRYPTO_RNG2`.
   A close of another class, `fifo`'s `close` on a thread, a device and a
   runtime, and the runtime's `stop` on a thread, a device and a fifo, is
   refused, and each object then answers its own methods; a `crypto.shash`
@@ -1927,7 +1931,7 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   one. The `crypto.comp` case skips where the kernel has no crypto_comp
   API (6.15 and later), the `bpf` one where bpftool cannot pin a map, and
   the first where the kernel serves no `sha256`, `cbc(aes)`, `gcm(aes)` or
-  `stdrng`.
+  `stdrng`, or where the kernel's configuration has no `CONFIG_CRYPTO_RNG2`.
 
 - **require_reopen**: a library opened in a state that already has its
   classes (the `_ENV` object's clone creates the `rcu.table` metatables,

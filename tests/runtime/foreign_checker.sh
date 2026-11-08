@@ -15,7 +15,8 @@
 # object is a spawned body's, since thread.run is refused from a script body.
 # The matrix skips where the kernel serves no algorithm its shash, skcipher, aead,
 # rng or sig row allocates, ecdsa-nist-p256 without CONFIG_CRYPTO_ECDSA among them,
-# which the script names.
+# which the script names, and where the kernel's configuration has no
+# CONFIG_CRYPTO_RNG2, without which crypto.rng raises EOPNOTSUPP.
 #
 # The close case, foreign_checker_close, closes a thread, a device and a
 # runtime through fifo's close, lunatik_closeobject, which refuses each as an
@@ -57,8 +58,9 @@ ktap_plan 2
 mark_dmesg
 output=$(lunatik spawn "$BODY" 2>&1)
 [ -n "$output" ] && fail "spawn failed: $output"
-output=$(lunatik run "$SCRIPT" 2>&1)
-if [[ "$output" == *"the kernel serves no "* ]]; then
+if lacks CONFIG_CRYPTO_RNG2; then
+	ktap_skip "the checker matrix: its crypto.rng row needs CONFIG_CRYPTO_RNG2"
+elif output=$(lunatik run "$SCRIPT" 2>&1); [[ "$output" == *"the kernel serves no "* ]]; then
 	ktap_skip "the checker matrix: ${output#lunatik: }"
 else
 	[ -n "$output" ] && fail "the checker matrix failed: $output"
