@@ -85,6 +85,14 @@ test("SKCIPHER AES-128-CBC decrypt with data not multiple of blocksize", functio
 	assert(err == "EINVAL", "Error code should be 'EINVAL', got: " .. err)
 end)
 
+test("SKCIPHER AES-128-CBC encrypt and decrypt of empty data", function()
+	local c = skcipher("cbc(aes)")
+	local iv = "fedcba9876543210"
+	c:setkey"0123456789abcdef"
+	assert(c:encrypt(iv, "") == "", "encrypt of empty data should be empty")
+	assert(c:decrypt(iv, "") == "", "decrypt of empty data should be empty")
+end)
+
 test("SKCIPHER AES-128-CBC stress round-trip", function()
 	local c = skcipher("cbc(aes)")
 	local iv = "fedcba9876543210"

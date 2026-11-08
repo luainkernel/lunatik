@@ -10,8 +10,12 @@ local test = lib.test
 local hex2bin = util.hex2bin
 local bin2hex = util.bin2hex
 
--- the algorithm the cases allocate, before they run, so run.sh skips the test where the kernel lacks it
+local CRYPTO_AUTHENC_KEYA_PARAM <const> = 1
+local NULL_AUTHENC              <const> = "authenc(digest_null,ecb(cipher_null))"
+
+-- the algorithms the cases allocate, before they run, so run.sh skips the test where the kernel lacks one
 lib.alloc(aead, "gcm(aes)")
+lib.alloc(aead, NULL_AUTHENC)
 
 test("AEAD AES-128-GCM encrypt", function()
 	local c = aead("gcm(aes)")
@@ -116,6 +120,30 @@ test("AEAD AES-128-GCM round-trip empty plaintext with AAD", function()
 	assert(#tag == 16, "Empty-plaintext output should be just the tag (16 bytes), got " .. #tag)
 	local plaintext = c:decrypt("abcdefghijkl", tag, "0123456789abcdef")
 	assert(plaintext == "", "Empty-plaintext round-trip failed")
+end)
+
+test("AEAD AES-128-GCM round-trip empty plaintext without AAD", function()
+	local c = aead("gcm(aes)")
+	local iv = "abcdefghijkl"
+	c:setkey"0123456789abcdef"
+	c:setauthsize(16)
+	local tag = c:encrypt(iv, "")
+	assert(#tag == 16, "Empty-plaintext output should be just the tag (16 bytes), got " .. #tag)
+	local plaintext = c:decrypt(iv, tag)
+	assert(plaintext == "", "Empty-plaintext round-trip without AAD failed")
+end)
+
+test("AEAD null authenc has a zero-byte tag and passes its input through, an empty one included", function()
+	local c = aead(NULL_AUTHENC)
+	local plaintext = "plaintext"
+	-- a struct rtattr of rta_len 8, then an enckeylen of 0: two empty keys
+	c:setkey(string.pack("I2I2>I4", 8, CRYPTO_AUTHENC_KEYA_PARAM, 0))
+	assert(c:ivsize() == 0, "IV size for the null authenc should be 0 bytes")
+	assert(c:authsize() == 0, "Auth size for the null authenc should be 0 bytes")
+	assert(c:encrypt("", "") == "", "encrypt of an empty plaintext should be empty")
+	assert(c:decrypt("", "") == "", "decrypt of an empty ciphertext should be empty")
+	assert(c:encrypt("", plaintext) == plaintext, "encrypt should pass the plaintext through with no tag")
+	assert(c:decrypt("", plaintext) == plaintext, "decrypt should pass the ciphertext through with no tag")
 end)
 
 test("AEAD AES-128-GCM stress round-trip", function()
