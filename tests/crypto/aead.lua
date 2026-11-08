@@ -137,3 +137,9 @@ test("AEAD close releases the transform, and __close is close", function()
 	closing.check(aead("gcm(aes)"), "ivsize")
 end)
 
+test("AEAD refuses an unknown algorithm name", function()
+	local status, err = pcall(aead, "nosuchalg")
+	assert(not status, "aead with an unknown algorithm name should fail")
+	assert(err == "ENOENT", "Error code should be 'ENOENT', got: " .. tostring(err))
+end)
+

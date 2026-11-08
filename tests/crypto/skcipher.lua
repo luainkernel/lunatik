@@ -113,3 +113,9 @@ test("SKCIPHER close releases the transform, and __close is close", function()
 	closing.check(skcipher("cbc(aes)"), "ivsize")
 end)
 
+test("SKCIPHER refuses an unknown algorithm name", function()
+	local status, err = pcall(skcipher, "nosuchalg")
+	assert(not status, "skcipher with an unknown algorithm name should fail")
+	assert(err == "ENOENT", "Error code should be 'ENOENT', got: " .. tostring(err))
+end)
+
