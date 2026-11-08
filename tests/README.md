@@ -116,12 +116,14 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
   `hmac(sha256)`, which the script allocates before its cases.
 - **skcipher**: `cbc(aes)` encrypts and decrypts a known vector and reports a
   16-byte IV and block, refuses a short key, a short IV and data that is not a
-  whole number of blocks with `EINVAL`, survives 5000 round trips, and
+  whole number of blocks with `EINVAL` and an unknown algorithm name with
+  `ENOENT`, survives 5000 round trips, and
   `ecb(aes)` round-trips with no IV. Skipped where the kernel serves no
   `cbc(aes)` or no `ecb(aes)`, which the script allocates before its cases.
 - **aead**: `gcm(aes)` encrypts and decrypts a known vector with associated
   data and reports a 12-byte IV and the tag size it was set to, refuses a
-  short key, an invalid tag size and a short IV with `EINVAL`, answers a
+  short key, an invalid tag size and a short IV with `EINVAL` and an unknown
+  algorithm name with `ENOENT`, answers a
   truncated or tampered tag with nil and `EBADMSG`, and round-trips without associated
   data, with an empty plaintext, and 5000 times. Skipped where the kernel serves
   no `gcm(aes)`, which the script allocates before its cases.
