@@ -453,7 +453,7 @@ gh_body() {
 
 # the gh api field <name> the write <post> passes, -f <name>=<value> in any spelling gh takes
 gh_field() {
-	printf '%s' "$1" | grep -oE -- "(-f|-F|--raw-field|--field)[ =]$2=[\"']?[^[:space:]\"']+" | head -n 1 | sed "s/.*$2=[\"']\{0,1\}//"
+	printf '%s' "$1" | grep -oE -- "(-f|-F|--raw-field|--field)[ =]?$2=[\"']?[^[:space:]\"']+" | head -n 1 | sed "s/.*$2=[\"']\{0,1\}//"
 }
 
 # the value the gh pr write <post> passes to its option <long>, or to <short>
@@ -472,30 +472,39 @@ gh_option() {
 	}'
 }
 
+# the base and the head, "<base> <head>", the gh write <post> names: head= and base= or the JSON gh api
+# sends, or gh pr's --head and --base, master when it names no base
+gh_named() {
+	local base head body
+	if [ "$(printf '%s' "$1" | awk '{ print $2 }')" = pr ]; then
+		base=$(gh_option "$1" --base -B)
+		head=$(gh_option "$1" --head -H)
+	else
+		body=$(gh_body "$1")
+		if [ "${body%% *}" = input ]; then
+			base=$(jq -r '.base // empty' "${body#* }" 2> /dev/null)
+			head=$(jq -r '.head // empty' "${body#* }" 2> /dev/null)
+		else
+			base=$(gh_field "$1" base)
+			head=$(gh_field "$1" head)
+		fi
+	fi
+	printf '%s %s\n' "${base:-master}" "$head"
+}
+
 # the base and the head, "<base> <head>", of the pull request the gh write <post> opens or edits: a
-# create's from the write, head= and base= or the JSON gh api sends, or gh pr's --head and --base, master
-# when it names no base; an edit's from GitHub's pulls/<N>, asked with the credential the hook input
+# create's those it names; an edit's from GitHub's pulls/<N>, asked with the credential the hook input
 # <input> carries, the base too, since a retarget moves none of its commits, and one onto master after
 # its base merged by rebase would read that base's commits, under their old SHAs, as its own
 gh_refs() {
-	local base head body repo number
+	local base head repo number
 	number=$(gh_number "$2")
 	if [ -n "$number" ]; then
 		repo=$(gh_repo "$2")
 		read -r head base <<< "$(GH_TOKEN=$(gh_token "$1") gh api "repos/${repo:-{owner\}/{repo\}}/pulls/$number" \
 			--jq '.head.sha + " " + .base.ref' 2> /dev/null)"
-	elif [ "$(printf '%s' "$2" | awk '{ print $2 }')" = pr ]; then
-		base=$(gh_option "$2" --base -B)
-		head=$(gh_option "$2" --head -H)
 	else
-		body=$(gh_body "$2")
-		if [ "${body%% *}" = input ]; then
-			base=$(jq -r '.base // empty' "${body#* }" 2> /dev/null)
-			head=$(jq -r '.head // empty' "${body#* }" 2> /dev/null)
-		else
-			base=$(gh_field "$2" base)
-			head=$(gh_field "$2" head)
-		fi
+		read -r base head <<< "$(gh_named "$2")"
 	fi
 	printf '%s %s\n' "${base:-master}" "$head"
 }

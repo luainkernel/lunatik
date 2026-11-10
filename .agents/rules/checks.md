@@ -251,7 +251,9 @@ own words.
 `fixup-guard.sh`, wired before a shell call, refuses opening a pull request whose head, compared on GitHub
 with its base, carries a `fixup!`, `amend!` or `squash!` commit: a pull request reaches the maintainer's first
 review squashed, and a fixup is how he reads what changed after it. `FIXUPS_OK=1` opens one that is not the
-first he reads.
+first he reads. It and `stacked-guard.sh` read the refs a write names in every spelling
+`pr-body-guard.sh` reads, the JSON `gh api --input` sends included; beside `--input`, gh sends the fields in
+the query string, so the draft stacked-guard counts there is the JSON's.
 
 `fixups.sh` names the `fixup!`, `amend!` and `squash!` commits of a rev-range, and the `Checks` workflow
 fails on a pull request that carries one, so a pull request merged before its squash shows red rather

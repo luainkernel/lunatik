@@ -15,7 +15,7 @@ input=$(cat)
 
 # a cheap bail on the raw input, which carries the description too; the command itself decides below
 case "$input" in
-	*"gh api"*pulls*base*|*"gh pr "*) ;;
+	*"gh api"*pulls*|*"gh pr "*) ;;
 	*) exit 0 ;;
 esac
 
@@ -27,21 +27,26 @@ moves=$(gh_writes "$cmds" 'pr edit' '^(https://api\.github\.com)?/?repos/[^/]+/[
 [ -n "$creates$moves" ] || exit 0
 
 quote="[\"'\\\\]*"
-field="(-f|-F|--field|--raw-field)[ =]?"
 
-# the base the gh write <write> names: --base or -B on gh pr, a base= field on gh api, never the
-# text of a --jq expression
-base() {
+# whether the create <write> asks for a draft: --draft or -d on gh pr, draft=true in the JSON gh api
+# sends, which takes the fields beside it to the query string, or a draft=true field
+draft() {
+	local body
 	if [ "$(printf '%s' "$1" | awk '{ print $2 }')" = pr ]; then
-		printf '%s' "$1" | grep -oE "(--base[ =]|-B )$quote[^[:space:]\"'\\\\]+" | sed -E "s/^(--base[ =]|-B )$quote//"
+		printf '%s' "$1" | grep -qE "(^| )(--draft|-d)( |$)"
+		return
+	fi
+	body=$(gh_body "$1")
+	if [ "${body%% *}" = input ]; then
+		[ "$(jq -r '.draft' "${body#* }" 2> /dev/null)" = true ]
 	else
-		printf '%s' "$1" | grep -oE "${field}${quote}base=$quote[^[:space:]\"'\\\\]+" | sed -E "s/^${field}${quote}base=$quote//"
+		[ "$(gh_field "$1" draft)" = true ]
 	fi
 }
 
 while IFS= read -r move; do
-	base=$(base "$move")
-	[ -z "$base" ] || [ "$base" = master ] && continue
+	read -r base _ <<< "$(gh_named "$move")"
+	[ "$base" = master ] && continue
 	case "$(printf '%s' "$move" | awk '{ print $2 }')" in
 	pr)
 		repo=$(printf '%s' "$move" | grep -oE "(--repo[ =]|-R )$quote[^[:space:]\"'\\\\]+" | sed -E "s/^(--repo[ =]|-R )$quote//")
@@ -58,17 +63,9 @@ while IFS= read -r move; do
 done <<< "$moves"
 
 while IFS= read -r create; do
-	base=$(base "$create")
-	case "$(printf '%s' "$create" | awk '{ print $2 }')" in
-	pr)
-		draft=$(printf '%s' "$create" | grep -E "(^| )(--draft|-d)( |$)")
-		;;
-	*)
-		draft=$(printf '%s' "$create" | grep -E "${field}${quote}draft=${quote}true")
-		;;
-	esac
-	[ -z "$base" ] || [ "$base" = master ] || [ -n "$draft" ] && continue
-	echo "stacked-guard: a pull request on $base, not master, opens as a draft (-F draft=true, or --draft): GitHub will not merge a draft before its base, and the merged skill marks it ready when it retargets it." >&2
+	read -r base _ <<< "$(gh_named "$create")"
+	[ "$base" = master ] || draft "$create" && continue
+	echo "stacked-guard: a pull request on $base, not master, opens as a draft (-F draft=true, \"draft\": true in the --input JSON, or --draft): GitHub will not merge a draft before its base, and the merged skill marks it ready when it retargets it." >&2
 	exit 2
 done <<< "$creates"
 
