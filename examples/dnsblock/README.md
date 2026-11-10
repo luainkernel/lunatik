@@ -1,7 +1,7 @@
 # dnsblock
 
 **dnsblock** is a kernel script that uses the netfilter framework ([luanetfilter](https://luainkernel.github.io/lunatik/modules/netfilter.html)) to filter DNS packets.
-This script drops the IPv4 UDP DNS queries the host itself sends whose question name contains a blacklisted domain. By default, it will block DNS resolutions for `example.net`, a name RFC 2606 reserves, listed in [common.lua](common.lua); each entry is a Lua pattern matched against the name as it travels on the wire, so its `.` stands for any byte.
+This script drops the IPv4 UDP DNS queries the host itself sends whose question name contains a blacklisted domain. By default, it will block DNS resolutions for `example.net`, a name RFC 2606 reserves, listed in [nf_dnsblock.lua](nf_dnsblock.lua); each entry is a Lua pattern matched against the name as it travels on the wire, so its `.` stands for any byte.
 The hook reads every packet as IPv4 UDP, so queries over IPv6 or TCP are not recognized, and the queries
 the host forwards never reach it.
 
