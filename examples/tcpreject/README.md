@@ -15,13 +15,12 @@ and `2001:4860:4860::8888` (IPv6).
 Run it on a test machine or a VM. `setup.sh` turns IPv4 and IPv6 forwarding on, and as IPv6
 forwarding turns on the kernel drops the default routes learned from router advertisements and ignores
 new ones unless `accept_ra` is 2, so a host that takes its IPv6 default route from them loses it.
-`cleanup.sh` puts both kinds of forwarding back to the values `setup.sh` found, which it keeps in
-`/run/tcpreject.sysctl`; without that file, as after a reboot, it leaves forwarding as it is. It
-does not bring back `default` and per-device forwarding values that differed from `all`, which every
-IPv6 write to `all` overwrites, and an IPv4 one when `ip_forward` changes. On a host that did not
-forward, it does not bring back IPv4 `conf/all/accept_redirects`, which the kernel sets to the
-opposite of `ip_forward`, nor large receive offload, which turning forwarding on disables on every
-device, and the IPv6 default route comes back only with the next router advertisement. The host
+`cleanup.sh` puts both kinds of forwarding back to the values `setup.sh` found, `all`, `default`
+and every device's, with IPv4 `conf/all/accept_redirects`, which the kernel sets to the opposite of
+`ip_forward`; `setup.sh` keeps them in `/run/tcpreject.sysctl`, and without that file, as after a
+reboot, the cleanup leaves forwarding as it is. On a host that did not forward, it does not bring
+back large receive offload, which turning forwarding on disables on every device, and the IPv6
+default route comes back only with the next router advertisement. The host
 needs a default route for each family, since a packet with no route is never forwarded and the hook
 never sees it.
 
