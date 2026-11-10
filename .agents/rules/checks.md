@@ -260,6 +260,14 @@ first he reads. It and `stacked-guard.sh` read the refs a write names in every s
 `pr-body-guard.sh` reads, the JSON `gh api --input` sends included; beside `--input`, gh sends the fields in
 the query string, so the draft stacked-guard counts there is the JSON's.
 
+`empty-units.sh` reads a tree after `make` and names an object of the tree's own C that defines no
+symbol: a unit wholly under a guard the kernel it built against leaves unset compiles to nothing, and the
+build passes without it. The build workflow runs it in every cell and fails one that leaves a unit empty:
+`lib/luacrypto_kpp.c` sits under `IS_REACHABLE(CONFIG_CRYPTO_ECDH)`, which no defconfig the job builds
+sets, and an earlier push of #2360 compiled `crypto.kpp` on no kernel of the matrix. The cell's options
+set what such a guard asks for, and a unit a kernel of the range cannot build keeps an arm that refuses,
+as `luascx.c` does without `CONFIG_SCHED_CLASS_EXT`, rather than nothing.
+
 `fixups.sh` names the `fixup!`, `amend!` and `squash!` commits of a rev-range, and the `Checks` workflow
 fails on a pull request that carries one, so a pull request merged before its squash shows red rather
 than landing its fixups on master.
