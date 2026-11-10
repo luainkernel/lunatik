@@ -33,8 +33,10 @@ Verify:
 sudo bpftool struct_ops show
 ```
 
-Task storage cannot be dumped with `bpftool map dump`. sched_ext's debug dump names the queue each
-runnable task waits in, `dsq_id=0x1` for one the policy sent to `BATCH`, read through its tracepoint:
+Task storage cannot be dumped with `bpftool map dump`. sched_ext's debug dump names the queue a task
+waits in, `dsq_id=0x1` for one the policy sent to `BATCH`, so it shows a class only while the CPUs are
+busy: a task on a CPU prints `dsq_id=(n/a)`, and one asleep is not listed. It is read through the
+dump's tracepoint:
 
 ```sh
 echo 1 | sudo tee /sys/kernel/tracing/events/sched_ext/sched_ext_dump/enable
