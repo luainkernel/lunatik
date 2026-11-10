@@ -7,8 +7,12 @@ block	gh api repos/luainkernel/lunatik/pulls -fhead=a -fbase=b -F body=@b.md
 block	gh api -f head=a -f base=b -F body=@b.md repos/luainkernel/lunatik/pulls
 block	gh pr create --base b --head a --body-file b.md
 block	gh pr new -B b --head a --body-file b.md
+block	gh -R luainkernel/lunatik pr create --base b --head a --body-file b.md
+block	gh -Rluainkernel/lunatik pr create --base b --head a --body-file b.md
+block	gh pr -Rluainkernel/lunatik create --base b --head a --body-file b.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=a -f base=b -F draft=true -F body=@b.md
 pass	gh pr create --base b --head a --draft --body-file b.md
+pass	gh --repo luainkernel/lunatik pr create --base b --head a --draft --body-file b.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=a -f base=master -F body=@b.md
 pass	gh api repos/luainkernel/lunatik/pulls/7 --jq '.base.ref'
 block	gh api repos/luainkernel/lunatik/pulls --input stacked.json
@@ -23,6 +27,12 @@ block	cd sub && gh api repos/luainkernel/lunatik/pulls --input master.json
 block	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 --input move.json
 block	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 -f base=bump
 block	gh pr edit 9 --base bump
+block	gh -R luainkernel/lunatik pr edit 9 --base bump
+block	gh --repo=luainkernel/lunatik pr edit 9 --base bump
+block	gh pr -Rluainkernel/lunatik edit 9 --base bump
+pass	gh -Rluainkernel/lunatik pr edit 8 --base bump
+pass	gh -R=luainkernel/lunatik pr edit 8 --base bump
+block	gh -R luainkernel/lunatik pr edit 8 --base bump -R luainkernel/lua
 pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/8 --input move.json
 pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 -f base=master
 pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 -f title=fallback

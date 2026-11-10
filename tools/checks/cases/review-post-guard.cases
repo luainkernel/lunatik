@@ -9,4 +9,9 @@ pass	REVIEW_POST_OK=1 gh api -X POST repos/luainkernel/lunatik/pulls/871/reviews
 block	REVIEW_POST_OK=1 gh api -X POST repos/luainkernel/lunatik/pulls/871/reviews --input bare.json
 pass	REVIEW_POST_OK=1 gh issue comment 871 --body-file note.md
 block	REVIEW_POST_OK=1 gh issue comment 871 --body-file line.md
+pass	REVIEW_POST_OK=1 gh -R luainkernel/lunatik issue comment 871 --body-file note.md
+block	REVIEW_POST_OK=1 gh -R luainkernel/lunatik issue comment 871 --body-file line.md
+block	REVIEW_POST_OK=1 gh -Rluainkernel/lunatik pr comment 871 --body-file line.md
+block	gh pr close 871 --comment done
+block	gh -R luainkernel/lunatik pr close 871 --comment done
 

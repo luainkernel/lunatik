@@ -15,7 +15,7 @@ input=$(cat)
 
 # a cheap bail on the raw input, which carries the description too; the command itself decides below
 case "$input" in
-	*"gh api"*pulls*|*"gh pr "*) ;;
+	*"gh api"*pulls*|*"gh pr "*|*"gh -"*) ;;
 	*) exit 0 ;;
 esac
 
@@ -25,8 +25,6 @@ cmds=$(gh_commands "$input")
 creates=$(gh_writes "$cmds" 'pr (create|new)' '^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/pulls$')
 moves=$(gh_writes "$cmds" 'pr edit' '^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/pulls/[0-9]+$')
 [ -n "$creates$moves" ] || exit 0
-
-quote="[\"'\\\\]*"
 
 # whether the create <write> asks for a draft: --draft or -d on gh pr, draft=true in the JSON gh api
 # sends, which takes the fields beside it to the query string, or a draft=true field
@@ -49,7 +47,7 @@ while IFS= read -r move; do
 	[ "$base" = master ] && continue
 	case "$(printf '%s' "$move" | awk '{ print $2 }')" in
 	pr)
-		repo=$(printf '%s' "$move" | grep -oE "(--repo[ =]|-R )$quote[^[:space:]\"'\\\\]+" | sed -E "s/^(--repo[ =]|-R )$quote//")
+		repo=$(gh_repo "$move")
 		number=$(printf '%s' "$move" | awk '{ for (i = 3; i <= NF; i++) if ($i ~ /^(#|.*\/pull\/)?[0-9]+$/) { sub(/.*[#\/]/, "", $i); print $i; exit } }')
 		;;
 	*)

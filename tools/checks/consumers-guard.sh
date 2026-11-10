@@ -15,7 +15,7 @@ input=$(cat)
 
 # a cheap bail on the raw input, which carries the description too; the command itself decides below
 case "$input" in
-	*"gh api"*pulls*|*"gh pr "*) ;;
+	*"gh api"*pulls*|*"gh pr "*|*"gh -"*) ;;
 	*) exit 0 ;;
 esac
 [ -n "$LUNATIK_CONSUMERS" ] || exit 0

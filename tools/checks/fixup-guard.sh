@@ -13,7 +13,7 @@
 input=$(cat)
 
 case "$input" in
-	*"gh api"*pulls*|*"gh pr "*) ;;
+	*"gh api"*pulls*|*"gh pr "*|*"gh -"*) ;;
 	*) exit 0 ;;
 esac
 
@@ -28,13 +28,11 @@ cmds=$(gh_commands "$input")
 creates=$(gh_writes "$cmds" 'pr (create|new)' '^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/pulls$')
 [ -n "$creates" ] || exit 0
 
-quote="[\"'\\\\]*"
-
 while IFS= read -r create; do
 	read -r base head <<< "$(gh_named "$create")"
 	[ -n "$head" ] || continue
 	repo=$(printf '%s' "$create" | grep -oE 'repos/[^/[:space:]"]+/[^/[:space:]"]+/pulls' | cut -d/ -f2-3)
-	[ -n "$repo" ] || repo=$(printf '%s' "$create" | grep -oE "(--repo[ =]|-R )${quote}[^[:space:]\"'\\\\]+" | sed -E "s/^(--repo[ =]|-R )${quote}//")
+	[ -n "$repo" ] || repo=$(gh_repo "$create")
 	subjects=$(GH_TOKEN=$(gh_token "$input") gh api "repos/${repo:-{owner\}/{repo\}}/compare/$base...${head#*:}" \
 		--jq '.commits[].commit.message | split("\n")[0]' 2>/dev/null)
 	folds=$(printf '%s\n' "$subjects" | grep -E '^(fixup|amend|squash)! ')

@@ -35,7 +35,7 @@ input=$(cat)
 
 # a cheap bail on the raw input, which carries the description too; the command itself decides below
 case "$input" in
-	*"gh api"*reviews*|*"gh api"*comments*|*"gh pr "*|*"gh issue "*) ;;
+	*"gh api"*reviews*|*"gh api"*comments*|*"gh pr "*|*"gh issue "*|*"gh -"*) ;;
 	*) exit 0 ;;
 esac
 
