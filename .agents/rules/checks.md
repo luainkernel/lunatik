@@ -465,7 +465,7 @@ the guard cannot read, passed inline or on stdin, is refused rather than skipped
 through opens with GitHub's note that an LLM wrote it, `> [!NOTE]` and, on the next line,
 `> This review was written by an LLM, not a human.`, `This comment` in an inline comment or a reply,
 the review body and each inline comment alike, since the account is the maintainer's and an inline
-comment stands alone in the conversation. Its cases carry the marker, past which it asks GitHub nothing. A post it holds for
+comment stands alone in the conversation. A case of it that carries the marker asks GitHub nothing, and one that does not asks a gh its fixture writes. A post it holds for
 the marker is recorded for the session, and `pr-body-guard.sh` refuses an edit that adds text other
 than a task to the body of the same issue or pull request until the marker is set, so the approval is not skipped by another route. A
 comment given to gh's `close` or `reopen` is refused as text no file carries, since that route has no

@@ -7,7 +7,7 @@
 # of folded on master and of clean on master, and under sub/, read only after a cd into it, the one of
 # folded; beside them a gh on stub/ that answers GitHub's compare of folded with master with a fixup!
 # among its subjects and the compare of clean with plain subjects, in luainkernel/lunatik or the
-# checkout's repository alone.
+# checkout's repository alone, and one on keyed/ that answers as it only with the token in key.
 #
 # Usage: bash tools/checks/cases/fixup-guard.fixture.sh <dir>
 
@@ -25,4 +25,13 @@ case "$*" in
 esac
 STUB
 chmod +x stub/gh
+
+printf cases > key
+mkdir -p keyed
+cat > keyed/gh <<STUB
+#!/bin/sh
+[ "\$GH_TOKEN" = cases ] && exec "$PWD/stub/gh" "\$@"
+exit 1
+STUB
+chmod +x keyed/gh
 

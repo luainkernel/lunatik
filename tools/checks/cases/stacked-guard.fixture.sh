@@ -7,7 +7,7 @@
 # of stacked on bump, the same asking for a draft, the same on master, and a move onto bump; under sub/,
 # read only after a cd into it, the create on bump twice, once named as the one on master; beside them
 # a gh on stub/ that answers GitHub's pulls/9 is not a draft and pulls/8 is one, in luainkernel/lunatik or
-# the checkout's repository alone.
+# the checkout's repository alone, and one on keyed/ that answers as it only with the token in key.
 #
 # Usage: bash tools/checks/cases/stacked-guard.fixture.sh <dir>
 
@@ -28,4 +28,13 @@ case "$*" in
 esac
 STUB
 chmod +x stub/gh
+
+printf cases > key
+mkdir -p keyed
+cat > keyed/gh <<STUB
+#!/bin/sh
+[ "\$GH_TOKEN" = cases ] && exec "$PWD/stub/gh" "\$@"
+exit 1
+STUB
+chmod +x keyed/gh
 

@@ -14,7 +14,8 @@
 # pull request or an issue the posting account opened is the maintainer's own, the
 # issues a workflow files under his account among them, and a post on it needs
 # no marker: the author is asked of GitHub with the token in GH_TOKEN or
-# the one the command reads with GH_TOKEN=$(cat <file>), and when neither
+# the one the command reads with GH_TOKEN=$(cat <file>) or through a variable
+# so assigned (gh_token in commands.sh), and when neither
 # answers the marker is required as before.
 # Reads the command field of the raw hook input through commands.sh: the
 # description beside it and the commands chained with the post are not the post.

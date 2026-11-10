@@ -19,7 +19,7 @@
 # carrying a line untraced.sh fails, the bodies that repeat each, one that adds a line, and the held
 # lists review-post-guard writes, through that gh, for the session none: under ours/ for a comment on
 # this repository's #5, under placeholder/ for one on {owner}/{repo}'s #5, and under other/ for one on
-# luainkernel/lua#5.
+# luainkernel/lua#5; a gh on keyed/ answers as stub/'s only with the token in key.
 #
 # Usage: bash tools/checks/cases/pr-body-guard.fixture.sh <dir>
 
@@ -92,4 +92,13 @@ done
 mkdir -p sub
 cp named.md sub/body.md
 printf 'mutation { markPullRequestReadyForReview(input: {pullRequestId: "PR_1"}) { clientMutationId } }\n' > sub/ready.graphql
+
+printf cases > key
+mkdir -p keyed
+cat > keyed/gh <<STUB
+#!/bin/sh
+[ "\$GH_TOKEN" = cases ] && exec "$PWD/stub/gh" "\$@"
+exit 1
+STUB
+chmod +x keyed/gh
 
