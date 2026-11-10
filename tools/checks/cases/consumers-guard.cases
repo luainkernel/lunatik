@@ -13,6 +13,9 @@ block	gh -Rluainkernel/lunatik pr create --head bump --base master --body-file b
 block	gh -R luainkernel/lua pr create --head bump --base master --body-file b.md -R luainkernel/lunatik
 pass	gh -R luainkernel/lunatik pr create --head bump --base master --body-file b.md -R luainkernel/lua
 block	gh api -f title="gh -R luainkernel/lua" repos/luainkernel/lunatik/pulls -f head=bump -f base=master -F body=@b.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=bump -f base=master -f title="gh -R luainkernel/lua" -F body=@b.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=bump -f base=master -f body="moved from repos/torvalds/linux"
+block	gh api repos/luainkernel/lunatik/pulls -f head=bump -f base=master -f body="follows repos/luainkernel/lunatik/pulls/8"
 block	cd consumer && gh api repos/luainkernel/lunatik/pulls -f head=bump -f base=master -F body=@b.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=docs -f base=master -F body=@b.md
 pass	cd sub && gh api repos/luainkernel/lunatik/pulls --input docs.json
@@ -38,6 +41,7 @@ pass	gh api -X POST repos/luainkernel/lunatik/pulls/9/comments -f body=x
 pass	gh api -X POST repos/luainkernel/lunatik/pulls/9/reviews -F body=@b.md
 pass	gh api -X PUT repos/luainkernel/lunatik/pulls/9/merge -f merge_method=rebase
 pass	gh api repos/luainkernel/lunatik/pulls/9 --jq .head.sha
+pass	gh api graphql -f query='mutation($id: ID!) { convertPullRequestToDraft(input: {pullRequestId: $id}) { pullRequest { isDraft } } }' -f id="$(GH_TOKEN=$tok gh api repos/luainkernel/lunatik/pulls/9 --jq .node_id)"
 pass	gh api repos/luainkernel/lua/pulls -f head=bump -f base=master -F body=@b.md
 pass	echo gh api -X POST repos/luainkernel/lunatik/pulls -f head=bump -f base=master
 pass	git log -1	gh api -X POST repos/luainkernel/lunatik/pulls -f head=bump

@@ -34,5 +34,7 @@ pass	gh -Rluainkernel/lunatik pr edit 8 --base bump
 pass	gh -R=luainkernel/lunatik pr edit 8 --base bump
 block	gh -R luainkernel/lunatik pr edit 8 --base bump -R luainkernel/lua
 pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/8 --input move.json
+pass	gh api repos/luainkernel/lunatik/pulls/8 -X PATCH -f base=bump -f body="after repos/luainkernel/lua/pulls/9"
+block	gh api repos/luainkernel/lunatik/pulls/9 -X PATCH -f base=bump -f body="after repos/luainkernel/lunatik/pulls/8"
 pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 -f base=master
 pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 -f title=fallback

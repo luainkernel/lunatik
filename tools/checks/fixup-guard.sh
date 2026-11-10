@@ -31,8 +31,7 @@ creates=$(gh_writes "$cmds" 'pr (create|new)' '^(https://api\.github\.com)?/?rep
 while IFS= read -r create; do
 	read -r base head <<< "$(gh_named "$create")"
 	[ -n "$head" ] || continue
-	repo=$(printf '%s' "$create" | grep -oE 'repos/[^/[:space:]"]+/[^/[:space:]"]+/pulls' | cut -d/ -f2-3)
-	[ -n "$repo" ] || repo=$(gh_repo "$create")
+	repo=$(gh_repo "$create")
 	subjects=$(GH_TOKEN=$(gh_token "$input") gh api "repos/${repo:-{owner\}/{repo\}}/compare/$base...${head#*:}" \
 		--jq '.commits[].commit.message | split("\n")[0]' 2>/dev/null)
 	folds=$(printf '%s\n' "$subjects" | grep -E '^(fixup|amend|squash)! ')

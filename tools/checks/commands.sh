@@ -306,6 +306,14 @@ runs_watchdog() {
 	printf '%s\n' "$1" | grep -Eq '^([^ ]*/)?watchdog\.sh( |$)'
 }
 
+# whether the word <i> of a gh api command is its endpoint, its one positional argument: the word after
+# api, or any word not an option when that word is one. commands prints a substitution's text into the
+# word that carries it, so a field can hold the endpoint of a gh api nested in it
+GH_ENDPOINT='
+	function endpoint(i) {
+		return $i !~ /^-/ && (i == 3 || $3 ~ /^-/)
+	}'
+
 # the gh commands among <cmds> that write where the extended regex <path> points: a gh command whose
 # noun and verb match <cli>, as `pr create`, or gh api on a matching endpoint with a method other than
 # GET, or with a field and no method, which gh sends as a POST. Each is printed with its noun and its
@@ -313,7 +321,7 @@ runs_watchdog() {
 # and obeys the last of, is dropped where it stands and the last one put at the end as -R <repo>. gh api
 # takes none, so a -R among its words is text of a field, and stays where it is
 gh_writes() {
-	printf '%s\n' "$1" | path="$3" awk -v cli="^($2)\$" '
+	printf '%s\n' "$1" | path="$3" awk -v cli="^($2)\$" "$GH_ENDPOINT"'
 	$1 !~ /^([^ ]*\/)?gh$/ {
 		next
 	}
@@ -349,7 +357,7 @@ gh_writes() {
 				fields = 1
 			else if ($i ~ /^(-H|--header|-q|--jq|-t|--template|-p|--preview|--hostname|--cache)$/)
 				i++
-			else if ($i !~ /^-/ && $i ~ ENVIRON["path"]) # -v would read the backslashes in it as escapes
+			else if (endpoint(i) && $i ~ ENVIRON["path"]) # -v would read the backslashes in it as escapes
 				hit = 1
 		if (hit && (method != "" ? method != "GET" : fields))
 			print
@@ -399,15 +407,20 @@ gh_token() {
 		sed -E 's/^GH_TOKEN=\$\(cat (.*)\)$/\1/')" 2>/dev/null
 }
 
-# the repository the gh write <post> targets, owner/name, from -R or the endpoint; nothing when it names none
+# the repository the gh write <post> targets, owner/name, from gh api's endpoint or from the -R gh_writes
+# puts at the end of any other; nothing when it names none
 gh_repo() {
-	printf '%s\n' "$1" | awk '
+	printf '%s\n' "$1" | awk "$GH_ENDPOINT"'
+	$2 == "api" {
+		for (i = 3; i <= NF; i++)
+			if (endpoint(i) && $i ~ /^(https:\/\/api\.github\.com)?\/?repos\// && match($i, /repos\/[^\/]+\/[^\/]+/))
+				repo = substr($i, RSTART + 6, RLENGTH - 6)
+		next
+	}
 	{
 		for (i = 1; i <= NF; i++)
 			if ($i == "-R")
 				repo = $(i + 1)
-			else if ($i ~ /^(https:\/\/api\.github\.com)?\/?repos\// && match($i, /repos\/[^\/]+\/[^\/]+/))
-				repo = substr($i, RSTART + 6, RLENGTH - 6)
 	}
 	END {
 		print repo
@@ -424,10 +437,10 @@ gh_ours() {
 
 # the issue or pull request the gh write <post> targets, by its number; nothing when it names none
 gh_number() {
-	printf '%s\n' "$1" | awk '
+	printf '%s\n' "$1" | awk "$GH_ENDPOINT"'
 	$2 == "api" {
 		for (i = 3; i <= NF; i++)
-			if (match($i, /repos\/[^\/]+\/[^\/]+\/(issues|pulls)\/[0-9]+/)) {
+			if (endpoint(i) && match($i, /repos\/[^\/]+\/[^\/]+\/(issues|pulls)\/[0-9]+/)) {
 				s = substr($i, RSTART, RLENGTH)
 				sub(/.*\//, "", s)
 				print s
