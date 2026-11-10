@@ -18,6 +18,8 @@
 # A script the allowlist names is refused when its #! names a copy of sh inside
 # the scope: the kernel opens the interpreter for exec too, and the rule is
 # asked about it under its own name, which is the name the refusal carries.
+# A refused name that carries a newline is logged with the newline as "?", on
+# the refusal's own line.
 #
 # The pid list is a second run of the example, with the list written into the
 # scope before it starts. Four shells wait on a fifo each and exec in place
@@ -42,6 +44,7 @@
 SCRIPT="examples/execguard/guard"
 SCOPE="/tmp/lunatik-execguard"
 OUTSIDE="/tmp/lunatik-execguard-outside"
+FORGED=$'name\nforged'
 WAITERS=""
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -70,15 +73,16 @@ release() {
 	wait "$2"
 }
 
-perm_begin 16 "fsnotify/execguard"
+perm_begin 17 "fsnotify/execguard"
 
 mkdir -p -m 0700 "$SCOPE" "$OUTSIDE"
 mount -t tmpfs -o mode=0700 lunatik-execguard "$SCOPE" 2>/dev/null
-mountpoint -q "$SCOPE" || perm_skip 16 "fsnotify/execguard: no tmpfs for the scope the example marks"
+mountpoint -q "$SCOPE" || perm_skip 17 "fsnotify/execguard: no tmpfs for the scope the example marks"
 mkdir "$SCOPE/sub" || fail "could not make a directory on the tmpfs"
 
 cp /bin/true "$SCOPE/true" || fail "could not copy a program onto the tmpfs"
 cp /bin/true "$SCOPE/blocked" || fail "could not copy a program onto the tmpfs"
+cp /bin/true "$SCOPE/$FORGED" || fail "could not copy a program onto the tmpfs"
 cp /bin/true "$OUTSIDE/blocked" || fail "could not copy a program outside the scope"
 cp /bin/true "$SCOPE/sub/blocked" || fail "could not copy a program below the scope"
 cp /bin/sh "$SCOPE/sh" || fail "could not copy an interpreter onto the tmpfs"
@@ -101,6 +105,7 @@ below=$("$SCOPE/sub/blocked" 2>&1)
 belowstatus=$?
 interpreted=$("$SCOPE/false" 2>&1)
 interpretedstatus=$?
+"$SCOPE/$FORGED" 2>/dev/null
 output=$(dmesg_since)
 
 lunatik stop "$SCRIPT" 2>/dev/null
@@ -125,6 +130,10 @@ ktap_pass "the same name one level below the marked directory still runs"
 grep -qF "execguard: denied blocked to pid $pid: not in the allowlist" <<< "$output" || \
 	fail "the rule did not name what it refused to $pid: $(grep -F 'execguard:' <<< "$output")"
 ktap_pass "the refusal names the entry, the pid it was refused to and the allowlist as its reason"
+
+grep -qE "execguard: denied name\?forged to pid [0-9]+: not in the allowlist" <<< "$output" || \
+	fail "the newline in a refused name was not logged as ?: $(grep -F 'execguard:' <<< "$output")"
+ktap_pass "a control byte in a refused name is logged as ?, on the refusal's own line"
 
 [ "$interpretedstatus" -ne 0 ] || fail "a script whose interpreter lives in the scope ran"
 grep -qi "not permitted" <<< "$interpreted" || fail "the refused script failed with: $interpreted"

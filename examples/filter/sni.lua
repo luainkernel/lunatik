@@ -18,7 +18,7 @@ local blacklist = set{
 }
 
 local function log(host, verdict)
-	print(string.format("filter_sni: %s %s", host, verdict))
+	print(string.format("filter_sni: %s %s", host:gsub("%c", "?"), verdict))
 end
 
 local function offset(argument)

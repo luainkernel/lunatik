@@ -672,8 +672,9 @@ permission mark allows and only asks whether the mask is taken.
   itself carry its own pid. A subdirectory created there is reported, a directory
   entry event of the marked directory, and neither the file created inside that
   subdirectory nor a write to it is, since the subdirectory carries no mark and
-  `FS_EVENT_ON_CHILD` reaches one level; nothing is reported at all once the
-  example is stopped.
+  `FS_EVENT_ON_CHILD` reaches one level; an entry whose name carries a newline
+  is reported with the newline as `?`, on its own line; nothing is reported at
+  all once the example is stopped.
 
 The tests below cover the permission events, where the callback's return value
 decides whether the access happens. Each of them sources `perm.sh`, which mounts
@@ -746,10 +747,11 @@ after the watch is stopped.
   and a copy of that refused program, same name, runs from a sibling directory
   and from a subdirectory of the scope: the mark is on that one directory, so
   the rule reaches neither outside it nor below it. The refusal names the entry,
-  the pid it was refused to and the allowlist as its reason, and ends with the
-  example. A script the allowlist names is refused when its interpreter is a
-  copy of `sh` in the scope, and the refusal names `sh`: the kernel opens the
-  interpreter for exec too. Run again with a pid list in the scope, the same
+  the pid it was refused to and the allowlist as its reason, a newline in the
+  name logged as `?` on the refusal's own line, and ends with the example. A
+  script the allowlist names is refused when its interpreter is a copy of `sh`
+  in the scope, and the refusal names `sh`: the kernel opens the interpreter
+  for exec too. Run again with a pid list in the scope, the same
   allowed program runs for a shell the list names and is refused to one it does
   not, with the pid as the reason, and a name the allowlist does not carry is
   refused to an unlisted shell with the allowlist as the reason, the check made

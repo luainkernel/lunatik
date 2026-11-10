@@ -13,12 +13,14 @@
 # directory: the subdirectory's own creation is a directory entry event of the
 # marked directory, reported with or without EVENT_ON_CHILD, and the file created
 # and written inside it is an entry, and a child, of the subdirectory, which is
-# unmarked, so neither arrives.
+# unmarked, so neither arrives. An entry whose name carries a newline is logged
+# with the newline as "?", on the entry's own line.
 #
 # Usage: sudo bash tests/fsnotify/fsmonitor.sh
 
 SCRIPT="examples/fsmonitor/monitor"
 WATCHED="/tmp/lunatik-fsmonitor"
+FORGED=$'name\nforged'
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -32,7 +34,7 @@ cleanup
 mkdir -p -m 0700 "$WATCHED"
 
 ktap_header
-ktap_plan 8
+ktap_plan 9
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -46,6 +48,8 @@ subino=$(stat -c %i "$WATCHED/sub")
 : > "$WATCHED/sub/deep"
 echo data > "$WATCHED/sub/deep"
 rm -f "$WATCHED/file"
+: > "$WATCHED/$FORGED"
+forgedino=$(stat -c %i "$WATCHED/$FORGED")
 output=$(dmesg_since)
 
 lunatik stop "$SCRIPT" 2>/dev/null
@@ -73,6 +77,10 @@ ktap_pass "a deleted entry is reported, still carrying its inode"
 grep -qE "fsmonitor: created sub ino $subino pid [0-9]+" <<< "$output" || \
 	fail "the subdirectory's creation was not reported: $(grep -F 'fsmonitor:' <<< "$output")"
 ktap_pass "a subdirectory created in the watched directory is reported"
+
+grep -qF "fsmonitor: created name?forged ino $forgedino pid $$" <<< "$output" || \
+	fail "the newline in an entry name was not logged as ?: $(grep -F 'fsmonitor:' <<< "$output")"
+ktap_pass "a control byte in an entry name is logged as ?, on the entry's own line"
 
 grep -q "fsmonitor: .* deep " <<< "$output" && \
 	fail "a file created below the watched directory was reported: $(grep -F 'deep' <<< "$output")"

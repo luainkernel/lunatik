@@ -53,7 +53,7 @@ local function guard(_, event)
 		return fsnotify.action.ALLOW
 	end
 
-	print(format("execguard: denied %s to pid %d: %s", name, pid, reason))
+	print(format("execguard: denied %s to pid %d: %s", name:gsub("%c", "?"), pid, reason))
 	return fsnotify.action.DENY
 end
 

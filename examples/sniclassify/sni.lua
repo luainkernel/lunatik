@@ -20,7 +20,7 @@ local policy = set.new{
 }
 
 local function log(host, priority)
-	print(string.format("sniclassify: %s %s", host, priority))
+	print(string.format("sniclassify: %s %s", host:gsub("%c", "?"), priority))
 end
 
 local function sniclassify(ctx)
