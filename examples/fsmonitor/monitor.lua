@@ -26,7 +26,7 @@ local function monitor(mask, event)
 	local what = labels[bits] or format("%x", bits)
 
 	print(format("fsmonitor: %s %s ino %s pid %d",
-		what, event:name() or "?", event:ino() or "?", event:pid()))
+		what, (event:name() or "?"):gsub("%c", "?"), event:ino() or "?", event:pid()))
 end
 
 local watch = fsnotify.watch(monitor)

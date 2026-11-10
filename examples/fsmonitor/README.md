@@ -29,5 +29,5 @@ fsmonitor: deleted file ino 13862 pid 2222347
 
 The shell's redirection truncates the file on open and then writes it, so one command logs two
 modifications; an event on the directory itself, its own `chmod` or `touch`, carries no entry name and
-prints `?`.
+prints `?`, and a control byte in an entry name, a newline among them, prints as `?` too.
 
