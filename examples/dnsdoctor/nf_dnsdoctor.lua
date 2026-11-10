@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
--- DNS Doctoring using new netfilter API
+-- DNS Doctoring using the netfilter API
 
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")

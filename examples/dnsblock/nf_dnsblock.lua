@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
--- Filter DNS packets based on a blocklist using new netfilter hooks
+-- Filter DNS packets based on a blocklist using netfilter hooks
 
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
