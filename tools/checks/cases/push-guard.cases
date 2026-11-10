@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run in the repositories push-guard.fixture.sh builds: its root commit is
+# ecdae44730b99450784c7078770ac59df6f50803, and other's 0a546312895b398d28f8dcd5157d2141c2ca0f67
 block	git rebase origin/master && git push origin HEAD
 block	git rebase --onto master abc 2>&1 | tail -2 && git push
 block	git -c core.editor=true rebase -i master; git push origin x
@@ -11,3 +13,20 @@ pass	git push origin claude_x
 pass	git status && git log -1
 pass	echo 'git rebase x && git push'
 pass	git log --grep 'rebase' && git push origin x
+pass	git push --force-with-lease=b:ecdae44730b99450784c7078770ac59df6f50803 origin b
+pass	git push --force-with-lease=refs/heads/b:ecdae4473 origin b
+pass	git -C other push --force-with-lease=b:0a546312895b398d28f8dcd5157d2141c2ca0f67 origin b
+pass	git push --force-with-lease=b:origin/b origin b
+pass	git push --force-with-lease=b: origin b
+pass	git push --force-with-lease=b origin b
+pass	git push --force-with-lease origin b
+pass	git push --force-with-lease=b:$(git rev-parse origin/b) origin b
+pass	echo git push --force-with-lease=b:ecdae44730b99450784c7078770ac59df6f50804 origin b
+pass	cd $W && git push --force-with-lease=b:ecdae44730b99450784c7078770ac59df6f50804 origin b
+block	git push --force-with-lease=b:ecdae44730b99450784c7078770ac59df6f50804 origin b
+pass	git push origin b --force-with-lease=refs/heads/b:0123abcd9
+block	git push origin b --force-with-lease=refs/heads/b:0123abcd90123abcd90123abcd90123abcd90123
+block	git -C other push --force-with-lease=b:ecdae44730b99450784c7078770ac59df6f50803 origin b
+block	cd other && git push --force-with-lease=b:ecdae44730b99450784c7078770ac59df6f50803 origin b
+block	git push --force-with-lease=b:ecdae44730b99450784c7078770ac59df6f50803 --force-with-lease=c:ecdae44730b99450784c7078770ac59df6f50804 origin b c
+block	PUSH_OK=1 git push --force-with-lease=b:ecdae44730b99450784c7078770ac59df6f50804 origin b
