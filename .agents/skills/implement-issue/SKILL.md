@@ -37,7 +37,10 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   shape and the kernel's own answer, and its verdict either settles the API in the issue under `Update:`
   and lets the implementer start (`implement`), or stops the run with another shape for the maintainer to
   decide on (`reshape`) or the reason to build nothing (`decline`). The implementer reads the settled API in
-  its prompt, and the session appends it to the issue with the run's other writes.
+  its prompt, and the session appends it to the issue with the run's other writes. A shape that meets a
+  requirement of the issue in part, or otherwise than its words, is a `reshape`: what an issue asks is
+  narrowed by the maintainer, and an `Update:` that narrows it in passing reads to the issue's author as
+  the requirement met.
 - `repo` has no default either: the review is read from it when the implementer is done, and a relative
   path then resolves against the session's directory, which may be a worktree removed since or one on
   another branch. #1538's review did not run, its script not found under a worktree the session had removed.
