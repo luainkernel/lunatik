@@ -16,6 +16,10 @@ block	gh api --input=stacked.json repos/luainkernel/lunatik/pulls
 block	gh api repos/luainkernel/lunatik/pulls --input stacked.json -F draft=true
 pass	gh api repos/luainkernel/lunatik/pulls --input draft.json
 pass	gh api repos/luainkernel/lunatik/pulls --input master.json
+block	gh api repos/luainkernel/lunatik/pulls --input sub/s.json
+block	cd sub && gh api repos/luainkernel/lunatik/pulls --input s.json
+block	cd sub && gh api --input=s.json repos/luainkernel/lunatik/pulls
+block	cd sub && gh api repos/luainkernel/lunatik/pulls --input master.json
 block	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 --input move.json
 block	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 -f base=bump
 block	gh pr edit 9 --base bump

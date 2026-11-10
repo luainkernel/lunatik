@@ -5,7 +5,8 @@
 #
 # Writes, in the empty directory <dir>, the texts review-post-guard.cases posts: a comment and a review
 # that open with the note, one with the note at its end, as an issue filed elsewhere carries it, one with
-# the line the note replaced, and a review whose inline comment lacks the note.
+# the line the note replaced, a review whose inline comment lacks the note, and under sub/, read only
+# after a cd into it, the comment that opens with the note.
 #
 # Usage: bash tools/checks/cases/review-post-guard.fixture.sh <dir>
 
@@ -15,6 +16,8 @@ note='> [!NOTE]
 printf '%s\n\nThe callback returns the queue and the slice.\n' "$note" > note.md
 printf 'The callback returns the queue and the slice.\n\n%s\n' "$note" > late.md
 printf '(posted by an agent, not by @lneto)\n\nThe callback returns the queue and the slice.\n' > line.md
+mkdir -p sub
+cp note.md sub/post.md
 
 review=$(printf '%s\n\n@author, requesting changes.' "${note/comment/review}")
 comment=$(cat note.md)

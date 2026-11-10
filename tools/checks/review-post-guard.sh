@@ -41,7 +41,7 @@ esac
 
 . "$(dirname "$0")/commands.sh"
 
-cmds=$(commands "$input")
+cmds=$(gh_commands "$input")
 if gh_writes "$cmds" '(issue|pr) (close|reopen)' '^$' | grep -qE -- ' (-c|--comment)([ =]|$)'; then
 	echo "review-post-guard: a comment given to a close or a reopen is text no file carries: post it through the comments endpoint, where this guard reads it, then close." >&2
 	exit 2
