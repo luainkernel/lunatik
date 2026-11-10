@@ -321,6 +321,7 @@ const PREPARED = { type: 'object', properties: {
 const reviewArgs = (impl, extra) => ({
   pr: 0, branch: impl.branch, base: impl.base, scratch: a.scratch, validated: null, examples: impl.examples, defects: impl.defects,
   focus: a.focus || a.notes, smallest: impl.smallest, body: impl.body, effort: reviewer.effort, model: reviewer.model, push: a.push,
+  issue: a.issue, update: groomed?.update || '',
   agents: { build: (a.agents || {}).build }, build: a.build, repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
 })
 // a run a.build spells in place of the suite may print no suite totals, and then its clean is the verdict
@@ -391,6 +392,9 @@ if (implemented?.branch && a.push !== false) {
   log(`no review for #${a.issue}: ${why}`)
 }
 
+const differs = (review?.reviewer?.requirements || []).filter(r => r.verdict === 'differs')
+if (differs.length)
+  log(`#${a.issue}: the change meets ${differs.length} of its requirements otherwise than the issue says; the session brings each back as a decision`)
 const findings_left = [implemented, review, ...reruns, ...fixes].flatMap(r => r?.findings_left || [])
 let filing = null
 if (a.gh === false && findings_left.length)
