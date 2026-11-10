@@ -30,7 +30,7 @@
 //   focus       what this round is for, in the maintainer's words
 //   smallest    the implementer's smallest shape, when implement-issue launches the review
 //   body        the body a branch with no pull request yet opens with, which the reviewer answers
-//               corrected against the final diff
+//               corrected against the final diff, and the build reads for what it claims of the examples
 //   reviewer    false to run the build phase alone, as implement-issue does after a fix
 //   effort      the reviewer's reasoning effort, default "high"
 //   model       the model the reviewer runs on, default the session's
@@ -186,7 +186,7 @@ const since = a.validated ? a.head : a.base
 // functional.sh says what this tree's suite reads, not what a build of another tree or of a tool does
 const asks = typeof a.build !== 'string' && (!a.validated || !unrun.length)
 
-const BUILD = (tip) => `
+const BUILD = (tip, body) => `
 PHASE: BUILD of ${a.pr ? `pull request #${a.pr}` : `the branch \`${a.branch}\``} of ${github}, in the checkout at \`${repo}\`.
 ${a.machine ? 'THIS MACHINE: ' + a.machine : 'Root commands run as `sudo <cmd>`; confirm that works without a prompt (`sudo -n true`) and, where it does not, skip the build and say so.'}
 
@@ -199,6 +199,11 @@ ${(a.examples || []).length ? `The examples the change touches: ${a.examples.joi
 the ones that ran clean, driven until they did what their README shows, spelled as they are listed here; one
 that only loaded and stopped, or could not run on this host, goes in loaded instead, with why.` : 'The change touches no example.'}
 ${unrun.length ? 'These have not been run on this head: ' + unrun.join(', ') + '.' : ''}
+${body ? `The pull request opens with the body below once this build passes. After the examples, read what its
+sentence on them claims against what you ran: each claim you did not make, a mode, a command, a query, an
+outcome, goes in your answer's unmet, with why: not run, could not run on this host, or ran and showed something
+else. Run nothing past what the README drives; the difference is reported. A build that skips answers none.
+${JSON.stringify(body)}` : ''}
 ${(a.defects || []).length ? `Once the suite passed, plant each defect below in turn, to watch the test it is for
 fail: \`git apply <patch>\` in a call of its own, so crash-guard.sh reads the tree it leaves, then \`make\`, and only
 when it builds the install, the reload and \`lunatik test <suite>\` through tools/lunatik-host; the cases it names
@@ -262,6 +267,9 @@ const BUILD_OUT = {
     loaded: { type: 'array', items: { type: 'object', properties: {
       example: { type: 'string' }, why: { type: 'string' },
     }, required: ['example', 'why'] }, description: 'the examples that only loaded and stopped, or could not run on this host' },
+    unmet: { type: 'array', items: { type: 'object', properties: {
+      example: { type: 'string' }, claim: { type: 'string' }, why: { type: 'string' },
+    }, required: ['example', 'claim', 'why'] }, description: 'what the body handed claims of the examples that this run did not make' },
     discrimination: { type: 'array', items: { type: 'object', properties: {
       patch: { type: 'string' }, applied: { type: 'boolean', description: 'false when git apply refused the patch, which planted nothing' },
       failed: { type: 'array', items: { type: 'string' }, description: 'the cases that failed with the defect planted' },
@@ -284,7 +292,7 @@ if (a.build === false)
   log('build skipped: nothing runs on the host for this tree')
 else if (!a.validated || changed || unrun.length) {
   phase('Build')
-  build = await agent(BUILD(reviewer?.tip || a.head), { label: `build:${a.pr || a.branch}`, phase: 'Build', agentType: 'lunatik-host', schema: BUILD_OUT, ...builder })
+  build = await agent(BUILD(reviewer?.tip || a.head, !a.pr && (reviewer?.body || a.body)), { label: `build:${a.pr || a.branch}`, phase: 'Build', agentType: 'lunatik-host', schema: BUILD_OUT, ...builder })
   if (build?.skipped)
     log(`build skipped: the branch moved past ${a.validated ? `${a.head}, validated,` : `its base ${a.base}`} only in what the build does not read`)
 } else {

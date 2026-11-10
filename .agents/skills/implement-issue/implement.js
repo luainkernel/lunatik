@@ -145,8 +145,8 @@ you take it, what you read, decided, committed and measured, and your answer bef
    names over the changed files.
 6. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/pr-body.sh
    passes the body, which carries \`Closes #${a.issue}\` on a line of its own and names each example as run:
-   the pull request opens only on a head the host run passed, and says of an example the host only loaded
-   what the build said of it. Open nothing.
+   the pull request opens only on a head the host run passed, and says of an example the host only loaded,
+   and of what the body claims of one and the host did not show, what the build said. Open nothing.
 7. Remove your worktree (\`rm -rf <tree> && git worktree prune\`) once the branch is pushed: the review, the host
    run and a fix each work in one of their own.
 
@@ -178,7 +178,7 @@ What you find past the failure and do not fix, in the change or beside it,
 ${LEAVE}
 `
 
-const OPEN = (impl, head, unrelated, body, loaded, skipped) => `
+const OPEN = (impl, head, unrelated, body, loaded, skipped, unmet) => `
 ${MACHINE}Open a pull request on luainkernel/lunatik from the branch \`${impl.branch}\` against \`${base}\`, whose head is
 \`${head}\`; push the branch first if GitHub's tip of it is not that SHA.${DRAFT} Title: ${JSON.stringify(impl.title)}
 A pull request GitHub already has for the branch is that one, read with
@@ -188,7 +188,9 @@ Body, as it stands${unrelated.length ? `, with one sentence added to its last pa
 run showed and the change does not cause, and the issue that reports it, from this record:
 ${JSON.stringify(unrelated)}` : ''}${loaded.length ? `, and with its sentence on the examples saying of each
 example of this record that the host only loaded it, or could not run it, and why, in the record's words:
-${JSON.stringify(loaded)}` : ''}${skipped && (impl.examples || []).length ? `, and with its sentence on the examples
+${JSON.stringify(loaded)}` : ''}${unmet.length ? `, and with its sentence on the examples saying of each
+claim of this record that the host did not show it, and why, in the record's words:
+${JSON.stringify(unmet)}` : ''}${skipped && (impl.examples || []).length ? `, and with its sentence on the examples
 saying that the host ran none of them, since tools/checks/functional.sh names no file of the change it reads` : ''}:
 ${JSON.stringify(body)}
 
@@ -352,6 +354,8 @@ if (implemented?.branch && a.push !== false) {
     log(`the review of ${implemented.branch} did not run: ${e.message}`)
   }
   build = review?.build
+  // a rerun runs no reviewer, so its build is handed the body the reviewer corrected
+  const body = review?.reviewer?.body || implemented.body
   let head = build?.head || review?.reviewer?.tip || implemented.head
   while (review && !passed(build) && fixes.length < FIXES) {
     phase('Fix')
@@ -362,7 +366,7 @@ if (implemented?.branch && a.push !== false) {
     if (!fix) break
     // a failure the change does not cause, a test that fails on a busy host among them, is read once more
     head = fix.head || head
-    const rerun = await workflow({ scriptPath: REVIEW }, reviewArgs(implemented, { head, reviewer: false }))
+    const rerun = await workflow({ scriptPath: REVIEW }, reviewArgs(implemented, { head, reviewer: false, body }))
     reruns.push(rerun)
     build = rerun?.build
     head = build?.head || head
@@ -372,8 +376,7 @@ if (implemented?.branch && a.push !== false) {
   if (passed(build) && !missing.length && !unsourced.length && a.gh !== false) {
     phase('Open')
     const unrelated = fixes.filter(f => f && !f.caused).map(f => f.notes)
-    const body = review?.reviewer?.body || implemented.body
-    const opened = await agent(OPEN(implemented, head, unrelated, body, build?.loaded || [], build?.skipped), {
+    const opened = await agent(OPEN(implemented, head, unrelated, body, build?.loaded || [], build?.skipped, build?.unmet || []), {
       label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
     })
     pr = opened?.pr || 0

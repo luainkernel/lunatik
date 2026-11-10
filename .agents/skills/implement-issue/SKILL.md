@@ -61,9 +61,11 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   the change touches run, or loaded where the host cannot drive it, or none where the build ran nothing,
   and on a review that kept no mechanism
   past the smallest shape without its source, and takes the `workflow-reviewed` label from the session. Its body is the
-  implementer's as the reviewer corrected it against the final diff, saying of an example the host only
-  loaded what the build said: the body is drafted before either reads the branch, and #1948 and #1958
-  opened claiming what the review and the build had found untrue. A run that did not pass returns its
+  implementer's as the reviewer corrected it against the final diff, saying of what it claims of the
+  examples and the host did not show, an example only loaded, a mode or a query not run, what the build
+  said: each build reads that body against what it ran and answers each such claim as `unmet`. The body
+  is drafted before either reads the branch, and #1948 and #1958 opened claiming what the review and the
+  build had found untrue, #2255 a `--percpu` run its build had not made. A run that did not pass returns its
   branch and its last build for the session to read.
 - `machine` says how this machine gets root and authenticates gh, copied by the session from its
   CLAUDE.local.md: the host's and GitHub's agents load no CLAUDE.md, which keeps the instructions they
