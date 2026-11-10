@@ -4,6 +4,8 @@
 from Public IP to a Private IP if the destination IP matches the one provided by the user. For example, if the user
 wants to change the DNS response from `192.168.10.1` to `10.1.2.3` for the domain `lunatik.com` if the response is being sent to `10.1.1.2` (a private client), this script can be used.
 The domain, the address it rewrites to and the client are set in [nf_dnsdoctor.lua](nf_dnsdoctor.lua), not given when it runs.
+It rewrites every A record in the answer section of a UDP response for the domain sent to the client, up to the first
+answer whose owner name is not a compression pointer, and leaves that answer and the ones after it as the server sent them.
 
 ## Usage
 
