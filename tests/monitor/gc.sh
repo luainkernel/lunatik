@@ -32,8 +32,6 @@ sleep $SLEEP
 lunatik stop "$SCRIPT"
 
 check_dmesg || exit 1
-sched=$(dmesg_since | grep "scheduling while atomic" || true)
-[ -n "$sched" ] && fail "GC ran under spinlock: scheduling while atomic"
 ktap_pass "GC did not run under spinlock"
 
 ktap_totals

@@ -75,9 +75,6 @@ LOAD_PIDS=()
 ktap_pass "runtime stop completed within timeout"
 
 check_dmesg || { ktap_totals; exit 1; }
-
-sched=$(dmesg_since | grep -E "scheduling while atomic|BUG:|Oops:|kernel BUG at|general protection" || true)
-[ -n "$sched" ] && fail "kernel error during concurrent kprobe handler firings: ${sched%%$'\n'*}"
 ktap_pass "no kernel errors during concurrent kprobe handler firings"
 
 ktap_totals

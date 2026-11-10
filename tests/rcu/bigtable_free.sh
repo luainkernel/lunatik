@@ -37,7 +37,7 @@ delta_mib=$(( (after - before) / 1024 ))
 mark_dmesg
 lunatik stop tests/rcu/bigtable_free 2>/dev/null
 log=$(dmesg_since)
-crash=$(echo "$log" | grep -iE "Oops|BUG: unable|kernel BUG at|unable to handle kernel|mem abort" || true)
+crash=$(echo "$log" | grep -E "$KTAP_KERNEL_ERRORS" || true)
 
 if [ -n "$crash" ]; then
 	ktap_fail "rcu/bigtable_free: kernel crashed freeing a vmalloc'd private"

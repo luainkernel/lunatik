@@ -20,7 +20,7 @@
 # hook that does not sleep has read the events from outside the lock, so a build that runs the
 # hook under the lock fails there instead of sleeping under the spinlock. The kernel log then
 # holds no "BUG: scheduling while atomic", which __schedule_bug prints for a sleep with bottom
-# halves off and which the pattern check_dmesg reads does not match.
+# halves off.
 #
 # Usage: sudo bash tests/monitor/hook.sh
 
