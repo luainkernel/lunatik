@@ -139,7 +139,8 @@ jobs:
         for f in "${kept[@]}"; do test -f "$f" || { echo "make install or uninstall removed $f"; exit 1; }; done
         echo "Lunatik built successfully for kernel ${{ matrix.kernel-version }}"
     - name: Check autogen on a big-endian tree
-      # the branch of cpu_big_endian and of efficient_unaligned_access that the x86 kernel above never takes
+      # the branch of cpu_big_endian and of efficient_unaligned_access that the x86 kernel above never takes,
+      # and the socket constants of an arch with its own asm/socket.h, which x86 takes from asm-generic
       run: |
         src="${{ env.KERNEL_DIR }}" be="$RUNNER_TEMP/be"
         make clean MODULES_BUILD_PATH="$src"
@@ -152,4 +153,5 @@ jobs:
         make -j$(nproc) -C "$src" O="$be" modules_prepare
         make autogen MODULES_BUILD_PATH="$be"
         lua5.5 -e 'local c = dofile("autogen/lunatik/config.lua") assert(c.cpu_big_endian == true and c.efficient_unaligned_access == false, ("the big-endian MIPS tree read as cpu_big_endian = %s, efficient_unaligned_access = %s"):format(c.cpu_big_endian, c.efficient_unaligned_access))'
+        lua5.5 -e 'local s = dofile("autogen/linux/socket.lua") assert(s.sol.SOCKET == 0xffff and s.so.REUSEADDR == 4, ("the big-endian MIPS tree read as sol.SOCKET = %s, so.REUSEADDR = %s"):format(s.sol.SOCKET, s.so.REUSEADDR))'
 
