@@ -5,20 +5,37 @@
 # Sourced by examples-touched.sh and consumers.sh, which name the scripts a change reaches: the Lua
 # modules a changed file defines, and those a script reaches them through without requiring them, a
 # library that requires one, as netlink reaches netlink.rt.route, and a binding that hands its objects
-# to a callback, as netfilter and tc hand an skb (#1264). Run from the top of the tree.
+# to a callback, as netfilter and tc hand an skb (#1264). Run from the top of the tree. The change is
+# the one from CHECK_BASE to the working tree, or to the commit CHECK_HEAD when it is set, as a guard
+# sets it for a pull request whose head the checkout does not hold.
 
 CHECK_BASE=${CHECK_BASE:-origin/master}
 
 # <file> as the change leaves it, or as the base has it when the change deletes it
 head_or_base() {
-	if [ -f "$1" ]; then cat "$1"; else git show "$CHECK_BASE:$1" 2>/dev/null; fi
+	if [ -n "$CHECK_HEAD" ]; then git show "$CHECK_HEAD:$1"; elif [ -f "$1" ]; then cat "$1"; else false; fi 2>/dev/null ||
+		git show "$CHECK_BASE:$1" 2>/dev/null
+}
+
+# the files of the git pathspecs <path>... that hold a match of the extended regex <pattern>, a whole
+# word with -w, as the change leaves them
+holding() {
+	local word=
+	[ "$1" = -w ] && word=-w && shift
+	local pattern=$1
+	shift
+	if [ -n "$CHECK_HEAD" ]; then
+		git grep -l $word -E "$pattern" "$CHECK_HEAD" -- "$@" | sed 's/^[^:]*://'
+	else
+		git grep --no-index -l $word -E "$pattern" -- "$@"
+	fi 2>/dev/null
 }
 
 # the linux.* tables autogen builds from the specs a change to autogen/specs.lua touches, or from
 # every spec when the change is to the generator, autogen.lua
 linux_tables() {
 	local changed=""
-	[ "$1" = autogen/specs.lua ] && changed=$(git diff -U0 "$CHECK_BASE" -- "$1" 2>/dev/null |
+	[ "$1" = autogen/specs.lua ] && changed=$(git diff -U0 "$CHECK_BASE" $CHECK_HEAD -- "$1" 2>/dev/null |
 		sed -nE 's/^@@ -[0-9,]+ \+([0-9]+)(,([0-9]+))? @@.*/\1:\3/p' | paste -sd' ')
 	head_or_base autogen/specs.lua | awk -v changed="$changed" -v every="$([ "$1" = autogen.lua ] && echo 1)" '
 	BEGIN {
@@ -67,12 +84,12 @@ reaching_modules() {
 		queue=("${queue[@]:1}")
 		for mod in $(defined_modules "$file"); do
 			echo "$mod"
-			for next in $(grep -rlE "require\(\"${mod//./\\.}\"\)" lib common --include='*.lua' 2>/dev/null); do
+			for next in $(holding "require\(\"${mod//./\\.}\"\)" 'lib/*.lua' 'common/*.lua'); do
 				reach "$next"
 			done
 		done
 		case "$file" in lib/lua*.c) ;; *) continue ;; esac
-		for next in $(grep -lwE "$(basename "$file" .c)_(new|attach)" lib/lua*.c 2>/dev/null); do
+		for next in $(holding -w "$(basename "$file" .c)_(new|attach)" 'lib/lua*.c'); do
 			reach "$next"
 		done
 	done | sort -u

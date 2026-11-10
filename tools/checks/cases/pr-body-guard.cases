@@ -9,6 +9,9 @@ block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=fifo -F draft=true -F body=@silent.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=local-base -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=gone -F draft=true -F body=@silent.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=spec -f base=master -F draft=true -F body=@silent.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=spawn -f base=master -F draft=true -F body=@silent.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=run -f base=master -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls --input master.json
 pass	gh api repos/luainkernel/lunatik/pulls --input fifo.json
 block	gh pr create --head fifo-test --base master --body-file silent.md

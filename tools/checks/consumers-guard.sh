@@ -31,11 +31,12 @@ cmds=$(commands "$input")
 while IFS= read -r post; do
 	[ -n "$post" ] && gh_ours "$post" || continue
 	read -r base head <<< "$(gh_refs "$input" "$post")"
-	if ! files=$(gh_change "$input" "$post" "$base" "$head" "$project"); then
+	if ! change=$(gh_change "$input" "$post" "$base" "$head" "$project"); then
 		echo "consumers-guard: the change from $base to ${head:-a head neither the write nor GitHub names} is not one this checkout can read, so the bindings it touches cannot be listed; fetch the ref, or pass CONSUMERS_OK=1 once the consumers were read." >&2
 		exit 2
 	fi
-	report=$(cd "$project" && bash "$(dirname "$0")/consumers.sh" $files)
+	read -r from files <<< "$change"
+	report=$(cd "$project" && CHECK_BASE=$from CHECK_HEAD=$head bash "$(dirname "$0")/consumers.sh" $files)
 	[ -n "$report" ] || continue
 	echo "$report" >&2
 	echo "consumers-guard: read them, then re-run with CONSUMERS_OK=1 as a command prefix." >&2

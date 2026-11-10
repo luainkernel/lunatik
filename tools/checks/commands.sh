@@ -500,10 +500,11 @@ gh_refs() {
 	printf '%s %s\n' "${base:-master}" "$head"
 }
 
-# the files the change from <base> to <head> carries, read in the checkout <project>; it fails when the
-# checkout cannot read one of them. A stacked pull request's change is what its head adds to the branch
-# below it, and read against master it carries that branch's too, so the base is the tip GitHub has, in
-# the repository the gh write <post> targets, asked with the credential the hook input <input> carries.
+# the commit the change from <base> to <head> is read from, then the files it carries, on one line,
+# read in the checkout <project>; it fails when the checkout cannot read one of them. A stacked pull
+# request's change is what its head adds to the branch below it, and read against master it carries
+# that branch's too, so the base is the tip GitHub has, in the repository the gh write <post> targets,
+# asked with the credential the hook input <input> carries.
 # A push through a URL moves no remote-tracking ref, so one fetched before the base was rebased reads a
 # change of master as the pull request's own; the remote-tracking ref stands in when GitHub does not
 # answer or names a commit this checkout lacks, and the local branch when neither is there
@@ -514,6 +515,6 @@ gh_change() {
 	git -C "$5" cat-file -e "$ref^{commit}" 2> /dev/null || ref=origin/$3
 	git -C "$5" rev-parse -q --verify "$ref^{commit}" > /dev/null || ref=$3
 	ref=$(git -C "$5" merge-base "$ref" "$4" 2> /dev/null) || return 1
-	git -C "$5" diff --name-only "$ref" "$4"
+	echo "$ref" $(git -C "$5" diff --name-only "$ref" "$4")
 }
 

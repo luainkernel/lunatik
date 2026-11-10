@@ -164,7 +164,7 @@ unread() {
 # a pull request opened on a branch names every example its change touches (examples-named.sh), the
 # change from the base to the head the write names
 examples() {
-	local post body file head target files findings project
+	local post body file head target change from files findings project
 	project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
 	while IFS= read -r post; do
 		[ -n "$post" ] || continue
@@ -179,11 +179,12 @@ examples() {
 		fi
 		read -r target head <<< "$(gh_refs "$input" "$post")"
 		[ -n "$head" ] || continue
-		if ! files=$(gh_change "$input" "$post" "$target" "$head" "$project"); then
+		if ! change=$(gh_change "$input" "$post" "$target" "$head" "$project"); then
 			echo "pr-body-guard: the head $head or the base $target is not a ref this checkout can read, so the examples its change touches cannot be listed; fetch it, or pass EXAMPLES_OK=1 once the body says of each what it did." >&2
 			exit 2
 		fi
-		findings=$(cd "$project" && bash "$(dirname "$0")/examples-named.sh" "$file" $files) && continue
+		read -r from files <<< "$change"
+		findings=$(cd "$project" && CHECK_BASE=$from CHECK_HEAD=$head bash "$(dirname "$0")/examples-named.sh" "$file" $files) && continue
 		echo "pr-body-guard: ${findings//$tmp\/examples-body/the body}" >&2
 		echo "pr-body-guard: say of each what it did, ran, only loaded or not run and why, or pass EXAMPLES_OK=1 once the body does." >&2
 		exit 2
