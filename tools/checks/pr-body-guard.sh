@@ -15,11 +15,12 @@
 # beside it and the commands chained with the write are not the write. The body file goes
 # through machine-leak.sh first: a body is text posted to GitHub like any other, so a
 # body the guard cannot read, passed inline, is refused rather than skipped. An issue
-# edit is read for the lines it adds to the body GitHub has, asked with the credential the
-# command carries: what the reporter posted, a build log and its paths, is not the edit's
-# to rewrite. The whole body is read when the current one cannot be. An edit that adds
-# text other than a task to an issue or pull request review-post-guard held a post on in
-# the same session waits for the same REVIEW_POST_OK, as the held post by another route.
+# edit is read for the lines it adds to the body GitHub has in the repository the write
+# targets, asked with the credential the command carries: what the reporter posted, a
+# build log and its paths, is not the edit's to rewrite. The whole body is read when the
+# current one cannot be. An edit that adds text other than a task to an issue or pull
+# request review-post-guard held a post on in the same session waits for the same
+# REVIEW_POST_OK, as the held post by another route.
 
 input=$(cat)
 
@@ -43,12 +44,12 @@ added() {
 	local post=$1 file=$2 target repo number current
 	target=$(printf '%s' "$post" | grep -oE 'repos/[^/[:space:]"]+/[^/[:space:]"]+/issues/[0-9]+' | head -n 1)
 	if [ -n "$target" ]; then
-		repo=$(printf '%s' "$target" | cut -d/ -f2-3)
 		number=${target##*/}
 	else
-		repo='{owner}/{repo}'
 		number=$(printf '%s' "$post" | awk '$2 == "issue" && $3 == "edit" && $4 ~ /^[0-9]+$/ { print $4 }')
 	fi
+	repo=$(gh_repo "$post")
+	[ -n "$repo" ] || repo='{owner}/{repo}'
 	if [ -z "$number" ] || ! current=$(GH_TOKEN=$(gh_token "$input") gh api "repos/$repo/issues/$number" --jq .body 2>/dev/null); then
 		cat "$file"
 		return
@@ -211,15 +212,15 @@ severity() {
 # a post review-post-guard held in this session for the maintainer's OK does not reach the same issue or pull
 # request as an edit of its body: #1407's decision went into the issue's body after its comment was held
 held() {
-	local list post body file number
+	local list post body file key
 	list=$(gh_held "$input")
 	[ -f "$list" ] || return 0
 	while IFS= read -r post; do
 		[ -n "$post" ] || continue
 		body=$(gh_body "$post")
 		[ -n "$body" ] || continue
-		number=$(gh_number "$post")
-		[ -n "$number" ] && grep -qx "$number" "$list" || continue
+		key=$(gh_heldkey "$post")
+		[ -n "$key" ] && grep -qx "$key" "$list" || continue
 		file=${body#* }
 		if [ "${body%% *}" = input ]; then
 			jq -r '.body // empty' "$file" > "$tmp/held" 2> /dev/null
@@ -228,7 +229,8 @@ held() {
 		# a task ticked or added is the body's own bookkeeping, not the held text
 		[ "$body" != inline ] && [ -f "$file" ] && ! added "$post" "$file" | grep -qvE '^[[:space:]]*(- \[[ xX]\] .*)?$' &&
 			continue
-		echo "pr-body-guard: review-post-guard held a post (#$number) in this session until the maintainer approves its text, and an edit of that body is the same post by another route: show the text, get the OK, and post it where it was held, with REVIEW_POST_OK=1." >&2
+		[[ $key == *#* ]] || key=#$key
+		echo "pr-body-guard: review-post-guard held a post ($key) in this session until the maintainer approves its text, and an edit of that body is the same post by another route: show the text, get the OK, and post it where it was held, with REVIEW_POST_OK=1." >&2
 		exit 2
 	done <<< "$1"
 }

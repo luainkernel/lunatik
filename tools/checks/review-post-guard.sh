@@ -28,8 +28,9 @@
 # on every command, so a scan of it would fire on every post. Text the guard
 # cannot read, passed inline or on stdin, is refused rather than skipped, and so
 # is a comment given to gh's close or reopen, which no file carries. A post held
-# for the marker is recorded for its session (gh_held in commands.sh), where
-# pr-body-guard refuses carrying it into the body of the same issue instead.
+# for the marker is recorded for its session, by its issue and the issue's
+# repository (gh_held in commands.sh), where pr-body-guard refuses carrying it into
+# the body of the same issue instead.
 
 input=$(cat)
 
@@ -138,7 +139,7 @@ isown && exit 0
 
 # what is held here waits for the OK, and pr-body-guard refuses carrying it into a body in the meantime
 held=$(gh_held "$input")
-mkdir -p "$(dirname "$held")" && while IFS= read -r post; do gh_number "$post"; done <<< "$posts" >> "$held"
+mkdir -p "$(dirname "$held")" && while IFS= read -r post; do gh_heldkey "$post"; done <<< "$posts" >> "$held"
 
 echo "review-post-guard: on a pull request or an issue the posting account did not open, show the exact text, get the maintainer's OK, then re-run with REVIEW_POST_OK=1 as a command prefix." >&2
 exit 2

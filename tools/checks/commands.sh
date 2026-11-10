@@ -439,12 +439,27 @@ gh_number() {
 	}' | head -n 1
 }
 
-# the file listing, a number a line, the issues and pull requests review-post-guard held a post on
-# in the session the hook input <input> comes from
+# the file listing, a line each as gh_heldkey names it, the issues and pull requests review-post-guard
+# held a post on in the session the hook input <input> comes from
 gh_held() {
 	local session
 	session=$(printf '%s' "$1" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
 	printf '%s/held-%s' "${LUNATIK_GUARD_DIR:-/tmp/lunatik-guards}" "${session:-none}"
+}
+
+# the issue or pull request the gh write <post> targets as gh_held lists it: its number on this
+# repository, a fork of it or the one gh fills {owner}/{repo} with, and <owner>/<name>#<number> on
+# another, in lower case and without a host, since gh and GitHub take a repository so spelled as the
+# same one; nothing when it names none
+gh_heldkey() {
+	local number repo
+	number=$(gh_number "$1")
+	[ -n "$number" ] || return 0
+	repo=$(gh_repo "$1" | tr '[:upper:]' '[:lower:]' | awk -F/ 'NF > 1 { print $(NF - 1) "/" $NF }')
+	case $repo in
+		""|*/lunatik|'{owner}/{repo}') printf '%s\n' "$number" ;;
+		*) printf '%s#%s\n' "$repo" "$number" ;;
+	esac
 }
 
 # what carries the text of the gh write <post>: "file <path>", "input <path>" for the JSON gh api sends
