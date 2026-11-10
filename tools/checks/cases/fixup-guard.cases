@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run in the directory fixup-guard.fixture.sh builds
+# env: PATH=stub:/usr/local/bin:/usr/bin:/bin
+block	gh api repos/luainkernel/lunatik/pulls -f head=folded -f base=master -F body=@b.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=clean -f base=master -F body=@b.md
+block	gh api repos/luainkernel/lunatik/pulls --input folded.json
+pass	gh api repos/luainkernel/lunatik/pulls --input clean.json
+block	cd sub && gh api repos/luainkernel/lunatik/pulls --input f.json
+block	gh pr create --head folded --body-file b.md
+pass	gh pr create --head clean --body-file b.md
+block	gh pr create --head luainkernel:folded --body-file b.md
+pass	gh pr create --body-file b.md
+pass	FIXUPS_OK=1 gh api repos/luainkernel/lunatik/pulls --input folded.json
