@@ -276,6 +276,15 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   the binding's check before the allocation answers first; `sig_refused.sh`
   writes the errno of the running release for the case. Skipped where the kernel
   serves no `hmac(sha256)`.
+- **kpp_peer**: `sharedsecret` refuses a peer's key the curve refuses before the
+  transform sees it, so no driver computes with one, a hardware engine that hands
+  the point on unchecked included. On `ecdh-nist-p256-generic` and
+  `ecdh-nist-p384-generic` it answers nil and `EINVAL` for (1, 1), the point at
+  infinity and coordinates of all `0xff` bytes, and a kprobe on
+  `crypto_ecdh_shared_secret`, counting the calls from the CLI's task, sees only
+  the one secret agreed on each curve after them. Skipped where no kprobe can be
+  placed on `crypto_ecdh_shared_secret`, or where the kernel serves either
+  generic driver not at all.
 
 Each of `shash`, `skcipher`, `aead`, `rng`, `sig` and `comp` also closes an object
 through `closing.lua`: its metatable holds one function under `__close` and

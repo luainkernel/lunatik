@@ -19,7 +19,9 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
+#include <linux/math.h> /* DIV_ROUND_UP, which crypto/internal/ecc.h uses without including it */
 #include <crypto/ecdh.h>
+#include <crypto/internal/ecc.h>
 #include <crypto/kpp.h>
 #include <linux/err.h>
 #include <linux/scatterlist.h>
@@ -32,24 +34,39 @@ LUACRYPTO_CHECKER(kpp, struct crypto_kpp);
 
 LUACRYPTO_RELEASERCTX(kpp, struct crypto_kpp, kpp_request_free, crypto_free_kpp);
 
-static const struct {
+typedef struct luacrypto_kpp_curve_s {
 	const char *name;
 	unsigned int size;
-} luacrypto_kpp_curves[] = {
-	{"ecdh-nist-p192", 24},
-	{"ecdh-nist-p256", 32},
-	{"ecdh-nist-p384", 48},
+	unsigned int id;
+} luacrypto_kpp_curve_t;
+
+static const luacrypto_kpp_curve_t luacrypto_kpp_curves[] = {
+	{"ecdh-nist-p192", 24, ECC_CURVE_NIST_P192},
+	{"ecdh-nist-p256", 32, ECC_CURVE_NIST_P256},
+	{"ecdh-nist-p384", 48, ECC_CURVE_NIST_P384},
 };
 
 /* crypto_kpp_maxsize sizes the output buffer: 64 bytes on hisi_hpre for a 48-byte P-192 point */
-static unsigned int luacrypto_kpp_curvesize(struct crypto_kpp *tfm)
+static const luacrypto_kpp_curve_t *luacrypto_kpp_curve(struct crypto_kpp *tfm)
 {
 	const char *name = crypto_tfm_alg_name(crypto_kpp_tfm(tfm));
 
 	for (size_t i = 0; i < ARRAY_SIZE(luacrypto_kpp_curves); i++)
 		if (strcmp(name, luacrypto_kpp_curves[i].name) == 0)
-			return luacrypto_kpp_curves[i].size;
-	return 0;
+			return &luacrypto_kpp_curves[i];
+	return NULL;
+}
+
+/* hisi_hpre and atmel-ecc hand the peer's point to their hardware unchecked */
+static bool luacrypto_kpp_isoncurve(const luacrypto_kpp_curve_t *curve, const char *peer)
+{
+	unsigned int ndigits = curve->size / sizeof(u64);
+	u64 x[ECC_MAX_DIGITS], y[ECC_MAX_DIGITS];
+	struct ecc_point point = ECC_POINT_INIT(x, y, ndigits);
+
+	ecc_swap_digits(peer, x, ndigits);
+	ecc_swap_digits(peer + curve->size, y, ndigits);
+	return ecc_is_pubkey_valid_partial(ecc_get_curve(curve->id), &point) == 0;
 }
 
 static int luacrypto_kpp_compute(luacrypto_ctx_t *ctx, luacrypto_kpp_op_t op, struct scatterlist *src,
@@ -80,13 +97,14 @@ static int luacrypto_kpp_publickey(lua_State *L)
 	char *buffer = luacrypto_newbuffer(L, maxsize + 1); /* the NUL lunatik_pushexternalstring writes */
 
 	int ret = luacrypto_kpp_compute(ctx, crypto_kpp_generate_public_key, NULL, 0, buffer, maxsize);
-	return luacrypto_pushbuffer(L, buffer, ret, 0, 0, 2 * luacrypto_kpp_curvesize(ctx->tfm));
+	return luacrypto_pushbuffer(L, buffer, ret, 0, 0, 2 * luacrypto_kpp_curve(ctx->tfm)->size);
 }
 
 /***
 * Agrees a secret with a peer's public key.
 * A key the curve refuses is the peer's, not the script's mistake, so it is an outcome and not an
-* error, and no part of a secret is returned for it.
+* error, and no part of a secret is returned for it. The binding checks the key before the transform
+* sees it, so no driver computes with one the curve refuses, a hardware engine included.
 * @function sharedsecret
 * @tparam string peer the peer's public key, `x || y`, as `publickey` returns it
 * @treturn string the shared secret, of the curve's size, or nil and "EINVAL" for a key of another
@@ -99,11 +117,14 @@ static int luacrypto_kpp_sharedsecret(lua_State *L)
 	luacrypto_ctx_t *ctx = luacrypto_kpp_checkctx(L, 1);
 	size_t peerlen;
 	const char *peer = luaL_checklstring(L, 2, &peerlen);
-	unsigned int len = luacrypto_kpp_curvesize(ctx->tfm); /* the x coordinate: ECDH writes no dst_len back */
+	const luacrypto_kpp_curve_t *curve = luacrypto_kpp_curve(ctx->tfm);
+	unsigned int len = curve->size; /* the x coordinate: ECDH writes no dst_len back */
 	unsigned int publiclen = 2 * len;
 	struct scatterlist src;
 
-	if (peerlen != publiclen) /* the copy below reads this many bytes of it */
+	if (peerlen != publiclen) /* luacrypto_kpp_isoncurve and the copy below read this many bytes of it */
+		return lunatik_pushfail(L, -EINVAL);
+	if (!luacrypto_kpp_isoncurve(curve, peer))
 		return lunatik_pushfail(L, -EINVAL);
 
 	unsigned int maxsize = crypto_kpp_maxsize(ctx->tfm);
@@ -152,11 +173,11 @@ const lunatik_class_t luacrypto_kpp_class = {
 /* packed as the kernel's ECDH users pack it; an empty key makes the transform generate one */
 static void luacrypto_kpp_setsecret(lua_State *L, struct crypto_kpp *tfm, const char *key, size_t keylen)
 {
-	unsigned int size = luacrypto_kpp_curvesize(tfm);
+	const luacrypto_kpp_curve_t *curve = luacrypto_kpp_curve(tfm);
 
-	if (size == 0)
+	if (curve == NULL)
 		lunatik_throw(L, -EINVAL);
-	if (key != NULL && keylen != size)
+	if (key != NULL && keylen != curve->size)
 		lunatik_throw(L, -EINVAL);
 
 	struct ecdh params = {.key = (char *)key, .key_size = keylen};
