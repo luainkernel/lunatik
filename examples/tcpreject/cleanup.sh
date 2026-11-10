@@ -11,6 +11,6 @@ nft delete table ip tcpreject
 nft delete table ip6 tcpreject
 ip link del veth-tcpreject
 ip netns del tcpreject
-sysctl -p /run/tcpreject.sysctl
+sysctl -e -p /run/tcpreject.sysctl # skips a device gone since setup, veth-tcpreject among them
 rm /run/tcpreject.sysctl
 
