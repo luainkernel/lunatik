@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run in the directory merge-guard.fixture.sh writes
 block	gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge
 block	gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=squash
 block	cd /tmp && gh api --method PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=merge
@@ -16,3 +17,9 @@ pass	gh api repos/luainkernel/lunatik/pulls/7/merge
 pass	gh api repos/luainkernel/lunatik/pulls/7 --jq .mergeable
 pass	git merge --ff-only origin/master
 pass	gh pr view 7
+# GitHub answers through a gh on stub/ that answers only with the token in key, which the command reads
+# into GH_TOKEN
+# env: PATH=stub:/usr/local/bin:/usr/bin:/bin
+# env: GH_TOKEN=
+pass	tok=$(cat key); GH_TOKEN=$tok gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=rebase
+block	GH_TOKEN=$tok gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=rebase

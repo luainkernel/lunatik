@@ -12,3 +12,8 @@ pass	gh pr create --head clean --body-file b.md
 block	gh pr create --head luainkernel:folded --body-file b.md
 pass	gh pr create --body-file b.md
 pass	FIXUPS_OK=1 gh api repos/luainkernel/lunatik/pulls --input folded.json
+# a gh on keyed/ answers as stub/'s only with the token in key, which the command reads into GH_TOKEN
+# env: PATH=keyed:/usr/local/bin:/usr/bin:/bin
+# env: GH_TOKEN=
+block	tok=$(cat key); GH_TOKEN=$tok gh api repos/luainkernel/lunatik/pulls -f head=folded -f base=master -F body=@b.md
+pass	GH_TOKEN=$tok gh api repos/luainkernel/lunatik/pulls -f head=folded -f base=master -F body=@b.md

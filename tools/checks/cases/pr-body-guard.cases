@@ -70,3 +70,10 @@ pass	gh pr merge 7 --rebase -R luainkernel/lua
 pass	GH_REPO=luainkernel/lua gh pr view 7
 pass	gh pr create --head fifo-test --base master --body-file repo.md
 pass	cat > note.md <<'EOF'\nGH_REPO=luainkernel/lua gh pr merge 7 --rebase\nEOF\ngh pr create --head fifo-test --base master --body-file named.md
+
+# a gh on keyed/ answers as stub/'s only with the token in key, which the command reads into GH_TOKEN
+# env: PATH=keyed:/usr/local/bin:/usr/bin:/bin
+# env: GH_TOKEN=
+# env: LUNATIK_GUARD_DIR=none
+pass	tok=$(cat key); GH_TOKEN=$tok gh issue edit 5 --body-file fifo.md
+block	GH_TOKEN=$tok gh issue edit 5 --body-file fifo.md

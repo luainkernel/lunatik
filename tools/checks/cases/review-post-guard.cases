@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
-# run in the directory review-post-guard.fixture.sh writes; each case carries the marker, so no verdict asks GitHub
+# run in the directory review-post-guard.fixture.sh writes; a case that carries the marker asks GitHub nothing
+# for its verdict
 pass	REVIEW_POST_OK=1 gh api -X POST repos/luainkernel/lunatik/issues/871/comments -F body=@note.md
 block	REVIEW_POST_OK=1 gh api -X POST repos/luainkernel/lunatik/issues/871/comments -F body=@late.md
 block	REVIEW_POST_OK=1 gh api -X POST repos/luainkernel/lunatik/issues/871/comments -F body=@line.md
@@ -14,4 +15,12 @@ block	REVIEW_POST_OK=1 gh -R luainkernel/lunatik issue comment 871 --body-file l
 block	REVIEW_POST_OK=1 gh -Rluainkernel/lunatik pr comment 871 --body-file line.md
 block	gh pr close 871 --comment done
 block	gh -R luainkernel/lunatik pr close 871 --comment done
+
+# without the marker GitHub is asked who opened #871, through a gh on stub/ that answers only with the
+# token in key, which the command reads into GH_TOKEN; a post held for the marker is listed under held/
+# env: PATH=stub:/usr/local/bin:/usr/bin:/bin
+# env: GH_TOKEN=
+# env: LUNATIK_GUARD_DIR=held
+pass	tok=$(cat key); GH_TOKEN=$tok gh api -X POST repos/luainkernel/lunatik/issues/871/comments -F body=@note.md
+block	GH_TOKEN=$tok gh api -X POST repos/luainkernel/lunatik/issues/871/comments -F body=@note.md
 

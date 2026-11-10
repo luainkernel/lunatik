@@ -14,7 +14,7 @@
 # that builds the third's objects, the fourth binding and the spec's table, the JSON gh api sends for a
 # create of bump, under sub/, read only after a cd into it, the one for a create of docs, and a gh on
 # stub/ that answers for GitHub's pulls/9, bump on master, pulls/8, stacked on bump, pulls/6, a head this
-# checkout lacks, and the tip of lag.
+# checkout lacks, and the tip of lag, and one on keyed/ that answers as it only with the token in key.
 #
 # Usage: bash tools/checks/cases/consumers-guard.fixture.sh <dir>
 
@@ -79,4 +79,13 @@ case "\$*" in
 esac
 STUB
 chmod +x stub/gh
+
+printf cases > key
+mkdir -p keyed
+cat > keyed/gh <<STUB
+#!/bin/sh
+[ "\$GH_TOKEN" = cases ] && exec "$PWD/stub/gh" "\$@"
+exit 1
+STUB
+chmod +x keyed/gh
 

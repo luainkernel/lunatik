@@ -415,11 +415,26 @@ gh_commands() {
 }
 
 # the GitHub token the command in the hook input <input> runs with: GH_TOKEN from the environment, or
-# the file the command reads it from with GH_TOKEN=$(cat <file>)
+# the file the command reads it from with GH_TOKEN=$(cat <file>), or with GH_TOKEN=$<name> or
+# GH_TOKEN=${<name>} after <name>=$(cat <file>); nothing for a variable the command does not so assign
 gh_token() {
 	[ -n "$GH_TOKEN" ] && { printf '%s' "$GH_TOKEN"; return; }
-	cat "$(command_text "$1" | grep -oE 'GH_TOKEN=\$\(cat [^)"]+\)' | head -n 1 |
-		sed -E 's/^GH_TOKEN=\$\(cat (.*)\)$/\1/')" 2>/dev/null
+	cat "$(command_text "$1" |
+		grep -oE '[A-Za-z_][A-Za-z0-9_]*=\$(\(cat [^)"]+\)|\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*)' | awk '
+	{
+		name = substr($0, 1, index($0, "=") - 1)
+		value = substr($0, length(name) + 2)
+		if (value ~ /^\$\(cat /)
+			file[name] = substr(value, 7, length(value) - 7)
+		else {
+			gsub(/[${}]/, "", value)
+			file[name] = file[value]
+		}
+	}
+	name == "GH_TOKEN" && file[name] != "" {
+		print file[name]
+		exit
+	}')" 2>/dev/null
 }
 
 # the repository the gh write <post> targets, owner/name, from gh api's endpoint or from the -R gh_writes

@@ -46,6 +46,14 @@ pass	gh api repos/luainkernel/lua/pulls -f head=bump -f base=master -F body=@b.m
 pass	echo gh api -X POST repos/luainkernel/lunatik/pulls -f head=bump -f base=master
 pass	git log -1	gh api -X POST repos/luainkernel/lunatik/pulls -f head=bump
 pass	CONSUMERS_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=bump -f base=master -F body=@b.md
+# a gh on keyed/ answers as stub/'s only with the token in key, which the command reads into GH_TOKEN
+# env: PATH=keyed:/usr/local/bin:/usr/bin:/bin
+# env: GH_TOKEN=
+pass	GH_TOKEN=$(cat key) gh api -X PATCH repos/luainkernel/lunatik/pulls/8 -f base=master
+pass	tok=$(cat key); GH_TOKEN=$tok gh api -X PATCH repos/luainkernel/lunatik/pulls/8 -f base=master
+pass	tok=$(cat key) && GH_TOKEN=${tok} gh pr edit 8 --base master
+block	GH_TOKEN=$tok gh api -X PATCH repos/luainkernel/lunatik/pulls/8 -f base=master
+block	GH_TOKEN=$tok gh api -X PATCH repos/luainkernel/lunatik/pulls/8 -f base=master; tok=$(cat key)
 # env: LUNATIK_CONSUMERS=
 pass	gh api repos/luainkernel/lunatik/pulls -f head=gone -f base=master -F body=@b.md
 

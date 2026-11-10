@@ -38,3 +38,8 @@ pass	gh api repos/luainkernel/lunatik/pulls/8 -X PATCH -f base=bump -f body="aft
 block	gh api repos/luainkernel/lunatik/pulls/9 -X PATCH -f base=bump -f body="after repos/luainkernel/lunatik/pulls/8"
 pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 -f base=master
 pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/9 -f title=fallback
+# a gh on keyed/ answers as stub/'s only with the token in key, which the command reads into GH_TOKEN
+# env: PATH=keyed:/usr/local/bin:/usr/bin:/bin
+# env: GH_TOKEN=
+pass	tok=$(cat key); GH_TOKEN=$tok gh -R luainkernel/lunatik pr edit 8 --base bump
+block	GH_TOKEN=$tok gh -R luainkernel/lunatik pr edit 8 --base bump
