@@ -6,8 +6,8 @@
 # PreToolUse (Bash) hook: an install, reload or run over a tree that drops a crash
 # guard reproduces the crash the guard prevents, and on the shared host that is a
 # forced reboot. This blocks (exit 2) make install, lunatik reload/run/spawn/test and
-# a direct test run while any worktree of the project, against its HEAD, removes a
-# line carrying a guard, unless the command carries the CRASH_AB_OK=1 marker, set by
+# a direct test run while a tree it reads, against its HEAD, removes a line carrying a
+# guard, unless the command carries the CRASH_AB_OK=1 marker, set by
 # hand once the maintainer authorized the experiment and named the machine it may
 # take down. Silent (exit 0) on everything else. The marker forces the ask; it cannot
 # check that the answer was yes, only that it was set on purpose.
@@ -17,15 +17,40 @@
 # the edit goes in a call of its own, and the install after it is read against the tree the
 # edit left. A write a script file makes is not on the line, which is all this reads, and one
 # spelled another way, a cp or a tee, is not read.
+# A line that installs reads the tree each make install runs in, which is what the runs
+# after it on the line run; a line that only runs what is installed, one that runs before
+# its first install, one whose tree is not resolved and one that moves a directory by a
+# spelling other than cd and make's -C or --directory read every worktree of the project,
+# since the install under /lib/modules/lua may be any of theirs.
 # What the command runs is read by commands.sh, from the raw hook input.
 
 input=$(cat)
 
 . "$(dirname "$0")/commands.sh"
 
+# whether <cmds> runs what is installed: a reload, run or test
+runs() {
+	runs_lunatik "$1" '(reload|run|spawn|test)( |$)' || runs_test "$1" || runs_watchdog "$1"
+}
+
+# whether the command <text> moves a directory where install_dirs does not follow it: pushd, env -C,
+# sudo -D, and a make option for a directory other than -C and --directory, a prefix or a cluster
+moves() {
+	printf '%s\n' "$1" | grep -Eq '(^|[^[:alnum:]_-])(pushd|popd)( |$)|--chdir|(^|[ ;&|(])env( [^ ;&|]+)* -C|(^|[ ;&|(])sudo( [^ ;&|]+)* -D|(^| )--d(i|ir|ire|irec|irect|irecto|irector)?(=| |$)|(^| )-[a-zA-Z]+C'
+}
+
+# whether <cmds> runs what is installed before its first make install, or installs nothing
+runs_first() {
+	local cmd
+	while IFS= read -r cmd; do
+		runs_install "$cmd" && return 1
+		runs "$cmd" && return 0
+	done <<< "$1"
+	return 0
+}
+
 cmds=$(commands "$input")
-runs_lunatik "$cmds" '(reload|run|spawn|test)( |$)' || runs_install "$cmds" || runs_test "$cmds" ||
-	runs_watchdog "$cmds" || exit 0
+runs "$cmds" || runs_install "$cmds" || exit 0
 
 case "$(command_text "$input")" in
 	*CRASH_AB_OK=1*) exit 0 ;;
@@ -45,10 +70,20 @@ fi
 
 . "$(dirname "$0")/guards.sh"
 
-project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
-[ -d "$project" ] || exit 0
+cwd=$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+trees=
+if [ -n "$cwd" ] && ! runs_first "$cmds" && ! moves "$(command_text "$input")"; then
+	trees=$(install_dirs "$cmds" "$cwd" | while read -r dir; do
+		git -C "$dir" rev-parse --show-toplevel 2>/dev/null || exit 1
+	done) || trees=
+fi
+if [ -z "$trees" ]; then
+	project=${CLAUDE_PROJECT_DIR:-$cwd}
+	[ -d "$project" ] || exit 0
+	trees=$(git -C "$project" worktree list --porcelain 2>/dev/null | awk '/^worktree /{print $2}')
+fi
 
-removed=$(git -C "$project" worktree list --porcelain 2>/dev/null | awk '/^worktree /{print $2}' | while read -r tree; do
+removed=$(printf '%s\n' "$trees" | while read -r tree; do
 	[ -d "$tree" ] || continue
 	dropped_guards "$tree" '*.c' '*.h' | sed "s|^|$tree: |"
 done)

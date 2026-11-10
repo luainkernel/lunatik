@@ -275,8 +275,25 @@ runs_repl() {
 	printf '%s\n' "$1" | grep -Eq '^([^ ]*/)?lunatik( -(e|i)( |$)| --(eval|interactive)( |=|$)|$)'
 }
 
+MAKE_INSTALL='^([^ ]*/)?make( .*)? install( |$)'
+
 runs_install() {
-	printf '%s\n' "$1" | grep -Eq '^([^ ]*/)?make( .*)? install( |$)'
+	printf '%s\n' "$1" | grep -Eq "$MAKE_INSTALL"
+}
+
+# the directory each make install among <cmds> runs in, from the directory <cwd>: resolved against every
+# cd before it and its own -C, as git_runs resolves git's
+install_dirs() {
+	printf '%s\n' "$1" | awk -v dir="$2" -v run="$MAKE_INSTALL" "$FOLLOW_CD"'
+	$0 ~ run {
+		d = dir
+		for (i = 2; i <= NF; i++)
+			if ($i == "-C" || $i == "--directory")
+				d = under(d, $++i)
+			else if ($i ~ /^(-C|--directory=)./)
+				d = under(d, substr($i, $i ~ /^-C/ ? 3 : 13))
+		print d
+	}'
 }
 
 # a suite's run.sh or a script under tests/ as the command; a path to one handed to git or to a

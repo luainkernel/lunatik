@@ -76,9 +76,14 @@ source or header, by a redirection onto it or a `sed -i`, `git checkout` or `git
 it or its directory, and installs or runs in the same call is blocked under the same marker, since
 the worktrees are read before the call runs: the edit goes in a call of its own, and the install
 after it is read against the tree the edit left. A write a script file makes is not on the line, and
-the line is all the guard reads. It reads every worktree of the
-checkout, so one another session left dirty blocks this session's install too; its owner cleans it,
-and a review says its run was blocked rather than overriding a guard that was not about its tree.
+the line is all the guard reads. A line that installs reads the tree its `make install` runs in,
+the cwd moved by each `cd` and by make's own `-C`, for the install and the runs after it on the line,
+since under `tools/lunatik-host`'s lock they run what it just installed. A line that only runs what is
+installed, one that runs before its first install, one whose tree is not resolved and one that moves
+a directory by another spelling, `pushd`, `env -C`, `sudo -D` or a make option such as `-sC` or
+`--dir=`, read every worktree of the checkout, so one another session left dirty blocks this session's run; its owner
+cleans it, and a review says its run was blocked rather than overriding a guard that was not about its
+tree.
 A guard that only moved, into a helper the methods now share, onto another index or into a
 `LUNATIK_PRIVATECHECKER` that checks its class and reads the object as `private`, is paired with
 the added line that took it in and not reported; both checks read `guards.sh`, where the pattern

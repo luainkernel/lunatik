@@ -25,3 +25,23 @@ pass	sed -n '1,20p' lib/luaset.c && sudo lunatik test set
 pass	echo 'git show x:lib/a.c > lib/a.c && make install'
 pass	echo 'a > lib/b.c' && sudo lunatik test set
 block	git show aba11f232:lib/luaset.c > lib/luaset.c && sudo make install	installs the master file, no CRASH_AB_OK=1 set
+# env: CLAUDE_PROJECT_DIR=p
+pass	make -C p install && sudo lunatik reload && sudo lunatik test set	installs p, which drops no guard, while its worktree d drops one
+pass	cd p && sudo make install && sudo lunatik test set
+pass	bash tools/lunatik-host bash -c 'cd p && make && sudo make install && sudo lunatik reload && sudo lunatik test set'
+pass	sudo make --directory=p install && sudo bash tools/watchdog.sh examples/filter/sni
+pass	make install && sudo lunatik test set
+block	make -C d install && sudo lunatik test set
+block	cd d && sudo make install
+block	sudo make --directory d install
+block	cd p && cd ../d && make install
+block	make -C p install && make -Cd install && sudo lunatik reload
+block	sudo lunatik test set	runs what is installed, which may be d's
+block	sudo lunatik reload && make -C p install && sudo lunatik test set
+block	make -C nowhere install && sudo lunatik test set
+block	pushd d && make install && sudo lunatik test set	moves to d by a spelling the install's directory does not follow
+block	env -C d make install
+block	sudo -D d make install
+block	make --dir=d install
+block	make -sC d install
+block	sudo bash tools/watchdog.sh examples/filter/sni
