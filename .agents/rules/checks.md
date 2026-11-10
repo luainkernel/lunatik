@@ -365,7 +365,9 @@ or written into a file by a heredoc. The post guards read through it too, the `g
 text can read, so it goes through `tools/lunatik-host`, whose lock orders it against the cycles that
 take it too.
 
-`functional.sh` takes a base and a head and names the files of the change that the host cycle reads: a C
+`functional.sh` takes a base and a head, reads the base from where the head forked from it, so a base that
+moved past the fork point does not lend the change its later commits, and names the files of the change
+that the host cycle reads: a C
 file whose tokens differ once the comments are gone, a Lua file whose stripped bytecode's listing does, read
 without the lines its functions span, a shell script with a line other than a comment changed, a submodule
 whose commit moved, and any other file whose bytes or mode moved, past the documents, the scripts under

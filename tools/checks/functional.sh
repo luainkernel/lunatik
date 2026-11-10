@@ -9,8 +9,8 @@
 # file counts when its tokens differ once the comments are gone, a Lua file when the listing of its
 # stripped bytecode does, read without the lines its functions span and the addresses it was loaded at,
 # a shell script when a line other than a comment does, a submodule when the commit it points at does,
-# and any other file when its bytes or its mode do; one the compiler cannot read counts too. Exits 1 when
-# it names one.
+# and any other file when its bytes or its mode do; one the compiler cannot read counts too. The base is
+# read from where the head forked from it. Exits 1 when it names one.
 #
 # Usage: bash tools/checks/functional.sh <base> [<head>]   (default head HEAD)
 
@@ -18,6 +18,8 @@ set -o pipefail # a compiler that cannot read the file fails the pipe it feeds
 base=$1
 head=${2:-HEAD}
 [ -n "$base" ] || { echo "usage: $0 <base> [<head>]" >&2; exit 2; }
+# a base past the fork point, master's tip once it moved, would show its later commits reversed
+base=$(git merge-base "$base" "$head") || exit 2
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
