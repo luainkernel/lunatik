@@ -37,6 +37,23 @@ test("linux.random(m, n) answers m when m == n and stays within the widest inter
 	end
 end)
 
+test("linux.random() answers an integer", function()
+	local r = linux.random()
+	assert(math.tointeger(r), "linux.random() answered " .. tostring(r))
+end)
+
+test("linux.random(m, n) refuses m > n", function()
+	local ok, err = pcall(linux.random, 2, 1)
+	assert(not ok and err:find("interval is empty", 1, true),
+		"linux.random(2, 1) answered " .. tostring(err))
+end)
+
+test("linux.random refuses a third argument", function()
+	local ok, err = pcall(linux.random, 1, 2, 3)
+	assert(not ok and err:find("wrong number of arguments", 1, true),
+		"linux.random(1, 2, 3) answered " .. tostring(err))
+end)
+
 test("linux.random(m, n) is uniform over a range that does not divide 2^64", function()
 	local up, half, draws, below = (3 << 61) - 1, 1 << 62, 10000, 0
 	for _ = 1, draws do
