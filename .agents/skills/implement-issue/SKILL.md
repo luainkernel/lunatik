@@ -106,7 +106,10 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   from GitHub: `label`, the `workflow-reviewed` label on the
   pull request, and the `complexity:` label `tools/complexity.sh` printed for it; `append`, a blank line and the text or the file after the issue's body as GitHub has it
   then, and for an entry the higher of the issue's severity label and the entry's; `create`, an issue with
-  the title, the file as its body and `severity: <severity>`.
+  the title, the file as its body and `severity: <severity>`; `comment`, the text as a comment on the pull
+  request, each requirement the review held it to with its verdict, the matrix and the line each case of
+  the change printed with the kernel it ran on: the pull request's reader, the issue's author among them,
+  reads none of it in the hand-back, and a reader of #2378 asked for the matrix #2369 had asked for.
 - The session watches a run with `tools/workflow-watch.sh <run id>` as a Monitor's command, which names
   the agent a quiet run waits on and the last entry of its log. A dead run is resumed as the review-pr
   card says, from `journal.jsonl` and `resumeFromRunId`; the implementer's checkpoint is
