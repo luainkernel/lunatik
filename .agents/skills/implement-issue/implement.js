@@ -149,7 +149,8 @@ you take it, what you read, decided, committed and measured, and your answer bef
    Your answer's defects names each patch, the requirement it breaks where it breaks one, the suite that
    runs the test and the cases it should fail: the build plants each after one reload and runs that whole
    suite, never the test alone. A requirement no case of the suite can fail on is said in your notes, and
-   not proved by a case of something else.
+   not proved by a case of something else. Your answer's cases names each case the change adds or changes,
+   as the test prints it, with its suite.
 5. Run "Before opening a pull request" with the pr-prep skill, except what needs the host: the suite and
    the examples run once, after the review, in an agent of their own, and a failure comes back to a fix.
    Run no install, reload, suite or example yourself. List the examples tools/checks/examples-touched.sh
@@ -189,7 +190,7 @@ What you find past the failure and do not fix, in the change or beside it,
 ${LEAVE}
 `
 
-const OPEN = (impl, head, unrelated, body, loaded, skipped, unmet) => `
+const OPEN = (impl, head, unrelated, body, loaded, skipped, unmet, unproved, kernel) => `
 ${MACHINE}Open a pull request on luainkernel/lunatik from the branch \`${impl.branch}\` against \`${base}\`, whose head is
 \`${head}\`; push the branch first if GitHub's tip of it is not that SHA.${DRAFT} Title: ${JSON.stringify(impl.title)}
 A pull request GitHub already has for the branch is that one, read with
@@ -202,7 +203,10 @@ example of this record that the host only loaded it, or could not run it, and wh
 ${JSON.stringify(loaded)}` : ''}${unmet.length ? `, and with its sentence on the examples saying of each
 claim of this record that the host did not show it, and why, in the record's words:
 ${JSON.stringify(unmet)}` : ''}${skipped && (impl.examples || []).length ? `, and with its sentence on the examples
-saying that the host ran none of them, since tools/checks/functional.sh names no file of the change it reads` : ''}:
+saying that the host ran none of them, since tools/checks/functional.sh names no file of the change it reads` : ''}${unproved.length ? `,
+and with a sentence in its last paragraph naming each case of the change the host skipped, and why, from this
+record of what the suite printed on ${kernel}:
+${JSON.stringify(unproved)}` : ''}:
 ${JSON.stringify(body)}
 
 Write the body with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it, and pass that
@@ -288,13 +292,16 @@ const IMPLEMENTED = {
     commits: { type: 'array', items: { type: 'string' } },
     examples: { type: 'array', items: { type: 'string' }, description: 'what examples-touched.sh lists' },
     defects: DEFECTS,
+    cases: { type: 'array', items: { type: 'object', properties: {
+      suite: { type: 'string' }, case: { type: 'string', description: 'as the test prints it' },
+    }, required: ['suite', 'case'] } },
     title: { type: 'string' },
     body: { type: 'string', description: 'the pull request body, which pr-body.sh passes' },
     smallest: SMALLEST,
     findings_left: LEFT,
     notes: { type: 'string' },
   },
-  required: ['branch', 'head', 'base', 'commits', 'examples', 'defects', 'title', 'body', 'smallest', 'findings_left', 'notes'],
+  required: ['branch', 'head', 'base', 'commits', 'examples', 'defects', 'cases', 'title', 'body', 'smallest', 'findings_left', 'notes'],
 }
 
 const FIXED = { type: 'object', properties: {
@@ -333,12 +340,14 @@ const PREPARED = { type: 'object', properties: {
 const reviewArgs = (impl, extra) => ({
   pr: 0, branch: impl.branch, base: impl.base, scratch: a.scratch, validated: null, examples: impl.examples, defects: impl.defects,
   focus: a.focus || a.notes, smallest: impl.smallest, body: impl.body, effort: reviewer.effort, model: reviewer.model, push: a.push,
-  issue: a.issue, update: groomed?.update || '',
+  issue: a.issue, update: groomed?.update || '', cases: impl.cases,
   agents: { build: (a.agents || {}).build }, build: a.build, repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
 })
 // a run a.build spells in place of the suite may print no suite totals, and then its clean is the verdict
 const passed = (build) => build && build.clean && (build.skipped || /fail:0\b/.test(build.totals || '')
   || typeof a.build === 'string' && !/fail:\d/.test(build.totals || ''))
+// a case the suite skipped counts as passed in its totals, and proved nothing on the host
+const unproved = (build) => (build?.cases || []).filter(c => /#\s*SKIP/i.test(c.line))
 // an example the host only loaded, or a skipped build ran none of, is accounted for, and the body says so
 const unrun = (impl, build) => build?.skipped ? [] : (impl.examples || []).filter(e =>
   ![...(build?.examples || []), ...(build?.loaded || []).map(l => l.example)].includes(e))
@@ -389,7 +398,8 @@ if (implemented?.branch && a.push !== false) {
   if (passed(build) && !missing.length && !unsourced.length && a.gh !== false) {
     phase('Open')
     const unrelated = fixes.filter(f => f && !f.caused).map(f => f.notes)
-    const opened = await agent(OPEN(implemented, head, unrelated, body, build?.loaded || [], build?.skipped, build?.unmet || []), {
+    const opened = await agent(OPEN(implemented, head, unrelated, body, build?.loaded || [], build?.skipped, build?.unmet || [],
+      unproved(build), build?.kernel), {
       label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
     })
     pr = opened?.pr || 0
