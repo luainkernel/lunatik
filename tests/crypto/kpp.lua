@@ -8,6 +8,7 @@ local crypto  = require("crypto")
 local hkdf    = require("crypto.hkdf")
 local util    = require("util")
 local closing = require("tests.crypto.closing")
+local refusal = require("tests.crypto.refusal")
 local lib     = require("tests.lib")
 
 local char    = string.char
@@ -15,6 +16,7 @@ local rep     = string.rep
 local hex2bin = util.hex2bin
 local test    = lib.test
 local raises  = lib.raises
+local refuses = refusal.check
 
 -- nil where the kernel has no CONFIG_CRYPTO_ECDH, which every ECDH provider selects
 local kpp = crypto.kpp or error("the kernel serves no ecdh-nist-p256", 0)
@@ -41,12 +43,6 @@ lib.alloc(kpp, "ecdh-nist-p256")
 lib.alloc(kpp, "ecdh-nist-p384")
 lib.alloc(crypto.aead, "gcm(aes)")
 lib.alloc(hkdf.new, "sha256")
-
-local function refuses(object, peer)
-	local secret, err = object:sharedsecret(peer)
-	assert(secret == nil, "sharedsecret answered a secret for a key the curve refuses")
-	assert(err == "EINVAL", "sharedsecret answered " .. tostring(err) .. " where EINVAL was expected")
-end
 
 -- a name the kernel may not serve raises ENOENT, and one it serves raises expected
 local function refusesname(expected, name, ...)
