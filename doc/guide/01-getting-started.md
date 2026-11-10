@@ -76,7 +76,8 @@ sudo make install
 On Debian and Ubuntu, a kernel hook can do this on every upgrade: [tools/Readme.md](../../tools/Readme.md)
 installs `tools/debian_kernel_postinst_lunatik.sh` as `/etc/kernel/postinst.d/zz-update-lunatik`.
 The hook builds its own clone of master under `/opt/lunatik`, not your checkout. It downloads the
-kernel sources to build `resolve_btfids` and `bpftool`, and replaces `/usr/sbin/bpftool` with the one
+kernel sources, from github.com for a release candidate and cdn.kernel.org otherwise, to build
+`resolve_btfids` and `bpftool`, and replaces `/usr/sbin/bpftool` with the one
 it built; it builds `xdp-loader` from xdp-tools under `/opt/xdp-tools`. A failure in it fails the
 kernel package's configuration. On an upgrade it runs under the old kernel, whose BTF does not fit the
 new one, so it builds the modules with no BTF and installs no objects for the program files: on the new
