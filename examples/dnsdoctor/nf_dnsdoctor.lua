@@ -24,9 +24,10 @@ end
 
 local function doctor(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
 	if packet_dst ~= byteorder.hton32(dst_ip) then
-		return action.ACCEPT
+		return false
 	end
 
+	local rewritten = false
 	local srcport = byteorder.ntoh16(skb:getuint16(thoff))
 	if srcport == dns then
 		local dnsoff = thoff + 8
@@ -42,13 +43,14 @@ local function doctor(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
 				local atype = byteorder.hton16(skb:getuint16(dnsoff + 2))
 				if atype == 1 then
 					skb:setuint32(dnsoff + 12, byteorder.hton32(target_ip))
+					rewritten = true
 				end
 				dnsoff = dnsoff + 16
 			end
 		end
 	end
 
-	return action.ACCEPT
+	return rewritten
 end
 
 local function dnsdoctor_hook(skb)
@@ -71,7 +73,10 @@ local function dnsdoctor_hook(skb)
 	local dst_ip = 0
 	dst:gsub("%d+", function(s) dst_ip = dst_ip * 256 + tonumber(s) end)
 
-	return doctor(pkt, thoff, target_dns, target_ip, dst_ip, packet_dst)
+	if doctor(pkt, thoff, target_dns, target_ip, dst_ip, packet_dst) then
+		skb:checksum()
+	end
+	return action.ACCEPT
 end
 
 netfilter.register{
