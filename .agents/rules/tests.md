@@ -8,7 +8,10 @@ paths:
 Tests are shell scripts emitting KTAP plus a kernel side Lua script.
 
 * the description of what a test does goes in the `.sh`. The `.lua` gets one line pointing back at it;
-* skip, do not fail, when the kernel lacks a required config;
+* skip, do not fail, when the kernel lacks a required config, read from the kernel's configuration and
+  not from the binding answering nil: a binding that did not build answers nil too, and its skip then
+  reads as the kernel's, as an earlier push of #2360 read a `crypto.kpp` that had not built as a
+  kernel without ECDH;
 * mark `dmesg` before the run, read only what came after, and `check_dmesg` at the end;
 * clean up in a `trap`, and run the cleanup once up front as well;
 * the cleanup undoes everything any case can create, not only what the happy path stops inline: a case
@@ -39,6 +42,10 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   so a lost capability became the contract and restoring it has to delete a green test;
 * coverage means the matrix of operation by type by outcome, including the successes, not a list of
   features and not only the error paths;
+* a case that carries an object to a runtime of another context, by a clone or an `rcu.table`, calls
+  its methods there: one that receives it and calls nothing proves the route and not the use, as
+  `tests/runtime/require_cloneobject` does on #2378 of the `crypto` classes it lets into a softirq
+  runtime;
 * prove the test discriminates: disable the mechanism it covers, watch it fail, restore. A test of
   a property an issue requires is proved by breaking the property itself, not only the mechanism:
   #2378's case for "nothing on the hook's path sleeps" read no dmesg line a sleep prints, and a

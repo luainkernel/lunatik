@@ -148,6 +148,10 @@ the state, where a boolean stored on an existing node cannot.
 * A method the monitor leaves unwrapped, a `close` or a `stop`, reads the object's private under the
   object lock, and what it decides on that read it does under the same hold: a read outside it can find what a
   sharer's close freed, and a read and a close under two holds let a sharer's join slip between them.
+* State one method sets and another reads, a key `setkey` stores for the `digest` after it, is two holds
+  of the object lock, and a sharer's call lands between them: a class whose object more than one runtime
+  reaches, by a clone or an `rcu.table`, says in its doc that the object is one runtime's at a time, or
+  takes that state in the call that reads it.
 * A size, length or count that arrives from Lua is bounded with `lunatik_checkbounds`, for what the
   binding itself can serve: `roundup_pow_of_two` is undefined at zero, `__kfifo_alloc` truncates to an
   unsigned int, and the multiplication that sizes an object wraps before any allocator sees it. What
@@ -171,6 +175,10 @@ the state, where a boolean stored on an existing node cannot.
   `hlist_del_init_rcu` leaves `pprev` NULL for `hlist_unhashed_lockless` to read, `list_del_init`
   leaves the node empty for `list_empty`, a `kref` carries its count and a timer answers
   `timer_pending`; `tools/checks/kernel-answer.sh` names such a field.
+* A guarantee a binding takes from the kernel is read in every implementation the kernel dispatches the
+  call to: a crypto algorithm's name resolves to the driver of highest priority registered under it, a
+  hardware one included, so the check of a peer's point the generic `ecdh` driver makes is that
+  driver's alone, and `hisi_hpre`, which registers `ecdh-nist-p256` too, makes none (#2448).
 * A kernel version guard puts the current kernel's code in its `#if` arm and the older kernel's in
   `#else`, tested with `>=` on the version that introduced the API, or on the macro that arrived
   with it where a stable series backports the change: raising the floor then deletes `#else` arms
