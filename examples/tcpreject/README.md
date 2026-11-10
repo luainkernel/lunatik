@@ -12,9 +12,10 @@ It supports both IPv4 and IPv6.
 By default, it rejects forwarded HTTPS (TCP/443) connections to `8.8.8.8` (IPv4)
 and `2001:4860:4860::8888` (IPv6).
 
-Run it on a test machine or a VM. `setup.sh` turns IPv4 and IPv6 forwarding on, and as IPv6
-forwarding turns on the kernel drops the default routes learned from router advertisements and ignores
-new ones unless `accept_ra` is 2, so a host that takes its IPv6 default route from them loses it.
+Run it on a test machine or a VM. `setup.sh` turns IPv4 forwarding on, and IPv6 forwarding where it
+is off, and as IPv6 forwarding turns on the kernel drops the default routes learned from router
+advertisements and ignores new ones unless `accept_ra` is 2, so a host that did not forward IPv6 and
+takes its IPv6 default route from them loses it.
 `cleanup.sh` puts both kinds of forwarding back to the values `setup.sh` found, `all`, `default`
 and every device's, with IPv4 `conf/all/accept_redirects`, which the kernel sets to the opposite of
 `ip_forward`; `setup.sh` keeps them in `/run/tcpreject.sysctl`, and without that file, as after a

@@ -36,11 +36,18 @@ ip -n $NETNS -6 route add default via $HOST_ADDR6
 # forwarding + masquerade so the namespace can reach the internet
 # cleanup.sh writes these back in order, and a write to all resets default, every device and accept_redirects
 {
-	sysctl net.ipv4.ip_forward net.ipv4.conf.all.accept_redirects net.ipv6.conf.all.forwarding
-	sysctl -a -r '^net\.ipv[46]\.conf\.[^.]+\.forwarding$' | grep -v '\.all\.'
+	sysctl net.ipv4.ip_forward net.ipv4.conf.all.accept_redirects
+	sysctl -a -r '^net\.ipv4\.conf\.[^.]+\.forwarding$' | grep -v '\.all\.'
 } > /run/tcpreject.sysctl
 echo 1 > /proc/sys/net/ipv4/ip_forward
-echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+# a write of 1, even over 1, deletes the default routes learned from router advertisements
+if [ "$(sysctl -n net.ipv6.conf.all.forwarding)" = 0 ]; then
+	{
+		sysctl net.ipv6.conf.all.forwarding
+		sysctl -a -r '^net\.ipv6\.conf\.[^.]+\.forwarding$' | grep -v '\.all\.'
+	} >> /run/tcpreject.sysctl
+	echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+fi
 nft add table ip tcpreject
 nft add chain ip tcpreject postrouting \
 	{ type nat hook postrouting priority srcnat \; }
