@@ -50,7 +50,7 @@ static lua_Unsigned lualinux_project(lua_Unsigned n)
 *   - If called without arguments, returns an integer with all bits pseudo-random.
 *   - If called with one integer `n`, returns a pseudo-random integer in the range `[1, n]`.
 *   - If called with two integers `m` and `n`, returns a pseudo-random integer in the range `[m, n]`.
-* @raise Error if `m > n` or if the interval is too large.
+* @raise Error if `m > n`.
 * @usage
 *   local r1 = linux.random()       -- Full range random integer
 *   local r2 = linux.random(100)    -- Random integer between 1 and 100
@@ -82,9 +82,8 @@ static int lualinux_random(lua_State *L)
 
 	/* random integer in the interval [low, up] */
 	luaL_argcheck(L, low <= up, 1, "interval is empty");
-	luaL_argcheck(L, low >= 0 || up <= LUA_MAXINTEGER + low, 1, "interval too large");
 
-	rand = low + (lua_Integer)lualinux_project((lua_Unsigned)up - (lua_Unsigned)low);
+	rand = (lua_Integer)(lualinux_project((lua_Unsigned)up - (lua_Unsigned)low) + (lua_Unsigned)low);
 	lua_pushinteger(L, rand);
 	return 1;
 }

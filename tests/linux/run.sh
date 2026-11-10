@@ -6,10 +6,11 @@
 # Runs all linux tests and reports aggregated KTAP results.
 #
 # random: linux.random(m, n) and linux.random(n) stay within their range, a negative one included,
-# linux.random(m, m) answers m and [0, math.maxinteger], as wide as an interval it takes, holds its
+# linux.random(m, m) answers m and [0, math.maxinteger] holds its
 # draws; a draw from [0, 3 * 2^61 - 1] falls below 2^62 two times in three, where a reduction of
 # get_random_u64() by modulo gives three in four: the count of 10000 draws is nearer the first,
-# the two being 17 sigma apart. linux.random() answers an integer, linux.random(2, 1) raises
+# the two being 17 sigma apart. linux.random() and linux.random(math.mininteger, math.maxinteger),
+# the widest interval, answer an integer, linux.random(2, 1) raises
 # "interval is empty" and a third argument "wrong number of arguments".
 #
 # fsnotify: linux.fsnotify carries each event mask at the value the FAN_* and IN_* uapi pins it to,
