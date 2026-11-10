@@ -7,14 +7,49 @@
 
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
+local byteorder = require("byteorder")
 local string    = require("string")
-local common    = require("examples.dnsdoctor.common")
 local action    = nf.action
 local family    = nf.proto
 local hooks     = nf.inet
 local pri       = nf.ip.pri
 
 local udp = 0x11
+local dns = 0x35
+
+local function get_domain(skb, off)
+	local _, nameoff, name = skb:getstring(off):find("([^\0]*)")
+	return name, nameoff + 1
+end
+
+local function doctor(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
+	if packet_dst ~= byteorder.hton32(dst_ip) then
+		return action.ACCEPT
+	end
+
+	local srcport = byteorder.ntoh16(skb:getuint16(thoff))
+	if srcport == dns then
+		local dnsoff = thoff + 8
+		local nanswers = byteorder.ntoh16(skb:getuint16(dnsoff + 6))
+
+		-- check the domain name
+		dnsoff = dnsoff + 12
+		local domainname, nameoff = get_domain(skb, dnsoff)
+		if domainname == target_dns then
+			dnsoff = dnsoff + nameoff + 4 -- skip over type, label fields
+			-- iterate over answers
+			for _ = 1, nanswers do
+				local atype = byteorder.hton16(skb:getuint16(dnsoff + 2))
+				if atype == 1 then
+					skb:setuint32(dnsoff + 12, byteorder.hton32(target_ip))
+				end
+				dnsoff = dnsoff + 16
+			end
+		end
+	end
+
+	return action.ACCEPT
+end
 
 local function dnsdoctor_hook(skb)
 	local pkt = skb:data("net")
@@ -36,7 +71,7 @@ local function dnsdoctor_hook(skb)
 	local dst_ip = 0
 	dst:gsub("%d+", function(s) dst_ip = dst_ip * 256 + tonumber(s) end)
 
-	return common.hook(pkt, thoff, target_dns, target_ip, dst_ip, packet_dst)
+	return doctor(pkt, thoff, target_dns, target_ip, dst_ip, packet_dst)
 end
 
 netfilter.register{
