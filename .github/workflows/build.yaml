@@ -99,6 +99,9 @@ jobs:
         env -u PWD make -j$(nproc) -C "$GITHUB_WORKSPACE" MODULES_BUILD_PATH="${{ env.KERNEL_DIR }}"
         # kbuild handed an empty M= builds its own tree and passes
         test -f "$GITHUB_WORKSPACE/lunatik.ko" || { echo "make built no lunatik.ko"; exit 1; }
+    - name: Check empty units
+      # a unit wholly under a guard this kernel leaves unset compiles to nothing, and the build passes without it
+      run: bash tools/checks/empty-units.sh
     - name: Check lock contexts
       # sparse reads lock contexts through 6.19; doc/capi.md says why lunatik_lockkillable's callers stay
       if: matrix.kernel-version == '6.6' && matrix.defconfig == 'defconfig'
