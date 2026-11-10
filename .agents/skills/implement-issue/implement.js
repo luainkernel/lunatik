@@ -136,11 +136,20 @@ you take it, what you read, decided, committed and measured, and your answer bef
    wired and described (the new-test skill), each doc where its reader looks. \`make\` is clean on every
    commit, and \`make C=1\` where the change touches an annotated pointer. ${PUSH}
 4. For each test under tests/ the change adds or changes, write the defect it is for, the mechanism it
-   covers disabled (.agents/rules/tests.md), as a patch over the head: edit the tree, see that \`make\`
-   builds it, \`git diff > ${a.scratch}/issue${a.issue}/defect<n>.patch\`, then \`git apply -R\` of that patch.
+   covers disabled, and for each requirement of the issue a test is to prove, the defect that breaks the
+   requirement itself, a \`might_sleep()\` on a path the issue says sleeps nowhere, which never sleeps in
+   atomic context and prints what a sleep there would only where the kernel sets CONFIG_DEBUG_ATOMIC_SLEEP:
+   where it does not, no case can fail on the defect, and the requirement is said unproved on that kernel
+   (.agents/rules/tests.md). It reports once per HZ across the kernel, so its fails names the cases of the
+   suite that reach the path before the requirement's own, any of which the report may land in, and the
+   suite failing on it proves the requirement. Each is a patch over the head: edit the tree, see that
+   \`make\` builds it,
+   \`git diff > ${a.scratch}/issue${a.issue}/defect<n>.patch\`, then \`git apply -R\` of that patch.
    A defect that removes a crash guard is not written, since its test rests on the message it asserts.
-   Your answer's defects names each patch, the suite that runs the test and the cases it should fail:
-   the build plants each after one reload and runs that whole suite, never the test alone.
+   Your answer's defects names each patch, the requirement it breaks where it breaks one, the suite that
+   runs the test and the cases it should fail: the build plants each after one reload and runs that whole
+   suite, never the test alone. A requirement no case of the suite can fail on is said in your notes, and
+   not proved by a case of something else.
 5. Run "Before opening a pull request" with the pr-prep skill, except what needs the host: the suite and
    the examples run once, after the review, in an agent of their own, and a failure comes back to a fix.
    Run no install, reload, suite or example yourself. List the examples tools/checks/examples-touched.sh
@@ -267,6 +276,7 @@ const DEFECTS = { type: 'array', items: { type: 'object', properties: {
   patch: { type: 'string', description: 'the absolute path of the patch that plants the defect' },
   suite: { type: 'string', description: 'the suite `lunatik test` runs the test in' },
   fails: { type: 'array', items: { type: 'string' }, description: 'the cases the defect should fail, as the test prints them' },
+  requirement: { type: 'string', description: 'the requirement of the issue the defect breaks, quoted, or empty where it disables a test\'s own mechanism' },
 }, required: ['patch', 'suite', 'fails'] } }
 
 const IMPLEMENTED = {

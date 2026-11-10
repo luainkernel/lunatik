@@ -66,7 +66,9 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   the merge, and one whose patch did not apply is stale, neither of the two: the reviewer, after its
   fixups, and a fix, after its push, write again each patch that no longer applies over the head they
   leave. A defect that removes a crash guard is not written, since its test rests on the message
-  it asserts.
+  it asserts. A requirement the issue states takes a defect that breaks it, not only the mechanism a
+  test covers: #2378's case for "nothing on the hook's path sleeps" read no line a sleep prints, and a
+  `might_sleep()` planted on that path would have left it passing.
 - The pull request opens, in the `lunatik-github` agent, only on a head that passed with every example
   the change touches run, or loaded where the host cannot drive it, or none where the build ran nothing,
   and on a review that kept no mechanism

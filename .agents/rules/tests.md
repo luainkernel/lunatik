@@ -39,7 +39,18 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
   so a lost capability became the contract and restoring it has to delete a green test;
 * coverage means the matrix of operation by type by outcome, including the successes, not a list of
   features and not only the error paths;
-* prove the test discriminates: disable the mechanism it covers, watch it fail, restore. Commit
+* prove the test discriminates: disable the mechanism it covers, watch it fail, restore. A test of
+  a property an issue requires is proved by breaking the property itself, not only the mechanism:
+  #2378's case for "nothing on the hook's path sleeps" read no dmesg line a sleep prints, and a
+  `might_sleep()` planted on that path would have left it passing. `might_sleep()` never sleeps in
+  atomic context, and prints `BUG: sleeping function called from invalid context` only on a kernel built
+  with `CONFIG_DEBUG_ATOMIC_SLEEP` (`include/linux/kernel.h`): where the option is unset, as on Ubuntu's
+  6.8 generic kernel, no case can fail on it, and the requirement is said unproved on that kernel rather
+  than read as a test that does not discriminate. It reports once per `HZ` across the kernel
+  (`__might_resched`, `kernel/sched/core.c`), so in the whole suite a case that reaches the same path
+  first takes the report: on #2378 it failed `crypto/shash` and `crypto/hkdf` and left `crypto/quic`
+  passing, which failed run alone. The defect's cases are those that reach the path, and the suite
+  failing on it proves the requirement. Commit
   first, write the defect as a patch, `git diff > <defect>.patch`, and restore with `git apply -R` of
   it: a `git checkout --` takes any uncommitted work with the defect, and `discard-guard.sh` refuses
   one over a file that holds some. Each step is
