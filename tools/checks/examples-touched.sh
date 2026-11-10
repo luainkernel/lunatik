@@ -33,8 +33,8 @@ runnable() { # the directory of a multi-file example, the script of a single-fil
 # scripts requires it (#1341)
 started() {
 	local verbs
-	verbs=$(git diff -U0 "$CHECK_BASE" -- "$1" 2>/dev/null | grep -oE 'runner\.(run|spawn)\b' | sed 's/^runner\.//' | sort -u | paste -sd'|')
-	grep -lE "lunatik (${verbs:-run|spawn})( |$)" examples/*/README.md 2>/dev/null | xargs -r -n 1 dirname
+	verbs=$(git diff -U0 "$CHECK_BASE" $CHECK_HEAD -- "$1" 2>/dev/null | grep -oE 'runner\.(run|spawn)\b' | sed 's/^runner\.//' | sort -u | paste -sd'|')
+	holding "lunatik (${verbs:-run|spawn})( |$)" 'examples/*/README.md' | xargs -r -n 1 dirname
 }
 
 for file in "$@"; do
@@ -50,7 +50,7 @@ for file in "$@"; do
 	[ -n "$mods" ] || continue
 	required=$(printf '%s\n' $mods | sed 's/\./\\./g' | paste -sd'|')
 	examples=$({
-		grep -rlE "require\(\"($required)(\.[a-z0-9_.]+)?\"\)" examples/ 2>/dev/null | while IFS= read -r f; do runnable "$f"; done
+		holding "require\(\"($required)(\.[a-z0-9_.]+)?\"\)" examples/ | while IFS= read -r f; do runnable "$f"; done
 		[ "$file" = lib/lunatik/runner.lua ] && started "$file"
 	} | sort -u | tr '\n' ' ')
 	[ -n "$examples" ] || continue

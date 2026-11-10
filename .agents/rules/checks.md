@@ -397,7 +397,12 @@ through without requiring it, a library that requires it, as `netlink` reaches `
 a binding that builds its objects for a callback, as `netfilter` and `tc` hand an `skb`. A change to the
 runner adds the examples a README starts with the CLI verb whose function it touches, and one to autogen
 the `linux.*` tables its specs feed. The CI annotation reads the files a pull request adds or modifies, so a deleted module is named by the guard
-and the pull request's preparation, which read the whole diff.
+and the pull request's preparation, which read the whole diff. `examples-touched.sh` and `consumers.sh`
+read the change from `CHECK_BASE` in the working tree, where the preparation, the review and the CI hold
+its head, or, when `CHECK_HEAD` is set, at that commit through git: `consumers-guard.sh` and
+`pr-body-guard.sh` set the two to the merge-base and the head of the change they listed, since the
+checkout a hook runs in holds another branch, whose working tree read a spec the head changes as
+unchanged and a binding it adds as absent.
 
 `machine-leak.sh` reads a tracked file for what belongs to the machine it was written on: an absolute
 path in a home directory, a password handed to sudo, a credential read out of a file or carried inside a
