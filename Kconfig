@@ -137,7 +137,7 @@ config LUNATIK_NETFILTER
 	default m
 	depends on LUNATIK_SKB
 	help
-	  New Netfilter API bindings.
+	  Lua interface to the Linux Netfilter framework.
 	  Requires Lunatik SKB support.
 
 config LUNATIK_COMPLETION
