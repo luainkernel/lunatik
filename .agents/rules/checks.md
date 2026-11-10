@@ -530,5 +530,12 @@ rebase, a merge, a cherry-pick, an am or a revert, and one from a tree with any 
 the one that stops on a conflict leaves HEAD on the base with the branch's commits still to apply,
 and a push chained after it publishes that base as the branch. The push is a command of its own, after `git status` has
 been read; `PUSH_OK=1` overrides the guard for a push meant while a rebase stays paused in another
-tree.
+tree. It also refuses a lease whose expected value is a full hash the push's tree resolves to no
+commit, `git rev-parse --verify` read in that tree: git sends a full hash it does not hold, and the
+remote refuses it as stale info, "failed to push some refs", with no word of the lease. On 2026-11-06
+and 2026-11-10 a session completed a branch's head from the nine characters it had seen, twice a hash
+that does not exist; the value comes from the checkout, `--force-with-lease=<branch>:$(git rev-parse
+origin/<branch>)`, which the refusal spells. A lease with no value, or one spelled as a ref or an
+abbreviated hash, git resolves before it sends, and refuses there when it cannot, and the guard leaves
+it to git; `PUSH_OK=1` does not pass a lease it refuses.
 
