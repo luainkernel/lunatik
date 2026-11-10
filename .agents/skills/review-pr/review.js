@@ -25,8 +25,9 @@
 //   examples    the examples the change touches, as tools/checks/examples-touched.sh lists
 //               them over the changed files; the build phase runs whichever of them
 //               validated does not carry
-//   defects     [{patch, suite, fails}], the defect each new test is for, as implement-issue's
-//               implementer writes them; the build plants each once the suite passed
+//   defects     [{patch, suite, fails, requirement}], the defect each new test is for, or each requirement
+//               of the issue, as implement-issue's implementer writes them; the build plants each once
+//               the suite passed
 //   focus       what this round is for, in the maintainer's words
 //   issue       the issue the change answers, whose requirements the review holds the final diff to;
 //               a pull request's are the issues its body closes
@@ -221,7 +222,8 @@ ${JSON.stringify(body)}` : ''}
 ${(a.defects || []).length ? `Once the suite passed, plant each defect below in turn, to watch the test it is for
 fail: \`git apply <patch>\` in a call of its own, so crash-guard.sh reads the tree it leaves, then \`make\`, and only
 when it builds the install, the reload and \`lunatik test <suite>\` through tools/lunatik-host; the cases it names
-should fail, and no other. \`git apply -R <patch>\`, in a call of its own, reverts it before the next. After the
+should fail, and no other, or, for one that names a requirement, at least one of them and no other, since a report
+the kernel rate-limits, \`might_sleep()\`'s, lands in whichever case reaches the path first. \`git apply -R <patch>\`, in a call of its own, reverts it before the next. After the
 last, build, install and reload the tip again and run those suites once more. A patch \`git apply\` refuses
 plants nothing and answers applied false with failed empty; it and a call a guard refuses are reported, not
 tried another way. Your answer's discrimination says, for each patch, whether it applied and the cases that
