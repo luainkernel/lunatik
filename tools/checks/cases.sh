@@ -5,9 +5,10 @@
 #
 # Runs the command guards over the cases each one was proved against, so a later change to a guard,
 # or to commands.sh beneath them, is read against them again: tools/checks/cases/<guard>.cases holds
-# one case a line, `block` or `pass`, a tab and the tool input the guard reads, a command unless a
-# `# tool: Agent` or `# tool: Workflow` line names the subagent type or the script instead, and a
-# second tab the description the call carries beside it, which a guard reads for no verdict; a
+# one case a line, `block` or `pass`, a tab and the tool input the guard reads, a command, where `\n`
+# is a newline, unless a `# tool: Agent` or `# tool: Workflow` line names the subagent type or the
+# script instead, and a second tab the description the call carries beside it, which a guard reads
+# for no verdict; a
 # `# agent: <id>` line gives the cases after it the agent_id of a subagent's call, and `# agent:` takes
 # it away; a `# env: <name>=<value>` line sets that variable for the guard in the cases after it, as a
 # session's settings set LUNATIK_CONSUMERS, a relative path in it read from the fixture's directory.
@@ -45,6 +46,7 @@ for cases in "$@"; do
 			"# env: "*) envs+=("${want#\# env: }"); continue ;;
 			""|"#"*) continue ;;
 		esac
+		value=${value//\\n/$'\n'}
 		case "$tool" in
 			Agent) field=subagent_type ;;
 			Workflow) field=script ;;

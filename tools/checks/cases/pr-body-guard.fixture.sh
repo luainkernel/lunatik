@@ -11,14 +11,15 @@
 # which change the runner's function of that name; master is checked out, with the example's require
 # and the README's verb taken out of its working tree, which a change is not read from. Beside them the
 # bodies the cases post, one that names the example as examples/<name>, one that names it in backticks,
-# one that carries its name only as a bare word and one that does not carry it, the last again under
-# repos/drafts/, a path that reads as an endpoint's, and the JSON gh api sends for each base; under sub/,
-# read only after a cd into it, the body that names the example and a GraphQL mutation that carries no
-# text. For an issue edit, a gh on stub/ that answers the body GitHub has for luainkernel/lunatik#5 and
-# for luainkernel/lua#5, each carrying a line untraced.sh fails, the bodies that repeat each, one that
-# adds a line, and the held lists review-post-guard writes, through that gh, for the session none: under
-# ours/ for a comment on this repository's #5, under placeholder/ for one on {owner}/{repo}'s #5, and
-# under other/ for one on luainkernel/lua#5.
+# one that names it beside a command run under GH_REPO, one that carries its name only as a bare word
+# and one that does not carry it, the last again under repos/drafts/, a path that reads as an
+# endpoint's, and the JSON gh api sends for each base; under sub/, read only after a cd into it, the
+# body that names the example and a GraphQL mutation that carries no text. For an issue edit, a gh on
+# stub/ that answers the body GitHub has for luainkernel/lunatik#5 and for luainkernel/lua#5, each
+# carrying a line untraced.sh fails, the bodies that repeat each, one that adds a line, and the held
+# lists review-post-guard writes, through that gh, for the session none: under ours/ for a comment on
+# this repository's #5, under placeholder/ for one on {owner}/{repo}'s #5, and under other/ for one on
+# luainkernel/lua#5.
 #
 # Usage: bash tools/checks/cases/pr-body-guard.fixture.sh <dir>
 
@@ -62,6 +63,7 @@ printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nThe case now
 printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran.\n' > named.md
 printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nThe spyglass of the host ran.\n' > bare.md
 printf "A fifo of a megabyte fails to load on a fragmented host.\n\n\`spyglass\` ran.\n" > ticked.md
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran, GH_REPO=luainkernel/lunatik lunatik spawn.\n' > repo.md
 mkdir -p repos/drafts
 cp silent.md repos/drafts/silent.md
 for base in master fifo; do

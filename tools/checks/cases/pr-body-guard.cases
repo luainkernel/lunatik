@@ -58,3 +58,15 @@ block	gh issue edit 5 -R github.com/luainkernel/lua --body-file new.md
 pass	gh issue edit 5 --body-file new.md
 pass	gh issue edit 6 -R luainkernel/lua --body-file new.md
 
+block	GH_REPO=luainkernel/lua gh pr merge 7 --rebase
+block	env GH_REPO=luainkernel/lua gh pr merge 7 --rebase
+block	export GH_REPO=luainkernel/lua; gh pr merge 7 --rebase
+block	GH_REPO=luainkernel/lua gh api -X PUT 'repos/{owner}/{repo}/pulls/7/merge'
+block	GH_REPO=luainkernel/lua bash -c 'gh issue close 7'
+block	GH_REPO=luainkernel/lua eval gh pr merge 7 --rebase
+block	GH_REPO=luainkernel/lua bash -c 'echo $(gh issue close 7)'
+block	GH_REPO=luainkernel/lua bash <<'EOF'\ngh pr merge 7 --rebase\nEOF
+pass	gh pr merge 7 --rebase -R luainkernel/lua
+pass	GH_REPO=luainkernel/lua gh pr view 7
+pass	gh pr create --head fifo-test --base master --body-file repo.md
+pass	cat > note.md <<'EOF'\nGH_REPO=luainkernel/lua gh pr merge 7 --rebase\nEOF\ngh pr create --head fifo-test --base master --body-file named.md

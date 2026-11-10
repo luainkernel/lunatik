@@ -218,7 +218,10 @@ and `-b` on `gh pr` and `gh issue`, `--notes-file` and `-n` on `gh release`, a f
 flag, and the JSON `gh api --input` sends,
 whose other fields go through `machine-leak.sh` too; `gh issue comment` is the review guard's. A
 write whose text no guard reads is refused: one through curl to GitHub's API, and a GraphQL mutation
-other than the textless ones the skills run. GitHub is written through gh, and where gh is absent the
+other than the textless ones the skills run. So is a write the guards read that its command runs under
+`GH_REPO`, set before it, among `env`'s words or by an `export` before it: gh takes the repository from
+it and the guards from `-R` and the endpoint, so they read a write to another repository as one to the
+checkout's; `-R`, which gh obeys over `GH_REPO`, names it where they read it. GitHub is written through gh, and where gh is absent the
 implement-issue workflow reads through curl and writes nothing. An issue a write opens is read by
 `contract.sh` too, which refuses a finding whose stimulus reaches into the runtime's own bookkeeping,
 out of contract by the honest-mistake bullet of AGENTS.md, *Deciding what to change*. `CONTRACT_OK=1` opens it where a script using the API as
