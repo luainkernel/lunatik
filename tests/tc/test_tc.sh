@@ -8,6 +8,12 @@
 # namespace, so a ping from the namespace traverses the hook regardless
 # of the host setup.
 #
+# Before the first case, with no program on the veth, the namespace pings the host
+# until one is answered or 5 s pass. A host that answers none fails the suite there,
+# with its ICMP echo counters before and after the ping, the route a reply would
+# take, the nft ruleset and the running scripts printed as comments: a ping case
+# that fails after this ping is answered points at the tc path, not at the host.
+#
 # The non-linear case sends a TCP segment from the host to a listener in the
 # namespace instead: tcp_sendmsg keeps the payload in page fragments, so the skb
 # the classifier sees is non-linear. The program hands it to bpf_luatc_run, where
@@ -190,6 +196,13 @@ copy_releases() {
 		/ release: / && inside[cpu] { n++ } END { print n + 0 }' "$TRACING/instances/$ROUTE_GROUP/trace"
 }
 
+# the host's echo requests in and replies out, read by name: the Icmp: columns vary by release
+echoes() {
+	awk '$1 == "Icmp:" { if (!seen++) split($0, name); else for (i = 2; i <= NF; i++)
+		if (name[i] == "InEchos" || name[i] == "OutEchoReps") { printf "%s%s %s", sep, name[i], $i; sep = " " } }
+		END { print "" }' /proc/net/snmp
+}
+
 ktap_header
 ktap_plan 26
 
@@ -273,6 +286,18 @@ MAC=$(cat /sys/class/net/$IFACE/address)
 PEER_MAC=$(ip netns exec "$NETNS" cat /sys/class/net/$PEER/address)
 ip neigh replace "$TARGET" lladdr "$PEER_MAC" dev "$IFACE" nud permanent
 ip netns exec "$NETNS" ip neigh replace "$HOST" lladdr "$MAC" dev "$PEER" nud permanent
+
+ECHOES=$(echoes)
+ip netns exec "$NETNS" ping -c 1 -w 5 "$HOST" > /dev/null 2>&1 || {
+	ktap_fail "tc setup: the host does not answer a ping from $NETNS"
+	comment "before the ping: $ECHOES"
+	comment "after it: $(echoes)"
+	comment "$(ip route get "$TARGET" from "$HOST" 2>&1)"
+	comment "$(nft list ruleset 2>&1)"
+	comment "$(lunatik list 2>&1)"
+	ktap_totals
+	exit 1
+}
 
 run_case()
 {
