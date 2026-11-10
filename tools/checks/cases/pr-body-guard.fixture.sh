@@ -14,10 +14,15 @@
 # one that carries its name only as a bare word and one that does not carry it, the last again under
 # repos/drafts/, a path that reads as an endpoint's, and the JSON gh api sends for each base; under sub/,
 # read only after a cd into it, the body that names the example and a GraphQL mutation that carries no
-# text.
+# text. For an issue edit, a gh on stub/ that answers the body GitHub has for luainkernel/lunatik#5 and
+# for luainkernel/lua#5, each carrying a line untraced.sh fails, the bodies that repeat each, one that
+# adds a line, and the held lists review-post-guard writes, through that gh, for the session none: under
+# ours/ for a comment on this repository's #5, under placeholder/ for one on {owner}/{repo}'s #5, and
+# under other/ for one on luainkernel/lua#5.
 #
 # Usage: bash tools/checks/cases/pr-body-guard.fixture.sh <dir>
 
+guard=$(cd "$(dirname "$0")/.." && pwd)/review-post-guard.sh
 cd "$1" || exit 1
 export GIT_AUTHOR_NAME=cases GIT_AUTHOR_EMAIL=cases@example.invalid
 export GIT_COMMITTER_NAME=cases GIT_COMMITTER_EMAIL=cases@example.invalid
@@ -61,6 +66,26 @@ mkdir -p repos/drafts
 cp silent.md repos/drafts/silent.md
 for base in master fifo; do
 	jq -n --arg base "$base" --rawfile body silent.md '{head: "fifo-test", base: $base, draft: true, body: $body}' > "$base.json"
+done
+printf 'A fifo.\n\nThe fifo test is a flake.\n' > fifo.md
+printf 'A table.\n\nThe table test is a flake.\n' > table.md
+printf 'A fifo.\n\nThe buffer holds a page.\n' > new.md
+mkdir -p stub
+cat > stub/gh <<STUB
+#!/bin/sh
+case "\$*" in
+	*"/lunatik/issues/5 --jq .body"|*"{repo}/issues/5 --jq .body") cat "$PWD/fifo.md" ;;
+	*"/lua/issues/5 --jq .body") cat "$PWD/table.md" ;;
+	*) exit 1 ;;
+esac
+STUB
+chmod +x stub/gh
+printf '> [!NOTE]\n> This comment was written by an LLM, not a human.\n\nThe callback returns the queue.\n' > note.md
+for held in "ours gh issue comment 5 --body-file note.md" \
+	"placeholder gh api -X POST repos/{owner}/{repo}/issues/5/comments -F body=@note.md" \
+	"other gh api -X POST repos/luainkernel/lua/issues/5/comments -F body=@note.md"; do
+	jq -n --arg command "${held#* }" --arg cwd "$PWD" '{tool_name: "Bash", tool_input: {command: $command}, cwd: $cwd}' |
+		PATH=$PWD/stub:$PATH LUNATIK_GUARD_DIR=${held%% *} bash "$guard"
 done
 mkdir -p sub
 cp named.md sub/body.md

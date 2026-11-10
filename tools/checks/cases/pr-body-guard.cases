@@ -25,4 +25,35 @@ block	gh -R luainkernel/lunatik pr create --head fifo-test --base master --body-
 block	gh -Rluainkernel/lunatik pr create --head fifo-test --base master --body-file silent.md
 pass	gh -R luainkernel/lunatik pr create --head fifo-test --base master --body-file named.md
 pass	EXAMPLES_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@silent.md
+# an issue edit is read against the body its issue has in the repository the write targets, which the
+# gh on stub/ answers, with no post held
+# env: PATH=stub:/usr/local/bin:/usr/bin:/bin
+# env: LUNATIK_GUARD_DIR=none
+pass	gh issue edit 5 --body-file fifo.md
+pass	gh issue edit 5 -R luainkernel/lunatik --body-file fifo.md
+block	gh issue edit 5 -R luainkernel/lua --body-file fifo.md
+block	gh -R luainkernel/lua issue edit 5 --body-file fifo.md
+pass	gh issue edit 5 -R luainkernel/lua --body-file table.md
+block	gh issue edit 5 --body-file table.md
+pass	gh api -X PATCH repos/luainkernel/lua/issues/5 -F body=@table.md
+block	gh api -X PATCH repos/luainkernel/lua/issues/5 -F body=@fifo.md
+# a comment held on this repository's #5 holds an edit of that issue alone, however -R spells the repository
+# env: LUNATIK_GUARD_DIR=ours
+block	gh issue edit 5 --body-file new.md
+block	gh api -X PATCH repos/luainkernel/lunatik/issues/5 -F body=@new.md
+block	gh issue edit 5 -R LuaInKernel/Lunatik --body-file new.md
+pass	gh issue edit 5 -R luainkernel/lua --body-file new.md
+pass	gh api -X PATCH repos/luainkernel/lua/issues/5 -F body=@new.md
+# a comment held on {owner}/{repo}'s #5, which gh fills with this repository, holds an edit of this one's
+# env: LUNATIK_GUARD_DIR=placeholder
+block	gh issue edit 5 --body-file new.md
+pass	gh issue edit 5 -R luainkernel/lua --body-file new.md
+# a comment held on luainkernel/lua#5 holds an edit of that issue alone, however -R spells the repository
+# env: LUNATIK_GUARD_DIR=other
+block	gh issue edit 5 -R luainkernel/lua --body-file new.md
+block	gh api -X PATCH repos/luainkernel/lua/issues/5 -F body=@new.md
+block	gh issue edit 5 -R LuaInKernel/Lua --body-file new.md
+block	gh issue edit 5 -R github.com/luainkernel/lua --body-file new.md
+pass	gh issue edit 5 --body-file new.md
+pass	gh issue edit 6 -R luainkernel/lua --body-file new.md
 
