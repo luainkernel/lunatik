@@ -96,8 +96,10 @@ An issue is a request, not a decision to implement it. Judge it before you shape
    source and on the web, and name what you read.
 3. Your verdict. implement settles, as text the issue takes under an Update: line, the API, the contract and
    whatever format the issue leaves open, and leaves helpers and loops to the implementer (AGENTS.md, on what
-   an issue states). reshape is a shape other than the issue's, which the maintainer decides on; decline is
-   the reason to build nothing. Either stops the run.
+   an issue states). It meets every requirement the issue states, and the text says of each, quoted, how: a
+   shape that meets one in part, or otherwise than its words, is a reshape, since what an issue asks is
+   narrowed by the maintainer and not by an Update. reshape is a shape other than the issue's, which the
+   maintainer decides on; decline is the reason to build nothing. Either stops the run.
 `
 
 const GROOMING = (groomed) => `
