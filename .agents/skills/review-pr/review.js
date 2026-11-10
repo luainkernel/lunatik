@@ -28,6 +28,10 @@
 //   defects     [{patch, suite, fails}], the defect each new test is for, as implement-issue's
 //               implementer writes them; the build plants each once the suite passed
 //   focus       what this round is for, in the maintainer's words
+//   issue       the issue the change answers, whose requirements the review holds the final diff to;
+//               a pull request's are the issues its body closes
+//   update      the Update: a groomer settled for that issue, which binds as the issue does and
+//               reaches it only once the run that launched the review returns
 //   smallest    the implementer's smallest shape, when implement-issue launches the review
 //   body        the body a branch with no pull request yet opens with, which the reviewer answers
 //               corrected against the final diff, and the build reads for what it claims of the examples
@@ -121,6 +125,9 @@ ENVIRONMENT:
 ${a.focus ? 'THIS ROUND, in the maintainer\'s words: ' + a.focus : ''}
 `
 
+// a requirement nobody held the diff to closes with the issue, met or not
+const asked = a.issue ? `issue #${a.issue}` : a.pr ? 'each issue the pull request\'s body closes' : ''
+
 const REVIEW = COMMON + `
 PHASE: REVIEW. The process is .agents/skills/review-pr/process.md; read its "Findings" and "Fixups" first.
 
@@ -131,7 +138,14 @@ open a file beyond it only for what it does not show: a caller, a sibling, the k
 files you read load with them, from .agents/rules/.${a.pr ? `
 Read the pull request's threads too (\`${api(`repos/${github}/pulls/${a.pr}/comments`)}\` and
 \`${api(`repos/${github}/issues/${a.pr}/comments`)}\`), which record what the maintainer cares about,
-and run tools/checks/pr-body.sh over its body.` : ''}
+and run tools/checks/pr-body.sh over its body.` : ''}${asked ? `
+The change answers ${asked}: read it and its comments${a.update ? `, and the Update the run appends to it, which
+binds as the issue does: ${JSON.stringify(a.update)}` : ''}. Your answer's requirements holds the final diff to
+each requirement it states and each point an Update: settles, quoted: how the diff meets it, and the case that
+fails when the diff does not, or why no case can. One the diff meets otherwise than its words say, or in part,
+differs, and goes back to the session as a decision, since an issue closed by a change that narrowed it closes
+narrowed with nobody having decided. One no case can fail on is a missing test, a finding of its own: a case
+that reads no dmesg line a sleep prints proves nothing of a requirement that nothing sleeps.` : ''}
 
 Every line under "# Checks" is answered in the checkpoint: a fixup, or why the code stays; a line of
 function-shape.sh with the function's jobs listed, and one of kernel-answer.sh with the facility the commit
@@ -250,12 +264,18 @@ const FINDINGS = {
     fixups: { type: 'array', items: { type: 'string' } },
     tip: { type: 'string', description: 'the full SHA of the branch tip after every fixup' },
     coverage: { type: 'string', description: 'the matrix the change is held to, and what nothing on this kernel can see' },
+    requirements: { type: 'array', items: { type: 'object', properties: {
+      requirement: { type: 'string', description: 'the requirement, or the point of an Update:, quoted with where it is stated' },
+      how: { type: 'string', description: 'how the final diff meets it, with file:line' },
+      case: { type: 'string', description: 'the case that fails when the diff does not meet it, as the test prints it, or why none can' },
+      verdict: { type: 'string', enum: ['met', 'differs'], description: 'differs when the diff meets it otherwise than its words, or in part' },
+    }, required: ['requirement', 'how', 'case', 'verdict'] }, description: 'empty when the change answers no issue' },
     smallest: SMALLEST,
     body: { type: 'string', description: 'the body the pull request opens with, when one was handed to correct' },
     findings_left: LEFT,
     notes: { type: 'string' },
   },
-  required: ['ready', 'findings', 'fixups', 'tip', 'coverage', 'smallest', 'findings_left', 'notes'],
+  required: ['ready', 'findings', 'fixups', 'tip', 'coverage', 'requirements', 'smallest', 'findings_left', 'notes'],
 }
 
 const BUILD_OUT = {

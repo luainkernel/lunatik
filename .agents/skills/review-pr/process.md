@@ -33,7 +33,11 @@ is how a mutex in softirq and a crash reachable from Lua were passed.
    the compiler, once in `bin/`, required `class` from `lib/` through a copy installed in its own root.
 3. Read the PR's own conversation, not only its diff. An author's comment may raise a question or
    propose an alternative the review has to engage; a verdict that ignores an open author thread is
-   incomplete.
+   incomplete. So is one that never read the issue the pull request closes: each requirement it
+   states, and each point an `Update:` settles, is held to the final diff, met with the case that fails
+   without it, or differing, which goes to the maintainer as a decision rather than closing narrowed.
+   #2369 asked its methods refused in a hardirq runtime and #2378 refused them where IRQs are off,
+   #2360 met two requirements of #2341 in part, and neither issue said so until a reader asked.
 4. A PR based on another branch rather than `master` is stacked: review it against its own base, and
    read the whole stack first, because what one PR seems to delete may have moved to a PR stacked on
    top of it — check there before reporting a deletion as a loss.

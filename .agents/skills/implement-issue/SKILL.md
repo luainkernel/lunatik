@@ -49,6 +49,13 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   went through a whole suite. A failure
   goes to a fix agent with the implementer's checkpoint, and the build runs again, twice at most; the
   fix is not reviewed again, which the hand-back says.
+- The review holds the final diff to each requirement the issue states and each point the groomer's
+  `Update:` settles, which it is handed, since the session appends it only once the run returns, and
+  answers each `met`, with the case that fails without it, or `differs`. The run logs how many differ,
+  the review's `requirements` carries each, and the session brings each back to the maintainer as a
+  decision before the merge, whose outcome the issue takes under `Update:`: #2378 and #2360 opened
+  meeting requirements of #2369 and #2341 otherwise than their words, or in part, which nobody had
+  decided until a reader of the two asked.
 - The implementer writes, for each test the change adds or changes, the defect it is for as a patch,
   and the build plants each once the suite passed, in a call of its own that `crash-guard.sh` reads,
   runs the test's suite and reverts it. The hand-back carries the cases each defect failed; one that
