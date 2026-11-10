@@ -70,6 +70,8 @@ jobs:
           CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y
           CONFIG_DEBUG_INFO_BTF=y
           CONFIG_SCHED_CLASS_EXT=y
+          # crypto.kpp links crypto_ecdh_encode_key, which ecdh_generic exports and no defconfig builds
+          CONFIG_CRYPTO_ECDH=y
         )
         printf '%s\n' "${options[@]}" >> .config
         # modpost resolves our modules' symbols against the Module.symvers this full build writes
