@@ -33,6 +33,8 @@
 //               a pull request's are the issues its body closes
 //   update      the Update: a groomer settled for that issue, which binds as the issue does and
 //               reaches it only once the run that launched the review returns
+//   cases       [{suite, case}], the cases the change adds or changes, as the test prints them;
+//               the build answers the line the suite printed for each
 //   smallest    the implementer's smallest shape, when implement-issue launches the review
 //   body        the body a branch with no pull request yet opens with, which the reviewer answers
 //               corrected against the final diff, and the build reads for what it claims of the examples
@@ -210,6 +212,10 @@ In a worktree of your own under ${a.scratch}/ at \`${tip}\`, the tip of \`${a.br
 Your answer's clean says whether that run passed.` : `\`make\` clean, then install, reload and the whole suite through tools/lunatik-host as the
 lunatik-cycle skill orders it, then the examples the change touches through tools/watchdog.sh, each one
 driven as its README says and stopped, with dmesg read after.`}
+Your answer's kernel is what \`uname -srm\` prints here.${(a.cases || []).length ? ` Its cases holds, for each case below,
+the line the suite printed for it, copied as printed, \`ok\`, \`not ok\` or a \`# SKIP\` with its reason: a case
+that skipped proved nothing on this host, whatever the totals say.
+${JSON.stringify(a.cases, null, 2)}` : ''}
 ${(a.examples || []).length ? `The examples the change touches: ${a.examples.join(', ')}. Your answer's examples names
 the ones that ran clean, driven until they did what their README shows, spelled as they are listed here; one
 that only loaded and stopped, or could not run on this host, goes in loaded instead, with why.` : 'The change touches no example.'}
@@ -286,6 +292,10 @@ const BUILD_OUT = {
     totals: { type: 'string' }, core: { type: 'string' }, head: { type: 'string' },
     skipped: { type: 'boolean', description: 'true when functional.sh named nothing past the validated head, or past the base where none was' },
     examples: { type: 'array', items: { type: 'string' } }, clean: { type: 'boolean' }, notes: { type: 'string' },
+    kernel: { type: 'string', description: 'what uname -srm prints on the host the build ran on' },
+    cases: { type: 'array', items: { type: 'object', properties: {
+      suite: { type: 'string' }, case: { type: 'string' }, line: { type: 'string', description: 'the KTAP line the suite printed for it' },
+    }, required: ['suite', 'case', 'line'] }, description: 'the line of each case handed, empty when none was or nothing ran' },
     loaded: { type: 'array', items: { type: 'object', properties: {
       example: { type: 'string' }, why: { type: 'string' },
     }, required: ['example', 'why'] }, description: 'the examples that only loaded and stopped, or could not run on this host' },

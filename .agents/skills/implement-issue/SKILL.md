@@ -51,7 +51,10 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   the pull request opens on the checks, saying so of each example: a sentence of a guide page on #2231
   went through a whole suite. A failure
   goes to a fix agent with the implementer's checkpoint, and the build runs again, twice at most; the
-  fix is not reviewed again, which the hand-back says.
+  fix is not reviewed again, which the hand-back says. The build answers the kernel it ran on and the line
+  the suite printed for each case the implementer names as the change's, and the body names a case that
+  skipped there: a skip counts as a pass in the totals, and a reader of #2378 asked which of its cases
+  had run and which had skipped, which no part of the run had recorded.
 - The review holds the final diff to each requirement the issue states and each point the groomer's
   `Update:` settles, which it is handed, since the session appends it only once the run returns, and
   answers each `met`, with the case that fails without it, or `differs`. The run logs how many differ,
