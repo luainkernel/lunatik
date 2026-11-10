@@ -10,7 +10,8 @@
 # releases whose body, a file named by -F body=@, --body-file, --notes-file, -F or
 # --input, the check fails on,
 # printing the findings; silent (exit 0) on everything else. It also blocks a write to
-# GitHub whose text no guard reads, curl's and a GraphQL mutation's.
+# GitHub whose text no guard reads, curl's and a GraphQL mutation's, and a gh write whose
+# repository no guard reads, one its command runs under GH_REPO.
 # Reads the command field of the raw hook input through commands.sh: the description
 # beside it and the commands chained with the write are not the write. The body file goes
 # through machine-leak.sh first: a body is text posted to GitHub like any other, so a
@@ -162,6 +163,26 @@ unread() {
 	$1 ~ /^([^ ]*\/)?gh$/ && $2 == "api" && $3 == "graphql"')"
 }
 
+# the writes the guards read among <cmds>, as assignments prints them, that run under GH_REPO, set
+# before the command, among env's words or by an export before it: gh takes the repository from it,
+# and the guards from -R and from an endpoint matching the extended regex <path>
+environment() {
+	local writes
+	writes=$(gh_writes "$(printf '%s\n' "$1" | awk '
+	{
+		set = exported || /^([A-Za-z_][A-Za-z_0-9]*= )*GH_REPO= /
+		sub(/^([A-Za-z_][A-Za-z_0-9]*= )+/, "")
+		if ($1 == "export")
+			exported = exported || / GH_REPO(=| |$)/
+		else if (set)
+			print
+	}')" \
+		'pr (create|new|edit|merge|review|comment|close|reopen)|issue (create|new|edit|comment|close|reopen)|release (create|new|edit)' "$2")
+	[ -z "$writes" ] && return
+	echo "pr-body-guard: gh takes the repository of this write from GH_REPO, which no guard reads: drop it and name the repository with -R, which gh obeys over GH_REPO, or, to gh api, in the endpoint." >&2
+	exit 2
+}
+
 # a pull request opened on a branch names every example its change touches (examples-named.sh), the
 # change from the base to the head the write names
 examples() {
@@ -246,6 +267,7 @@ ours() {
 
 cmds=$(gh_commands "$input")
 repo='^(https://api\.github\.com)?/?repos/[^/]+/[^/]+'
+environment "$(assignments "$input")" "$repo"
 case "$(command_text "$input")" in
 	*REVIEW_POST_OK=1*) ;;
 	*) held "$(gh_writes "$cmds" '(issue|pr) edit' "$repo/(issues|pulls)/[0-9]+\$")" ;;

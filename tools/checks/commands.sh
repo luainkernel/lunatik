@@ -26,7 +26,9 @@ command_text() {
 # and past the words that only lead into a command: an assignment, a keyword, sudo, env, timeout,
 # setsid, ip netns exec, tools/lunatik-host, a shell or a lua given a script. A shell's -c string,
 # an eval, a substitution and a heredoc a shell reads are commands too; other quoted text is one
-# word, another heredoc data. With -v redirections=1, the files the redirections write instead
+# word, another heredoc data. With -v redirections=1, the files the redirections write instead; with
+# -v assignments=1, each command after the names of the variables it runs under, NAME=, its own and
+# those of the shell that reads it
 COMMAND_PARSER='
 	function word() {
 		if (w == "" && !quoted)
@@ -57,20 +59,24 @@ COMMAND_PARSER='
 			line = line " " W[i]
 		return line
 	}
-	function nested(s,   d, t, h) {
-		d = delim; t = tab; h = shell
+	function nested(s, set,   d, t, h, o) {
+		d = delim; t = tab; h = shell; o = outer
+		outer = set
 		parse(s)
-		delim = d; tab = t; shell = h
+		delim = d; tab = t; shell = h; outer = o
 	}
 	# prints the command W holds; returns whether it is a shell that reads its commands from stdin
-	function command(   i, k, c, stdin, noexec, line) {
+	function command(   i, k, c, stdin, noexec, line, set) {
 		word()
+		set = outer
 		for (i = 1; i <= n; i++) {
 			k = W[i]
 			sub(/.*\//, "", k)
-			if (W[i] ~ /^[A-Za-z_][A-Za-z_0-9]*=/ || k ~ /^(!|\{|if|then|elif|else|do|while|until|time|command|exec|nohup|lunatik-host|lua[0-9.]*)$/)
+			if (W[i] ~ /^[A-Za-z_][A-Za-z_0-9]*=/)
+				set = set substr(W[i], 1, index(W[i], "=")) " "
+			else if (k ~ /^(!|\{|if|then|elif|else|do|while|until|time|command|exec|nohup|lunatik-host|lua[0-9.]*)$/)
 				continue
-			if (k == "sudo")
+			else if (k == "sudo")
 				i = options(i + 1, "^-[^-]*[CDghpRrTtUu]$") - 1
 			else if (k == "env")
 				i = options(i + 1, "^-[^-]*[CSu]$") - 1
@@ -81,7 +87,7 @@ COMMAND_PARSER='
 			else if (k == "ip" && W[i + 1] == "netns" && W[i + 2] == "exec")
 				i += 3 # and the namespace
 			else if (k == "eval") {
-				nested(join(i + 1))
+				nested(join(i + 1), set)
 				return 0
 			}
 			else if (k ~ /^(ba|da)?sh$/) {
@@ -101,7 +107,8 @@ COMMAND_PARSER='
 				if (c || stdin || i > n) {
 					n = 0
 					if (c && line != "")
-						nested(line)
+						nested(line, set)
+					piped = set
 					return !c
 				}
 				i-- # the script is the command
@@ -112,7 +119,7 @@ COMMAND_PARSER='
 		line = join(i)
 		gsub(/\n/, " ", line) # a quoted newline is not a new command
 		if (line != "" && !redirections)
-			print line
+			print (assignments ? set : "") line
 		n = 0
 		return 0
 	}
@@ -127,6 +134,7 @@ COMMAND_PARSER='
 		if (j == i || j > length(s))
 			j = length(s)
 		Q[++nq] = substr(s, i + 1 + dollar, j - i - 1 - dollar)
+		O[nq] = outer # it runs under the variables of the shell that reads it
 		w = w substr(s, i, j - i + 1)
 		return j
 	}
@@ -144,7 +152,7 @@ COMMAND_PARSER='
 			body = body line "\n"
 		}
 		if (shell)
-			nested(body)
+			nested(body, piped)
 		delim = ""
 		shell = 0
 		return i
@@ -218,8 +226,10 @@ COMMAND_PARSER='
 	{ text = (NR > 1 ? text "\n" : "") $0 }
 	END {
 		parse(text)
-		for (q = 1; q <= nq; q++)
+		for (q = 1; q <= nq; q++) {
+			outer = O[q]
 			parse(Q[q])
+		}
 	}'
 
 commands() {
@@ -229,6 +239,11 @@ commands() {
 # the files the command field's redirections write, one a line, with the quotes taken off
 redirections() {
 	command_text "$1" | awk -v redirections=1 "$COMMAND_PARSER"
+}
+
+# the commands the command field runs, each after the names of the variables it runs under, NAME=
+assignments() {
+	command_text "$1" | awk -v assignments=1 "$COMMAND_PARSER"
 }
 
 # git past its global options, -C with its word and -c with its key=value, a value commands prints
