@@ -2510,7 +2510,11 @@ Regression tests for `luatc`. The suite builds real TC/eBPF programs that call
 `bpf_luatc_run`, attaches them with `tc` on the egress of a veth pair
 whose peer sits in a network namespace, with the neighbor entries pinned so
 ARP never competes with ICMP for the verdict; skipped when the module lacks
-BTF, or `bpftool`, `clang` or `tc` is unavailable. The pass, drop and reattach
+BTF, or `bpftool`, `clang` or `tc` is unavailable. Before the first case, with
+no program attached, the namespace pings the host for up to 5 s; a host that
+answers none fails the suite there, printing its ICMP echo counters before and
+after the ping, the route a reply would take, the nft ruleset and `lunatik list`,
+so a ping case that fails after it points at the tc path. The pass, drop and reattach
 cases also fail on a "no callback attached" line: `tc.attach` detaches whatever
 was bound before, and a first attach, which finds nothing, logs nothing.
 
