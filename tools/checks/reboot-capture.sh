@@ -5,12 +5,10 @@
 #
 # A reboot clears /tmp, where every session keeps its scratch files, and takes the oops and the
 # pinned modules with it. tools/prereboot.sh saves them for every session on the host, so the session
-# that asks for the reboot runs it: the others learn of the reboot when it is done. A session asked for
-# one on 2026-10-01 and the reboot took another session's cycle scripts and drafts.
+# that asks for the reboot runs it: the others learn of the reboot when it is done.
 # The request is the imperative or the need said to the maintainer. What only a reboot clears, said of
 # the host, asks for one only while the host is stuck, a module pinned or a lunatik process in D state:
-# on a sound host it describes what a bug would leave, and read as a request it sent back, on
-# 2026-10-01 and again on 2026-10-02, replies that asked for nothing.
+# on a sound host it describes what a bug would leave, and asks for nothing.
 # Takes text files, a reply; when one asks for a reboot and the checkout holds no scratch/reboot-*
 # capture taken in the last hour, prints the lines that ask and exits 1.
 #

@@ -5,10 +5,8 @@
 #
 # A step only the maintainer can take reaches him as a script the session wrote under /tmp and the
 # one short line that runs it, "! bash /tmp/<name>.sh" in Claude Code: a command spelled out in the
-# reply is one he copies by hand, and the terminal wraps it where the copy breaks. On 2026-10-11 a
-# reply handed him the delete of the 21 branches a merge left as one line of 600 characters. A write
-# to GitHub is not such a step: the auto mode classifier lets it through once his go is in the
-# conversation, and on 2026-10-20 two comments he had approved reached him as a script to run.
+# reply is one he copies by hand, and the terminal wraps it where the copy breaks. A write to GitHub
+# is not such a step: the auto mode classifier lets it through once his go is in the conversation.
 # Takes text files, a reply; when one hands him a command, a line opening with "! ", longer than 60
 # characters or continued on the next, or a script under /tmp that writes to GitHub with gh and runs
 # nothing as root, prints it and exits 1.

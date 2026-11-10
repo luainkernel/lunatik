@@ -5,10 +5,8 @@
 #
 # Lists the commits a base took since an issue was opened that touch the files the issue names, so
 # an issue the tree answered after it was filed is read as answered before an agent is launched on
-# it: four issues of a batch on 2026-11-04, each saying no case covered something, were declined by
-# their groomers after the launch, the cases having landed days after the issues were filed. A file
-# the issue names is a path under a top-level directory of the tree, or a root source, in its body,
-# with a `:line` suffix dropped; one named without its extension, as a suite's case is,
+# it. A file the issue names is a path under a top-level directory of the tree, or a root source,
+# in its body, with a `:line` suffix dropped; one named without its extension, as a suite's case is,
 # `tests/skb/resize`, stands for the files the base holds under it with one, and one the base holds
 # neither way is listed apart. The commits are read, not obeyed: one that touches a named file need
 # not answer the issue.
