@@ -568,14 +568,16 @@ gh_named() {
 # the base and the head, "<base> <head>", of the pull request the gh write <post> opens or edits: a
 # create's those it names; an edit's from GitHub's pulls/<N>, asked with the credential the hook input
 # <input> carries, the base too, since a retarget moves none of its commits, and one onto master after
-# its base merged by rebase would read that base's commits, under their old SHAs, as its own
+# its base merged by rebase would read that base's commits, under their old SHAs, as its own; none from
+# a lookup that fails, whose error body gh prints where the answer would be
 gh_refs() {
-	local base head repo number
+	local base head repo number answer
 	number=$(gh_number "$2")
 	if [ -n "$number" ]; then
 		repo=$(gh_repo "$2")
-		read -r head base <<< "$(GH_TOKEN=$(gh_token "$1") gh api "repos/${repo:-{owner\}/{repo\}}/pulls/$number" \
-			--jq '.head.sha + " " + .base.ref' 2> /dev/null)"
+		answer=$(GH_TOKEN=$(gh_token "$1") gh api "repos/${repo:-{owner\}/{repo\}}/pulls/$number" \
+			--jq '.head.sha + " " + .base.ref' 2> /dev/null) || answer=
+		read -r head base <<< "$answer"
 	else
 		read -r base head <<< "$(gh_named "$2")"
 	fi
