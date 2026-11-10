@@ -8,72 +8,63 @@
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
 local byteorder = require("byteorder")
-local string    = require("string")
+local net       = require("net")
 local action    = nf.action
 local family    = nf.proto
 local hooks     = nf.inet
 local pri       = nf.ip.pri
+local ntoh16    = byteorder.ntoh16
 
-local udp = 0x11
-local dns = 0x35
+local UDP <const> = 0x11
+local DNS <const> = 0x35
+local IHL <const> = 0x0F
+local UDPLEN <const> = 8
+local QTAIL <const> = 4
+local COMPRESSED <const> = 0xC0
+local TYPE_A <const> = 1
+local ADDRLEN <const> = 4
+local DOMAIN <const> = string.pack("s1s1", "lunatik", "com")
+local TARGET <const> = byteorder.hton32(net.aton("10.1.2.3"))
+local CLIENT <const> = byteorder.hton32(net.aton("10.1.1.2"))
 
-local function get_domain(skb, off)
-	local _, nameoff, name = skb:getstring(off):find("([^\0]*)")
-	return name, nameoff + 1
+local ip        = {protocol = 9, daddr = 16}
+local dnsheader = {ancount = 6, length = 12}
+local answer    = {type = 2, rdlength = 10, rdata = 12}
+
+local function question(pkt, off)
+	local name = pkt:getstring(off):match("^[^\0]*")
+	return name, off + #name + 1 + QTAIL
 end
 
-local function doctor(skb, thoff, target_dns, target_ip, dst_ip, packet_dst)
-	if packet_dst ~= byteorder.hton32(dst_ip) then
+local function rewrite(pkt, off, count)
+	local rewritten = false
+	for _ = 1, count do
+		if pkt:getuint8(off) & COMPRESSED ~= COMPRESSED then
+			break
+		end
+		local rdlength = ntoh16(pkt:getuint16(off + answer.rdlength))
+		if ntoh16(pkt:getuint16(off + answer.type)) == TYPE_A and rdlength == ADDRLEN then
+			pkt:setuint32(off + answer.rdata, TARGET)
+			rewritten = true
+		end
+		off = off + answer.rdata + rdlength
+	end
+	return rewritten
+end
+
+local function doctor(pkt, thoff)
+	if ntoh16(pkt:getuint16(thoff)) ~= DNS then
 		return false
 	end
-
-	local rewritten = false
-	local srcport = byteorder.ntoh16(skb:getuint16(thoff))
-	if srcport == dns then
-		local dnsoff = thoff + 8
-		local nanswers = byteorder.ntoh16(skb:getuint16(dnsoff + 6))
-
-		-- check the domain name
-		dnsoff = dnsoff + 12
-		local domainname, nameoff = get_domain(skb, dnsoff)
-		if domainname == target_dns then
-			dnsoff = dnsoff + nameoff + 4 -- skip over type, label fields
-			-- iterate over answers
-			for _ = 1, nanswers do
-				local atype = byteorder.hton16(skb:getuint16(dnsoff + 2))
-				if atype == 1 then
-					skb:setuint32(dnsoff + 12, byteorder.hton32(target_ip))
-					rewritten = true
-				end
-				dnsoff = dnsoff + 16
-			end
-		end
-	end
-
-	return rewritten
+	local dnsoff = thoff + UDPLEN
+	local name, answers = question(pkt, dnsoff + dnsheader.length)
+	return name == DOMAIN and rewrite(pkt, answers, ntoh16(pkt:getuint16(dnsoff + dnsheader.ancount)))
 end
 
 local function dnsdoctor_hook(skb)
 	local pkt = skb:data("net")
-	local ihl = pkt:getuint8(0) & 0x0F
-	local thoff = ihl * 4
-	local proto = pkt:getuint8(9)
-	local packet_dst = pkt:getuint32(16)
-
-	if proto ~= udp then
-		return action.ACCEPT
-	end
-
-	local target_dns = string.pack("s1s1", "lunatik", "com")
-	local dns_ip = "10.1.2.3"
-	local target_ip = 0
-	dns_ip:gsub("%d+", function(s) target_ip = target_ip * 256 + tonumber(s) end)
-
-	local dst = "10.1.1.2"
-	local dst_ip = 0
-	dst:gsub("%d+", function(s) dst_ip = dst_ip * 256 + tonumber(s) end)
-
-	if doctor(pkt, thoff, target_dns, target_ip, dst_ip, packet_dst) then
+	local thoff = (pkt:getuint8(0) & IHL) * 4
+	if pkt:getuint8(ip.protocol) == UDP and pkt:getuint32(ip.daddr) == CLIENT and doctor(pkt, thoff) then
 		skb:checksum()
 	end
 	return action.ACCEPT
