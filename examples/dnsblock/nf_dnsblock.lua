@@ -34,7 +34,7 @@ local function decode_domain(name)
 		table.insert(labels, string.sub(name, i + 1, i + length))
 		i = i + length + 1
 	end
-	return table.concat(labels, ".")
+	return (table.concat(labels, "."):gsub("%c", "?"))
 end
 
 local function check_blacklist(name)
