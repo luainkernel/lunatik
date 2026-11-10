@@ -346,6 +346,15 @@ const reviewArgs = (impl, extra) => ({
 // a run a.build spells in place of the suite may print no suite totals, and then its clean is the verdict
 const passed = (build) => build && build.clean && (build.skipped || /fail:0\b/.test(build.totals || '')
   || typeof a.build === 'string' && !/fail:\d/.test(build.totals || ''))
+// what the run held the change to, for the pull request's reader, whom the session's hand-back never reaches
+const held = (reviewer, build) => [
+  '> [!NOTE]', '> This comment was written by an LLM, not a human.',
+  ...(reviewer.requirements || []).length ? ['', `What #${a.issue} requires, as the review read the change meeting it:`, '',
+    ...reviewer.requirements.map(r => `- ${r.verdict === 'met' ? 'Met' : 'Differs'}: ${r.requirement} ${r.how} Case: ${r.case}`)] : [],
+  '', 'The matrix the change is held to:', '', reviewer.coverage,
+  ...(build?.cases || []).length ? ['', `The cases the change adds or changes, as the suite printed them on ${build.kernel}:`, '',
+    ...build.cases.map(c => `- ${c.suite}: \`${c.line}\``)] : [],
+].join('\n')
 // a case the suite skipped counts as passed in its totals, and proved nothing on the host
 const unproved = (build) => (build?.cases || []).filter(c => /#\s*SKIP/i.test(c.line))
 // an example the host only loaded, or a skipped build ran none of, is accounted for, and the body says so
@@ -437,6 +446,7 @@ if (unfiled.length)
 const writes = [
   ...(pr ? [{ action: 'label', issue: pr, label: 'workflow-reviewed' }] : []),
   ...(pr && complexity ? [{ action: 'label', issue: pr, label: complexity }] : []),
+  ...(pr && review?.reviewer ? [{ action: 'comment', issue: pr, text: held(review.reviewer, build) }] : []),
   ...(groomed?.update ? [{ action: 'append', issue: a.issue, text: /^Update:/.test(groomed.update) ? groomed.update : `Update: ${groomed.update}` }] : []),
   ...prepared.filter(w => w.action !== 'skip'),
 ]
