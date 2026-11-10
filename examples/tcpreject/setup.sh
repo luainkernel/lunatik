@@ -40,6 +40,8 @@ ip -n $NETNS -6 route add default via $HOST_ADDR6
 	sysctl -a -r '^net\.ipv4\.conf\.[^.]+\.forwarding$' | grep -v '\.all\.'
 } > /run/tcpreject.sysctl
 echo 1 > /proc/sys/net/ipv4/ip_forward
+# IPv4 forwards on the input device's value, which $VETH_HOST copied from conf.default and a write of 1 over 1 to ip_forward leaves
+echo 1 > /proc/sys/net/ipv4/conf/$VETH_HOST/forwarding
 # a write of 1, even over 1, deletes the default routes learned from router advertisements
 if [ "$(sysctl -n net.ipv6.conf.all.forwarding)" = 0 ]; then
 	{
