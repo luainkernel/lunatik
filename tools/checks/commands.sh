@@ -342,7 +342,7 @@ gh_repo() {
 				repo = $(i + 1)
 			else if ($i ~ /^--repo=/)
 				repo = substr($i, 8)
-			else if (match($i, /repos\/[^\/]+\/[^\/]+/))
+			else if ($i ~ /^(https:\/\/api\.github\.com)?\/?repos\// && match($i, /repos\/[^\/]+\/[^\/]+/))
 				repo = substr($i, RSTART + 6, RLENGTH - 6)
 	}
 	END {
