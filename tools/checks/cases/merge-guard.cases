@@ -5,9 +5,13 @@ block	gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=squa
 block	cd /tmp && gh api --method PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=merge
 block	gh pr merge 7 --squash
 block	gh pr merge 7
+block	gh -R luainkernel/lunatik pr merge 7 --squash
+block	gh -Rluainkernel/lunatik pr merge 7 --squash
+block	gh pr --repo=luainkernel/lunatik merge 7 --squash
 block	gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=squash	MERGE_OK=1
 pass	MERGE_OK=1 gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=squash
 pass	MERGE_OK=1 gh pr merge 7 --squash
+pass	MERGE_OK=1 gh -R luainkernel/lunatik pr merge 7 --squash
 pass	gh api repos/luainkernel/lunatik/pulls/7/merge
 pass	gh api repos/luainkernel/lunatik/pulls/7 --jq .mergeable
 pass	git merge --ff-only origin/master

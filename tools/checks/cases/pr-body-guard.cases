@@ -21,5 +21,8 @@ pass	cd sub && gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=
 pass	cd sub && gh api graphql -F query=@ready.graphql
 pass	cd sub && gh pr create --head fifo-test --base master --body-file body.md
 pass	cd sub && gh pr create --head fifo-test --base master -F body.md
+block	gh -R luainkernel/lunatik pr create --head fifo-test --base master --body-file silent.md
+block	gh -Rluainkernel/lunatik pr create --head fifo-test --base master --body-file silent.md
+pass	gh -R luainkernel/lunatik pr create --head fifo-test --base master --body-file named.md
 pass	EXAMPLES_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@silent.md
 

@@ -290,19 +290,29 @@ runs_watchdog() {
 }
 
 # the gh commands among <cmds> that write where the extended regex <path> points: a gh command whose
-# noun and verb match <cli>, as `pr create`, past a -R before the verb, or gh api on a matching endpoint
-# with a method other than GET, or with a field and no method, which gh sends as a POST
+# noun and verb match <cli>, as `pr create`, or gh api on a matching endpoint with a method other than
+# GET, or with a field and no method, which gh sends as a POST. Each is printed with its noun and its
+# verb as the second and the third word: a repository option, which gh takes anywhere in any spelling
+# and obeys the last of, is dropped where it stands and the last one put at the end as -R <repo>. gh api
+# takes none, so a -R among its words is text of a field, and stays where it is
 gh_writes() {
 	printf '%s\n' "$1" | path="$3" awk -v cli="^($2)\$" '
 	$1 !~ /^([^ ]*\/)?gh$/ {
 		next
 	}
-	{
-		verb = 3
-		while ($verb ~ /^(-R|--repo)$/ || $verb ~ /^--repo=/)
-			verb += $verb ~ /^--repo=/ ? 1 : 2
+	$2 != "api" {
+		repo = line = ""
+		for (i = 1; i <= NF; i++)
+			if ($i ~ /^(-R|--repo)$/)
+				repo = $(++i)
+			else if ($i ~ /^(-R|--repo=)./)
+				repo = substr($i, $i ~ /^-R=/ ? 4 : $i ~ /^-R/ ? 3 : 8)
+			else
+				line = line (i > 1 ? " " : "") $i
+		if (repo != "")
+			$0 = line " -R " repo
 	}
-	($2 " " $verb) ~ cli {
+	($2 " " $3) ~ cli {
 		print
 		next
 	}
@@ -377,10 +387,8 @@ gh_repo() {
 	printf '%s\n' "$1" | awk '
 	{
 		for (i = 1; i <= NF; i++)
-			if ($i ~ /^(-R|--repo)$/)
+			if ($i == "-R")
 				repo = $(i + 1)
-			else if ($i ~ /^--repo=/)
-				repo = substr($i, 8)
 			else if ($i ~ /^(https:\/\/api\.github\.com)?\/?repos\// && match($i, /repos\/[^\/]+\/[^\/]+/))
 				repo = substr($i, RSTART + 6, RLENGTH - 6)
 	}
@@ -409,12 +417,8 @@ gh_number() {
 			}
 		exit
 	}
-	{
-		verb = 3
-		while ($verb ~ /^(-R|--repo)$/ || $verb ~ /^--repo=/)
-			verb += $verb ~ /^--repo=/ ? 1 : 2
-		if ($(verb + 1) ~ /^[0-9]+$/)
-			print $(verb + 1)
+	$4 ~ /^[0-9]+$/ {
+		print $4
 	}' | head -n 1
 }
 

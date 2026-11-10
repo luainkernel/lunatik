@@ -6,7 +6,8 @@
 # Builds, in the empty directory <dir>, what stacked-guard.cases reads: the JSON gh api sends for a create
 # of stacked on bump, the same asking for a draft, the same on master, and a move onto bump; under sub/,
 # read only after a cd into it, the create on bump twice, once named as the one on master; beside them
-# a gh on stub/ that answers GitHub's pulls/9 is not a draft and pulls/8 is one.
+# a gh on stub/ that answers GitHub's pulls/9 is not a draft and pulls/8 is one, in luainkernel/lunatik or
+# the checkout's repository alone.
 #
 # Usage: bash tools/checks/cases/stacked-guard.fixture.sh <dir>
 
@@ -22,7 +23,7 @@ cat > stub/gh <<'STUB'
 #!/bin/sh
 case "$*" in
 	*pulls/9\ *) echo false ;;
-	*pulls/8\ *) echo true ;;
+	*/luainkernel/lunatik/pulls/8\ *|*/{owner}/{repo}/pulls/8\ *) echo true ;;
 	*) exit 1 ;;
 esac
 STUB
