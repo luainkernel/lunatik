@@ -841,11 +841,11 @@ each case runs `depmod -b` over a tree of the suite's own.
 
 - **random**: `linux.random` ranged draws stay within `[m, n]`, covering
   the two-argument, one-argument and negative-range forms, a range of one
-  value and one as wide as it takes, `[0, math.maxinteger]`, and are uniform
+  value and `[0, math.maxinteger]`, and are uniform
   over a range that does not divide `2^64`: draws from `[0, 3 * 2^61 - 1]`
   fall below `2^62` two times in three, where a modulo gives three in four.
-  `linux.random()` answers an integer, and `m > n` and a third argument
-  are refused.
+  `linux.random()` and `linux.random(math.mininteger, math.maxinteger)`
+  answer an integer, and `m > n` and a third argument are refused.
 - **fsnotify**: `linux.fsnotify` carries every event mask at the value the
   `FAN_*`/`IN_*` uapi pins it to, every entry is a single distinct bit,
   and the composite and private names the curated `include` list drops

@@ -30,7 +30,7 @@ test("linux.random(m, n) stays within a negative range", function()
 	end
 end)
 
-test("linux.random(m, n) answers m when m == n and stays within the widest interval", function()
+test("linux.random(m, n) answers m when m == n and stays within [0, math.maxinteger]", function()
 	assert(linux.random(5, 5) == 5, "linux.random(5, 5) is not 5")
 	for _ = 1, 1000 do
 		assert(linux.random(0, math.maxinteger) >= 0, "out of [0, math.maxinteger]")
@@ -40,6 +40,12 @@ end)
 test("linux.random() answers an integer", function()
 	local r = linux.random()
 	assert(math.tointeger(r), "linux.random() answered " .. tostring(r))
+end)
+
+test("linux.random(math.mininteger, math.maxinteger) answers an integer", function()
+	local ok, r = pcall(linux.random, math.mininteger, math.maxinteger)
+	assert(ok and math.tointeger(r),
+		"linux.random(math.mininteger, math.maxinteger) answered " .. tostring(r))
 end)
 
 test("linux.random(m, n) refuses m > n", function()
