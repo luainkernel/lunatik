@@ -4,22 +4,11 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 
-set -eux
-
-# down the interfaces
-sudo ip -n ns1 link set veth1 down
-sudo ip -n ns2 link set veth3 down
-sudo ip link set veth2 down
-sudo ip link set veth4 down
-
-sudo ip addr delete 10.1.1.2/24 dev veth2
-sudo ip -n ns1 addr delete 10.1.1.3/24 dev veth1
-sudo ip addr delete 10.1.2.2/24 dev veth4
-sudo ip -n ns2 addr delete 10.1.2.3/24 dev veth3
+set -ux
 
 # delete link between host and the namespaces
-sudo ip -n ns1 link delete veth1
-sudo ip -n ns2 link delete veth3
+sudo ip link delete veth2
+sudo ip link delete veth4
 
 # delete namespaces ns1 for dns server ns2 for server
 sudo ip netns delete ns1
