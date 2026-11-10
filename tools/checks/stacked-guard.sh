@@ -45,14 +45,13 @@ draft() {
 while IFS= read -r move; do
 	read -r base _ <<< "$(gh_named "$move")"
 	[ "$base" = master ] && continue
+	repo=$(gh_repo "$move")
 	case "$(printf '%s' "$move" | awk '{ print $2 }')" in
 	pr)
-		repo=$(gh_repo "$move")
 		number=$(printf '%s' "$move" | awk '{ for (i = 3; i <= NF; i++) if ($i ~ /^(#|.*\/pull\/)?[0-9]+$/) { sub(/.*[#\/]/, "", $i); print $i; exit } }')
 		;;
 	*)
-		repo=$(printf '%s' "$move" | grep -oE 'repos/[^/[:space:]"]+/[^/[:space:]"]+/pulls/[0-9]+' | cut -d/ -f2-3)
-		number=$(printf '%s' "$move" | grep -oE 'pulls/[0-9]+' | cut -d/ -f2)
+		number=$(gh_number "$move")
 		;;
 	esac
 	[ -n "$number" ] && [ "$(GH_TOKEN=$(gh_token "$input") gh api "repos/${repo:-{owner\}/{repo\}}/pulls/$number" --jq .draft 2>/dev/null)" = true ] && continue
