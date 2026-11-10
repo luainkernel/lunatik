@@ -6,11 +6,9 @@
 LUNATIK_DIR="/opt/lunatik"
 XDP_DIR="/opt/xdp-tools"
 KERNEL_RELEASE="$1"
-# This ugly hack is needed because Ubuntu has a weird kernel package versionning.
-KERNEL_VERSION=$(sed -n 's/^CONFIG_VERSION_SIGNATURE=".* \([0-9.]*\)"$/\1/p' "/boot/config-${KERNEL_RELEASE}" 2>/dev/null)
-KERNEL_VERSION=${KERNEL_VERSION:-$(echo $KERNEL_RELEASE | grep -o '^[0-9.]*')}
-# kernel.org names the first release of a series linux-x.y, not linux-x.y.0
-[[ "${KERNEL_VERSION}" == *.*.0 ]] && KERNEL_VERSION=${KERNEL_VERSION%.0}
+KERNEL_VERSION=$(make -s -C "/usr/src/linux-headers-${KERNEL_RELEASE}" kernelversion | grep -o '^[0-9.]*\(-rc[0-9]*\)\?')
+# kernel.org names x.y.0 linux-x.y, and x.y.0-rcN linux-x.y-rcN
+[[ "${KERNEL_VERSION}" =~ ^([0-9]+\.[0-9]+)\.0(-rc[0-9]+)?$ ]] && KERNEL_VERSION="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
 KERNEL_VERSION_MAJOR=$(echo "${KERNEL_VERSION}" | grep -o '^[0-9]*')
 CPU_CORES=$(grep -m1 'cpu cores' /proc/cpuinfo | grep -o '[0-9]*$' || echo 1)
 echo "Installing Lunatik for kernel version ${KERNEL_VERSION} release ${KERNEL_RELEASE}"
@@ -30,7 +28,13 @@ dpkg --get-selections | grep 'pahole\s' | grep install || exit 1
 
 echo "Compiling and installing resolve_btfids from kernel sources"
 cd /usr/local/src &&\
-[ -d linux-"${KERNEL_VERSION}" ] || wget -O- "https://cdn.kernel.org/pub/linux/kernel/v${KERNEL_VERSION_MAJOR}.x/linux-${KERNEL_VERSION}.tar.xz" | tar xJf - &&\
+[ -d linux-"${KERNEL_VERSION}" ] ||\
+if [[ "${KERNEL_VERSION}" == *-rc* ]]; then
+  # cdn.kernel.org publishes no release candidate
+  wget -O- "https://github.com/torvalds/linux/archive/refs/tags/v${KERNEL_VERSION}.tar.gz" | tar xzf -
+else
+  wget -O- "https://cdn.kernel.org/pub/linux/kernel/v${KERNEL_VERSION_MAJOR}.x/linux-${KERNEL_VERSION}.tar.xz" | tar xJf -
+fi &&\
 cd "linux-${KERNEL_VERSION}"/tools/bpf/resolve_btfids/ &&\
 make -j"${CPU_CORES}" &&\
 mkdir -p "/usr/src/linux-headers-${KERNEL_RELEASE}/tools/bpf/resolve_btfids/" &&\
