@@ -172,7 +172,6 @@ examples() {
 		case $body in ""|inline) continue ;; esac
 		file=${body#* }
 		[ -f "$file" ] || continue
-		case $file in /*) ;; *) file=$PWD/$file ;; esac # examples-named.sh reads it from the project
 		if [ "${body%% *}" = input ]; then
 			jq -r '.body // empty' "$file" > "$tmp/examples-body" 2> /dev/null
 			file=$tmp/examples-body
@@ -243,7 +242,7 @@ ours() {
 	done <<< "$1"
 }
 
-cmds=$(commands "$input")
+cmds=$(gh_commands "$input")
 repo='^(https://api\.github\.com)?/?repos/[^/]+/[^/]+'
 case "$(command_text "$input")" in
 	*REVIEW_POST_OK=1*) ;;

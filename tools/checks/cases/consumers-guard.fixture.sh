@@ -12,8 +12,9 @@
 # library's require and the call that builds the third binding's objects taken out of its working tree;
 # beside them consumer/, scripts out of the tree that require the first binding, the library, the binding
 # that builds the third's objects, the fourth binding and the spec's table, the JSON gh api sends for a
-# create of bump, and a gh on stub/ that answers for GitHub's pulls/9, bump on master, pulls/8, stacked
-# on bump, pulls/6, a head this checkout lacks, and the tip of lag.
+# create of bump, under sub/, read only after a cd into it, the one for a create of docs, and a gh on
+# stub/ that answers for GitHub's pulls/9, bump on master, pulls/8, stacked on bump, pulls/6, a head this
+# checkout lacks, and the tip of lag.
 #
 # Usage: bash tools/checks/cases/consumers-guard.fixture.sh <dir>
 
@@ -65,6 +66,8 @@ printf 'local coil = require("coil")\n' > consumer/winder.lua
 printf 'local spin = require("spin")\n' > consumer/spinner.lua
 printf 'local foo = require("linux.foo")\n' > consumer/constants.lua
 jq -n '{head: "bump", base: "master", body: "A fifo."}' > bump.json
+mkdir -p sub
+jq -n '{head: "docs", base: "master", body: "A fifo."}' > sub/docs.json
 cat > stub/gh <<STUB
 #!/bin/sh
 case "\$*" in

@@ -10,6 +10,7 @@ block	gh api repos/luainkernel/lunatik/pulls --input bump.json
 block	gh pr create --head bump --base master --body-file b.md
 block	cd consumer && gh api repos/luainkernel/lunatik/pulls -f head=bump -f base=master -F body=@b.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=docs -f base=master -F body=@b.md
+pass	cd sub && gh api repos/luainkernel/lunatik/pulls --input docs.json
 block	gh api repos/luainkernel/lunatik/pulls -f head=ring -f base=master -F body=@b.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=reel -f base=master -F body=@b.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=coil -f base=master -F body=@b.md

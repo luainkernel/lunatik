@@ -21,7 +21,7 @@ esac
 
 . "$(dirname "$0")/commands.sh"
 
-cmds=$(commands "$input")
+cmds=$(gh_commands "$input")
 creates=$(gh_writes "$cmds" 'pr (create|new)' '^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/pulls$')
 moves=$(gh_writes "$cmds" 'pr edit' '^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/pulls/[0-9]+$')
 [ -n "$creates$moves" ] || exit 0

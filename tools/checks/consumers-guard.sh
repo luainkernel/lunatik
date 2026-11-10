@@ -27,7 +27,7 @@ case "$(command_text "$input")" in
 esac
 
 project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
-cmds=$(commands "$input")
+cmds=$(gh_commands "$input")
 while IFS= read -r post; do
 	[ -n "$post" ] && gh_ours "$post" || continue
 	read -r base head <<< "$(gh_refs "$input" "$post")"

@@ -24,7 +24,7 @@ case "$(printf '%s' "$input" | jq -r '.tool_input.command // empty')" in
 	*FIXUPS_OK=1*) exit 0 ;;
 esac
 
-cmds=$(commands "$input")
+cmds=$(gh_commands "$input")
 creates=$(gh_writes "$cmds" 'pr (create|new)' '^(https://api\.github\.com)?/?repos/[^/]+/[^/]+/pulls$')
 [ -n "$creates" ] || exit 0
 

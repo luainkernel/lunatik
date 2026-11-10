@@ -235,16 +235,20 @@ redirections() {
 # with the quotes taken off and so with any space it held
 GIT_COMMAND='^([^ ]*/)?git( -C [^ ]+| -c [^ =]+=([^ -][^ ]*( [^ -][^ ]*)*)?| -[^ ]+)*'
 
-# each git <verb> among <cmds>, run from the directory <cwd>: the directory it runs in, resolved against
-# every cd before it and its own -C, a tab, and its words past <verb>
-git_runs() {
-	printf '%s\n' "$1" | awk -v dir="${2:-.}" -v verb="$3" -v run="$GIT_COMMAND $3( |\$)" '
+# the directory dir a walk over commands, one a line, has reached: each cd moves it, under it or to an
+# absolute path
+FOLLOW_CD='
 	function under(base, path) {
 		return path ~ /^\// ? path : base "/" path
 	}
 	$1 == "cd" && NF > 1 {
 		dir = under(dir, $2)
-	}
+	}'
+
+# each git <verb> among <cmds>, run from the directory <cwd>: the directory it runs in, resolved against
+# every cd before it and its own -C, a tab, and its words past <verb>
+git_runs() {
+	printf '%s\n' "$1" | awk -v dir="${2:-.}" -v verb="$3" -v run="$GIT_COMMAND $3( |\$)" "$FOLLOW_CD"'
 	$0 ~ run {
 		d = dir
 		for (i = 2; $i != verb; i++)
@@ -322,6 +326,41 @@ gh_writes() {
 				hit = 1
 		if (hit && (method != "" ? method != "GET" : fields))
 			print
+	}'
+}
+
+# the commands the hook input <input> runs, as commands prints them, with each file a gh command reads, a
+# body, notes, the JSON gh api sends or a field's @<file>, spelled as the path gh reads it from: under the
+# input's cwd, or the hook's directory when it names none, moved by every cd before it as git_runs moves it
+gh_commands() {
+	local cwd
+	cwd=$(printf '%s' "$1" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
+	commands "$1" | awk -v dir="${cwd:-$PWD}" "$FOLLOW_CD"'
+	# the file <path> names, with the quotes gh_body takes off taken off; - is stdin
+	function at(path) {
+		gsub(/^["\047\\]+|["\047\\]+$/, "", path)
+		return path == "" || path == "-" ? path : under(dir, path)
+	}
+	# the gh api field at <i>, read from a file when it is <name>=@<file>
+	function field(i,   j) {
+		if (j = index($i, "=@"))
+			$i = substr($i, 1, j + 1) at(substr($i, j + 2))
+	}
+	$1 ~ /^([^ ]*\/)?gh$/ {
+		for (i = 3; i <= NF; i++)
+			if (i < NF && ($i ~ /^--(input|body-file|notes-file)$/ || $i == "-F" && $2 != "api")) {
+				i++
+				$i = at($i)
+			}
+			else if (match($i, /^--(input|body-file|notes-file)=/))
+				$i = substr($i, 1, RLENGTH) at(substr($i, RLENGTH + 1))
+			else if ($2 == "api" && $i ~ /^(-F|--field)$/)
+				field(++i)
+			else if ($2 == "api" && $i ~ /^(-F|--field=)./)
+				field(i)
+	}
+	{
+		print
 	}'
 }
 

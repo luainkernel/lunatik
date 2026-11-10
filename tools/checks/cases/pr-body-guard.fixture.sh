@@ -12,7 +12,9 @@
 # and the README's verb taken out of its working tree, which a change is not read from. Beside them the
 # bodies the cases post, one that names the example as examples/<name>, one that names it in backticks,
 # one that carries its name only as a bare word and one that does not carry it, the last again under
-# repos/drafts/, a path that reads as an endpoint's, and the JSON gh api sends for each base.
+# repos/drafts/, a path that reads as an endpoint's, and the JSON gh api sends for each base; under sub/,
+# read only after a cd into it, the body that names the example and a GraphQL mutation that carries no
+# text.
 #
 # Usage: bash tools/checks/cases/pr-body-guard.fixture.sh <dir>
 
@@ -60,4 +62,7 @@ cp silent.md repos/drafts/silent.md
 for base in master fifo; do
 	jq -n --arg base "$base" --rawfile body silent.md '{head: "fifo-test", base: $base, draft: true, body: $body}' > "$base.json"
 done
+mkdir -p sub
+cp named.md sub/body.md
+printf 'mutation { markPullRequestReadyForReview(input: {pullRequestId: "PR_1"}) { clientMutationId } }\n' > sub/ready.graphql
 
