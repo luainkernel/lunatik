@@ -36,7 +36,7 @@ output=$(lunatik run --context=softirq "$SCRIPT" 2>&1)
 [ -n "$output" ] && fail "Lua error during init-time notifier registration: $output"
 ktap_pass "notifier.netdevice() at script init runs without Lua error"
 
-oops=$(dmesg_since | grep -E "Oops:|BUG:|kernel BUG at|NULL pointer dereference|general protection" || true)
+oops=$(dmesg_since | grep -E "$KTAP_KERNEL_ERRORS" || true)
 [ -n "$oops" ] && fail "kernel oops during init-time notifier replay: ${oops%%$'\n'*}"
 ktap_pass "no kernel oops during init-time NETDEV_REGISTER replay"
 

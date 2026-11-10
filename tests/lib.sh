@@ -31,8 +31,12 @@ skip_script() {
 }
 
 # A Lua error, or a kernel complaint a script's input should not be able to provoke;
-# arm64 heads an oops with "Internal error:", and a debug trap nobody owns with the BRK line.
-KTAP_ERRORS='(\.lua:[0-9]+|\?:\?):|Lua warning:|WARNING:|UBSAN:|Internal error:|Unexpected kernel BRK'
+# arm64 heads an oops with "Internal error:" or "Unable to handle kernel", and a debug trap nobody
+# owns with the BRK line; x86 with "Oops:", "general protection" or "kernel BUG at".
+# "BUG:", which heads a sleep in atomic context, is read as a word so that "DEBUG:" is not one.
+KTAP_ERRORS='(\.lua:[0-9]+|\?:\?):|Lua warning:|WARNING:|UBSAN:|Internal error:|Unexpected kernel BRK|\bBUG:|Oops:|general protection|kernel BUG at|Unable to handle kernel'
+# the kernel's half alone, for a log that carries a Lua error on purpose
+KTAP_KERNEL_ERRORS=${KTAP_ERRORS#*Lua warning:|}
 # A thread body raising a bare errno carries no position for the pattern above to match, and
 # luathread spells its death and its three benign stops alike, so the level is what parts them.
 KTAP_ERRORS_ERR='luathread: \['

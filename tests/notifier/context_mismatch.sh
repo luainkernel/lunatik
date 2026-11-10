@@ -48,7 +48,7 @@ echo "$output" | grep -qF "runtime context mismatch: notifier needs hardirq" || 
 	fail "expected 'runtime context mismatch: notifier needs hardirq' error, got: $output"
 ktap_pass "hardirq-class constructor in process runtime errors cleanly"
 
-oops=$(dmesg_since | grep -E "Oops:|BUG:|kernel BUG at|NULL pointer dereference|general protection" || true)
+oops=$(dmesg_since | grep -E "$KTAP_KERNEL_ERRORS" || true)
 [ -n "$oops" ] && fail "kernel oops during context-mismatch cleanup: ${oops%%$'\n'*}"
 ktap_pass "no kernel oops during context-mismatch cleanup"
 

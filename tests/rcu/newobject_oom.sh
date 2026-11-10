@@ -45,7 +45,7 @@ mark_dmesg
 run_script tests/rcu/newobject_oom
 
 log=$(dmesg_since)
-crash=$(echo "$log" | grep -E "Oops|BUG: unable|general protection|kernel BUG at|unable to handle kernel" || true)
+crash=$(echo "$log" | grep -E "$KTAP_KERNEL_ERRORS" || true)
 errs=$(echo "$log" | grep -E "$KTAP_ERRORS" || true)
 if [ -n "$crash" ]; then
 	ktap_fail "rcu/newobject_oom: kernel crashed on failed allocation"

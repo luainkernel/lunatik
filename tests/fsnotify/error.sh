@@ -57,7 +57,7 @@ echo "$again" | grep -qF "error test: $MOUNT/gated mask 10000" || \
 	fail "the watch stopped delivering after the raise: $(echo "$again" | grep -F 'fsnotify error test')"
 ktap_pass "the watch keeps delivering and allowing after a raise"
 
-errs=$(printf '%s\n%s\n' "$raised" "$again" | grep -E "WARNING:|UBSAN:|Internal error:|Unexpected kernel BRK" || true)
+errs=$(printf '%s\n%s\n' "$raised" "$again" | grep -E "$KTAP_KERNEL_ERRORS" || true)
 [ -n "$errs" ] && fail "kernel error while a callback raised: ${errs%%$'\n'*}"
 ktap_pass "a raise in the callback trips no kernel warning"
 
