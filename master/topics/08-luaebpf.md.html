@@ -443,6 +443,12 @@ that line. Each construct links to its listing.</p>
 <td> <code>s</code> is a known 0; a bound or a step is computed, before Linux 6.9 (<a href="#loops">Loops</a>) </td>
 </tr>
 <tr>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#goto"><code>goto continue</code></a> </td>
+<td> a jump to the label </td>
+<td> never </td>
+<td> the label is above the <code>goto</code> </td>
+</tr>
+<tr>
 <td> <a href="../topics/09-luaebpf-by-example.md.html#calls"><code>local v = f(x)</code></a> </td>
 <td> the value <code>f</code> returns </td>
 <td> <code>f</code> stops </td>
@@ -507,8 +513,8 @@ that line. Each construct links to its listing.</p>
 
 
 <p>Besides what the table refuses, these are refused: a table constructor, <code>..</code>, a closure, an
-assignment to an upvalue or a global, a generic <code>for</code>, <code>while</code>, <code>repeat</code>, a <code>goto</code> backwards, a
-vararg function and a to-be-closed variable. <a href="#messages">Messages</a> lists what each refusal says.</p>
+assignment to an upvalue or a global, a generic <code>for</code>, <code>while</code>, <code>repeat</code>, a vararg function and a
+to-be-closed variable. <a href="#messages">Messages</a> lists what each refusal says.</p>
 
 <p><a name="The_packet"></a></p>
 
@@ -827,7 +833,7 @@ nil as 0, which is an action.</li>
 <td> an integer: the kernel&rsquo;s Lua has no float </td>
 </tr>
 <tr>
-<td> &lsquo;while&rsquo; and &lsquo;repeat&rsquo; are not compiled yet </td>
+<td> &lsquo;while&rsquo;, &lsquo;repeat&rsquo; and a &lsquo;goto&rsquo; backwards are not compiled yet </td>
 <td> <code>while</code>, <code>repeat</code>, a <code>goto</code> backwards </td>
 <td> a numeric <code>for</code> </td>
 </tr>
@@ -933,7 +939,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-11 13:33:36</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-11 18:27:06</span>
 </div>
 </footer>
 </body>

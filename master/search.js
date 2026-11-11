@@ -580,6 +580,7 @@ window.LUNATIK_SEARCH = [
 ["The context","topics/09-luaebpf-by-example.md.html#the-context","Guide · Lua to eBPF by example"],
 ["Maps","topics/09-luaebpf-by-example.md.html#maps","Guide · Lua to eBPF by example"],
 ["Loops","topics/09-luaebpf-by-example.md.html#loops","Guide · Lua to eBPF by example"],
+["Goto","topics/09-luaebpf-by-example.md.html#goto","Guide · Lua to eBPF by example"],
 ["Calls","topics/09-luaebpf-by-example.md.html#calls","Guide · Lua to eBPF by example"],
 ["Lunatik C API","topics/capi.md.html","Guide"],
 ["Types","topics/capi.md.html#types","Guide · Lunatik C API"],
