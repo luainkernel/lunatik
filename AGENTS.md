@@ -525,6 +525,12 @@ named, not one discovered at that consumer's build.
   A defect master carries that the change fixes on the way, because it reaches the code the defect
   sits in, is one of those, opened on master rather than stacked: the change's branch carries its
   commit first, so either merge lands the fix and neither waits on the other's review.
+  A C binding of `lib/` and the compiler under `bin/luaebpf` are two such pull requests, the binding's
+  first and the compiler's stacked on it, even where the compiler reads what the binding adds: #2235
+  carried `skb:data()`'s read of a non-linear skb, in `lib/luadata.c`, `lib/luaskb.c` and `lib/luatc.c`,
+  under the compiler's TC read, and the maintainer asked "why we need all these changes on luadata and
+  why they are all bundled into this luaebpf PR? ... it should at very least split into many PRs".
+  `tools/checks/bundled.sh` names a branch that carries both, and the Checks workflow fails it.
   The harness is the exception: the checks, rules and skill steps one incident produces travel in one
   pull request, because they carry one reason and the CI line that runs them is one push. They travel with
   each other, never inside an implementation: a rule that rides in a feature's commit lands unread,

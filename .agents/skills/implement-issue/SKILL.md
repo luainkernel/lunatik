@@ -41,6 +41,12 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   requirement of the issue in part, or otherwise than its words, is a `reshape`: what an issue asks is
   narrowed by the maintainer, and an `Update:` that narrows it in passing reads to the issue's author as
   the requirement met.
+- A change that takes a C binding of `lib/` and the compiler under `bin/luaebpf` runs twice on its issue
+  (AGENTS.md, *Patches and commits*): the groomer's `Update:` says so, the first run's implementer commits
+  the binding alone under `#N, which it does not close`, and the session launches the second with `base`
+  the first's branch and `notes` naming the compiler's part, which the first's notes give; the first
+  review's `differs` on that part is the second run's, not a decision. `tools/checks/bundled.sh` names a
+  branch that carries both.
 - `repo` has no default either: the review is read from it when the implementer is done, and a relative
   path then resolves against the session's directory, which may be a worktree removed since or one on
   another branch. #1538's review did not run, its script not found under a worktree the session had removed.

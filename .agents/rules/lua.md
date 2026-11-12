@@ -7,10 +7,22 @@ paths:
 # Lua style
 
 * Line length 120.
-* Localize stdlib functions at the top of a new module: `local insert = table.insert`.
+* A function of a module is called through the module, `table.insert(list, v)`, `frame.refuse(f, pc,
+  ...)`, never aliased in a local at the top of the file: the alias is a cache, and the maintainer
+  asked "why caching?" of `local alu, jump, reg = insn.alu, insn.jump, insn.reg` on #2235 and "why
+  cashing all of these as locals? it seems a bit of premature optimization?" of a block of them on
+  #2202. A constant a module exports stays a named `<const>`; `lua-style.sh` names an alias a change adds.
 * `require("x")` with parentheses.
 * Use `table.insert`, not `t[#t+1] = v`.
 * No nested function definitions; helpers go at module level.
+* A function past thirty lines or nested past two blocks does more than one job, as a C function does,
+  and so does one branching more than four ways: its steps are helpers, and a dispatch is a table of
+  handlers (below).
+  The maintainer asked it of `call.CALL` on #2202, grown by a fifth arm, "this function seems too
+  complex/long and should be modularized; we are committing the same flaw over and over again", and of
+  `declare` in the map module on #948, "this function is too long and complex ... we should clean up
+  this module as a whole and also improve our harness to not end up on this situation again".
+  `function-shape.sh` names a function a change adds or grows past them.
 * Code two scripts of one directory repeat goes in a module beside them that both require: the data
   suite's buffer checks live in `tests/data/zeroing.lua`, required as `tests.data.zeroing`.
 * Hooks and callbacks are named `local function`s referenced by name, never anonymous functions inline
@@ -19,6 +31,14 @@ paths:
 * Named constants at the top: `local PORT <const> = 5562`. No magic numbers, and no literal a file
   spells twice: the script path `runner.run` and `runner.stop` both name is one local, or a rename
   of the script leaves a dangling runtime behind.
+* A kernel constant is read from the `linux.*` table `autogen/` generates, as `bin/luaebpf/lib/bpf/xdp.lua`
+  reads `require("linux.xdp").action`, and where no table carries it, `autogen/specs.lua` takes the header
+  that defines it: never a literal beside a comment naming the kernel's symbol, nor a set the C defines
+  picked from such a table by name. The maintainer asked "why hardcoded?" of `local SKB_LOAD_BYTES
+  <const> = 26 -- BPF_FUNC_skb_load_bytes` on #2235 and of an XDP action range spelled as
+  `action.ABORTED` and `action.REDIRECT` on #2223, and "shouldn't this come from autogen? why hardcoding
+  this?" of `local MAXSTACK <const> = 512 -- MAX_BPF_STACK` on #2202. `hardcoded.sh` names such a value a
+  change adds to `bin/luaebpf` or to the Lua of `lib/`.
 * CAPS `<const>` marks a scalar constant; a table used as a lookup, dispatch, or allow-list is a
   lowercase name by role — `codecs`, `tokens`, `fields` — never caps, even when it is `<const>`.
 * Prefer the standard library (`string.match`, `string.gsub`, `table.*`) over hand written loops.

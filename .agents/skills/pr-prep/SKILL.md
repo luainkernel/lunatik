@@ -16,7 +16,10 @@ no "Test plan" section, no em dashes. On top of it:
 - Compare `git diff` against `git diff -w` for stray whitespace; `bash tools/checks/pre-commit`
   covers the trailing blank line on staged files.
 - `bash tools/checks/idioms.sh` over the C files the diff touches,
-  `bash tools/checks/kernel-answer.sh origin/master..HEAD` over the branch, and
+  `bash tools/checks/kernel-answer.sh origin/master..HEAD` over the branch,
+  `bash tools/checks/bundled.sh origin/master..HEAD`, which names a branch that changes a C binding
+  of `lib/` and the compiler under `bin/luaebpf` together, split then into the binding's pull request
+  and the compiler's stacked on it, and
   `bash tools/checks/author-email.sh origin/master..HEAD` over it after any rebase or
   squash, which signs the result with the checkout's own identity.
 - Fixup commits stay unsquashed unless squashing was explicitly requested; the maintainer

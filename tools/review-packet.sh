@@ -25,7 +25,7 @@ git diff --stat=120 "$base" "$head"
 
 echo "# Checks"
 bash "$dir/checks/advisory.sh" "$base" "$head"
-for check in author-email body-identifiers; do
+for check in author-email body-identifiers bundled; do
 	out=$(bash "$dir/checks/$check.sh" "$base..$head" 2>&1)
 	[ -n "$out" ] && printf '== %s\n%s\n' "$check" "$out"
 done
