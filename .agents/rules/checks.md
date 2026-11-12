@@ -108,7 +108,13 @@ validating, and a load of one mode, which refuses what `require` and `load` take
 raised with the family's wording as a literal, `luaL_error(L, "not allowed ...")`, whose message is a
 `LUNATIK_ERR_*` constant and whose check a `lunatik_check*` helper beside the family, which
 `guards.sh` counts, and a local array a copy fills only for `lua_pushstring` or `lua_pushlstring` to
-read, which copy the string themselves. It annotates rather than fails, since the release-then-throw shape is not `lunatik_try`'s and the line
+read, which copy the string themselves. It names a comment that gives a kernel range, a release
+"and earlier" or "and later", "before" or "since" one, over code no version guard encloses, a `#if` on
+`LINUX_VERSION_CODE` or on a declaration `Kbuild` probes the headers for: a floor past the range finds
+such code only by reading the comment, and #2350 first shipped a line for 7.0 and earlier that way,
+until the maintainer asked "shouldn't we have an ifdef?". LDoc, which documents what a script sees, and
+the comment directly above the guard it describes pass, and a range that says what the kernel does at
+runtime rather than what the tree compiles is the reader's to decide. It annotates rather than fails, since the release-then-throw shape is not `lunatik_try`'s and the line
 between the check and the throw is what the reader decides on.
 
 `function-shape.sh` reads a C or a Lua file for the shapes of a function that is more than one job, in the functions the diff against `CHECK_BASE` touches: a lock taken at
