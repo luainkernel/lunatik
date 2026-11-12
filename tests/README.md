@@ -1264,8 +1264,9 @@ interpreter raises, the compiled program owes its default verdict instead.
   table's field and as the default verdict, a float literal `lunatic` refuses
   to parse, a C function handed to `xdp.program`, a function the CLI's Lua
   compiled from a string, a map key the compiler holds that its spec does not
-  pack, in a register and as a `GETI` index, and a value it does not pack,
-  among them.
+  pack, in a register and as a `GETI` index, a value it does not pack, and
+  `xdp.program` and `tc.program` called with no default verdict, with options
+  and with none, at the line of the program's function, among them.
 - **budget**: the "processed N insns" figure the verifier prints for the
   worst program of each corpus, reported as a comment and asserted under a
   ceiling; the loops under a `may_goto` header are counted on a kernel that

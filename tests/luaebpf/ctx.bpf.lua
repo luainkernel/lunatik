@@ -7,6 +7,8 @@
 local corpus  = require("tests.luaebpf.corpus")
 local vmlinux = require("luaebpf.vmlinux")
 local tc      = require("bpf.tc")
+local PASS    = require("linux.xdp").action.PASS
+local OK      = require("linux.tc").action.OK
 
 -- loopback, whose generic rx queue 0 has its xdp_rxq registered on every device, which is what
 -- xdp_convert_md_to_buff requires of a non-zero ingress_ifindex, and the device prog run builds
@@ -92,22 +94,22 @@ local skbcomputed = corpus.context("skbcomputed", "__sk_buff", {ifindex = IFINDE
 local skbmax = corpus.context("skbmax", "__sk_buff", {ifindex = IFINDEX, priority = PRIO}, FRAME)
 
 local rows = corpus.new()
-rows:declare("ingress", ingress, nil, xdpctx)
-rows:declare("queue", queue, nil, xdpctx)
-rows:declare("both", both, nil, xdpctx)
-rows:declare("skblen", skblen, nil, skbctx)
-rows:declare("skbifindex", skbifindex, nil, skbctx)
-rows:declare("skbhash", skbhash, nil, skbctx)
-rows:declare("skbpriority", skbpriority, nil, skbctx)
-rows:declare("skbsetprio", skbsetpriority, nil, skbwrite)
-rows:declare("skbsetlen", skbsetlength, nil, skbcomputed)
-rows:declare("skbsetmax", skbsetmax, nil, skbmax)
-rows:declare("skbsetwide", skbsetwide, nil, skbctx)
-rows:declare("skbsetneg", skbsetnegative, nil, skbctx)
+rows:declare("ingress", ingress, PASS, xdpctx)
+rows:declare("queue", queue, PASS, xdpctx)
+rows:declare("both", both, PASS, xdpctx)
+rows:declare("skblen", skblen, OK, skbctx)
+rows:declare("skbifindex", skbifindex, OK, skbctx)
+rows:declare("skbhash", skbhash, OK, skbctx)
+rows:declare("skbpriority", skbpriority, OK, skbctx)
+rows:declare("skbsetprio", skbsetpriority, OK, skbwrite)
+rows:declare("skbsetlen", skbsetlength, OK, skbcomputed)
+rows:declare("skbsetmax", skbsetmax, OK, skbmax)
+rows:declare("skbsetwide", skbsetwide, OK, skbctx)
+rows:declare("skbsetneg", skbsetnegative, OK, skbctx)
 rows:close()
 
 -- the length read again on the way out, from the section libbpf reads the egress attach point off
-tc.program(skblen, {name = "skbegress", egress = true})
+tc.program(skblen, {name = "skbegress", egress = true, default = OK})
 
 -- what the case reads ctx_out back at, from the same BTF the emitter lowered the store against
 local out = assert(io.open("offsets.txt", "w"))

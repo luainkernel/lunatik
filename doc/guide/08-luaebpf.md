@@ -38,13 +38,13 @@ return xdp.program(function(ctx)
 		end
 	end
 	return action.PASS
-end)
+end, {default = action.PASS})
 ```
 
 The file has two parts. Its body, every line outside the function, runs once, on the host, when
-the file is compiled: it declares the map `counts` and the program. The function is the program:
-it is compiled to eBPF and runs in the kernel on each packet. It returns `XDP_PASS`, so every
-packet goes on to the network stack.
+the file is compiled: it declares the map `counts` and the program, with the verdict it returns
+where it stops. The function is the program: it is compiled to eBPF and runs in the kernel on each
+packet. It returns `XDP_PASS`, so every packet goes on to the network stack.
 
 Compile it into place and attach it to a device:
 
@@ -112,13 +112,14 @@ A program returns its verdict, which tells the kernel what to do with the packet
 
 A `return` with no value, or with `nil`, returns the default verdict, and so does a program that
 stops. A verdict that may be nil is refused: "the verdict may be nil here; test it first". The
-default verdict is `XDP_PASS` or `TC_ACT_OK`, unless the constructor names another:
+constructor names the default verdict, and a constructor that names none is refused at the line
+of the program's function:
 
 ```Lua
 return xdp.program(filter, {default = action.DROP})
 ```
 
-With the default, a packet the program cannot read goes through; a filter that must drop what it
+A filter that names `PASS` lets a packet it cannot read go through; one that must drop what it
 cannot check names `DROP`. A value the program computes reaches a kernel script through a map,
 not through the verdict.
 
@@ -340,6 +341,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | a value cannot be compared with a number here | `==` on a variable nil on one path | `local v = 0` |
 | a value has no truth value in a compiled function | `if v then`, `v` a number or nil | `local v = 0`, then `if v ~= 0 then` |
 | the verdict may be nil here; test it first | `return v`, `v` nil on one path | a verdict on every path |
+| xdp.program's default verdict is not an integer | `xdp.program(fn)`, `{default = "drop"}` | `xdp.program(fn, {default = action.PASS})`, and `tc.program` alike |
 | 'half' is a float, which a compiled function cannot hold | `local half = math.sqrt(4)` in the body | an integer |
 | malformed number near '.5', which `lunatic` prints before `lunatic could not compile it` | `2.5` | an integer: the kernel's Lua has no float |
 | 'while', 'repeat' and a 'goto' backwards are not compiled yet | `while`, `repeat`, a `goto` backwards | a numeric `for` |
@@ -357,7 +359,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
   +----------------------------------------------------+
   | the body       runs once, now, on the host         |
   |   map.array(counts, {...})       --> a map         |
-  |   xdp.program(function ... end)  --> a program     |
+  |   xdp.program(fn, {...})         --> a program     |
   | the function   compiled now, run later, per packet |
   +----------------------------------------------------+
          |

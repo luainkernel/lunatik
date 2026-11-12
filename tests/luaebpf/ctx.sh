@@ -78,16 +78,18 @@ ktap_pass "luaebpf: an egress program loads from its own section and reads the c
 
 # every row is one compiled function over the context, so only the body and the module differ
 row() {
-	local name="$1" module="$2" message="$3" body="$4"
+	local name="$1" module="$2" message="$3" body="$4" default=PASS
+	[ "$module" = tc ] && default=OK
 	{
 		echo "local bpf = require(\"bpf.$module\")"
+		echo "local action = require(\"linux.$module\").action"
 		echo ''
 		echo 'return bpf.program(function(ctx)'
 		echo "$body"
-		echo 'end)'
+		echo "end, {default = action.$default})"
 	} > "$LUAEBPF_WORK/$name.bpf.lua"
 	local output
-	output=$(luaebpf_refuses "$name" "$name.bpf.lua:4: $message")
+	output=$(luaebpf_refuses "$name" "$name.bpf.lua:5: $message")
 	if [ $? -ne 0 ]; then
 		comment "$output"
 		ktap_fail "luaebpf: $name"

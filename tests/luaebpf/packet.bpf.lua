@@ -6,6 +6,8 @@
 
 local corpus  = require("tests.luaebpf.corpus")
 local packets = require("tests.luaebpf.packets")
+local action  = require("linux.xdp").action
+local tc      = require("linux.tc").action
 
 local AT      <const> = 6  -- the source address, whose first byte has its high bit set
 local IHL     <const> = 14 -- the IPv4 header's first byte, where its length in words lives
@@ -94,8 +96,8 @@ local contexts, skbcontexts = corpus.packets(), corpus.skbpackets()
 local rows = corpus.new()
 for _, op in ipairs(order) do
 	for i, name in ipairs(packets.order) do
-		rows:declare(op .. i, makers[op](), nil, contexts[name])
-		rows:declare("skb" .. op .. i, skbmakers[op](), nil, skbcontexts[name])
+		rows:declare(op .. i, makers[op](), action.PASS, contexts[name])
+		rows:declare("skb" .. op .. i, skbmakers[op](), tc.OK, skbcontexts[name])
 	end
 end
 rows:close()

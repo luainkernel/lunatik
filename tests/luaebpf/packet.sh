@@ -55,10 +55,11 @@ row() {
 	local name="$1" line="$2" message="$3" body="$4" preamble="${5:-}"
 	{
 		echo 'local xdp = require("bpf.xdp")'
+		echo 'local action = require("linux.xdp").action'
 		echo "$preamble"
 		echo 'return xdp.program(function(ctx)'
 		echo "$body"
-		echo 'end)'
+		echo 'end, {default = action.PASS})'
 	} > "$LUAEBPF_WORK/$name.bpf.lua"
 	local output
 	output=$(luaebpf_refuses "$name" "$name.bpf.lua:$line: $message")
@@ -70,17 +71,18 @@ row() {
 	fi
 }
 
-row nomethod 5 "the packet has no method 'getuint64'" \
+row nomethod 6 "the packet has no method 'getuint64'" \
 	$'\tlocal p = ctx:packet()\n\tlocal v = p:getuint64(0)\n\treturn v'
-row noctxmethod 5 "the context has no method 'bytes'" \
+row noctxmethod 6 "the context has no method 'bytes'" \
 	$'\tlocal p = ctx:packet()\n\tlocal v = ctx:bytes()\n\treturn v'
-row nooffset 6 "'getbyte' takes an offset" \
+row nooffset 7 "'getbyte' takes an offset" \
 	$'\tlocal p = ctx:packet()\n\tp:getbyte(3)\n\tlocal v = p:getbyte()\n\treturn v'
-row booleanat 5 "'getuint16' takes a number, not a boolean" \
+row booleanat 6 "'getuint16' takes a number, not a boolean" \
 	$'\tlocal p = ctx:packet()\n\tlocal v = p:getuint16(true)\n\treturn v'
 
 cat > "$LUAEBPF_WORK/mixedargs.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local function second(_, at)
 	return at
@@ -91,15 +93,15 @@ return xdp.program(function(ctx)
 	local a = second(1, 2)
 	local b = second(p, 2)
 	return a + b
-end)
+end, {default = action.PASS})
 LUA
-output=$(luaebpf_refuses mixedargs "mixedargs.bpf.lua:10: 'second' is called with a packet and compiled with a number") \
+output=$(luaebpf_refuses mixedargs "mixedargs.bpf.lua:11: 'second' is called with a packet and compiled with a number") \
 	|| { comment "$output"; fail "luaebpf: a function called with a packet where it took a number is not refused"; }
 ktap_pass "luaebpf: a function called with a packet and compiled for a number is refused with its line"
 
-# the byte read on line 5 compiles; the two-byte one on line 6 is refused
+# the byte read on line 6 compiles; the two-byte one on line 7 is refused
 wide=$'\tlocal p = ctx:packet()\n\tlocal a = p:getbyte(6)\n\tlocal b = p:getuint16(6)\n\treturn a + b'
-row unaligned 6 "'getuint16' reads more than a byte, and this kernel lacks efficient unaligned access" \
+row unaligned 7 "'getuint16' reads more than a byte, and this kernel lacks efficient unaligned access" \
 	"$wide" 'require("luaebpf.emit").unaligned = false'
 
 check_dmesg

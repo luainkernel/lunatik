@@ -48,8 +48,9 @@ keyed() {
 		echo "require(\"luaebpf.emit\").bigendian = ${bigendian[$2]}"
 		echo 'local map = require("bpf.map")'
 		echo 'local xdp = require("bpf.xdp")'
+		echo 'local action = require("linux.xdp").action'
 		echo "local keyed = map.hash(\"keyed\", {key = \"$3\", value = \"I4\", entries = 4})"
-		echo 'return xdp.program(function(_) return 0 end)'
+		echo 'return xdp.program(function(_) return 0 end, {default = action.PASS})'
 	} > "$LUAEBPF_WORK/$1.bpf.lua"
 }
 
@@ -95,7 +96,7 @@ bpftool btf dump file "$LUAEBPF_WORK/$other/mapget.bpf.o" | grep -q "DATASEC '.m
 ktap_pass "luaebpf: bpftool reads the same BTF out of either order"
 
 keyed hostkey $other "${prefix[$host]}I4"
-output=$(luaebpf_refuses hostkey "hostkey.bpf.lua:4: a map is read in the kernel's byte order, not '${prefix[$host]}I4'") \
+output=$(luaebpf_refuses hostkey "hostkey.bpf.lua:5: a map is read in the kernel's byte order, not '${prefix[$host]}I4'") \
 	|| { comment "$output"; fail "luaebpf: a key in the host's order is not refused for a $other-endian object"; }
 ktap_pass "luaebpf: a key in the host's explicit order is refused for an object of the other"
 

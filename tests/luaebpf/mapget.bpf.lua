@@ -164,7 +164,7 @@ local programs = {{"present", present}, {"absent", absent}, {"computed", compute
 	{"negkey", negkey}, {"narrowkey", narrowkey}, {"onepath", onepath}, {"skipped", skipped},
 	{"lru", lru}}
 for _, program in ipairs(programs) do
-	xdp.program(program[2], {name = program[1]})
+	xdp.program(program[2], {name = program[1], default = action.PASS})
 end
 
 -- the verdict a lookup under a key owes: what it finds where string.pack takes the key, and the

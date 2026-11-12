@@ -337,7 +337,7 @@ from it on, a user runs one.
 | The CLI's libraries hand the body a float the kernel's Lua would not (`math.sqrt`, a string coerced to a number) | A float reached from a compiled function is refused at the line that reaches it |
 | libbpf on the target lacks `bpf_program__attach_tcx` (1.3.0) | The loader reports the missing attach as an error naming the version; the suite skips |
 | A stale pinned program or link survives a failed run | `lunatik stop` and the suite cleanup unpin everything under the script's root, up front and in the trap |
-| The compiled and the interpreted program disagree on an edge (division by zero, out-of-bounds) | The differential tests in `testing.md` run both on the same inputs; the failure path is specified as the program type's default verdict, and the interpreted side raises where the compiled side takes that path |
+| The compiled and the interpreted program disagree on an edge (division by zero, out-of-bounds) | The differential tests in `testing.md` run both on the same inputs; the failure path is specified as the program's default verdict, and the interpreted side raises where the compiled side takes that path |
 
 ## Definition of done, per phase
 

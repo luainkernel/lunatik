@@ -29,6 +29,7 @@ luaebpf_start 4
 
 cat > "$LUAEBPF_WORK/zerostep.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 return xdp.program(function(ctx)
 	local s = 0
@@ -36,9 +37,9 @@ return xdp.program(function(ctx)
 		s = s + i
 	end
 	return s
-end)
+end, {default = action.PASS})
 LUA
-output=$(luaebpf_refuses zerostep "zerostep.bpf.lua:5: 'for' step is zero") \
+output=$(luaebpf_refuses zerostep "zerostep.bpf.lua:6: 'for' step is zero") \
 	|| { comment "$output"; fail "luaebpf: a zero step is not refused"; }
 ktap_pass "luaebpf: a 'for' whose step is zero at compile time is refused with its line"
 
