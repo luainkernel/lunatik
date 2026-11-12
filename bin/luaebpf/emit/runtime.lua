@@ -54,9 +54,7 @@ local function arguments(f, pc, ins, state)
 	return ins.b - 1
 end
 
--- the kfunc reads the key and the arguments by address, so both go below the frame, where no Lua
--- register lives and nothing outlives the call
-function runtime.call(f, pc, ins, state, callee)
+local function placed(f, pc, state, callee)
 	if not f.isprogram then
 		frame.refuse(f, pc, "%s can only be called from the program's own function", frame.named(callee, "a runtime"))
 	end
@@ -64,8 +62,12 @@ function runtime.call(f, pc, ins, state, callee)
 	if ctx == nil or ctx.t ~= context.CTX then
 		frame.refuse(f, pc, "a call into the runtime passes the context, which the program's parameter does not hold")
 	end
-	local code, key, nargs = f.code, callee.k.key, arguments(f, pc, ins, state)
-	local words = keywords(f, key)
+end
+
+-- the kfunc reads the key and the arguments by address, so both go below the frame, where no Lua
+-- register lives and nothing outlives the call
+local function stage(f, pc, ins, state, key, nargs)
+	local code, words = f.code, keywords(f, key)
 	local bottom = frame.depth(f) + (#words + nargs) * frame.SLOT
 	frame.stack(f, pc, bottom)
 	local at, args = -bottom, -bottom + #words * frame.SLOT
@@ -76,6 +78,11 @@ function runtime.call(f, pc, ins, state, callee)
 	for i = 1, nargs do
 		code:store(insn.reg.FP, args + (i - 1) * frame.SLOT, frame.getreg(f, pc, state, ins.a + i, insn.reg.R1))
 	end
+	return at, args
+end
+
+local function pass(f, key, at, args, nargs)
+	local code = f.code
 	frame.address(f, insn.reg.R1, at)
 	code:set(insn.reg.R2, #key + NUL)
 	frame.move(f, frame.fetch(f, CTXREG, insn.reg.R3), insn.reg.R3)
@@ -85,6 +92,13 @@ function runtime.call(f, pc, ins, state, callee)
 		frame.address(f, insn.reg.R4, args)
 	end
 	code:set(insn.reg.R5, nargs * frame.SLOT)
+end
+
+function runtime.call(f, pc, ins, state, callee)
+	placed(f, pc, state, callee)
+	local code, key, nargs = f.code, callee.k.key, arguments(f, pc, ins, state)
+	local at, args = stage(f, pc, ins, state, key, nargs)
+	pass(f, key, at, args, nargs)
 	code:kfunc(f.unit.kfunc)
 	insert(f.calls, {line = f.proto.lines[pc], key = key})
 	if ins.c > 1 then
