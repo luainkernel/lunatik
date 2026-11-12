@@ -25,18 +25,18 @@ luaebpf_start 2
 # the calls sit on lines 9, 13 and 21, which the expected summary names
 cat > "$LUAEBPF_WORK/report.bpf.lua" <<'LUA'
 local xdp     = require("bpf.xdp")
-local runtime = require("bpf.runtime")
+local lunatik = require("lunatik")
 
-local first  = runtime.new("tests/luaebpf/first")
-local second = runtime.new("tests/luaebpf/second")
+local first  = lunatik.runtime("tests/luaebpf/first")
+local second = lunatik.runtime("tests/luaebpf/second")
 
 -- two calls in one program
 local function both(_)
-	local a = first(1)
+	local a = first:run(1)
 	if a then
 		return a
 	end
-	local b = second(2)
+	local b = second:run(2)
 	if b then
 		return b
 	end
@@ -44,7 +44,7 @@ local function both(_)
 end
 
 local function one(_)
-	local c = second(3)
+	local c = second:run(3)
 	if c then
 		return c
 	end
