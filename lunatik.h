@@ -61,6 +61,11 @@ typedef u8 __bitwise lunatik_opt_t;
 	((runtime)->private && READ_ONCE(lunatik_runtimeof(runtime)->ready))
 #define lunatik_isclosing(runtime)	(!(runtime)->private || !kref_read(&(runtime)->kref))
 
+#define lunatik_isreplay(runtime)	\
+	(!lunatik_isatomic() && READ_ONCE(lunatik_runtimeof(runtime)->replay) == current)
+#define lunatik_enterreplay(runtime)	WRITE_ONCE(lunatik_runtimeof(runtime)->replay, current)
+#define lunatik_leavereplay(runtime)	WRITE_ONCE(lunatik_runtimeof(runtime)->replay, NULL)
+
 #define lunatik_handle(runtime, handler, ret, ...)	\
 do {							\
 	lua_State *L = lunatik_getstate(runtime);	\
@@ -77,6 +82,8 @@ do {										\
 	if (likely(_runtime != NULL)) {						\
 		if (unlikely(lunatik_isowner(_runtime)))			\
 			ret = -EDEADLK; /* a dispatch from under the lock it would take */	\
+		else if (unlikely(lunatik_isreplay(_runtime))) /* the body runs on this task, unlocked */	\
+			lunatik_handle(_runtime, handler, ret, ## __VA_ARGS__);	\
 		else {								\
 			lunatik_lock(_runtime);					\
 			if (likely(lunatik_isready(_runtime))) {		\
@@ -145,6 +152,7 @@ typedef struct lunatik_runtime_s {
 	int cpu;
 	bool ready;
 	unsigned long cstack;
+	struct task_struct *replay;
 } lunatik_runtime_t;
 
 #define lunatik_runtimeof(runtime)	container_of(runtime, lunatik_runtime_t, object)
@@ -386,6 +394,7 @@ static inline lua_Integer lunatik_checkfieldinteger(lua_State *L, const char *fi
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
 #define LUNATIK_ERR_HARDIRQ	"not allowed in a hardirq runtime"
+#define LUNATIK_ERR_REPLAY	"not allowed inside a replay"
 
 static inline void lunatik_checkclosing(lua_State *L)
 {
@@ -453,6 +462,12 @@ static inline void lunatik_checkhardirq(lua_State *L)
 {
 	if (lunatik_ishardirq(lunatik_toruntime(L)->opt))
 		luaL_error(L, LUNATIK_ERR_HARDIRQ);
+}
+
+static inline void lunatik_checkreplay(lua_State *L)
+{
+	if (lunatik_isreplay(lunatik_toruntime(L)))
+		luaL_error(L, LUNATIK_ERR_REPLAY);
 }
 
 lunatik_object_t *lunatik_newobject(lua_State *L, const lunatik_class_t *class, size_t size, lunatik_opt_t opt);

@@ -269,6 +269,10 @@ the script body is still running, as it is when a hook armed from the body fires
 `percpu` object, when the runtime of this CPU is not published yet; if the calling task already
 holds the runtime's lock, a dispatch from the runtime's own code, with `-EDEADLK`, and the handler
 does not run either; otherwise, `ret` is set with the result of `handler(L, ...)` call.
+A dispatch on the task of the script body, out of atomic context and inside a registration it marks
+with [`lunatik_enterreplay`](#lunatik_isreplay), runs the handler through
+[`lunatik_handle`](#lunatik_handle), with no lock, since the body holds none, and before the
+runtime is ready.
 Around that call it records the stack pointer in the runtime's `cstack`, from which Lua's bound on
 nested C calls counts, raising `C stack overflow` past five eighths of the kernel stack.
 Then, it restores the Lua stack and unlocks the `runtime` environment.
@@ -462,6 +466,25 @@ own task holds: `lunatik_checkarmed` refuses every call that may sleep there. It
 task only, which is what a softirq runtime leaves to see: nothing that holds its lock sleeps, so no
 second task waits for RTNL under it. Defined as macros.
 
+### lunatik\_isreplay
+```C
+bool lunatik_isreplay(lunatik_object_t *runtime);
+void lunatik_enterreplay(lunatik_object_t *runtime);
+void lunatik_leavereplay(lunatik_object_t *runtime);
+```
+A kernel registration that delivers its callbacks on the registering task, as
+`register_netdevice_notifier` replays a `REGISTER` for each device and `hid_register_driver` probes
+the devices already on the bus, delivers them while the script body runs, before `runtime` is ready.
+A binding calls `lunatik_enterreplay(runtime)` before the registration, and its unregistration where
+that delivers too, and `lunatik_leavereplay(runtime)` after it, with nothing between them that
+raises; `lunatik_isreplay` returns `true` on the task between the two, out of atomic context, and
+[`lunatik_run`](#lunatik_run) then runs the callback there, where it answers `-ENXIO` to any other
+dispatch before the runtime is ready. Only the body registers before the runtime is ready, so one
+task per runtime is recorded, and the read takes no lock: only the task that wrote it can find
+itself there. An interrupt taken on that task, and what the task runs with bottom halves off, a TC
+program on a packet a callback sends among them, are atomic and refused as before.
+Defined as macros.
+
 ### lunatik\_iskthread
 ```C
 bool lunatik_iskthread(void);
@@ -581,6 +604,17 @@ Raises a Lua error, `"not allowed in a hardirq runtime"`, when `L`'s runtime is 
 constructor whose object no callback of such a runtime can use calls it, as `netlink.channel.new`
 does, whose send re-enables bottom halves where an nlmon tap is up. It reads the runtime's context
 rather than the CPU's state, so the refusal comes from the script body, which runs with interrupts on.
+
+### lunatik\_checkreplay
+```C
+void lunatik_checkreplay(lua_State *L);
+```
+Raises a Lua error, `"not allowed inside a replay"`, when [`lunatik_isreplay`](#lunatik_isreplay)
+holds for `L`'s runtime: from a callback a registration delivers on the body's task, or a coroutine it
+runs. Such a callback runs holding what the registration holds, the device lock `hid_register_driver`
+takes among them, and a registration it made would take it again, or leave the replay it nests in
+with `lunatik_leavereplay`: an entry point that opens a replay calls it first, as `hid.register`, a
+hid driver's `stop` and `notifier.netdevice` do.
 
 ### lunatik\_percpudata
 ```C
@@ -1122,6 +1156,7 @@ handler, a `BUG()`. After a protected call or a resume fails, the error is read 
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
 #define LUNATIK_ERR_HARDIRQ	"not allowed in a hardirq runtime"
+#define LUNATIK_ERR_REPLAY	"not allowed inside a replay"
 #define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
 ```
 The messages of the refusals this page documents. A binding that refuses one of their conditions on

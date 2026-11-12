@@ -44,7 +44,6 @@ typedef struct luanotifier_s {
 	lunatik_object_t *runtime;
 	luanotifier_handler_t handler;
 	luanotifier_register_t unregister;
-	struct task_struct *registrant;
 } luanotifier_t;
 
 static const lunatik_class_t luanotifier_softirq_class;
@@ -52,9 +51,6 @@ static const lunatik_class_t luanotifier_hardirq_class;
 
 LUNATIK_PRIVATECHECKERS(luanotifier_check, luanotifier_t *, "notifier", &luanotifier_softirq_class,
 	&luanotifier_hardirq_class);
-
-/* an event delivered inside register_fn, on the task that registered the block */
-#define luanotifier_isreplay(notifier)	(in_task() && (notifier)->registrant == current)
 
 typedef struct luanotifier_ctx_s {
 	luanotifier_t *notifier;
@@ -92,10 +88,7 @@ static int luanotifier_call(struct notifier_block *nb, unsigned long event, void
 	luanotifier_ctx_t ctx = {.notifier = notifier, .event = event, .data = data, .ret = NOTIFY_DONE};
 	int ret;
 
-	if (luanotifier_isreplay(notifier))
-		lunatik_handle(notifier->runtime, lunatik_catch, ret, luanotifier_docall, &ctx, "callback");
-	else
-		lunatik_run(notifier->runtime, lunatik_catch, ret, luanotifier_docall, &ctx, "callback");
+	lunatik_run(notifier->runtime, lunatik_catch, ret, luanotifier_docall, &ctx, "callback");
 
 	(void)ret; /* not ready, under its own lock or raised: the callback returned nothing */
 	return ctx.ret;
@@ -161,6 +154,16 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 	return ret;
 }
 
+static int luanotifier_netdevice_register(struct notifier_block *nb)
+{
+	lunatik_object_t *runtime = container_of(nb, luanotifier_t, nb)->runtime;
+
+	lunatik_enterreplay(runtime); /* the replay register_netdevice_notifier delivers runs on this task */
+	int ret = register_netdevice_notifier(nb);
+	lunatik_leavereplay(runtime);
+	return ret;
+}
+
 /***
 * Registers a network-device notifier. Must be called from a `softirq` runtime,
 * `lunatik run --context=softirq <script>`: the callback runs under RTNL, where nothing it reaches
@@ -189,15 +192,18 @@ static int luanotifier_netdevice_call(struct notifier_block *nb, unsigned long e
 *   callback, the replay this call delivers included, and from any coroutine the callback runs;
 *   `runtime context mismatch` outside a softirq runtime; `not allowed once the runtime is armed`
 *   past the script body, since the registration sleeps; `not allowed while the runtime closes`
-*   from a finalizer that runs at its close; the kernel's errno when it refuses the registration,
-*   `EPERM` when the callback returns `notify.BAD` for a replayed `REGISTER`
+*   from a finalizer that runs at its close; `not allowed inside a replay` from a callback that
+*   another registration of the runtime delivers inside its call, as `hid.register` does; the
+*   kernel's errno when it refuses the registration, `EPERM` when the callback returns
+*   `notify.BAD` for a replayed `REGISTER`
 * @within notifier
 */
 static int luanotifier_netdevice(lua_State *L)
 {
 	lunatik_checkarmed(L);
+	lunatik_checkreplay(L);
 
-	return luanotifier_new(L, register_netdevice_notifier, unregister_netdevice_notifier,
+	return luanotifier_new(L, luanotifier_netdevice_register, unregister_netdevice_notifier,
 		luanotifier_netdevice_handler, luanotifier_netdevice_call, &luanotifier_softirq_class);
 }
 
@@ -311,9 +317,7 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 
 	lunatik_registerobject(L, 1, object);
 
-	notifier->registrant = current; /* the replay register_fn delivers runs on this task */
 	int err = register_fn(&notifier->nb);
-	notifier->registrant = NULL;
 	if (err != 0) {
 		lunatik_unregisterobject(L, object);
 		lunatik_throw(L, err);
