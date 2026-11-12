@@ -803,8 +803,9 @@ reads the runtime's one method, which emits nothing: the runtime is a value of t
 register holds no word. The call lowers to the kfunc of an XDP program, `bpf_luaxdp_run`: `r1` the
 address of the name, `r2` its length with the NUL, `r3` the context, `r4` the address of the
 arguments and `r5` their size. The name and the arguments go below the frame's deepest word,
-`r10 - 56` here, where nothing outlives the call. `TX` on the nil branch tells that branch from the callback's verdict and from the default
-verdict. Instructions 0 to 45 take `ctx` and `p` and read bytes 36 and 37 into `port`, in `r8`.
+`r10 - 56` here, where nothing outlives the call. `TX` on the nil branch tells that branch from the
+callback's verdict and from the default verdict. Instructions 0 to 45 take `ctx` and `p` and read
+bytes 36 and 37 into `port`, in `r8`.
 
 ```
      line 10: local verdict = limits:run(port, #p)
