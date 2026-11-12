@@ -244,7 +244,8 @@ netfilter.register{
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:forward">skb:forward ()</a></td>
-	<td class="summary">Transmits a clone of the skb out of <code>skb-&gt;dev</code>, the device <code>skb:ifindex()</code> names.</td>
+	<td class="summary">Transmits a copy of the skb, from its MAC header on, out of <code>skb-&gt;dev</code>, the device
+ <code>skb:ifindex()</code> names.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#skb:hash">skb:hash ()</a></td>
@@ -428,7 +429,9 @@ netfilter.register{
 </dd>
     <dt id="skb:forward"><a name="skb:forward"></a><strong>skb:forward ()</strong></dt>
     <dd>
-    Transmits a clone of the skb out of <code>skb-&gt;dev</code>, the device <code>skb:ifindex()</code> names.
+    Transmits a copy of the skb, from its MAC header on, out of <code>skb-&gt;dev</code>, the device
+ <code>skb:ifindex()</code> names.  The copy&rsquo;s linear bytes are its own, so a write through a view after
+ <code>forward()</code> does not reach the frame it sent.
  The original is untouched and still takes the hook&rsquo;s verdict, so a callback that forwards a
  packet returns <code>DROP</code> to not send it twice.
 
@@ -436,8 +439,9 @@ netfilter.register{
 
 
     <h3>Raises</h3>
-    if skb has no device, is a copy that would leave unencrypted where its device encrypts
- the original by IPsec or MACsec offload, MAC header is not set or is past the data, or clone fails
+     if skb has no device, is a copy that would leave unencrypted where its device encrypts
+ the original by IPsec or MACsec offload, MAC header is not set or is past the data, or the copy&rsquo;s
+ allocation fails
 
 
 
@@ -618,7 +622,7 @@ netfilter.register{
 <a href="../../modules/skb.html">5.1 docs</a> ·
 <a href="../../5.0/modules/skb.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-12 12:41:05</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-12 13:12:56</span>
 </div>
 </footer>
 </body>
