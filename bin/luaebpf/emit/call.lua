@@ -108,19 +108,7 @@ local function invoke(f, target, nargs)
 	f.code:branchi(jump.JNE, reg.R1, 0, abort(f))
 end
 
-function call.CALL(f, pc, ins, state)
-	local callee = state[ins.a]
-	if ins.b == 0 or ins.c == 0 then
-		refuse(f, pc, "a call with a variable number of values cannot be compiled")
-	end
-	if callee ~= nil and callee.t == METHOD then
-		method(f, pc, ins, state, callee)
-		return filled(f, pc, ins, state)
-	end
-	if callee ~= nil and runtime.isproxy(callee.k) then
-		runtime.call(f, pc, ins, state, callee)
-		return filled(f, pc, ins, state)
-	end
+local function subprogram(f, pc, ins, state, callee)
 	callable(f, pc, callee)
 	local params = parameters(f, pc, ins, state)
 	local target = f.unit.subprogram(f, pc, callee.k, callee.name, params)
@@ -131,6 +119,20 @@ function call.CALL(f, pc, ins, state)
 	if ins.c > 1 then
 		setreg(f, ins.a, reg.R0)
 		state[ins.a] = {t = target.rettype}
+	end
+end
+
+function call.CALL(f, pc, ins, state)
+	local callee = state[ins.a]
+	if ins.b == 0 or ins.c == 0 then
+		refuse(f, pc, "a call with a variable number of values cannot be compiled")
+	end
+	if callee ~= nil and callee.t == METHOD then
+		method(f, pc, ins, state, callee)
+	elseif callee ~= nil and runtime.isproxy(callee.k) then
+		runtime.call(f, pc, ins, state, callee)
+	else
+		subprogram(f, pc, ins, state, callee)
 	end
 	filled(f, pc, ins, state)
 end
