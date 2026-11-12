@@ -11,6 +11,7 @@
 
 local insn  = require("luaebpf.insn")
 local proto = require("luaebpf.proto")
+local bpf   = require("linux.bpf") -- the kernel's table, through the searcher proto puts last
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local opcodes    = proto.opcodes
@@ -23,7 +24,7 @@ local FIRST    <const> = reg.R6
 local SLOT     <const> = 8
 local NBITS    <const> = 64
 local BYTE     <const> = 8   -- bits
-local MAXSTACK <const> = 512 -- MAX_BPF_STACK
+local MAXSTACK <const> = bpf.max.STACK
 
 -- the words every frame reserves: the flag a callee raises through the pointer its caller
 -- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
