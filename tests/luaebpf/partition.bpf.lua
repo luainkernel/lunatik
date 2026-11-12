@@ -12,8 +12,6 @@ local map     = require("bpf.map")
 local lunatik = require("lunatik")
 local action  = require("linux.tc").action
 
-local pack = string.pack
-
 local KEY     <const> = "I4"
 local VALUE   <const> = "I4"
 local ENTRIES <const> = 8
@@ -85,8 +83,8 @@ local PRIORITY <const> = payload(packets.tls)
 
 -- prog run builds an skb whose hash reads zero, so both packets of a run take the key 0
 local out = assert(io.open(FACTS, "w"))
-out:write("key\t", corpus.bytes(pack(KEY, 0)), "\n")
-out:write("value\t", corpus.bytes(pack(VALUE, PRIORITY), "%02x"), "\n")
+out:write("key\t", corpus.bytes(string.pack(KEY, 0)), "\n")
+out:write("value\t", corpus.bytes(string.pack(VALUE, PRIORITY), "%02x"), "\n")
 out:write("offset\t", offset("__sk_buff", "priority"), "\n")
 out:write("priority\t", PRIORITY, "\n")
 out:close()

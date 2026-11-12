@@ -13,9 +13,6 @@ local insn    = require("luaebpf.insn")
 local frame   = require("luaebpf.emit.frame")
 local context = require("luaebpf.emit.context")
 
-local unpack = string.unpack
-local insert = table.insert
-
 local ANSWER <const> = frame.type("runtime answer", "word", "untested")
 local RUN    <const> = frame.type("runtime method")
 
@@ -41,7 +38,7 @@ local function keywords(f, key)
 	local order = (f.unit.bigendian and ">" or "<") .. "i8"
 	local words = {}
 	for i = 1, count do
-		insert(words, (unpack(order, padded, (i - 1) * frame.SLOT + 1)))
+		table.insert(words, (string.unpack(order, padded, (i - 1) * frame.SLOT + 1)))
 	end
 	return words
 end

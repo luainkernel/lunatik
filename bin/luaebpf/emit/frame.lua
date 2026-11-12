@@ -17,7 +17,6 @@ local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local opcodes    = proto.opcodes
 local format     = string.format
 local mathtype   = math.type
-local max        = math.max
 
 local NREGS    <const> = 4   -- Lua registers 0..3 live in r6..r9; the rest spill to the frame
 local FIRST    <const> = reg.R6
@@ -192,7 +191,7 @@ end
 
 -- the bytes a frame holds: the words it reserves and the Lua registers that spill below them
 local function depth(f)
-	return (max(f.proto.maxstacksize - NREGS, 0) + RESERVED) * SLOT
+	return (math.max(f.proto.maxstacksize - NREGS, 0) + RESERVED) * SLOT
 end
 frame.depth = depth
 
