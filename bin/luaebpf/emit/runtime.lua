@@ -24,7 +24,7 @@ local SELFREG <const> = 1  -- SELF puts the runtime past the method, and the arg
 
 local proxy = {} -- no method: it marks what lunatik.runtime returns, which SELF and CALL look for
 
-local runtime = {ANSWER = ANSWER, proxy = proxy}
+local runtime = {proxy = proxy}
 
 -- whether a value the file body computed is a runtime lunatik.runtime returned
 function runtime.isproxy(value)
