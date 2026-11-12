@@ -125,7 +125,7 @@ function runtime.call(f, pc, ins, state, callee)
 	local at, args = stage(f, pc, ins, state, key, nargs)
 	pass(f, key, at, args, nargs)
 	code:kfunc(f.unit.kfunc)
-	insert(f.calls, {line = f.proto.lines[pc], key = key})
+	table.insert(f.calls, {line = f.proto.lines[pc], key = key})
 	if ins.c > 1 then
 		frame.extend(f, insn.reg.R0, INTSIZE)
 		frame.setreg(f, ins.a, insn.reg.R0)
