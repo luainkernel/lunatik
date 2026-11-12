@@ -36,6 +36,7 @@
 local programs = require("luaebpf.programs")
 local action   = require("linux.tc").action
 local func     = require("linux.bpf").func
+local limits   = require("linux.limits")
 
 -- libbpf reads the program type and its attach point back from the ELF section name
 -- (tools/lib/bpf/libbpf.c)
@@ -50,13 +51,15 @@ local EGRESS  <const> = "tcx/egress"
 -- skb:data(layer) starts where the header its layer names does, which no compiled read reaches
 -- yet, so the packet proxy is the view from skb->data and refuses a layer. In a tc callback
 -- skb:data() reads an skb that is not linear through skb_header_pointer, and bpf_skb_load_bytes is
--- skb_header_pointer over the context (net/core/filter.c), so the packet proxy reads with it.
+-- skb_header_pointer over the context up to an offset of INT_MAX (net/core/filter.c), so the packet
+-- proxy reads with it.
 local context = {
 	struct = "__sk_buff",
 	length = "len",
 	methods = {ifindex = "ifindex", hash = "hash", priority = "priority"},
 	writable = {priority = true},
-	packet = {method = "data", layered = true, loadbytes = func.skb_load_bytes, base = "data", limit = "data_end"},
+	packet = {method = "data", layered = true, loadbytes = func.skb_load_bytes, copymax = limits.int.MAX,
+		base = "data", limit = "data_end"},
 }
 
 local tc = {}

@@ -33,8 +33,6 @@ local VALUE  <const> = frame.VALUE
 -- every XDP frame BPF_PROG_TEST_RUN or a NIC can build, and the interpreter raises there too.
 local PACKETMAX <const> = 65535
 
-local COPYMAX <const> = 0x7fffffff -- the largest int, the type of the offset skb_header_pointer takes
-
 -- the reads the kernel's own data object publishes (lib/luadata.c), and the load each becomes.
 -- There is no getuint64: a Lua integer is 64-bit signed and has no unsigned twin.
 local accessors = {
@@ -80,17 +78,17 @@ end
 
 -- loadbytes, bpf_skb_load_bytes on TC, copies the bytes into the frame's value slot wherever the skb
 -- holds them, and answers non-zero past the packet, where the interpreter raises. It takes the low
--- 32 bits of the offset and answers non-zero past COPYMAX itself, so the offset is tested against
--- COPYMAX first: one above it whose low 32 bits fall in the packet would read there.
-local function copyread(f, pc, ins, state, access, loadbytes)
+-- 32 bits of the offset, so the offset is tested against copymax first: one above it whose low 32
+-- bits fall in the packet would read there.
+local function copyread(f, pc, ins, state, access, packet)
 	local code = f.code
 	frame.into(f, pc, state, ins.a + 2, reg.R2)
 	frame.move(f, frame.fetch(f, ins.a + 1, reg.R1), reg.R1)
-	code:branchi(jump.JGT, reg.R2, COPYMAX, frame.abort(f))
+	code:branchi(jump.JGT, reg.R2, packet.copymax, frame.abort(f))
 	code:alu(alu.MOV, reg.R3, reg.FP)
 	code:alui(alu.ADD, reg.R3, VALUE)
 	code:set(reg.R4, access.size)
-	code:helper(loadbytes)
+	code:helper(packet.loadbytes)
 	if f.drop ~= "loadbytes" then
 		code:branchi(jump.JNE, reg.R0, 0, frame.abort(f))
 	end
@@ -98,9 +96,9 @@ local function copyread(f, pc, ins, state, access, loadbytes)
 end
 
 local function packetread(f, pc, ins, state, access, name)
-	local loadbytes = f.unit.context.packet.loadbytes
-	if loadbytes ~= nil then
-		copyread(f, pc, ins, state, access, loadbytes)
+	local packet = f.unit.context.packet
+	if packet.loadbytes ~= nil then
+		copyread(f, pc, ins, state, access, packet)
 	else
 		directread(f, pc, ins, state, access, name)
 	end
