@@ -11,7 +11,7 @@
 
 local insn  = require("luaebpf.insn")
 local proto = require("luaebpf.proto")
-local bpf   = require("linux.bpf") -- the kernel's table, through the searcher proto puts last
+local bpf   = proto.script("linux.bpf") -- not require: outside a body, the host's path would be searched first
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local opcodes    = proto.opcodes

@@ -1122,7 +1122,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   body reads none of the host's modules: a `luaebpf.*` module the compiler
   itself does not load is reached through the host's path, and `class` and
   `struct` come from the kernel scripts though a Lua module on
-  `LUA_PATH_5_5` and a C one on `LUA_CPATH_5_5` carry their names.
+  `LUA_PATH_5_5` and a C one on `LUA_CPATH_5_5` carry their names. The
+  compiler's own read of `linux.bpf`, for the kernel's stack limit, comes
+  from the kernel scripts too, though a Lua module on `LUA_PATH_5_5` carries
+  that name.
 - **scripts**: `lunatik bpf --scripts` names the directory the body requires the
   kernel scripts from in place of `/lib/modules/lua`. Through a directory laid
   out as that one, named relative to where the compile runs, whose
