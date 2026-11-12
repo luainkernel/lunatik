@@ -7,6 +7,7 @@
 
 local linux     = require("linux")
 local errno     = require("linux.errno")
+local limits    = require("linux.limits")
 local nf        = require("linux.nf")
 local rtnetlink = require("linux.rtnetlink")
 local syscall   = require("linux.syscall")
@@ -42,6 +43,10 @@ test("a constant defined as the name of an integer define is carried", function(
 	for _, name in ipairs(aliases) do
 		assert(syscall.numbers[name] ~= nil, ("linux.syscall.numbers.%s is missing"):format(name))
 	end
+end)
+
+test("a constant defined as a cast is carried where its spec lists it", function()
+	check.carries("limits.int", limits.int, { MAX = INT_MAX })
 end)
 
 test("linux.errno holds each errno positive, keyed by the name linux.errname gives it", function()
