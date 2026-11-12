@@ -8,6 +8,7 @@
 * In a softirq or hardirq runtime the module holds only `cpu` and `_ENV`: `runtime` and `percpu`
 * exist in a process runtime alone, and the `io` library is not opened there and `require` refuses it.
 * @module lunatik
+* @pragma nostrip
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
