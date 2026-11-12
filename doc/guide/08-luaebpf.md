@@ -114,15 +114,15 @@ callback returns on the same hook.
 
 A `return` with no value, or with `nil`, returns the default verdict, and so does a program that
 stops. A verdict that may be nil is refused: "the verdict may be nil here; test it first". The
-default verdict is `XDP_PASS` or `TC_ACT_OK`, unless the constructor names another action, and a
-default that is not one is refused, "xdp.program's default verdict is not an XDP action":
+default verdict is `XDP_PASS` or `TC_ACT_OK`, unless the constructor names another action:
 
 ```Lua
 return xdp.program(filter, {default = action.DROP})
 ```
 
 With the default, a packet the program cannot read goes through; a filter that must drop what it
-cannot check names `DROP`. A value the program computes reaches a kernel script through a map,
+cannot check names `DROP`. A default that is not an action is refused: "xdp.program's default
+verdict is not an XDP action". A value the program computes reaches a kernel script through a map,
 not through the verdict.
 
 ## When a program cannot be compiled or computed
