@@ -7,11 +7,14 @@ paths:
 # Lua style
 
 * Line length 120.
-* A function of a module is called through the module, `table.insert(list, v)`, `frame.refuse(f, pc,
-  ...)`, never aliased in a local at the top of the file: the alias is a cache, and the maintainer
-  asked "why caching?" of `local alu, jump, reg = insn.alu, insn.jump, insn.reg` on #2235 and "why
-  cashing all of these as locals? it seems a bit of premature optimization?" of a block of them on
-  #2202. A constant a module exports stays a named `<const>`; `lua-style.sh` names an alias a change adds.
+* Localize stdlib functions at the top of a new module of the Lua the kernel runs: `local insert =
+  table.insert`. In `bin/`, the CLI and the compiler, which run once on the host, a function of a module
+  is called through the module, `table.insert(list, v)`, `frame.refuse(f, pc, ...)`, never aliased in a
+  local at the top of the file: there the alias is a cache no run asked for, and the maintainer asked
+  "why caching?" of `local alu, jump, reg = insn.alu, insn.jump, insn.reg` on #2235 and "why cashing all
+  of these as locals? it seems a bit of premature optimization?" of a block of them on #2202, of the
+  compiler's context. A constant a module exports stays a named `<const>`; `lua-style.sh` names an alias
+  a change adds under `bin/`.
 * `require("x")` with parentheses.
 * Use `table.insert`, not `t[#t+1] = v`.
 * No nested function definitions; helpers go at module level.
