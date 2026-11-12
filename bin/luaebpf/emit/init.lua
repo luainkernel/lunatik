@@ -105,7 +105,6 @@ local function walk(f)
 	f.labels = {}
 	f.aborted = nil
 	f.rettype = 0
-	f.calls = {}
 	for pc = 1, #f.proto.code do
 		f.labels[pc] = code:label()
 	end
@@ -168,6 +167,7 @@ local function lower(f)
 	f.bounded = {}
 	for _ = 1, ROUNDS do
 		f.changed = false
+		f.calls = {}
 		walk(f)
 		if not f.changed then
 			return
