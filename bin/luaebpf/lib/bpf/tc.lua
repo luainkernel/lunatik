@@ -44,7 +44,7 @@ local INGRESS <const> = "tcx/ingress"
 local EGRESS  <const> = "tcx/egress"
 
 -- the verdicts the kernel's tc callback is held to, luakfunc_action's range in lib/luatc.c
-local actions = {first = action.UNSPEC, last = action.TRAP, name = "a TC action"}
+local actions = programs.actions(action, "a TC action")
 
 -- what a program reaches on its context, spelled as the kernel's skb object spells it
 -- (lib/luaskb.c): '#' reads len and each method the field of its name, and a method the kernel

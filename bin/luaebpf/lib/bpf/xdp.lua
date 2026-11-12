@@ -40,7 +40,7 @@ local action   = require("linux.xdp").action
 local SECTION <const> = "xdp"
 
 -- the verdicts the kernel's xdp callback is held to, luakfunc_action's range in lib/luaxdp.c
-local actions = {first = action.ABORTED, last = action.REDIRECT, name = "an XDP action"}
+local actions = programs.actions(action, "an XDP action")
 
 -- what a program reaches on its context, spelled as the kernel's XDP ctx object spells it
 -- (lib/luaxdp.c): each method maps to the xdp_md field it reads. Nothing is writable:

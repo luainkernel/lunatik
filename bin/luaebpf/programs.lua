@@ -27,6 +27,21 @@ function programs.reset()
 	declared = {}
 end
 
+---
+-- The verdicts of a program type, from the lowest of its actions to the highest, the range the
+-- kernel's Lua holds a kernel script's callback of that type to (`luakfunc_action`).
+-- @function luaebpf.programs.actions
+-- @tparam table action the type's actions by name, `linux.xdp.action` or its peer
+-- @tparam string name what a verdict outside them is not, `an XDP action` or its peer
+-- @treturn table `{first, last, name}`
+function programs.actions(action, name)
+	local first, last = math.maxinteger, math.mininteger
+	for _, value in pairs(action) do
+		first, last = math.min(first, value), math.max(last, value)
+	end
+	return {first = first, last = last, name = name}
+end
+
 -- what a default verdict must be and is not, or nil where it is one of its program type's actions
 local function unmet(program)
 	local default, actions = program.default, program.actions
