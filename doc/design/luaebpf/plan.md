@@ -275,7 +275,7 @@ against, and `lunatik bpf` lists every call it compiled with its line. The kerne
 `xdp.attach` and `tc.attach` are today, over `bpf_luaxdp_run` and `bpf_luatc_run`; the callback
 reads `ctx:argument()` as it does now. `btf_install` becomes a requirement of a program that calls
 a runtime, and of nothing else. The programs of `callback.bpf.lua`, each a call and the test of its
-answer, verify in 31 processed instructions at most on 6.8, as `budget.sh` records them.
+answer, verify in 33 processed instructions at most on 6.8, as `budget.sh` records them.
 
 `examples/sniclassify` stays C into phase 6: an egress TCP segment keeps its payload in page
 fragments, where a compiled `skb:data()` takes the default verdict, and #2190 asks for reading such
