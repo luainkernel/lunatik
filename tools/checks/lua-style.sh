@@ -12,7 +12,9 @@
 # tested, which is one return whose value is the choice, as inet.udp:receivefrom took on #1584; a
 # module a file requires twice, which one local holds, as lib/socket and lib/netlink/nl80211 did
 # for each field of a linux.* table they read; an append spelled t[#t + 1] = v, which is
-# table.insert; and
+# table.insert; a function or a table of a module the file holds, or of the standard library,
+# aliased in a local of its top level, which the change adds against CHECK_BASE: the maintainer
+# asked "why caching?" of local alu, jump, reg = insn.alu, insn.jump, insn.reg on #2235; and
 # a block of four lines or more that the change adds against CHECK_BASE and a script beside it
 # carries too, which is a module both require: #1198 first spelled one pause in the four kernel
 # thread bodies of tests/rcu.
@@ -87,6 +89,7 @@ for file in "$@"; do
 	BEGIN {
 		if (added == "all") every = 1
 		else { m = split(added, a, "\n"); for (i = 1; i <= m; i++) mine[a[i]] = 1 }
+		m = split("string table math debug os io utf8 coroutine", a, " "); for (i = 1; i <= m; i++) stdlib[a[i]] = 1
 	}
 	function flag(n, why) { printf "%s:%d: %s\n", file, n, why; found = 1 }
 	function indent(s) { match(s, /^\t*/); return RLENGTH }
@@ -113,6 +116,18 @@ for file in "$@"; do
 		}
 	}
 	function branch(d) { nb[d]++; len[d, nb[d]] = 0 }
+	# the first field a top-level local takes when every value it takes is a field of a module, a constant aside
+	function alias(s,   value, a, i, m, f, p, first) {
+		if (!match(s, /^local[[:space:]]+[A-Za-z_][A-Za-z0-9_]*([[:space:]]*,[[:space:]]*[A-Za-z_][A-Za-z0-9_]*)*[[:space:]]*=/)) return ""
+		value = substr(s, RLENGTH + 1); m = split(value, a, /,/)
+		for (i = 1; i <= m; i++) {
+			if (!match(a[i], /^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*[[:space:]]*$/)) return ""
+			f = a[i]; gsub(/[[:space:]]/, "", f); split(f, p, ".")
+			if (!((p[1] in modules) || (p[1] in stdlib)) || p[2] ~ /^[A-Z][A-Z0-9_]*$/) return ""
+			if (i == 1) first = f
+		}
+		return m > 1 ? first " and " m - 1 " more" : first
+	}
 	function fields(t, n,   a, i, m, p) {	# the "key = value" pairs of a table constructor, its own level only
 		sub(/^[^{]*\{/, "", t); sub(/\}[^}]*$/, "", t)
 		while (gsub(/\{[^{}]*\}/, "", t)) ;
@@ -155,6 +170,13 @@ for file in "$@"; do
 
 		if (line ~ /\[[[:space:]]*#[[:space:]]*[A-Za-z_][A-Za-z0-9_.]*[[:space:]]*\+[[:space:]]*1[[:space:]]*\][[:space:]]*=[^=]/)
 			flag(NR, "an append is table.insert, never t[#t + 1] = v (.agents/rules/lua.md)")
+
+		# local format = string.format, local alu, jump = insn.alu, insn.jump: a cache of what the module names
+		if (match(line, /^local[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*require[^A-Za-z0-9_]/)) {
+			held = line; sub(/^local[[:space:]]+/, "", held); sub(/[^A-Za-z0-9_].*$/, "", held); modules[held] = 1
+		}
+		else if ((every || (NR in mine)) && (aliased = alias(line)) != "")
+			flag(NR, "a top-level local aliases " aliased "; a function of a module is called through the module (.agents/rules/lua.md)")
 
 		# if x == nil then return nil, y end, then return x, ...: one return whose value is the choice
 		if (line ~ /^[[:space:]]*$/) ;

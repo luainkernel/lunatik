@@ -35,6 +35,9 @@ jobs:
     - name: Fixups pending
       # a fixup! waits for the squash, so the run stays red until the pull request is folded
       run: bash tools/checks/fixups.sh "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"
+    - name: Binding and compiler apart
+      # a C binding of lib/ and the compiler under bin/luaebpf are two pull requests, the compiler's stacked on the binding's
+      run: bash tools/checks/bundled.sh "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"
     - name: C API entries
       # a name a header of lib/ declares with no entry in doc/capi.md fails the run
       run: bash tools/checks/capi-entries.sh lib/*.h

@@ -93,7 +93,9 @@ An issue is a request, not a decision to implement it. Judge it before you shape
    the alternatives, each with what it buys and what it costs, the comparison starting in the kernel's own
    answer, resource by resource for an object kept past the code that lent it (AGENTS.md, "Deciding what to
    change"). Read what the issue asks to be researched, in the kernel
-   source and on the web, and name what you read.
+   source and on the web, and name what you read. A shape that changes a C binding of lib/ and the
+   compiler under bin/luaebpf is two pull requests, the binding's in this run and the compiler's in a run
+   stacked on its branch, which the Update says (AGENTS.md, "Patches and commits").
 3. Your verdict. implement settles, as text the issue takes under an Update: line, the API, the contract and
    whatever format the issue leaves open, and leaves helpers and loops to the implementer (AGENTS.md, on what
    an issue states). It meets every requirement the issue states, and the text says of each, quoted, how: a
@@ -133,7 +135,10 @@ you take it, what you read, decided, committed and measured, and your answer bef
    answer's smallest carries that shape beside the diff, and names what each mechanism past it buys with
    its source; the review keeps none without one.
 3. Commit as "Patches and commits" asks: one change per commit, the harness apart from the code, tests
-   wired and described (the new-test skill), each doc where its reader looks. \`make\` is clean on every
+   wired and described (the new-test skill), each doc where its reader looks. A change that takes a C
+   binding of lib/ and the compiler under bin/luaebpf commits the binding alone on this branch, and your
+   notes name the compiler's part, which the session launches as a run stacked on it
+   (tools/checks/bundled.sh). \`make\` is clean on every
    commit, and \`make C=1\` where the change touches an annotated pointer. ${PUSH}
 4. For each test under tests/ the change adds or changes, write the defect it is for, the mechanism it
    covers disabled, and for each requirement of the issue a test is to prove, the defect that breaks the
@@ -156,7 +161,8 @@ you take it, what you read, decided, committed and measured, and your answer bef
    Run no install, reload, suite or example yourself. List the examples tools/checks/examples-touched.sh
    names over the changed files.
 6. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/pr-body.sh
-   passes the body, which carries \`Closes #${a.issue}\` on a line of its own and names each example as run:
+   passes the body, which carries \`Closes #${a.issue}\` on a line of its own, or \`#${a.issue}, which it does
+   not close\` where it is the binding of a change split in two, and names each example as run:
    the pull request opens only on a head the host run passed, and says of an example the host only loaded,
    and of what the body claims of one and the host did not show, what the build said. Open nothing.
 7. Remove your worktree (\`rm -rf <tree> && git worktree prune\`) once the branch is pushed: the review, the host

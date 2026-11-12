@@ -18,8 +18,9 @@ inside code, the trailing comment past the width, a comment on a signature line 
 (`comment-siblings.sh`), a sequence of calls a change adds that another C file already makes
 (`core-helper.sh`), a function a change adds that spells a run of code another project wrote
 (`copied.sh`), a deferral a change adds to the core or a binding (`deferral.sh`), the
-branches, argument tables, inline functions and repeated blocks the Lua style rules settle
-(`lua-style.sh`), test scripts that cannot detect a failed load or a case their Lua script
+branches, argument tables, inline functions, aliases and repeated blocks the Lua style rules settle
+(`lua-style.sh`), a kernel constant the Lua of the compiler or of `lib/` spells by hand
+(`hardcoded.sh`), test scripts that cannot detect a failed load or a case their Lua script
 skips (`test-harness.sh`), a kernel thread loop that never pauses (`kthread.sh`), cppcheck on
 userspace test C (`cppcheck-tests.sh`), a typedef renamed against a sibling the change removed
 (`rename-orphaned.sh`), a recursion in the Lua the kernel links that counts no C level and no bound
@@ -110,14 +111,19 @@ raised with the family's wording as a literal, `luaL_error(L, "not allowed ...")
 read, which copy the string themselves. It annotates rather than fails, since the release-then-throw shape is not `lunatik_try`'s and the line
 between the check and the throw is what the reader decides on.
 
-`function-shape.sh` reads a C file for the shapes of a function that is more than one job, in the functions the diff against `CHECK_BASE` touches: a lock taken at
+`function-shape.sh` reads a C or a Lua file for the shapes of a function that is more than one job, in the functions the diff against `CHECK_BASE` touches: a lock taken at
 more than one site of one function, where the section between is a helper of its own; an allocation
 and a raise in one function, where a buffer a raise passes is freed on every raise path and a
 userdata the collector frees is the shape; a function past thirty lines or nested past two blocks,
 which is more than one job; a per-item buffer sized by a maximum, `n * LUARCU_MAXKEY`, which is packed by each item's length;
 a function that existed before the change and grows by five lines or more of it, whose new step is
 a helper of its own; and one condition tested at two sites of one function, the bracket of a guard,
-which is a pair of helpers that mirror. The check annotates: a lock
+which is a pair of helpers that mirror. A Lua function is held to the same length and depth and
+to four branches, and named where the change adds it or grows it, in lines or in branches, past them: #2202
+grew `call.CALL` by a fifth arm in 24 lines and #948 grew `declare` to 38 lines and ten branches, and
+the maintainer asked that both be modularized and that the harness stop the flaw coming back. Its
+`if`, `elseif`, `for`, `while` and `repeat` count as branches, and a function the change edits without
+growing it is not named. The check annotates: a lock
 retaken after a wait is a shape the reader decides on, and the review answers each line it prints with
 the function's jobs listed and the fixup that splits them or the reason they are one.
 
@@ -164,6 +170,23 @@ change adds, read against `CHECK_BASE`, and a script beside it already carries, 
 It names a module a file requires twice, which one local holds, as `.agents/rules/lua.md` asks of `linux.genl`,
 and an append spelled `t[#t + 1] = v`, which is `table.insert`. It reads the file's own requires: one inside
 a long string or comment is text, or a chunk the file hands elsewhere, as `bin/lunatik` hands two to `dostring`.
+It names a local at the top of a file that a change adds against `CHECK_BASE` and that takes nothing
+but functions or tables of a module the file requires into a local, or of the standard library,
+`local format = string.format`, `local alu, jump = insn.alu, insn.jump`: a cache of what the module
+names, which every compiler pull request of the 2026-11-11 round carried and the maintainer asked of,
+"why caching?". A constant the module exports, a field in capitals, a module taken as
+`require("linux.xdp").action` and a value computed from a field are not aliases and pass.
+
+`hardcoded.sh` reads the lines a change adds to the Lua of `bin/luaebpf` and of `lib/`, against
+`CHECK_BASE`, for a kernel constant spelled by hand: a number beside a comment that names a kernel
+symbol or a C source, trailing the line or heading a run of top-level lines with no blank between,
+`local MAXSTACK <const> = 512 -- MAX_BPF_STACK`, and constants picked by name beside a comment naming
+the C source that defines their set, as #2223's XDP range named `action.ABORTED` and `action.REDIRECT`
+beside `lib/luaxdp.c`. `autogen/` generates the kernel's tables, and `autogen/specs.lua` takes the
+header of one it lacks. A symbol of the Lua the kernel links, `OP_CALL` or `LUAL_BUFFERSIZE`, is not
+the kernel's and is not read, nor a number on a line that reads a table's constant, `1 << flag.AUTHORIZED`.
+It runs at edit time and over a pull request's diff and annotates, since a number counted in the
+comment's own terms, a width in bytes beside `BPF_B`, is no copy of the kernel's.
 
 `test-harness.sh` reads a test's Lua script as well as its `.sh`, for a case the script runs under a
 condition: when the condition is false the case reports nothing and the script's one KTAP line
@@ -274,6 +297,14 @@ as `luascx.c` does without `CONFIG_SCHED_CLASS_EXT`, rather than nothing.
 `fixups.sh` names the `fixup!`, `amend!` and `squash!` commits of a rev-range, and the `Checks` workflow
 fails on a pull request that carries one, so a pull request merged before its squash shows red rather
 than landing its fixups on master.
+
+`bundled.sh` reads a rev-range and names one whose files take a C binding of `lib/`, a `.c` or a `.h`
+at its top, and the compiler under `bin/luaebpf` together, whatever commit each one sits in: the
+binding is a pull request of its own and the compiler's is stacked on it (AGENTS.md, *Patches and
+commits*), since #2235 carried `lib/luadata.c` under a TC read and the maintainer asked to split it.
+The `Checks` workflow fails a pull request it names, over the range from its base, so the stacked one
+passes; pr-prep runs it over `origin/master..HEAD`, the review's packet over the branch, and the
+implement-issue workflow's groomer and implementer split a change it would name before the branch exists.
 
 `capi-entries.sh` takes headers of `lib/` and names each identifier of a header's own prefix,
 `lua<name>_` or `LUA<NAME>_`, its comments and its include guard left out, that no C block of
