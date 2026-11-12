@@ -20,6 +20,10 @@
 #     the same pings and segments the namespace sends the host the same way: cls_bpf pushes the
 #     MAC header back before it runs the program there, and the segment arrives as tcp_sendmsg
 #     built it
+#   - a ping of LARGEST bytes of FILL, a packet of 65549 with its headers, which the veth's MTU
+#     lets out whole, is dropped, while one of other bytes is answered, at either attachment: the
+#     program read the last byte of a packet past 65535 bytes, where a read held to the offsets a
+#     packet pointer takes stops and lets both out
 # The device cases skip without socat or tc.
 #
 # Usage: sudo bash tests/luaebpf/nonlinear.sh
@@ -33,8 +37,11 @@ PORT=5570
 PAYLOAD=1024 # PAYLOAD in nonlinear.bpf.lua
 FILL="X"     # FILL in nonlinear.bpf.lua
 OTHER="Y"
+MTU=65535     # the largest a veth takes, so that the largest IPv4 datagram leaves in one packet
+LARGEST=65507 # the most a ping carries: a datagram of 65535 bytes, 65549 with the Ethernet header
 LINEAR="luaebpf: a linear skb is read through skb:data() and answers the program's verdict"
 SEGMENT="luaebpf: an skb that is not linear is read whole through skb:data(), past its linear head"
+BEYOND="luaebpf: a packet past 65535 bytes is read through skb:data() to its last byte"
 INGRESS=" at ingress"
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -86,23 +93,34 @@ transfer() {
 	received=$(stat -c %s "$LUAEBPF_WORK/received" 2>/dev/null)
 }
 
+# a ping carrying the count given of the byte given, from one side to an address on the other
+pinged() {
+	local from="$1" address="$2" bytes="$3" byte="$4"
+	inside "$from" ping -c 1 -W 1 -s "$bytes" -p "$(printf %x "'$byte")" "$address" > /dev/null 2>&1
+}
+
 # from one side to an address on the other, a ping shorter than PAYLOAD bytes, one of PAYLOAD bytes
-# of FILL, and a segment of OTHER and one of FILL to a listener there; sets short, long, other and
-# filled
+# of FILL, a segment of OTHER and one of FILL to a listener there, and a ping of LARGEST bytes of
+# OTHER and one of FILL; sets short, long, other, filled, largestother and largest
 exchange() {
 	local from="$1" to="$2" address="$3"
 	inside "$from" ping -c 1 -W 1 "$address" > /dev/null 2>&1
 	short=$?
-	inside "$from" ping -c 1 -W 1 -s "$PAYLOAD" -p "$(printf %x "'$FILL")" "$address" > /dev/null 2>&1
+	pinged "$from" "$address" "$PAYLOAD" "$FILL"
 	long=$?
 	transfer "$from" "$to" "$address" "$OTHER"
 	other=$received
 	transfer "$from" "$to" "$address" "$FILL"
 	filled=$received
+	pinged "$from" "$address" "$LARGEST" "$OTHER"
+	largestother=$?
+	pinged "$from" "$address" "$LARGEST" "$FILL"
+	largest=$?
 }
 
-# what the exchange owes, under the titles with the suffix a run names: the long ping and the
-# segment of FILL dropped by the program's verdict, and the segment of OTHER let through
+# what the exchange owes, under the titles with the suffix a run names: the long ping, the segment
+# and the largest ping of FILL dropped by the program's verdict, and the segment and the largest
+# ping of OTHER let through
 verdicts() {
 	local where="$1"
 	if [ "$short" -ne 0 ]; then
@@ -119,12 +137,19 @@ verdicts() {
 	else
 		ktap_pass "$SEGMENT$where"
 	fi
+	if [ "$largestother" -ne 0 ]; then
+		ktap_fail "$BEYOND$where: a ping of $LARGEST bytes of $OTHER was not answered"
+	elif [ "$largest" -eq 0 ]; then
+		ktap_fail "$BEYOND$where: the ping of $FILL was answered, so the program stopped before its last byte"
+	else
+		ktap_pass "$BEYOND$where"
+	fi
 }
 
 trap teardown EXIT
 teardown
 
-luaebpf_start 5
+luaebpf_start 7
 
 output=$(luaebpf_compile nonlinear) || { comment "$output"; fail "luaebpf: nonlinear.bpf.lua did not compile"; }
 output=$(luaebpf_loadall nonlinear) || { comment "$output"; fail "luaebpf: the program did not verify"; }
@@ -134,15 +159,17 @@ for tool in socat tc; do
 	if ! command -v "$tool" >/dev/null; then
 		ktap_skip "$LINEAR: $tool is not installed"
 		ktap_skip "$SEGMENT: $tool is not installed"
+		ktap_skip "$BEYOND: $tool is not installed"
 		ktap_skip "$LINEAR$INGRESS: $tool is not installed"
 		ktap_skip "$SEGMENT$INGRESS: $tool is not installed"
+		ktap_skip "$BEYOND$INGRESS: $tool is not installed"
 		ktap_totals
 		exit 0
 	fi
 done
 
 ip netns add "$NETNS"
-ip link add "$IFACE" type veth peer name "$PEER"
+ip link add "$IFACE" mtu "$MTU" type veth peer name "$PEER" mtu "$MTU"
 ip link set "$PEER" netns "$NETNS"
 ip addr add "$HOST/24" dev "$IFACE"
 ip link set "$IFACE" up

@@ -1282,7 +1282,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   of `X`, which `ip_append_data` builds linear, is dropped; of two TCP segments
   carrying 1024 bytes, whose payload `tcp_sendmsg` keeps in page fragments past
   the linear head, the one of `Y` reaches the listener and the one of `X` does
-  not, as the kernel's `skb:data()` reads such an skb in a tc callback. The same
+  not, as the kernel's `skb:data()` reads such an skb in a tc callback. Of two
+  pings of 65507 bytes, packets of 65549 with their headers, which the veth's
+  MTU of 65535 lets out whole, the one of `Y` is answered and the one of `X` is
+  dropped, by a read of the last byte of a packet past 65535 bytes. The same
   program attached at the host side's ingress, in a run of its own, answers the
   pings and the segments the namespace sends the host the same way. Skips the
   device cases without `socat` or `tc`.
