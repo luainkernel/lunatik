@@ -9,11 +9,11 @@
 -- through a flag in the caller's frame.
 -- @module luaebpf.emit.call
 
-local insn     = require("luaebpf.insn")
-local frame    = require("luaebpf.emit.frame")
-local loads    = require("luaebpf.emit.loads")
-local packet   = require("luaebpf.emit.packet")
-local runtime  = require("luaebpf.emit.runtime")
+local insn    = require("luaebpf.insn")
+local frame   = require("luaebpf.emit.frame")
+local loads   = require("luaebpf.emit.loads")
+local packet  = require("luaebpf.emit.packet")
+local runtime = require("luaebpf.emit.runtime")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local getinfo = debug.getinfo
