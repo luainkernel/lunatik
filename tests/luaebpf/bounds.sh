@@ -6,9 +6,11 @@
 # Tests the bounds check every packet access carries.
 #   - a read one byte past the last, a read at an offset above the ceiling the verifier lets a
 #     packet pointer take, a read that lands in the whole ClientHello but past the truncated one,
-#     and a read at a negative offset the program computed: the interpreter raises on each, and
-#     the compiled program owes its default verdict, through ctx:packet() on XDP, read between
-#     the context's bounds, and skb:data() on TC, read through bpf_skb_load_bytes
+#     a read at a negative offset the program computed, and a read at an offset past 32 bits whose
+#     low 32 name the packet's first byte, which bpf_skb_load_bytes, taking 32, would read: the
+#     interpreter raises on each, and the compiled program owes its default verdict, through
+#     ctx:packet() on XDP, read between the context's bounds, and skb:data() on TC, read through
+#     bpf_skb_load_bytes
 #   - every row is declared twice, once with each default, so the answer is the verdict the file
 #     asked for and not a number the failure path happened to leave in R0
 #   - with LUAEBPF_DROP=bounds the object is still written, and the verifier rejects it naming an

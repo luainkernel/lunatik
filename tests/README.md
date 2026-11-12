@@ -1264,8 +1264,9 @@ interpreter raises, the compiled program owes its default verdict instead.
   `luaebpf.emit.unaligned` to the answer such a kernel gives, since the suite
   runs on x86 and arm64, which always have it.
 - **bounds**: a read one byte past the last, one above the offset ceiling, one
-  that lands in the whole ClientHello but past the truncated one, and one at a
-  negative offset the program computed, each through `ctx:packet()` and through
+  that lands in the whole ClientHello but past the truncated one, one at a
+  negative offset the program computed, and one past 32 bits whose low 32 name
+  the packet's first byte, each through `ctx:packet()` and through
   `skb:data()` and declared under either default so the answer is the verdict
   the file asked for; with `LUAEBPF_DROP=bounds` the object is still written and
   the verifier refuses it naming an invalid packet access, and with
