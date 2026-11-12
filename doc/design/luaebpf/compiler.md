@@ -203,7 +203,7 @@ of the name, NUL-terminated in the frame, where the kfunc writes the terminator 
 with the NUL, R3 the context, R4 the address of the arguments, each a 64-bit word in order, which
 the callback reads as `ctx:argument():getint64(0)`, `getint64(8)` and on, and R5 their size, R4 a
 null pointer and R5 zero where the call passes none. The name's words are stored in the kernel's
-byte order. `SELF` reads the method off the runtime, a value of the body that takes no register, so
+byte order. `SELF` reads the method off the runtime, whose register holds no word, so
 the arguments start one register past it. The call is refused from a function the program calls,
 "'limits' can only be called from the program's own function", since a compiled call does not pass
 the context; from a program whose parameter does not hold the context, "a call into the runtime
