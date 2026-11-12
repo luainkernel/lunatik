@@ -61,25 +61,28 @@ local function testverdict(f, value)
 	f.code:branchi(jump.JSGT, reg.R0, actions.last, abort(f))
 end
 
+local function returnvalue(f, pc, state, i)
+	local value = state[i]
+	if f.isprogram then
+		checkverdict(f, pc, value)
+	end
+	f.rettype = f.rettype | value.t
+	if f.drop ~= "verdict" then
+		f.code:alu(alu.MOV, reg.R0, getreg(f, pc, state, i, reg.R0))
+		if f.isprogram then
+			testverdict(f, value)
+		end
+	end
+end
+
 local function returns(f, pc, state, i)
-	local dropped = f.drop == "verdict"
 	if i == nil or state[i].t == NIL then -- the hook reads 'return' and 'return nil' alike
 		f.rettype = f.rettype | NIL
-		if not dropped then
+		if f.drop ~= "verdict" then
 			f.code:set(reg.R0, f.isprogram and f.default or 0)
 		end
 	else
-		local value = state[i]
-		if f.isprogram then
-			checkverdict(f, pc, value)
-		end
-		f.rettype = f.rettype | value.t
-		if not dropped then
-			f.code:alu(alu.MOV, reg.R0, getreg(f, pc, state, i, reg.R0))
-			if f.isprogram then
-				testverdict(f, value)
-			end
-		end
+		returnvalue(f, pc, state, i)
 	end
 	f.code:exit()
 	return false
