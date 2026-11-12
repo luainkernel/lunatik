@@ -106,7 +106,7 @@ callback returns on the same hook.
   rest of `linux.tc.action` decides nothing: `UNSPEC` hands the packet to the next TC program on the
   device, and every other action skips those programs; either way the packet then goes on, through
   the device's tc filters if it has any.
-* A value the program computes that is none of these, `return p:getbyte(23)` on a byte past 4 in
+* A value the program computes that is none of these, `return v` where `v` is a byte past 4 in
   an XDP program, returns the default verdict, as the kernel's Lua answers a callback returning it
   with the hook's fallback. One the compiler knows is refused, "the verdict 11 is not an XDP
   action", and so is a boolean, which no action is: `return p:getbyte(23) == 6` gives "the verdict
