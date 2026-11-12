@@ -1420,11 +1420,12 @@ publishes no BTF for the module whose kfunc its programs call.
   compared by `==` with a number and by `<`, returned, negated, copied by `or`
   and tested where a join met it with another value, an argument that is not a
   number, a call from a function the program calls, a call from a program
-  that declares no context, a runtime declared with no name and one whose
-  name the frame cannot hold are refused with their messages and lines. One
-  runtime called from an XDP and a TC program names both kfuncs in the
-  object, and the key a call stores reads back as the runtime's name from an
-  object of either byte order, as `llvm-objdump` disassembles it.
+  that declares no context, a runtime named by no script, one whose name the
+  frame cannot hold, a call of the runtime itself and a method other than
+  `run` are refused with their messages and lines. One runtime called from an
+  XDP and a TC program names both kfuncs in the object, and the key a call
+  stores reads back as the runtime's name from an object of either byte order,
+  as `llvm-objdump` disassembles it.
 - **miss**: with no runtime of the name called the call answers `nil` and the
   program takes its nil branch; returned there it is the program's default
   verdict, and joined with `true` it tests false, so the branch holds the zero

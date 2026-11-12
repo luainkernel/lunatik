@@ -5,13 +5,13 @@
 -- Program file of the nobtf case (see nobtf.sh).
 
 local xdp     = require("bpf.xdp")
-local runtime = require("bpf.runtime")
+local lunatik = require("lunatik")
 local action  = require("linux.xdp").action
 
-local lua = runtime.new("tests/luaebpf/nobtf")
+local absent = lunatik.runtime("tests/luaebpf/absent")
 
 return xdp.program(function(_)
-	local verdict = lua()
+	local verdict = absent:run()
 	if verdict then
 		return verdict
 	end

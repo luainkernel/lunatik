@@ -4,8 +4,9 @@
 --
 
 ---
--- A call into the kernel Lua runtime: the kfunc of the program's type, handed the runtime's key,
--- the arguments and the context, and the answer it returns, which the program tests before it reads.
+-- A call into the kernel Lua runtime, through the run method SELF reads off it: the kfunc of the
+-- program's type, handed the runtime's key, the arguments and the context, and the answer it
+-- returns, which the program tests before it reads.
 -- @module luaebpf.emit.runtime
 
 local insn    = require("luaebpf.insn")
@@ -16,17 +17,19 @@ local unpack = string.unpack
 local insert = table.insert
 
 local ANSWER <const> = frame.type("runtime answer", "word", "untested")
+local RUN    <const> = frame.type("runtime method") -- what SELF reads off a runtime, which only CALL takes
 
 local CTXREG  <const> = 0  -- the program's parameter, which the call passes as the context
 local NUL     <const> = 1  -- the byte key__sz counts past the key, which the kfunc writes in place
 local INTSIZE <const> = 4  -- the kfunc answers an int
 local ABSENT  <const> = -1 -- what the kfunc answers where Lua answers nil (luakfunc_action)
+local SELFREG <const> = 1  -- SELF puts the runtime past the method, and the arguments past it
 
-local proxy = {} -- no method: it marks what bpf.runtime.new returns, which CALL's lowering looks for
+local proxy = {} -- no method: it marks what lunatik.runtime returns, which SELF and CALL look for
 
 local runtime = {ANSWER = ANSWER, proxy = proxy}
 
--- whether a value the file body computed is a runtime bpf.runtime.new returned
+-- whether a value the file body computed is a runtime lunatik.runtime returned
 function runtime.isproxy(value)
 	return getmetatable(value) == proxy
 end
@@ -43,15 +46,33 @@ local function keywords(f, key)
 	return words
 end
 
+-- the call a refusal tells the program to write
+local function written(value)
+	return string.format("'%s:run(...)'", value.name or "runtime")
+end
+
+-- 'r:run' reads the one method a runtime has, the kfunc's own verb; r goes to A+1, as SELF puts any
+-- receiver, a value the kernel never sees
+function runtime.self(f, pc, ins, state)
+	local recv = state[ins.b]
+	local name = frame.constant(f, pc, ins.c)
+	if name ~= "run" then
+		frame.refuse(f, pc, "a runtime has no method '%s'; write %s", name, written(recv))
+	end
+	state[ins.a + SELFREG] = recv
+	state[ins.a] = {t = RUN, k = recv.k, name = recv.name}
+end
+
 local function arguments(f, pc, ins, state)
-	for i = 1, ins.b - 1 do
-		local value = state[ins.a + i]
+	local nargs = ins.b - 1 - SELFREG
+	for i = 1, nargs do
+		local value = state[ins.a + SELFREG + i]
 		if not frame.isinteger(value) then
 			frame.refuse(f, pc, "argument #%d is a %s, and a call into the runtime passes numbers", i,
 				frame.typename(value))
 		end
 	end
-	return ins.b - 1
+	return nargs
 end
 
 local function placed(f, pc, state, callee)
@@ -76,7 +97,8 @@ local function stage(f, pc, ins, state, key, nargs)
 		code:store(insn.reg.FP, at + (i - 1) * frame.SLOT, insn.reg.R1)
 	end
 	for i = 1, nargs do
-		code:store(insn.reg.FP, args + (i - 1) * frame.SLOT, frame.getreg(f, pc, state, ins.a + i, insn.reg.R1))
+		code:store(insn.reg.FP, args + (i - 1) * frame.SLOT,
+			frame.getreg(f, pc, state, ins.a + SELFREG + i, insn.reg.R1))
 	end
 	return at, args
 end
@@ -95,6 +117,9 @@ local function pass(f, key, at, args, nargs)
 end
 
 function runtime.call(f, pc, ins, state, callee)
+	if callee.t ~= RUN then
+		frame.refuse(f, pc, "a runtime is called through its method; write %s", written(callee))
+	end
 	placed(f, pc, state, callee)
 	local code, key, nargs = f.code, callee.k.key, arguments(f, pc, ins, state)
 	local at, args = stage(f, pc, ins, state, key, nargs)

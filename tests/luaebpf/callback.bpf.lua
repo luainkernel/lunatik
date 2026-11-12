@@ -5,17 +5,17 @@
 -- Program file of the callback case (see callback.sh).
 
 local xdp     = require("bpf.xdp")
-local runtime = require("bpf.runtime")
+local lunatik = require("lunatik")
 local action  = require("linux.xdp").action
 
 local MAGIC <const> = 0x5555000000004c41 -- whose low 32 bits are not MAGIC
 local WRONG <const> = 0x5555000000004c42 -- MAGIC with one byte changed
 
-local lua = runtime.new("tests/luaebpf/callback")
+local words = lunatik.runtime("tests/luaebpf/words")
 
 -- TX where the call answered nil, a verdict the callback never returns
 local function answer(_)
-	local verdict = lua(MAGIC)
+	local verdict = words:run(MAGIC)
 	if verdict then
 		return verdict
 	end
@@ -23,7 +23,7 @@ local function answer(_)
 end
 
 local function noargs(_)
-	local verdict = lua()
+	local verdict = words:run()
 	if verdict then
 		return verdict
 	end
@@ -31,7 +31,7 @@ local function noargs(_)
 end
 
 local function wrong(_)
-	local verdict = lua(WRONG)
+	local verdict = words:run(WRONG)
 	if verdict then
 		return verdict
 	end
@@ -39,7 +39,7 @@ local function wrong(_)
 end
 
 local function pair(_)
-	local verdict = lua(WRONG, MAGIC)
+	local verdict = words:run(WRONG, MAGIC)
 	if verdict then
 		return verdict
 	end

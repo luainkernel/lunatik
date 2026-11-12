@@ -22,9 +22,9 @@
 -- `ctx:packet()` is in `bpf.xdp`; a layer is refused, and an skb that is not linear, where the
 -- kernel's `skb:data()` raises in a tc callback, stops the program.
 --
--- A call into a kernel Lua runtime `bpf.runtime` names lowers to `bpf_luatc_run`: it answers the
--- verdict the callback `tc.attach` registered returns, or nil, and the program tests the answer
--- before it reads it.
+-- A call into a kernel Lua runtime `lunatik.runtime` names, `r:run(a, b)`, lowers to
+-- `bpf_luatc_run`: it answers the verdict the callback `tc.attach` registered returns, or nil, and
+-- the program tests the answer before it reads it.
 -- @module bpf.tc
 -- @usage
 -- local tc     = require("bpf.tc")

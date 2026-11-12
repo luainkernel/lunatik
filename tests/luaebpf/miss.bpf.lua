@@ -5,15 +5,15 @@
 -- Program file of the miss case (see miss.sh).
 
 local xdp     = require("bpf.xdp")
-local runtime = require("bpf.runtime")
+local lunatik = require("lunatik")
 local action  = require("linux.xdp").action
 
-local lua       = runtime.new("tests/luaebpf/miss")
-local inprocess = runtime.new("tests/luaebpf/inprocess")
+local accept    = lunatik.runtime("tests/luaebpf/accept")
+local inprocess = lunatik.runtime("tests/luaebpf/inprocess")
 
 -- PASS is the callback's verdict and DROP the program's own where the call answered nil
 local function miss(_)
-	local verdict = lua()
+	local verdict = accept:run()
 	if verdict then
 		return verdict
 	end
@@ -21,7 +21,7 @@ local function miss(_)
 end
 
 local function process(_)
-	local verdict = inprocess()
+	local verdict = inprocess:run()
 	if verdict then
 		return verdict
 	end
@@ -30,7 +30,7 @@ end
 
 -- the nil arm returns the answer, which a program returns as its default verdict
 local function returned(_)
-	local verdict = lua()
+	local verdict = accept:run()
 	if verdict then
 		return action.PASS
 	end
@@ -39,7 +39,7 @@ end
 
 -- the nil arm leaves the answer joined with a boolean, whose test reads nil's word as false
 local function joined(_)
-	local verdict = lua()
+	local verdict = accept:run()
 	if verdict then
 		verdict = true
 	end
@@ -51,7 +51,7 @@ end
 
 -- the four other tests of the answer, each DROP on its nil arm and the verdict on its number arm
 local function negated(_)
-	local verdict = lua()
+	local verdict = accept:run()
 	if not verdict then
 		return action.DROP
 	end
@@ -59,7 +59,7 @@ local function negated(_)
 end
 
 local function unequal(_)
-	local verdict = lua()
+	local verdict = accept:run()
 	if verdict ~= nil then
 		return verdict
 	end
@@ -67,7 +67,7 @@ local function unequal(_)
 end
 
 local function equal(_)
-	local verdict = lua()
+	local verdict = accept:run()
 	if verdict == nil then
 		return action.DROP
 	end
@@ -76,7 +76,7 @@ end
 
 -- the test Lua writes 'v = v or x' as, which TEST lowers without copying the answer
 local function ored(_)
-	local verdict = lua()
+	local verdict = accept:run()
 	verdict = verdict or action.DROP
 	return verdict
 end

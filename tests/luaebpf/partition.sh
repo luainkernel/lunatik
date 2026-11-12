@@ -5,7 +5,7 @@
 #
 # Tests the shape the call into the kernel Lua runtime is for, examples/sniclassify/classify.c's: a
 # TC program decides a flow its hash map holds, walks the headers of one it does not, calls the
-# runtime only for a packet the walk accepts, and keeps the priority the callback set. partition.lua
+# runtime only for a packet the walk accepts, and keeps the priority the callback set. classifier.lua
 # is the runtime, whose callback sets the skb's priority to the argument it was handed, counts its
 # calls in an rcu.table and prints each. The program runs under BPF_PROG_TEST_RUN, whose skb hashes
 # to zero, so the two packets of one `repeat 2` are one flow: the first misses the map and the
@@ -26,10 +26,10 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 source "$DIR/common.sh"
 
-LUAEBPF_RUNS="partition"
+LUAEBPF_RUNS="classifier"
 trap cleanup EXIT
 
-SCRIPT=tests/luaebpf/partition
+SCRIPT=tests/luaebpf/classifier
 CALLED="luaebpf partition test call"
 OK=0
 ROWS=3

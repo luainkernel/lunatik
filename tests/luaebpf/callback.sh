@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Tests a compiled program's call into the kernel Lua runtime, whose answer the program returns.
-# callback.bpf.lua declares four XDP programs over one runtime, and callback.lua is that runtime,
-# run in softirq: its callback answers PASS for no argument, DROP for MAGIC alone or for WRONG then
+# callback.bpf.lua declares four XDP programs over one runtime, and words.lua is that runtime, run
+# in softirq: its callback answers PASS for no argument, DROP for MAGIC alone or for WRONG then
 # MAGIC, and ABORTED for anything else, and each program returns TX where the call answered nil,
 # a verdict the callback never returns. The object is loaded with bpftool, so the runtime is the
 # only thing `lunatik run` starts.
@@ -17,8 +17,8 @@
 #   - the answer read before a test, as a number, compared by '==' with a number and by '<',
 #     returned, negated, copied by 'or' and tested where a join met it with another value; an argument
 #     that is not a number, a call from a function the program calls, a call from a program that
-#     declares no context, a runtime declared with no name and one whose name the frame cannot hold
-#     are refused with their messages and lines
+#     declares no context, a runtime named by no script, one whose name the frame cannot hold, a call
+#     of the runtime itself and a method other than run are refused with their messages and lines
 #   - one runtime called from an XDP and a TC program names each program type's kfunc in the
 #     object: the kfunc a call lowers to is the program's
 #   - the key the call stores reads back as the runtime's name from an object of either byte order,
@@ -32,15 +32,15 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 source "$DIR/common.sh"
 
-LUAEBPF_RUNS="callback"
+LUAEBPF_RUNS="words"
 trap cleanup EXIT
 
-SCRIPT=tests/luaebpf/callback
+SCRIPT=tests/luaebpf/words
 ABORTED=0
 DROP=1
 PASS=2
 CALLS=4
-REFUSALS=12
+REFUSALS=14
 
 luaebpf_start $((CALLS + 1 + REFUSALS + 2))
 
@@ -50,12 +50,12 @@ row() {
 	local name="$1" line="$2" message="$3" body="$4" params="${5-ctx}" runtime="${6-\"$SCRIPT\"}"
 	{
 		echo 'local xdp     = require("bpf.xdp")'
-		echo 'local runtime = require("bpf.runtime")'
+		echo 'local lunatik = require("lunatik")'
 		echo ''
-		echo "local lua = runtime.new($runtime)"
+		echo "local words = lunatik.runtime($runtime)"
 		echo ''
 		echo 'local function helper(n)'
-		echo $'\tlocal v = lua(n)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0'
+		echo $'\tlocal v = words:run(n)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0'
 		echo 'end'
 		echo ''
 		echo "return xdp.program(function($params)"
@@ -65,19 +65,31 @@ row() {
 	luaebpf_refused "$name" "$name.bpf.lua:$line: $message"
 }
 
-# the runtime's name as each key the object stores reads in <order>, one a line
+# the runtime's name as each call in the object hands it in <order>, one a line: the words stored
+# where r1 points as r2 takes their size, since a constant argument spilled to the frame passes
+# through r1 too
 keys() {
 	local triple=bpfel
 	[ "$1" = big ] && triple=bpfeb
 	llvm-objdump --triple="$triple" -d --no-show-raw-insn "$LUAEBPF_WORK/$1/callback.bpf.o" \
-		| grep -oP 'r1 = \K-?[0-9]+' | ORDER="$1" lua5.5 -e '
+		| ORDER="$1" lua5.5 -e '
 			local order = os.getenv("ORDER") == "big" and ">i8" or "<i8"
-			local words = {}
-			for word in io.lines() do
-				table.insert(words, string.pack(order, tonumber(word)))
-			end
-			for key in table.concat(words):gmatch("[^%z]+") do
-				print(key)
+			local stored, value, base = {}, nil, nil
+			for line in io.lines() do
+				local held, at = line:match("r1 = (%S+)"), line:match("%(r10 %- (%d+)%) = r1$")
+				local size = base and tonumber(line:match("r2 = (%d+)$") or "")
+				if held then
+					value = tonumber(held)
+				elseif at then
+					stored[tonumber(at)] = value
+				elseif size then
+					local words = {}
+					for slot = base, base - size + 1, -8 do
+						table.insert(words, string.pack(order, stored[slot]))
+					end
+					print(table.concat(words):sub(1, size - 1))
+				end
+				base = tonumber(line:match("r1 %+= %-(%d+)$") or "")
 			end'
 }
 
@@ -107,36 +119,41 @@ else
 	ktap_pass "luaebpf: two arguments reach the callback as two words, in order"
 fi
 
-row untested 16 "'lua' may be nil here; test it first" $'\tlocal v = lua(1)\n\treturn v + 1'
-row compared 15 "'lua' may be nil here; test it first" \
-	$'\tif lua(1) == 0 then\n\t\treturn 1\n\tend\n\treturn 2'
+row untested 16 "'words' may be nil here; test it first" $'\tlocal v = words:run(1)\n\treturn v + 1'
+row compared 15 "'words' may be nil here; test it first" \
+	$'\tif words:run(1) == 0 then\n\t\treturn 1\n\tend\n\treturn 2'
 row ordered 15 "attempt to compare a runtime answer with a number" \
-	$'\tif lua(1) < 5 then\n\t\treturn 1\n\tend\n\treturn 2'
-row returned 16 "'lua' may be nil here; test it first" $'\tlocal v = lua(1)\n\treturn v'
-row copied 16 "'lua' may be nil here; test it first" $'\tlocal v = lua(1)\n\tlocal w = v or 2\n\treturn w'
+	$'\tif words:run(1) < 5 then\n\t\treturn 1\n\tend\n\treturn 2'
+row returned 16 "'words' may be nil here; test it first" $'\tlocal v = words:run(1)\n\treturn v'
+row copied 16 "'words' may be nil here; test it first" $'\tlocal v = words:run(1)\n\tlocal w = v or 2\n\treturn w'
 row joined 19 "a runtime answer joined another value here, whose nil is 0 and not -1; test it before" \
-	$'\tlocal v\n\tif ctx:ingress() == 1 then\n\t\tv = lua(1)\n\tend\n\tif v then\n\t\treturn v\n\tend\n\treturn 2'
+	$'\tlocal v\n\tif ctx:ingress() == 1 then\n\t\tv = words:run(1)\n\tend\n\tif v then\n\t\treturn v\n\tend\n\treturn 2'
 row boolean 15 "argument #1 is a boolean, and a call into the runtime passes numbers" \
-	$'\tlocal v = lua(true)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0'
-row subprogram 7 "'lua' can only be called from the program's own function" $'\tlocal n = helper(1)\n\treturn n'
+	$'\tlocal v = words:run(true)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0'
+row subprogram 7 "'words' can only be called from the program's own function" $'\tlocal n = helper(1)\n\treturn n'
 row noctx 15 "a call into the runtime passes the context, which the program's parameter does not hold" \
-	$'\tlocal v = lua(1)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0' ''
-row noname 4 "runtime.new takes a name" $'\treturn 0' ctx ''
-row negated 15 "'lua' may be nil here; test it first" $'\tlocal b = not lua(1)\n\tif b then\n\t\treturn 1\n\tend\n\treturn 0'
+	$'\tlocal v = words:run(1)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0' ''
+row noname 4 "lunatik.runtime takes a script" $'\treturn 0' ctx ''
+row negated 15 "'words' may be nil here; test it first" \
+	$'\tlocal b = not words:run(1)\n\tif b then\n\t\treturn 1\n\tend\n\treturn 0'
 row longname 15 "the function needs 528 bytes of stack, over the 512 eBPF allows" \
-	$'\tlocal v = lua(1)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0' ctx 'string.rep("x", 480)'
+	$'\tlocal v = words:run(1)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0' ctx 'string.rep("x", 480)'
+row bare 15 "a runtime is called through its method; write 'words:run(...)'" \
+	$'\tlocal v = words(1)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0'
+row method 15 "a runtime has no method 'call'; write 'words:run(...)'" \
+	$'\tlocal v = words:call(1)\n\tif v then\n\t\treturn v\n\tend\n\treturn 0'
 
 # one runtime, two program types: a kfunc read off the runtime rather than the program would name
 # one kfunc for both, and one of the programs would call the other module's kfunc
 cat > "$LUAEBPF_WORK/shared.bpf.lua" <<LUA
 local xdp     = require("bpf.xdp")
 local tc      = require("bpf.tc")
-local runtime = require("bpf.runtime")
+local lunatik = require("lunatik")
 
-local lua = runtime.new("$SCRIPT")
+local words = lunatik.runtime("$SCRIPT")
 
 local function ingress(_)
-	local verdict = lua(1)
+	local verdict = words:run(1)
 	if verdict then
 		return verdict
 	end
@@ -144,7 +161,7 @@ local function ingress(_)
 end
 
 local function classify(_)
-	local verdict = lua(1)
+	local verdict = words:run(1)
 	if verdict then
 		return verdict
 	end

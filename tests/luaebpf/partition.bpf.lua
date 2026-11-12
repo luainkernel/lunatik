@@ -9,7 +9,7 @@ local packets = require("tests.luaebpf.packets")
 local vmlinux = require("luaebpf.vmlinux")
 local tc      = require("bpf.tc")
 local map     = require("bpf.map")
-local runtime = require("bpf.runtime")
+local lunatik = require("lunatik")
 local action  = require("linux.tc").action
 
 local pack = string.pack
@@ -28,8 +28,8 @@ local FACTS   <const> = "facts.txt"
 -- the ClientHello the walk takes to Lua, and two packets it stops before the call
 local stimuli <const> = {"tls", "syn", "icmp"}
 
-local flows = map.hash("flows", {key = KEY, value = VALUE, entries = ENTRIES})
-local lua   = runtime.new("tests/luaebpf/partition")
+local flows      = map.hash("flows", {key = KEY, value = VALUE, entries = ENTRIES})
+local classifier = lunatik.runtime("tests/luaebpf/classifier")
 
 local function u16(packet, at)
 	return packet:getbyte(at) << 8 | packet:getbyte(at + 1)
@@ -53,7 +53,7 @@ local function classify(skb)
 		return action.OK
 	end
 	local payload = tcp + (packet:getbyte(tcp + 12) >> 4) * WORDS
-	local verdict = lua(payload)
+	local verdict = classifier:run(payload)
 	if verdict == nil then
 		return action.OK
 	end

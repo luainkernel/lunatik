@@ -6,7 +6,7 @@
 # Tests what a compiled program sees when the kernel Lua runtime it calls is not dispatched: the
 # kfunc returns -1, which the call answers as nil. miss.bpf.lua's programs return the callback's
 # PASS where it was reached and their own DROP where the call answered nil, so one packet tells the
-# two apart, and miss.lua is the runtime, whose callback returns PASS.
+# two apart, and accept.lua is the runtime, whose callback returns PASS.
 #   - with no runtime of that name the call answers nil, and the program takes its nil branch
 #   - a program that returns the answer on its nil branch returns its default verdict, as it does
 #     any nil, and one that sets the answer to true on its number branch tests the join of the
@@ -28,10 +28,10 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 source "$DIR/common.sh"
 
-LUAEBPF_RUNS="miss inprocess"
+LUAEBPF_RUNS="accept inprocess"
 trap cleanup EXIT
 
-SCRIPT=tests/luaebpf/miss
+SCRIPT=tests/luaebpf/accept
 INPROCESS=tests/luaebpf/inprocess
 REFUSED="'$INPROCESS' is a process-context runtime, not dispatched"
 DROP=1

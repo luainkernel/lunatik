@@ -16,6 +16,7 @@ local frame   = require("luaebpf.emit.frame")
 local context = require("luaebpf.emit.context")
 local packet  = require("luaebpf.emit.packet")
 local map     = require("luaebpf.emit.map")
+local runtime = require("luaebpf.emit.runtime")
 
 local reg        = insn.reg
 local opcodes    = proto.opcodes
@@ -216,6 +217,9 @@ end
 -- the receiver goes to A+1 and the method to A, which the call then reads back
 function loads.SELF(f, pc, ins, state)
 	local recv = state[ins.b]
+	if recv ~= nil and runtime.isproxy(recv.k) then
+		return runtime.self(f, pc, ins, state)
+	end
 	if recv == nil or (recv.t & classes.proxy) == 0 then
 		refuse(f, pc, "a method call cannot be compiled")
 	end

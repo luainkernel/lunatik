@@ -20,9 +20,9 @@
 -- no method '<name>'".
 -- `ctx.data` and `ctx.data_end` are the bounds of the packet, not numbers; `#p` is its length.
 --
--- A call into a kernel Lua runtime `bpf.runtime` names lowers to `bpf_luaxdp_run`: it answers the
--- verdict the callback `xdp.attach` registered returns, or nil, and the program tests the answer
--- before it reads it.
+-- A call into a kernel Lua runtime `lunatik.runtime` names, `r:run(a, b)`, lowers to
+-- `bpf_luaxdp_run`: it answers the verdict the callback `xdp.attach` registered returns, or nil, and
+-- the program tests the answer before it reads it.
 -- @module bpf.xdp
 -- @usage
 -- local xdp    = require("bpf.xdp")

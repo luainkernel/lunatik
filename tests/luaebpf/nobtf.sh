@@ -15,8 +15,8 @@
 #     device
 #   - the same drop over a program file with no call into Lua leaves the object loadable
 #   - the program compiled whole deploys through `lunatik run`, whose libbpf resolves the kfunc in
-#     the module's BTF, and the program on the device answers its nil branch, since no runtime of
-#     its name runs; skipped where the kernel publishes no BTF for luaxdp
+#     the module's BTF, and the program on the device answers its nil branch, since nothing starts
+#     the runtime it calls; skipped where the kernel publishes no BTF for luaxdp
 #
 # Usage: sudo bash tests/luaebpf/nobtf.sh
 
