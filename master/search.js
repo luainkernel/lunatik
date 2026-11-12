@@ -226,7 +226,7 @@ window.LUNATIK_SEARCH = [
 ["linux.xdp","modules/linux.xdp.html","Module · Linux kernel constants exposed under linux.xdp."],
 ["action","modules/linux.xdp.html#action","linux.xdp · XDP verdicts (enum xdp_action), what an xdp callback returns."],
 ["luaebpf","modules/luaebpf.html","Module · Compiles a Lua program file into a BPF ELF object."],
-["compile (path[, btffile])","modules/luaebpf.html#compile","luaebpf · Compiles the program file at path."],
+["compile (path[, btffile[, scripts]])","modules/luaebpf.html#compile","luaebpf · Compiles the program file at path."],
 ["luaebpf.vmlinux","modules/luaebpf.vmlinux.html","Module · The kernel's own type information, read from a raw BTF file: /sys/kernel/btf/vmlinux, the running kernel's, unless luaebpf.compile is handed the BTF of the kernel it compiles for."],
 ["luaebpf.vmlinux.check (bigendian)","modules/luaebpf.vmlinux.html#luaebpf.vmlinux.check","luaebpf.vmlinux · Refuses the BTF a layout was read from when it is not in the object's byte order, since it then describes another kernel than the one the object is for."],
 ["luaebpf.vmlinux.layout (what)","modules/luaebpf.vmlinux.html#luaebpf.vmlinux.layout","luaebpf.vmlinux · The layout of a kernel struct."],

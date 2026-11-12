@@ -12,7 +12,7 @@ usage: lunatik [-h | -V]
        lunatik list
        lunatik test [<suite>]
        lunatik compile [<lunatic argument>...]
-       lunatik bpf [--btf=<file>] [-o <object>] <program>
+       lunatik bpf [--btf=<file>] [--scripts=<dir>] [-o <object>] <program>
 ```
 
 * `-h`, `--help`: print the usage
@@ -27,6 +27,8 @@ usage: lunatik [-h | -V]
 * `-o <object>`, `--output=<object>`: the object `bpf` writes
 * `--btf=<file>`: the kernel BTF `bpf` reads the types of, `/sys/kernel/btf/vmlinux` by default
   (see [Program files](#program-files))
+* `--scripts=<dir>`: the directory `bpf` reads the kernel scripts a program file requires from,
+  `/lib/modules/lua` by default (see [Program files](#program-files))
 
 * <code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
   `modprobe` prints its error on stderr and the load goes on, so read `lunatik status` and the kernel log
@@ -40,8 +42,8 @@ usage: lunatik [-h | -V]
   is not the installed build
 * `test [suite]`: run installed test suites (see [Development](06-development.md))
 * `compile <arguments>`: run `lunatic` with the given arguments (see [lunatic](#lunatic))
-* `bpf [--btf=<file>] [-o <object>] <program>`: compile a program file into a BPF object (see
-  [Program files](#program-files))
+* `bpf [--btf=<file>] [--scripts=<dir>] [-o <object>] <program>`: compile a program file into a
+  BPF object (see [Program files](#program-files))
 * `list`: show which runtime environments are currently running, one script a line, in order of name
 * `run [-c softirq | hardirq] [-p] [--dev=<ifname>] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md). Where `/lib/modules/lua/<script>.bpf.o` exists, `run` also loads and attaches that program: see [Compiled programs](#compiled-programs)
 * `spawn <script>`: create a new runtime environment for the script `/lib/modules/lua/<script>.lua`,
@@ -157,7 +159,10 @@ The object is compiled for the kernel `lunatik.config` describes, which `make` w
 it builds the modules against: that kernel's version and whether it reads a word at any address
 decide what a program may emit, and its byte order is the object's. The types a program reads, its
 context's struct and any layout `luaebpf.vmlinux` answers, come from that kernel's BTF:
-`/sys/kernel/btf/vmlinux` unless `--btf` names a raw BTF file, the bytes that path serves.
+`/sys/kernel/btf/vmlinux` unless `--btf` names a raw BTF file, the bytes that path serves. The
+kernel scripts the body requires, its `linux.*` tables among them, come from `/lib/modules/lua/`
+unless `--scripts` names another directory laid out as that one; a module that directory lacks is
+not found, and is not read from `/lib/modules/lua/`.
 
 A build host compiles for the kernel an image ships in three steps:
 
@@ -166,27 +171,28 @@ A build host compiles for the kernel an image ships in three steps:
 2. it dumps the `.BTF` section of the image's `vmlinux` with an `objcopy` that reads the image's
    architecture, the first command below;
 3. it compiles with that `autogen/lunatik/config.lua` ahead of the one `make install` links into its
-   Lua path, and with that BTF, the second command.
+   Lua path, with that BTF, and with the image's `/lib/modules/lua/` as its build stages it, which
+   holds the `linux.*` tables of that kernel, the second command.
 
 ```Shell
 objcopy --dump-section .BTF=vmlinux.btf vmlinux /dev/null
-LUA_PATH="$PWD/autogen/?.lua;;" lunatik bpf --btf=vmlinux.btf filter.bpf.lua
+LUA_PATH="$PWD/autogen/?.lua;;" lunatik bpf --btf=vmlinux.btf --scripts=staging/lib/modules/lua \
+  filter.bpf.lua
 ```
 
 The image then only loads the object.
 
 A BTF of the other byte order than the object's is refused, naming both, since it describes another
-kernel: the build host's own, read by default, in a compile for a kernel of the other order. A kernel
-script the body requires is still read from the build host's `/lib/modules/lua/`, so its `linux.*`
-tables are the ones last installed there.
+kernel: the build host's own, read by default, in a compile for a kernel of the other order.
 
 `require` in the body finds the compile-time modules first, `bpf.xdp`, `bpf.tc` and `bpf.map`,
 which declares a map rather than opening the kernel's, then the compiler's own `luaebpf` modules,
-then `/lib/modules/lua/`, whose modules `lunatic` compiles as it does the program file, installed
-as source or, with `BYTECODE=1`, as chunks. It finds nothing else the CLI's Lua would, so a Lua or
-C module the host installs never stands in for a kernel script. `10 / 4` is `2` in the body as in
-the kernel; the CLI's libraries can still return a float, as `math.sqrt` does, and one reaching a
-compiled function is refused at the line that reaches it.
+then the kernel scripts, under `/lib/modules/lua/` or the directory `--scripts` names, whose modules
+`lunatic` compiles as it does the program file, installed as source or, with `BYTECODE=1`, as
+chunks. It finds nothing else the CLI's Lua would, so a Lua or C module the host installs never
+stands in for a kernel script. `10 / 4` is `2` in the body as in the kernel; the CLI's libraries can
+still return a float, as `math.sqrt` does, and one reaching a compiled function is refused at the
+line that reaches it.
 
 ## Compiled programs
 

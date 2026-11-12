@@ -855,7 +855,7 @@ nil as 0, which is an action.</li>
 <tr>
 <td> module &lsquo;byteorder&rsquo; not found </td>
 <td> <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> of a C module </td>
-<td> a Lua module under <code>/lib/modules/lua/</code> </td>
+<td> a Lua module under <code>/lib/modules/lua/</code>, or the directory <code>--scripts</code> names </td>
 </tr>
 </tbody>
 </table>
@@ -882,7 +882,7 @@ nil as 0, which is an action.</li>
           |
           | 2. the Lua of the CLI (lua5.5) runs the body from that chunk;
           |    require finds bpf.xdp, bpf.tc and bpf.map, then the kernel
-          |    scripts under /lib/modules/lua/
+          |    scripts under /lib/modules/lua/, or the --scripts directory
           v
    the programs and the maps the body declared
           |
@@ -939,7 +939,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-11 18:27:06</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-12 02:36:46</span>
 </div>
 </footer>
 </body>
