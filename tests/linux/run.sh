@@ -39,7 +39,8 @@
 # constants: the unsigned constants past INT_MAX, the signed ones below zero and those within
 # INT_MAX that the script names keep their value. The eleven syscalls asm-generic/unistd.h defines
 # as the name of their __NR3264_ number are in linux.syscall.numbers, and linux.errno holds each
-# errno positive, keyed by the name linux.errname gives it.
+# errno positive, keyed by the name linux.errname gives it. INT_MAX, which vdso/limits.h defines
+# as a cast and autogen takes because its spec lists it, is linux.limits.int.MAX.
 #
 # netns: linux.netns resolves pid 1 in a process runtime, in its body and resumed
 # past it, and in the body of a softirq and a hardirq runtime; resumed past theirs,
