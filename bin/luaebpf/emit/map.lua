@@ -16,10 +16,9 @@ local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local format   = string.format
 local pack     = string.pack
 local mathtype = math.type
-local abort, address, aligned, constant = frame.abort, frame.address, frame.aligned, frame.constant
+local abort, aligned, constant = frame.abort, frame.aligned, frame.constant
 local extend, fetch, fitsunsigned, getreg = frame.extend, frame.fetch, frame.fitsunsigned, frame.getreg
-local isinteger, narrow, refuse = frame.isinteger, frame.narrow, frame.refuse
-local setreg, tested = frame.setreg, frame.tested
+local isinteger, refuse, setreg, tested = frame.isinteger, frame.refuse, frame.setreg, frame.tested
 
 local BYTE   <const> = frame.BYTE
 local INT    <const> = frame.INT
@@ -97,7 +96,7 @@ end
 -- live in R6-R9 and the frame, so the call clobbers nothing live.
 local function maphelper(f, map)
 	f.code:map(reg.R1, map.name)
-	address(f, reg.R2, KEY)
+	frame.address(f, reg.R2, KEY)
 end
 
 local function maplookup(f, ins, state, map, key)
@@ -154,7 +153,7 @@ local function mapstore(f, pc, ins, state, map, key)
 	end
 	mapslot(f, VALUE, value, map.value.size)
 	maphelper(f, map)
-	address(f, reg.R3, VALUE)
+	frame.address(f, reg.R3, VALUE)
 	code:set(reg.R4, ANY)
 	code:helper(UPDATE)
 	code:branchi(jump.JNE, reg.R0, 0, abort(f)) -- the kernel's bpf.map raises on an update the map refuses
@@ -218,7 +217,7 @@ end
 -- a lookup is narrowed where the program tests it, and the read goes on the branch that found
 -- it good: the verifier refuses it anywhere else, and the other branch carries a nil
 local function testlookup(f, pc, ins, state)
-	return narrow(f, pc, ins, state, NULL, ins.k, mapvalue)
+	return frame.narrow(f, pc, ins, state, NULL, ins.k, mapvalue)
 end
 map.testlookup = testlookup
 

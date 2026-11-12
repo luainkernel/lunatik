@@ -34,8 +34,7 @@ local reg     = insn.reg
 local opcodes = proto.opcodes
 local format  = string.format
 local insert  = table.insert
-local copy, depth, reach, refuse = frame.copy, frame.depth, frame.reach, frame.refuse
-local setreg, stack = frame.setreg, frame.stack
+local copy, reach, refuse, setreg = frame.copy, frame.reach, frame.refuse, frame.setreg
 
 local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
@@ -161,7 +160,7 @@ end
 -- @tparam table f the frame: `fn`, `proto`, `chunk`, `params`, `default`, `isprogram`, `drop`
 -- @raise `<file>:<line>: <reason>` for every construct the subset refuses
 local function lower(f)
-	stack(f, 1, depth(f))
+	frame.stack(f, 1, frame.depth(f))
 	if f.proto.isvararg then
 		refuse(f, 1, "a vararg function cannot be compiled")
 	end

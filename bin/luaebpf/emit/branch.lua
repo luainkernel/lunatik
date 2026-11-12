@@ -22,7 +22,6 @@ local refuse, setreg, tested, typename = frame.refuse, frame.setreg, frame.teste
 local truth = arithmetic.truth
 local moveslot = loads.moveslot
 local testlookup = map.testlookup
-local answers, testanswer = runtime.answers, runtime.test
 
 local BOOL  <const> = frame.BOOL
 local INT   <const> = frame.INT
@@ -130,8 +129,8 @@ function branch.LE(f, pc, ins, state) return compare(f, pc, ins, state, "LE", st
 
 local function compareconst(f, pc, ins, state, relation, value)
 	local a, b = state[ins.a], {t = typeof(value), k = value}
-	if relation == "EQ" and b.t == NIL and answers(a) then
-		return testanswer(f, pc, ins, state, not ins.k)
+	if relation == "EQ" and b.t == NIL and runtime.answers(a) then
+		return runtime.test(f, pc, ins, state, not ins.k)
 	end
 	ordered(f, pc, relation, a, b)
 	if relation == "EQ" then
@@ -165,8 +164,8 @@ function branch.TEST(f, pc, ins, state)
 	if value ~= nil and value.t | NIL == MAYBE | NIL then
 		return testlookup(f, pc, ins, state)
 	end
-	if answers(value) then
-		return testanswer(f, pc, ins, state, ins.k)
+	if runtime.answers(value) then
+		return runtime.test(f, pc, ins, state, ins.k)
 	end
 	local known = truth(f, pc, state, ins.a)
 	if known ~= nil then
