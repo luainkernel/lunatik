@@ -176,11 +176,12 @@ change adds, read against `CHECK_BASE`, and a script beside it already carries, 
 It names a module a file requires twice, which one local holds, as `.agents/rules/lua.md` asks of `linux.genl`,
 and an append spelled `t[#t + 1] = v`, which is `table.insert`. It reads the file's own requires: one inside
 a long string or comment is text, or a chunk the file hands elsewhere, as `bin/lunatik` hands two to `dostring`.
-It names a local at the top of a file that a change adds against `CHECK_BASE` and that takes nothing
-but functions or tables of a module the file requires into a local, or of the standard library,
-`local format = string.format`, `local alu, jump = insn.alu, insn.jump`: a cache of what the module
-names, which every compiler pull request of the 2026-11-11 round carried and the maintainer asked of,
-"why caching?". A constant the module exports, a field in capitals, a module taken as
+It names a local at the top of a file under `bin/` that a change adds against `CHECK_BASE` and that
+takes nothing but functions or tables of a module the file requires into a local, or of the standard
+library, `local format = string.format`, `local alu, jump = insn.alu, insn.jump`: a cache of what the
+module names, which every compiler pull request of the 2026-11-11 round carried and the maintainer
+asked of, "why caching?", of the compiler, which runs once on the host; the Lua the kernel runs keeps
+its localized stdlib. A constant the module exports, a field in capitals, a module taken as
 `require("linux.xdp").action` and a value computed from a field are not aliases and pass.
 
 `hardcoded.sh` reads the lines a change adds to the Lua of `bin/luaebpf` and of `lib/`, against
