@@ -102,7 +102,7 @@ is `examples/common/sni.lua`'s helper, unchanged, and it compiles.
 The offset is an argument like any other, and an accessor called without one, or with one that
 is not a number, is refused at its line. So is an XDP accessor wider than a byte on a kernel built
 without `HAVE_EFFICIENT_UNALIGNED_ACCESS`, whose verifier refuses a packet read at an offset it
-cannot prove aligned; x86 and arm64 always have it, and the eight-bit reads compile everywhere. Every packet access carries a bounds check against
+cannot prove aligned; x86 and arm64 always have it, and the eight-bit reads compile everywhere. Every XDP access carries a bounds check against
 `data_end`, and tests its offset first against 65535 less its width, the last offset a read that
 wide can start at, since the verifier refuses arithmetic between a packet pointer and a register
 whose range it does not know. A TC access tests its offset the same way and reads through
