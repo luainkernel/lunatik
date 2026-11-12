@@ -61,8 +61,12 @@ Describes a Lunatik object class.
     the lock with
     `lunatik_lockkillable`: the stop of a kernel thread, or a fatal signal to any other task, ends
     the wait and the call raises `EINTR`. While the method runs, the calling runtime allocates with
-    the object's `gfp` and its collector is stopped, so no finalizer runs under the lock; the
-    wrapper restarts the collector afterwards only if it was running. A call or return hook the
+    the object's `gfp` and its collector is stopped, so no finalizer runs under the lock. Once the
+    lock is released and the runtime's `gfp` restored, the wrapper restarts the collector only if it
+    was running, and takes one collector step when the heap the collector counts holds more
+    kilobytes than before the method, whether it returned or raised. So a loop whose allocations all
+    happen inside monitored methods still collects. A collector the script stopped takes no step, and
+    a method that allocated nothing costs none. A call or return hook the
     calling thread set with `debug.sethook` is cleared for the method and restored after it, so no
     hook runs under the lock either: the hook sees the wrapper's call and return, not the method's.
     A line or count hook, which a method written in C never fires, stays set.
