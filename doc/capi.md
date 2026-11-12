@@ -1699,6 +1699,7 @@ with `LUNATIK_OPT_SINGLE`, so it stays in the runtime the callback runs on.
 ### luadata\_reset
 ```C
 int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt);
+int luadata_resetskb(lunatik_object_t *object, const struct sk_buff *skb, unsigned char *start);
 int luadata_clear(lunatik_object_t *object);
 void luadata_close(lunatik_object_t *object);
 ```
@@ -1712,6 +1713,14 @@ view once its callback returns. `luadata_close` clears it and drops a reference 
 as a binding's `release` does for a view it keeps, through [`lunatik_putobject`](#lunatik_putobject).
 They take the object's lock, a spinlock, so a handler calls them in any context, but not under that
 lock, which a method of a monitored data object holds.
+
+`luadata_resetskb` points the object, `LUADATA_OPT_READONLY`, at the bytes of `skb` from `start`, a
+pointer into its linear head, to its end, and returns what `luadata_reset` returns. A read reaches
+the bytes past the head through the skb, copied by `skb_header_pointer` and `skb_copy_bits` and
+summed by `skb_checksum`, so the caller keeps the skb and its length as they are until it resets or
+clears the object. The caller hands an skb whose fragments the kernel reads (`skb_frags_readable`,
+v6.12 and later), which devmem's are not: `skb_checksum` warns on those and has no error to return,
+while a getter and a string raise `EFAULT` where the copy fails.
 
 ### luadata\_checkreadonly
 ```C

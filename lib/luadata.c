@@ -11,6 +11,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/bitops.h>
 #include <linux/kernel_read_file.h>
+#include <linux/skbuff.h>
 #include <net/checksum.h>
 
 #include <lunatik.h>
@@ -21,6 +22,7 @@
 typedef struct luadata_s {
 	void *ptr;
 	size_t size;
+	const struct sk_buff *skb;
 	uint8_t opt;
 } luadata_t;
 
@@ -38,6 +40,37 @@ static inline void *luadata_checkbounds(lua_State *L, int ix, luadata_t *data, l
 	return (data->ptr + offset);
 }
 
+#define luadata_skboffset(data, offset)	((unsigned char *)(data)->ptr - (data)->skb->data + (offset))
+
+static inline const void *luadata_checkread(lua_State *L, int ix, luadata_t *data, lua_Integer offset,
+	lua_Integer length, void *buffer)
+{
+	const void *ptr = luadata_checkbounds(L, ix, data, offset, length);
+
+	if (data->skb == NULL)
+		return ptr;
+	if ((ptr = skb_header_pointer(data->skb, luadata_skboffset(data, offset), length, buffer)) == NULL)
+		lunatik_throw(L, -EFAULT);
+	return ptr;
+}
+
+static noinline_for_stack void luadata_pushskb(lua_State *L, luadata_t *data, lua_Integer offset, lua_Integer length)
+{
+	luaL_Buffer B;
+	char *buffer = luaL_buffinitsize(L, &B, length);
+
+	lunatik_try(L, skb_copy_bits, data->skb, luadata_skboffset(data, offset), buffer, length);
+	luaL_pushresultsize(&B, length);
+}
+
+static inline void luadata_pushbytes(lua_State *L, luadata_t *data, lua_Integer offset, lua_Integer length)
+{
+	if (data->skb == NULL)
+		lua_pushlstring(L, (char *)data->ptr + offset, length);
+	else
+		luadata_pushskb(L, data, offset, length);
+}
+
 #define luadata_checkwritable(L, data)	luaL_argcheck((L), !((data)->opt & LUADATA_OPT_READONLY), 1, "read only")
 
 #define LUADATA_NEWINT_GETTER(T)							\
@@ -45,7 +78,8 @@ static int luadata_get##T(lua_State *L) 						\
 {											\
 	luadata_t *data = luadata_check(L, 1);						\
 	lua_Integer offset = luaL_checkinteger(L, 2);					\
-	T##_t value = *(T##_t *)luadata_checkbounds(L, 2, data, offset, sizeof(T##_t));	\
+	T##_t buffer;									\
+	T##_t value = *(const T##_t *)luadata_checkread(L, 2, data, offset, sizeof(T##_t), &buffer);	\
 	lua_pushinteger(L, (lua_Integer)value);						\
 	return 1;									\
 }
@@ -86,7 +120,9 @@ LUADATA_NEWINT(int64, LUA_MININTEGER, LUA_MAXINTEGER);
 * its length is 0 and every access raises "out of bounds", so copy what you keep
 * with `getstring`. `skb:copy():data()` views the copy's own buffer until the copy
 * is collected, and is then cleared the same way. A write to a view a binding marks
-* read only raises "read only".
+* read only raises "read only". Where a binding points a view at a packet it reads
+* in place, a getter, `getstring` and `tostring` raise `EFAULT` for bytes the kernel
+* refuses to copy, as a fragment that device memory backs (v6.12 and later).
 *
 * A binding that builds over the bytes of a buffer, as `set.fromdata` does, takes only one that owns
 * its memory, from `data.new()` or `data.load()`, and makes it read only for good: its setters and
@@ -112,9 +148,9 @@ static int luadata_getstring(lua_State *L)
 	luadata_t *data = luadata_check(L, 1);
 	lua_Integer offset = luaL_checkinteger(L, 2);
 	lua_Integer length = luaL_optinteger(L, 3, data->size - offset);
-	char *str = (char *)luadata_checkbounds(L, 2, data, offset, length);
 
-	lua_pushlstring(L, str, length);
+	luadata_checkbounds(L, 2, data, offset, length);
+	luadata_pushbytes(L, data, offset, length);
 	return 1;
 }
 
@@ -156,7 +192,8 @@ static int luadata_checksum(lua_State *L)
 	lua_Integer length = luaL_optinteger(L, 3, data->size - offset);
 	void *value = (void*)luadata_checkbounds(L, 2, data, offset, length);
 
-	__wsum sum = csum_partial(value, length, 0);
+	__wsum sum = data->skb == NULL ? csum_partial(value, length, 0) :
+		skb_checksum(data->skb, luadata_skboffset(data, offset), length, 0);
 	lua_pushinteger(L, (__force u16)csum_fold(sum));
 	return 1;
 }
@@ -199,7 +236,7 @@ LUNATIK_INTEGERGETTER(luadata_length, luadata_check, (lua_Integer)private->size)
 static int luadata_tostring(lua_State *L)
 {
 	luadata_t *data = luadata_check(L, 1);
-	lua_pushlstring(L, (char *)data->ptr, data->size);
+	luadata_pushbytes(L, data, 0, data->size);
 	return 1;
 }
 
@@ -472,7 +509,7 @@ lunatik_object_t *luadata_new(lua_State *L, lunatik_opt_t opt)
 }
 EXPORT_SYMBOL(luadata_new);
 
-int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt)
+static int luadata_view(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt, const struct sk_buff *skb)
 {
 	luadata_t *data;
 
@@ -486,11 +523,23 @@ int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt)
 
 	opt = opt & LUADATA_OPT_KEEP ? data->opt : opt;
 	luadata_set(data, ptr, size, opt);
+	data->skb = skb;
 
 	lunatik_unlock(object);
 	return 0;
 }
+
+int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt)
+{
+	return luadata_view(object, ptr, size, opt, NULL);
+}
 EXPORT_SYMBOL(luadata_reset);
+
+int luadata_resetskb(lunatik_object_t *object, const struct sk_buff *skb, unsigned char *start)
+{
+	return luadata_view(object, start, skb->len - (start - skb->data), LUADATA_OPT_READONLY, skb);
+}
+EXPORT_SYMBOL(luadata_resetskb);
 
 lunatik_object_t *luadata_checkreadonly(lua_State *L, int ix, const void **ptr, size_t *size)
 {

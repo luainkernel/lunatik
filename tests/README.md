@@ -282,6 +282,11 @@ each script allocates before its cases, and each case that runs
   shell holds open for writing `ETXTBSY`. A runtime loads in its body in every
   context, and loads again resumed in a process runtime; an armed softirq or
   hardirq runtime refuses the load, not allowed once the runtime is armed.
+- **reads**: each read of a buffer of odd length answers the bytes `setstring`
+  wrote there: every integer getter at each offset it fits, as
+  `string.unpack` reads them, `getstring` and `checksum` over each span, the
+  empty ones and the one to the end included, the checksum as the script sums
+  the span the way RFC 1071 does, and `tostring` over the whole buffer.
 - **resize_atomic**: a failed reallocation must not look like a success. A
   vmalloc-backed buffer grown from a `GFP_ATOMIC` runtime asks the page
   allocator for an order past `MAX_PAGE_ORDER`, so the allocation fails by

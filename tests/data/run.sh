@@ -36,13 +36,19 @@
 # process runtime; an armed softirq or hardirq runtime refuses the load, not allowed once the
 # runtime is armed.
 #
+# reads: each read of a buffer answers the bytes setstring wrote there: every integer getter at each
+# offset it fits, as string.unpack reads them, getstring and checksum over each span, the empty ones
+# and the one to the end included, the checksum as the script sums the span the way RFC 1071 does,
+# and tostring over the whole buffer. The buffer has an odd length, so a sum to the end pads its last
+# byte.
+#
 # Usage: sudo bash tests/data/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
 
 source "$DIR/../lib.sh"
 
-TESTS="bounds zeroed load"
+TESTS="bounds zeroed load reads"
 TOTAL=$(echo $TESTS | wc -w)
 SCRATCH="/tmp/lunatik-data"
 BYTES="0123456789abcdef" # BYTES in load.lua
