@@ -16,7 +16,7 @@ local packet = require("luaebpf.emit.packet")
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local getinfo = debug.getinfo
 local abort, fetch, getreg, move, refuse = frame.abort, frame.fetch, frame.getreg, frame.move, frame.refuse
-local isinteger, resolve, setreg, typename = frame.isinteger, frame.resolve, frame.setreg, frame.typename
+local resolve, setreg, typename = frame.resolve, frame.setreg, frame.typename
 local method = packet.method
 
 local ABORTED <const> = frame.ABORTED
@@ -33,7 +33,7 @@ local call = {}
 -- whether the compiler holds a verdict that is none of its program type's actions
 local function isoutside(actions, value)
 	local k = value.k
-	return isinteger(value) and k ~= nil and (k < actions.first or k > actions.last)
+	return frame.isinteger(value) and k ~= nil and (k < actions.first or k > actions.last)
 end
 
 -- a verdict is one of its program type's actions, which no bits of nil or of a boolean are
