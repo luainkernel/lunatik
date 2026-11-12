@@ -1271,7 +1271,9 @@ interpreter raises, the compiled program owes its default verdict instead.
   the file asked for; with `LUAEBPF_DROP=bounds` the object is still written and
   the verifier refuses it naming an invalid packet access, and with
   `LUAEBPF_DROP=loadbytes`, which drops the test of what `bpf_skb_load_bytes`
-  answers, it verifies and the TC read past the last byte answers 0.
+  answers, it verifies and the TC reads past the last byte and above the
+  ceiling answer 0, the second since a TC read tests its offset against
+  `INT_MAX`, the helper's own bound, and not against the ceiling.
 - **nonlinear**: `skb:data()` on an skb that is not linear, which `prog run`
   builds only from v6.19: the TC program is attached with `tc` to the egress of
   a veth pair whose peer sits in a namespace, lets a packet shorter than 1024

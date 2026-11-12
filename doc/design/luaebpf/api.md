@@ -105,11 +105,12 @@ without `HAVE_EFFICIENT_UNALIGNED_ACCESS`, whose verifier refuses a packet read 
 cannot prove aligned; x86 and arm64 always have it, and the eight-bit reads compile everywhere. Every XDP access carries a bounds check against
 `data_end`, and tests its offset first against 65535 less its width, the last offset a read that
 wide can start at, since the verifier refuses arithmetic between a packet pointer and a register
-whose range it does not know. A TC access tests its offset the same way and reads through
-`bpf_skb_load_bytes`, whose non-zero answer is its bounds check, so it reads the bytes past the
-skb's linear head too. An access that fails either does not raise (there is nothing to
-raise to): the function returns the program's **default verdict**, the type's safe answer
-(`PASS` for XDP, `OK` for TC), overridable in the constructor:
+whose range it does not know. A TC access tests its offset first against `INT_MAX`, the bound
+`bpf_skb_load_bytes` tests itself on the low 32 bits it takes, and reads through the helper,
+whose non-zero answer is its bounds check, so it reads the bytes past the skb's linear head too.
+An access that fails either does not raise (there is nothing to raise to): the function returns
+the program's **default verdict**, the type's safe answer (`PASS` for XDP, `OK` for TC),
+overridable in the constructor:
 
     return xdp.program(function(ctx) ... end, {default = action.DROP})
 

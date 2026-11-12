@@ -32,7 +32,7 @@ computes something else, the compiler emits what lies between:
 | `goto continue` | a jump to the label | the same jump, `BPF_JA`; to a label above it, a back edge the verifier walks pass by pass or refuses | one `JA` to the label, and nothing for the `CLOSE` Lua's parser leaves behind the jump, which no path reaches; a label above the `goto` refused, "'while', 'repeat' and a 'goto' backwards are not compiled yet" |
 | `f(x)` | the callee's value, and its raise | a call, which answers R0 and nothing else | the arguments in R1 to R4, the address of the caller's flag after them, and the flag read after the call |
 | `p:getint16(n)` | two bytes at `n`, signed; raises past the packet | a load the verifier refuses until the program tests the end | the offset tested unsigned against 65535 less the width, the end against `data_end`, and the sign extended by a shift left and an arithmetic shift right, where `BPF_MEMSX` would extend it |
-| `p:getint16(n)` on TC | the same, of the whole packet, past the skb's linear head too | a load stops at `data_end`, the end of the linear head | the offset tested as on XDP, `bpf_skb_load_bytes` into the frame, which copies the bytes wherever the skb holds them, the default verdict where it answers non-zero, and the sign extended alike |
+| `p:getint16(n)` on TC | the same, of the whole packet, past the skb's linear head too | a load stops at `data_end`, the end of the linear head | the offset tested unsigned against `INT_MAX`, the helper's own bound, since it takes the low 32 bits, then `bpf_skb_load_bytes` into the frame, which copies the bytes wherever the skb holds them, the default verdict where it answers non-zero, and the sign extended alike |
 | `#p` | the bytes the `data` object views | no instruction: the context holds the two bounds | `data_end` less `data`, both read from the context; on TC `len`, as `#skb` |
 | `skb:data()` on an skb that is not linear | the whole packet, in a tc callback, its bytes past the linear head read as copies | `data_end` ends the linear head, short of the packet | the context register, which the reads hand to `bpf_skb_load_bytes` |
 | `skb:priority(v)` | raises outside 0 to `U32_MAX` | a four-byte store keeps the low 32 bits | a value the compiler holds checked against the field's width, and one the program computes tested, which takes the default verdict |
@@ -489,7 +489,7 @@ the skb holds them, past its linear head too, and answers non-zero past the pack
   5  *(u64 *)(r10 -40) = r1
   6  r2 = *(u64 *)(r10 -40)        the offset, 15
   7  r1 = r9                       the context
-  8  if r2 > 65534 goto 32         past 65535 less the width: stops
+  8  if r2 > 2147483647 goto 32    past INT_MAX: stops
   9  r3 = r10
  10  r3 += -32                     the frame's value slot
  11  r4 = 1                        the width

@@ -410,10 +410,16 @@ under `sudo`.
   ([include/linux/bpf_verifier.h#L1556](https://github.com/torvalds/linux/blob/v7.2/include/linux/bpf_verifier.h#L1556)).
   The register the check compares is the access's own end, the pointer plus its width, so the
   offset is tested unsigned against the last one that width can start at and only then added.
-  An offset above it is out of bounds on every packet a NIC or `BPF_PROG_TEST_RUN` can build,
+  An offset above it is out of bounds on every XDP frame a NIC or `BPF_PROG_TEST_RUN` can build,
   and the interpreter raises there too, so the pairing the differential test asserts is
-  unchanged. A TC read hands its offset to `bpf_skb_load_bytes`, which takes its low 32 bits, so
-  the same test keeps an offset whose low 32 bits fall in the packet from reading there.
+  unchanged. A TC read does no arithmetic on a packet pointer: it hands its offset to
+  `bpf_skb_load_bytes`, which takes its low 32 bits and answers `-EFAULT` past `INT_MAX` itself
+  ([net/core/filter.c#L1762-L1763](https://github.com/torvalds/linux/blob/v7.2/net/core/filter.c#L1762-L1763),
+  and in v6.6). So a TC read tests its offset unsigned against `INT_MAX`: one above it whose low
+  32 bits fall in the packet does not read there, and an skb past 65535 bytes, which a GSO skb can
+  be up to `GSO_MAX_SIZE`
+  ([include/linux/netdevice.h#L2478](https://github.com/torvalds/linux/blob/v7.2/include/linux/netdevice.h#L2478)),
+  reads to its end, as the object reads it.
 * **A read wider than a byte needs efficient unaligned access.** `bpf_check` turns strict
   alignment on wherever `CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS` is unset
   ([kernel/bpf/verifier.c#L19840-L19842](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L19840-L19842),

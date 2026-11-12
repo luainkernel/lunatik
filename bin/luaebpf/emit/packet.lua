@@ -28,10 +28,12 @@ local VALUE  <const> = frame.VALUE
 
 -- MAX_PACKET_OFF: the verifier refuses arithmetic between a packet pointer and a register whose
 -- range it does not know, and find_good_pkt_pointers leaves a pointer no range at all once the
--- offset's maximum plus the access would carry it past this. So an access tests its offset
--- against the last one its width can start at. Anything above is out of bounds on every packet
--- BPF_PROG_TEST_RUN or a NIC can build, and the interpreter raises there too.
+-- offset's maximum plus the access would carry it past this. So a read between the bounds tests
+-- its offset against the last one its width can start at. Anything above is out of bounds on
+-- every XDP frame BPF_PROG_TEST_RUN or a NIC can build, and the interpreter raises there too.
 local PACKETMAX <const> = 65535
+
+local COPYMAX <const> = 0x7fffffff -- the largest int, the type of the offset skb_header_pointer takes
 
 -- the reads the kernel's own data object publishes (lib/luadata.c), and the load each becomes.
 -- There is no getuint64: a Lua integer is 64-bit signed and has no unsigned twin.
@@ -77,14 +79,14 @@ local function directread(f, pc, ins, state, access, name)
 end
 
 -- loadbytes, bpf_skb_load_bytes on TC, copies the bytes into the frame's value slot wherever the skb
--- holds them, and answers non-zero past the packet, where the interpreter raises. It takes a 32-bit
--- offset, so the offset is tested against PACKETMAX first: one whose low 32 bits fall in the packet
--- would read there.
+-- holds them, and answers non-zero past the packet, where the interpreter raises. It takes the low
+-- 32 bits of the offset and answers non-zero past COPYMAX itself, so the offset is tested against
+-- COPYMAX first: one above it whose low 32 bits fall in the packet would read there.
 local function copyread(f, pc, ins, state, access, loadbytes)
 	local code = f.code
 	frame.into(f, pc, state, ins.a + 2, reg.R2)
 	frame.move(f, frame.fetch(f, ins.a + 1, reg.R1), reg.R1)
-	code:branchi(jump.JGT, reg.R2, PACKETMAX - access.size, frame.abort(f))
+	code:branchi(jump.JGT, reg.R2, COPYMAX, frame.abort(f))
 	code:alu(alu.MOV, reg.R3, reg.FP)
 	code:alui(alu.ADD, reg.R3, VALUE)
 	code:set(reg.R4, access.size)

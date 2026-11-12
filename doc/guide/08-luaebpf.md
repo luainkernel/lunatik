@@ -226,14 +226,14 @@ is 28 gives 7168. A field in network order is read a byte at a time:
 local length = p:getbyte(16) << 8 | p:getbyte(17) --> 28
 ```
 
-A read that passes the end of the packet, or starts past byte 65535 less its width, stops the
-program. There is no `getuint64`, since a Lua integer is signed, and no write: "the packet has no
-method 'setbyte'". The bounds of the packet are not numbers: `ctx.data_end - ctx.data` is refused,
-"'data_end' is a packet bound, not a number; '#' on the packet is its length". On a kernel without
-efficient unaligned access, an XDP read wider than a byte is refused (#2047): "'getuint16' reads
-more than a byte, and this kernel lacks efficient unaligned access"; a TC read is not, since it
-copies its bytes before it reads them. `skb:data(layer)` is refused:
-"'data' with a layer is not compiled yet".
+A read that passes the end of the packet stops the program, and so does an XDP read that starts
+past byte 65535 less its width. There is no `getuint64`, since a Lua integer is signed, and no
+write: "the packet has no method 'setbyte'". The bounds of the packet are not numbers:
+`ctx.data_end - ctx.data` is refused, "'data_end' is a packet bound, not a number; '#' on the
+packet is its length". On a kernel without efficient unaligned access, an XDP read wider than a
+byte is refused (#2047): "'getuint16' reads more than a byte, and this kernel lacks efficient
+unaligned access"; a TC read is not, since it copies its bytes before it reads them.
+`skb:data(layer)` is refused: "'data' with a layer is not compiled yet".
 
 ## Maps
 

@@ -17,8 +17,10 @@
 #     invalid packet access, which is what says the check is emitted rather than implied
 #   - with LUAEBPF_DROP=loadbytes the test of what bpf_skb_load_bytes answers is gone from a TC
 #     read, which the verifier takes, and the read one byte past the last answers the 0 the helper
-#     leaves in the frame where the interpreter raises, which is what says the test is emitted. It
-#     is a hook of its own: under the other the object's XDP rows are rejected with it
+#     leaves in the frame where the interpreter raises, which is what says the test is emitted. The
+#     read above the ceiling answers 0 too, which says a TC read tests its offset against INT_MAX,
+#     the helper's own bound, and not against the ceiling. It is a hook of its own: under the other
+#     the object's XDP rows are rejected with it
 #
 # Usage: sudo bash tests/luaebpf/bounds.sh
 
@@ -29,7 +31,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 4
+luaebpf_start 5
 
 output=$(luaebpf_compile bounds) || { comment "$output"; fail "luaebpf: bounds.bpf.lua did not compile"; }
 output=$(luaebpf_loadall bounds) || { comment "$output"; fail "luaebpf: the bounds checks did not verify"; }
@@ -52,6 +54,9 @@ output=$(luaebpf_loadall bounds) || { comment "$output"; fail "luaebpf: without 
 raw=$(luaebpf_verdict skbpast1 skbarp)
 [ "$raw" = "0" ] || fail "luaebpf: without the helper's test a TC read past the packet answers 0, got '$raw'"
 ktap_pass "luaebpf: without the test of the helper's answer a TC read past the packet answers 0"
+raw=$(luaebpf_verdict skbhigh1 skbarp)
+[ "$raw" = "0" ] || fail "luaebpf: without the helper's test a TC read above the ceiling answers 0, got '$raw'"
+ktap_pass "luaebpf: a TC read above the ceiling reaches bpf_skb_load_bytes"
 
 check_dmesg
 ktap_totals
