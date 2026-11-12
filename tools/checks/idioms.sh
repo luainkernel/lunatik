@@ -28,14 +28,20 @@
 # A local array a copy fills only for a push to read is a second copy, since lua_pushstring copies already:
 # #2083's skb:ifname took dev->name through strscpy that way, after nftables' meta iifname, which fills a
 # fixed register, and passed its implementer and its review.
+# A kernel range a comment gives over code no version guard encloses, a #if on LINUX_VERSION_CODE or
+# on a declaration Kbuild probes, leaves code a floor past the range cannot find to delete: #2350 first
+# shipped a line for 7.0 and earlier under such a comment alone, until the maintainer asked for the #if.
 # Takes file paths; silent on files that carry none, and on the Lua fork under lua/, whose
 # guards keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
 # looks at.
 
+# a guard tests the kernel version or a declaration Kbuild probes its headers for
+probes=$(sed -n 's/^\(LUNATIK_[A-Z0-9_]*\) := .*lunatik_declares,.*/|\1/p' "$(dirname "$0")/../../Kbuild" 2> /dev/null | tr -d '\n')
+
 for file in "$@"; do
 	case "$file" in */lua/*|lua/*) continue ;; *.c|*.h) ;; *) continue ;; esac
-	awk -v f="$file" '
+	awk -v f="$file" -v version="LINUX_VERSION_CODE$probes" '
 	function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
 	function reads(s, name) { return match(s, "(^|[^A-Za-z0-9_])" name "([^A-Za-z0-9_]|$)") }
 	# the name a declaration computes into, "" for one that only copies, casts or names a constant
@@ -63,16 +69,49 @@ for file in "$@"; do
 		sub(/.*[ *]/, "", head)
 		return head
 	}
+	# a comment that gives a kernel range, LDoc left out, since it documents what a script sees
+	function ranged(s,   text) {
+		if (s ~ /^\/\*\*\*/)
+			ldoc = 1
+		if (ldoc) {
+			if (s ~ /\*\//)
+				ldoc = 0
+			return 0
+		}
+		text = (s ~ /^(\/\*|\*|\/\/)/) ? s : (index(s, "/*") ? substr(s, index(s, "/*")) : "")
+		text = tolower(text)
+		return text ~ /(^|[^0-9.])v?[0-9]+\.[0-9]+(\.[0-9]+)?:? and (earlier|later)/ ||
+			text ~ /(before|since) (linux |kernel )?v?[0-9]+\.[0-9]+/
+	}
+	function unguarded(n) {
+		printf "%s:%d: a comment gives a kernel range over code no version guard encloses: the code goes under the guard, which a floor past the range deletes\n", f, n
+	}
 	{
 		line = trim($0)
+		alone = (line ~ /^(\/\*|\*|\/\/)/)
+		# a range on the comment lines directly above a version guard describes that guard
+		if (!alone) {
+			if (!(line ~ /^#[ \t]*if/ && line ~ version))
+				for (n = 1; n <= nranges; n++)
+					unguarded(ranges[n])
+			nranges = 0
+		}
+		if (ranged(line) && !versioned && line !~ version) {
+			if (alone)
+				ranges[++nranges] = NR
+			else
+				unguarded(NR)
+		}
 		if (line ~ /^#[ \t]*if/) {
 			depth++
 			inverted[depth] = (line ~ /LINUX_VERSION_CODE[ \t]*<=?[ \t]*KERNEL_VERSION/) ? NR : 0
+			guard[depth] = (line ~ version)
+			versioned += guard[depth]
 		}
 		else if (line ~ /^#[ \t]*else/ && inverted[depth])
 			printf "%s:%d: version guard from line %d puts the older kernel first: current kernel in the if arm, fallback in else\n", f, NR, inverted[depth]
 		else if (line ~ /^#[ \t]*endif/)
-			depth--
+			versioned -= guard[depth--]
 		if (prev ~ /^if \(.*\)$/ && line ~ /^return luaL_argerror\(/)
 			printf "%s:%d: luaL_argerror as the body of an if: a wrong value at an index is luaL_argcheck\n", f, NR
 		if (prev ~ /^if \(\(ret = [a-z_]+\(.*\)\) (!=|<) 0\)$/ && line ~ /^lunatik_throw\(L, ret\);$/)
