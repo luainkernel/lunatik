@@ -1120,7 +1120,7 @@ compiled program keeps nothing.
   answers instead.
 - **verdict**: a verdict the program computes at either end of its type's
   actions, `XDP_ABORTED` and `XDP_REDIRECT`, `TC_ACT_UNSPEC` and `TC_ACT_TRAP`,
-  is returned, and so is `TC_ACT_UNSPEC` where the compiler holds it; one past
+  is returned, and so are both TC ends where the compiler holds them; one past
   either end, one whose low 32 bits are an action and whose high ones are not,
   and one a called function computes take the default verdict. A verdict the
   compiler holds outside the actions, a boolean, a value that is a boolean on

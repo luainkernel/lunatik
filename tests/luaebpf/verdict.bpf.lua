@@ -35,13 +35,15 @@ local function tcbelow(skb) local p = skb:data() local v = p:getbyte(6) - 2 retu
 local function tchigh(skb) local p = skb:data() local v = p:getbyte(7) << WORD | tcact.OK return v end
 local function tccalled(skb) local p = skb:data() local n = p:getbyte(7) local v = above(n) return v end
 local function tcunspec(_) return tcact.UNSPEC end
+local function tctrap(_) return tcact.TRAP end
 
 for _, program in ipairs({{"xdpfirst", xdpfirst}, {"xdplast", xdplast}, {"xdpabove", xdpabove},
 		{"xdpbelow", xdpbelow}, {"xdphigh", xdphigh}, {"xdpcalled", xdpcalled}}) do
 	xdp.program(program[2], {name = program[1], default = action.DROP})
 end
 for _, program in ipairs({{"tcfirst", tcfirst}, {"tclast", tclast}, {"tcabove", tcabove},
-		{"tcbelow", tcbelow}, {"tchigh", tchigh}, {"tccalled", tccalled}, {"tcunspec", tcunspec}}) do
+		{"tcbelow", tcbelow}, {"tchigh", tchigh}, {"tccalled", tccalled}, {"tcunspec", tcunspec},
+		{"tctrap", tctrap}}) do
 	tc.program(program[2], {name = program[1], default = tcact.SHOT})
 end
 

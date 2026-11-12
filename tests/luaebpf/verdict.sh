@@ -7,7 +7,7 @@
 # and linux.tc.action, -1 to 8, the range luakfunc_action holds a kernel callback to.
 #   - a verdict the program computes at either end of its type's actions is returned as it is:
 #     XDP_ABORTED and XDP_REDIRECT, TC_ACT_UNSPEC, which prog run reads as 4294967295, and
-#     TC_ACT_TRAP; so is TC_ACT_UNSPEC where the compiler holds it
+#     TC_ACT_TRAP; so are TC_ACT_UNSPEC and TC_ACT_TRAP where the compiler holds them
 #   - one the program computes past either end, one whose low 32 bits are an action and whose high
 #     ones are not, and one a called function computes, which a callee's return is not held to,
 #     take the default verdict, which these programs set to XDP_DROP and TC_ACT_SHOT
@@ -56,7 +56,7 @@ check "an XDP verdict the program computes at either end of the actions is retur
 check "an XDP verdict computed outside the actions, past 32 bits or by a callee takes the default" \
 	xdpabove=1 xdpbelow=1 xdphigh=1 xdpcalled=1
 check "a TC verdict the program computes or holds at either end of the actions is returned" \
-	tcfirst:tcframe=4294967295 tclast:tcframe=8 tcunspec:tcframe=4294967295
+	tcfirst:tcframe=4294967295 tclast:tcframe=8 tcunspec:tcframe=4294967295 tctrap:tcframe=8
 check "a TC verdict computed outside the actions, past 32 bits or by a callee takes the default" \
 	tcabove:tcframe=2 tcbelow:tcframe=2 tchigh:tcframe=2 tccalled:tcframe=2
 
@@ -91,7 +91,7 @@ row joined xdp "9: the verdict may be a boolean here; return an action" \
 row tcboolean tc "5: the verdict may be a boolean here; return an action" \
 	$'\tlocal p = ctx:data()\n\treturn p:getbyte(7) == 17'
 row xdpdefault xdp "3: xdp.program's default verdict is not an XDP action" $'\treturn 2' ', {default = 5}'
-row tcdefault tc "3: tc.program's default verdict is not a TC action" $'\treturn 0' ', {default = 9}'
+row tcdefault tc "3: tc.program's default verdict is not a TC action" $'\treturn 0' ', {default = -2}'
 
 rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
 output=$(luaebpf_compile verdict action) || { comment "$output"; fail "luaebpf: the dropped build failed"; }
