@@ -8,12 +8,7 @@
 --
 -- The compile-time twin of the kernel `lunatik`: `runtime` takes the script a runtime runs, as the
 -- kernel's does, and names the runtime `lunatik run` starts from that script instead of creating
--- one. The body of a program file runs on the host under `lunatik bpf`; a program's own function
--- calls the runtime's `run` method, and the call lowers to the kfunc of the program's type,
--- `bpf_luaxdp_run` in an XDP program and `bpf_luatc_run` in a TC one. The call answers the verdict
--- the runtime's callback returns, or nil, and the program tests the answer before it reads it. A
--- kernel script the body requires that itself requires `lunatik` gets this module, which holds
--- `runtime` alone.
+-- one.
 -- @module lunatik
 -- @usage
 -- local xdp     = require("bpf.xdp")
@@ -35,6 +30,17 @@
 local lowering = require("luaebpf.emit.runtime")
 
 local lunatik = {}
+
+---
+-- Naming a kernel Lua runtime in a program file.
+--
+-- `lunatik.runtime` runs in the body of a program file, under `lunatik bpf`, and names a runtime
+-- by the script it runs, which `lunatik run` starts; a program's own function calls the runtime's
+-- `run` method, and the call lowers to the kfunc of the program's type, `bpf_luaxdp_run` in an XDP
+-- program and `bpf_luatc_run` in a TC one. The call answers the verdict the runtime's callback
+-- returns, or nil, and the program tests the answer before it reads it. A kernel script the body
+-- requires that itself requires `lunatik` gets this twin, which holds `runtime` alone.
+-- @section name
 
 ---
 -- Names the kernel Lua runtime a program calls.

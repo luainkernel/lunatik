@@ -17,7 +17,7 @@ local unpack = string.unpack
 local insert = table.insert
 
 local ANSWER <const> = frame.type("runtime answer", "word", "untested")
-local RUN    <const> = frame.type("runtime method") -- what SELF reads off a runtime, which only CALL takes
+local RUN    <const> = frame.type("runtime method")
 
 local CTXREG  <const> = 0  -- the program's parameter, which the call passes as the context
 local NUL     <const> = 1  -- the byte key__sz counts past the key, which the kfunc writes in place

@@ -183,7 +183,7 @@ that line. Each construct links to its listing.
 | [`goto continue`](09-luaebpf-by-example.md#goto) | a jump to the label | never | the label is above the `goto` |
 | [`local v = f(x)`](09-luaebpf-by-example.md#calls) | the value `f` returns | `f` stops | [Calls](#calls) says |
 | [`return f(x)`](09-luaebpf-by-example.md#calls) | | | always: a tail call |
-| [`local v = limits:run(a, b)`, `limits` what `lunatik.runtime` returns](09-luaebpf-by-example.md#calls-into-a-kernel-lua-runtime) | the verdict the runtime's callback returns, or nil | never | an argument is not a number; the call is in a function the program calls; `limits(a)`; another method |
+| [`local v = limits:run(a, b)`, `limits` a runtime the body named](09-luaebpf-by-example.md#calls-into-a-kernel-lua-runtime) | the verdict the runtime's callback returns, or nil | never | an argument is not a number; the call is in a function the program calls; `limits(a)`; another method |
 | [`if v then`, `v == nil`, `v` what `limits:run` answered](09-luaebpf-by-example.md#calls-into-a-kernel-lua-runtime) | the branch Lua takes: `v` is the verdict on one, nil on the other | never | `v` is used before one of these tests reads it; `v` is the answer on one path and another value on another |
 | [`p:getuint16(n)` and the other reads](09-luaebpf-by-example.md#the-packet) | the bytes at `n`, in the kernel's byte order | the read passes the end of the packet | [The packet](#the-packet) says |
 | [`#p`](09-luaebpf-by-example.md#the-packet) | the length of the packet | never | never |
