@@ -56,7 +56,7 @@ local context = {
 	length = "len",
 	methods = {ifindex = "ifindex", hash = "hash", priority = "priority"},
 	writable = {priority = true},
-	packet = {method = "data", layered = true, load = func.skb_load_bytes, base = "data", limit = "data_end"},
+	packet = {method = "data", layered = true, loadbytes = func.skb_load_bytes, base = "data", limit = "data_end"},
 }
 
 local tc = {}

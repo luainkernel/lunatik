@@ -76,11 +76,11 @@ local function directread(f, pc, ins, state, access, name)
 	code:load(reg.R1, reg.R1, 0, access.size)
 end
 
--- load, bpf_skb_load_bytes on TC, copies the bytes into the frame's value slot wherever the skb
+-- loadbytes, bpf_skb_load_bytes on TC, copies the bytes into the frame's value slot wherever the skb
 -- holds them, and answers non-zero past the packet, where the interpreter raises. It takes a 32-bit
 -- offset, so the offset is tested against PACKETMAX first: one whose low 32 bits fall in the packet
 -- would read there.
-local function copyread(f, pc, ins, state, access, load)
+local function copyread(f, pc, ins, state, access, loadbytes)
 	local code = f.code
 	frame.into(f, pc, state, ins.a + 2, reg.R2)
 	frame.move(f, frame.fetch(f, ins.a + 1, reg.R1), reg.R1)
@@ -88,7 +88,7 @@ local function copyread(f, pc, ins, state, access, load)
 	code:alu(alu.MOV, reg.R3, reg.FP)
 	code:alui(alu.ADD, reg.R3, VALUE)
 	code:set(reg.R4, access.size)
-	code:helper(load)
+	code:helper(loadbytes)
 	if f.drop ~= "loadbytes" then
 		code:branchi(jump.JNE, reg.R0, 0, frame.abort(f))
 	end
@@ -96,9 +96,9 @@ local function copyread(f, pc, ins, state, access, load)
 end
 
 local function packetread(f, pc, ins, state, access, name)
-	local load = f.unit.context.packet.load
-	if load ~= nil then
-		copyread(f, pc, ins, state, access, load)
+	local loadbytes = f.unit.context.packet.loadbytes
+	if loadbytes ~= nil then
+		copyread(f, pc, ins, state, access, loadbytes)
 	else
 		directread(f, pc, ins, state, access, name)
 	end
@@ -120,7 +120,7 @@ end
 -- the length is what '#' on the kernel's data object answers and what the interpreted twin reads
 -- off the same bytes: the distance between the bounds, or the skb's own where a read copies them
 local function packetlen(f, pc, ins, state)
-	if f.unit.context.packet.load ~= nil then
+	if f.unit.context.packet.loadbytes ~= nil then
 		return context.contextlen(f, pc, ins, state)
 	end
 	setreg(f, ins.a, span(f, fetch(f, ins.b, reg.R3)))
