@@ -2209,31 +2209,29 @@ in a process runtime, where the kernel&rsquo;s crypto allocations may sleep.</p>
 </pre>
 
 
-<p>The private of a class whose operations take a request and an IV, <a href="../modules/crypto.html#skcipher">crypto.skcipher</a> and
-<a href="../modules/crypto.html#aead">crypto.aead</a>: the transform, its request and its IV, <code>NULL</code> for a cipher that takes none. They are
+<p>The private of a class whose operations take a request and an IV, <a href="../modules/crypto.html#skcipher">crypto.skcipher</a>, <a href="../modules/crypto.html#aead">crypto.aead</a>
+and <a href="../modules/crypto.html#comp">crypto.comp</a> (whose IV is <code>NULL</code> and whose constructor is written by hand because it admits an
+asynchronous implementation): the transform, its request and its IV, <code>NULL</code> for a cipher that takes none. They are
 allocated once, when the object is created, so an operation allocates only what it returns.</p>
 
-<h3 id="luacrypto_new">LUACRYPTO_NEW</h3>
+<h3 id="luacrypto_newctx">LUACRYPTO_NEWCTX</h3>
 
 <pre>
-#define LUACRYPTO_NEW(name, T, alloc, class)
 #define LUACRYPTO_NEWCTX(name, T, alloc, class)
 <span class="keyword">void</span> <span class="function-name">luacrypto_initctx</span>(lua_State *L, luacrypto_ctx_t *ctx, <span class="keyword">void</span> *request, <span class="keyword">unsigned</span> <span class="keyword">int</span> ivsize);
 </pre>
 
 
-<p>Define <code>int luacrypto_&lt;name&gt;_new(lua_State <em>L)</code>, the constructor of <a href="../modules/class.html#">class</a> a script calls with the
-algorithm&rsquo;s name at index <code>1</code>. <code>LUACRYPTO_NEW</code> is for a <code>LUNATIK_OPT_EXTERNAL</code> class whose private
-is the transform, the <code>T </em></code> that <code>alloc(algname, 0, 0)</code> returns. <code>LUACRYPTO_NEWCTX</code> is for a class
-whose private is a <code>luacrypto_ctx_t</code>: it allocates the transform with
-<code>alloc(algname, 0, CRYPTO_ALG_ASYNC)</code>, which passes over an asynchronous implementation, then hands
-<code>luacrypto_initctx</code> the request <code>&lt;name&gt;_request_alloc</code> allocates with the runtime&rsquo;s <code>gfp</code> and the
-transform&rsquo;s <code>crypto_&lt;name&gt;_ivsize</code>. <code>luacrypto_initctx</code> stores the request and allocates the IV with
-<a href="#lunatik_malloc"><code>lunatik_malloc</code></a>, none for a size of <code>0</code>, and raises <code>not enough memory</code> when
-either is missing. The constructors raise the errno name the transform&rsquo;s allocation fails with,
-<code>ENOENT</code> for an algorithm the kernel does not have, what <code>luaL_checkstring</code> raises and what
-<a href="#lunatik_newobject"><code>lunatik_newobject</code></a> raises; the object&rsquo;s release frees what was allocated
-before the raise.</p>
+<p>Defines <code>int luacrypto_&lt;name&gt;_new(lua_State *L)</code>, the constructor of <a href="../modules/class.html#">class</a> a script calls with the
+algorithm&rsquo;s name at index <code>1</code>. <code>LUACRYPTO_NEWCTX</code> is for a class whose private is a <code>luacrypto_ctx_t</code>: it
+allocates the transform with <code>alloc(algname, 0, CRYPTO_ALG_ASYNC)</code>, which passes over an asynchronous
+implementation, then hands <code>luacrypto_initctx</code> the request <code>&lt;name&gt;_request_alloc</code> allocates with the
+runtime&rsquo;s <code>gfp</code> and the transform&rsquo;s <code>crypto_&lt;name&gt;_ivsize</code>. <code>luacrypto_initctx</code> stores the request and
+allocates the IV with <a href="#lunatik_malloc"><code>lunatik_malloc</code></a>, none for a size of <code>0</code>, and raises
+<code>not enough memory</code> when either is missing. The constructors raise the errno name the transform&rsquo;s
+allocation fails with, <code>ENOENT</code> for an algorithm the kernel does not have, what <code>luaL_checkstring</code>
+raises and what <a href="#lunatik_newobject"><code>lunatik_newobject</code></a> raises; the object&rsquo;s release frees what was
+allocated before the raise.</p>
 
 <h3 id="luacrypto_releaser">LUACRYPTO_RELEASER</h3>
 
@@ -2286,6 +2284,21 @@ not <code>expected</code>, and what <code>luaL_checklstring</code> raises.</p>
 <a href="#lunatik_pushexternalstring"><code>lunatik_pushexternalstring</code></a>, which frees it with the state&rsquo;s
 allocator.</p>
 
+<h3 id="luacrypto_pushbuffer">luacrypto_pushbuffer</h3>
+
+<pre>
+<span class="keyword">int</span> <span class="function-name">luacrypto_pushbuffer</span>(lua_State *L, <span class="keyword">char</span> *buffer, <span class="keyword">int</span> ret, size_t offset, size_t len);
+</pre>
+
+
+<p>Answers a request that wrote its result at <code>offset</code> into <code>buffer</code>, a
+<a href="#luacrypto_newbuffer"><code>luacrypto_newbuffer</code></a> of at least <code>offset + len + 1</code> bytes, from <code>ret</code>, what the
+kernel returned for it: moves the <code>len</code> bytes at <code>offset</code> to the buffer&rsquo;s start, as the result of
+<a href="../modules/crypto.html#aead">crypto.aead</a>, which follows its associated data, needs, pushes them as a string with
+<a href="#lunatik_pushexternalstring"><code>lunatik_pushexternalstring</code></a>, which then owns the buffer, and returns <code>1</code>;
+for a negative <code>ret</code> frees the buffer with <a href="#lunatik_free"><code>lunatik_free</code></a> and raises the errno&rsquo;s name,
+having moved nothing.</p>
+
 <h3 id="luacrypto_shash_class">luacrypto_shash_class</h3>
 
 <pre>
@@ -2309,7 +2322,7 @@ allocator.</p>
 <a href="../modules/crypto.html#sig">crypto.sig</a> and <a href="../modules/crypto.html#comp">crypto.comp</a>, which <code>luacrypto_core.c</code> opens as the <a href="../modules/crypto.html#">crypto</a> module; the module&rsquo;s reference says
 what each constructor raises. <code>luacrypto_rng_class</code> is defined where <code>CONFIG_CRYPTO_RNG2</code> is reachable,
 since <code>luacrypto_rng.c</code> links <code>crypto_alloc_rng</code> and <code>crypto_rng_reset</code> from it, and <code>luacrypto_rng_new</code>
-raises <code>EOPNOTSUPP</code> where it is not; <a href="../modules/crypto.html#comp">crypto.comp</a> is declared on kernels before v6.15 alone.</p>
+raises <code>EOPNOTSUPP</code> where it is not.</p>
 
 <hr />
 
@@ -2788,7 +2801,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:13:43</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:17:10</span>
 </div>
 </footer>
 </body>

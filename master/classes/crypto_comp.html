@@ -190,8 +190,14 @@
 
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-crypto">Cryptography</a></div>
 <h1>crypto_comp<span class="kind">Class</span></h1>
-<p class="lead">Lua interface to synchronous compression algorithms.</p>
- Not built on 6.15 and later, whose kernel has no synchronous compression API.
+<p class="lead">Lua interface to compression algorithms, served by the asynchronous compression API on every
+ supported kernel.</p>
+ Each call waits for the operation to finish, a hardware engine included. The wait sleeps, so
+ the class remains reserved to process context, and a stop does not end it: a thread whose call
+ waits for an engine that never finishes cannot be stopped.
+ Up to 6.14, an algorithm the kernel serves through scomp, <code>lz4</code> and <code>deflate</code> among them,
+ refuses an input past 128 KiB with <code>EINVAL</code> and fails an output past 128 KiB whatever <code>max_len</code>
+ says, so <code>lz4</code> raises <code>EINVAL</code> on incompressible data of 131072 bytes.
 
 <h2 id="Methods">Methods</h2>
 <div class="tbl"><table class="function_list">
@@ -277,7 +283,8 @@
     </ol>
 
     <h3>Raises</h3>
-    on compression failure
+    on compression failure, &ldquo;not enough memory&rdquo; when one kmalloc block cannot be allocated,
+   always past <code>KMALLOC_MAX_SIZE</code>
 
 
 
@@ -307,7 +314,8 @@
     </ol>
 
     <h3>Raises</h3>
-    on decompression failure
+    on decompression failure, &ldquo;not enough memory&rdquo; when one kmalloc block cannot be
+   allocated, always past <code>KMALLOC_MAX_SIZE</code>
 
 
 
@@ -329,7 +337,7 @@
 <a href="../../classes/crypto_comp.html">5.1 docs</a> ·
 <a href="../../5.0/classes/crypto_comp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:13:43</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:17:10</span>
 </div>
 </footer>
 </body>
