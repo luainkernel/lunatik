@@ -31,6 +31,10 @@
 # A kernel range a comment gives over code no version guard encloses, a #if on LINUX_VERSION_CODE or
 # on a declaration Kbuild probes, leaves code a floor past the range cannot find to delete: #2350 first
 # shipped a line for 7.0 and earlier under such a comment alone, until the maintainer asked for the #if.
+# A static function of two statements, a call and the return of another call handed the function's
+# parameters, is a wrapper whose step runs ahead of the helper's checks: #2493's luacrypto_aead_finish moved
+# crypto.aead's result before luacrypto_pushbuffer checked the request's return, until the maintainer
+# asked why the indirection.
 # Takes file paths; silent on files that carry none, and on the Lua fork under lua/, whose
 # guards keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
@@ -60,6 +64,21 @@ for file in "$@"; do
 	function callee(s) {
 		sub(/^return /, "", s)
 		return s ~ /^[A-Za-z_][A-Za-z0-9_]*\(.*\);$/ ? substr(s, 1, index(s, "(") - 1) : ""
+	}
+	# what a function hands on of its parameters, read from its signature sig
+	function handed(sig, call,   params, p, np, i, name, n) {
+		params = substr(sig, index(sig, "(") + 1)
+		sub(/\)[^)]*$/, "", params)
+		np = split(params, p, ",")
+		call = substr(call, index(call, "("))
+		for (i = 1; i <= np; i++) {
+			name = trim(p[i])
+			match(name, /[A-Za-z_][A-Za-z0-9_]*$/)
+			name = substr(name, RSTART, RLENGTH)
+			if (name != "" && call ~ ("[(, ]" name "[,)]"))
+				n++
+		}
+		return n
 	}
 	# the function a static definition opening line s names, "" for any other line
 	function defined(s,   head) {
@@ -199,26 +218,40 @@ for file in "$@"; do
 			if (step in helpers)
 				printf "%s:%d: %s steps the loop through out parameters: a foreach macro names the walk, as lunatik_foreachruntime does\n", f, NR, step
 		}
-		# a function whose one statement returns the call another such function returns, with another argument
-		if ($0 ~ /^static [^;]*\)$/)
+		# a function whose one statement returns the call another such function returns, with another
+		# argument, or whose two are a call, not a macro, and the return of another call handed its parameters
+		code = line
+		sub(/[ \t]*\/\*.*\*\/$/, "", code)
+		if (!wsig && !wfn && (wname = defined($0)) != "" && code !~ /;$/) {
 			wsig = NR
-		else if (wsig && $0 == "{") {
+			whead = code
+		}
+		else if (wsig && whead !~ /\)$/ && code !~ /;$/)
+			whead = whead " " code
+		else if (wsig && whead ~ /\)$/ && $0 == "{") {
 			wfn = wsig
 			wn = 0
+			wpart = ""
 			wsig = 0
 		}
 		else if (wfn && $0 ~ /^\}/) {
-			if (wn == 1 && wfirst ~ /^return / && (wcall = callee(wfirst)) != "") {
+			if (wn == 1 && wst[1] ~ /^return / && (wcall = callee(wst[1])) != "") {
 				if (wcall in wraps)
 					printf "%s:%d: like the function of line %d, it returns %s with another argument: a macro generates the pair, as LUABPF_OPENER does\n", f, wfn, wraps[wcall], wcall
 				else
 					wraps[wcall] = wfn
 			}
+			if (wn == 2 && callee(wst[1]) ~ /^[a-z]/ && wst[2] ~ /^return / && (wcall = callee(wst[2])) != "" &&
+			    wcall != callee(wst[1]) && handed(whead, wst[2]) >= 2)
+				printf "%s:%d: %s runs %s and returns %s with what it was handed: a step one caller adds to a shared helper is an argument the helper takes after its checks, not a wrapper that runs it first\n", f, wfn, wname, callee(wst[1]), wcall
 			wfn = 0
 		}
-		else if (wfn && line != "") {
-			if (++wn == 1)
-				wfirst = line
+		else if (wfn && code != "" && code !~ /^(\/\*|\*)/) {
+			wpart = wpart (wpart == "" ? "" : " ") code
+			if (code ~ /[;{}]$/) {
+				wst[++wn] = wpart
+				wpart = ""
+			}
 		}
 		else
 			wsig = 0
