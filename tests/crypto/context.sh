@@ -15,7 +15,9 @@
 # ecdh-nist-p256 here, whatever they are on this architecture: those
 # /proc/crypto lists whose reference count rose while the objects lived. The
 # refusals then have to be the ones context_atomic expects, and leave those
-# counts where they found them.
+# counts where they found them. The case skips where the kernel's configuration
+# lacks CONFIG_CRYPTO_HASH2, CONFIG_CRYPTO_SKCIPHER2, CONFIG_CRYPTO_SIG2 or
+# CONFIG_CRYPTO_ACOMP2, without which a constructor it calls raises EOPNOTSUPP.
 #
 # The case only runs against the build it was installed with. The refusals are
 # static inlines compiled into luacrypto, so a build from before them allocates
@@ -53,6 +55,12 @@ module_installed_with_case() {
 	[ -n "$ko" ] && [ -r "$ATOMIC" ] && [ ! "$ko" -nt "$ATOMIC" ] && [ -n "$installed" ] &&
 		[ "$installed" = "$(cat "/sys/module/$MODULE/srcversion" 2>/dev/null)" ]
 }
+
+if option=$(lacking CONFIG_CRYPTO_HASH2 CONFIG_CRYPTO_SKCIPHER2 CONFIG_CRYPTO_SIG2 CONFIG_CRYPTO_ACOMP2); then
+	ktap_skip "crypto/context: needs $option"
+	ktap_totals
+	exit 0
+fi
 
 mark_dmesg
 

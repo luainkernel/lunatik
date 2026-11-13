@@ -23,7 +23,9 @@
 # vmalloc address, which arm64 reads when the walk flushes a page it wrote, an oops under the
 # runtime's lock. The case runs only when the loaded luacrypto lists the copy's allocator,
 # luacrypto_newbuffer, in /proc/kallsyms, and skips where the kernel serves cbc(aes), gcm(aes),
-# ctr(aes) or lz4 not at all, which the script allocates before its cases and names.
+# ctr(aes) or lz4 not at all, which the script allocates before its cases and names, and where the
+# kernel's configuration lacks CONFIG_CRYPTO_SKCIPHER2, CONFIG_CRYPTO_AEAD2 or CONFIG_CRYPTO_ACOMP2,
+# without which a constructor it calls raises EOPNOTSUPP.
 #
 # Usage: sudo bash tests/crypto/large.sh
 
@@ -53,6 +55,10 @@ grep -Eq " $COPY[[:space:]]\[$MODULE\]$" /proc/kallsyms 2> /dev/null || {
 page=$(getconf PAGESIZE)
 printf 'return {page = %d, kmalloc = %d}\n' "$page" "$(kmalloc_max)" > "$SIZES"
 
-served_case "crypto/large" run_test "$SCRIPT"
+if option=$(lacking CONFIG_CRYPTO_SKCIPHER2 CONFIG_CRYPTO_AEAD2 CONFIG_CRYPTO_ACOMP2); then
+	ktap_skip "crypto/large: needs $option"
+else
+	served_case "crypto/large" run_test "$SCRIPT"
+fi
 ktap_totals
 

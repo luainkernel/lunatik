@@ -5,6 +5,7 @@
 
 /***
 * Lua interface to AEAD (Authenticated Encryption with Associated Data) ciphers.
+* Not built where the kernel builds no user of its aead API, `CONFIG_CRYPTO_AEAD2`.
 * @classmod crypto_aead
 */
 
@@ -15,6 +16,8 @@
 #include <linux/scatterlist.h>
 
 #include "luacrypto.h"
+
+#if IS_REACHABLE(CONFIG_CRYPTO_AEAD2)
 
 LUACRYPTO_CHECKER(aead, struct crypto_aead);
 
@@ -194,4 +197,8 @@ const lunatik_class_t luacrypto_aead_class = {
 };
 
 LUACRYPTO_NEWCTX(aead, struct crypto_aead, crypto_alloc_aead, luacrypto_aead_class);
+
+#else
+LUACRYPTO_UNSUPPORTED(aead);
+#endif
 

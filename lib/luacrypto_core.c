@@ -5,6 +5,11 @@
 
 /***
 * Lua interface to the Linux Crypto API.
+* Every class but `kpp` needs the kernel's API of its kind, the option its constructor names, and
+* the constructor raises "EOPNOTSUPP" on a kernel without it. On 7.0 and earlier the crypto
+* manager, which a template such as `CONFIG_CRYPTO_CBC` selects, selects each of these options,
+* and on 7.1 and later only with `CONFIG_CRYPTO_SELFTESTS`, so a kernel there has one only with an
+* algorithm of its kind.
 * `shash` and `skcipher` objects serve softirq runtimes too: a script body, which runs in process
 * context, creates them, or a process runtime hands them over, and the hooks set their keys and run
 * them per packet, which sleeps nowhere. A key `setkey` sets is the object's, read by the call that
@@ -28,13 +33,15 @@
 
 /***
 * Creates a synchronous hash transform.
+* Needs the kernel's hash API, `CONFIG_CRYPTO_HASH2`, which a hash algorithm such as
+* `CONFIG_CRYPTO_SHA256` selects.
 * @function shash
 * @tparam string algname algorithm name (e.g., "sha256", "hmac(sha256)")
 * @treturn crypto_shash
-* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
-*   failure, "not allowed in a hardirq runtime", "not allowed once the runtime is armed" from a
-*   softirq runtime past its body, since the allocation may sleep, and "not allowed under RTNL"
-*   from a callback that runs under it
+* @raise "EOPNOTSUPP" on a kernel without `CONFIG_CRYPTO_HASH2`, "ENOENT" for an unknown algorithm,
+*   "ENOMEM" or "not enough memory" on allocation failure, "not allowed in a hardirq runtime",
+*   "not allowed once the runtime is armed" from a softirq runtime past its body, since the
+*   allocation may sleep, and "not allowed under RTNL" from a callback that runs under it
 * @usage
 *   local shash = require("crypto").shash
 *   local h = shash("sha256")
@@ -43,15 +50,17 @@
 /***
 * Creates a symmetric-key cipher transform.
 * Only a synchronous implementation is chosen: an asynchronous one, such as a hardware engine's
-* or a `cryptd(...)` instance, is passed over.
+* or a `cryptd(...)` instance, is passed over. Needs the kernel's skcipher API,
+* `CONFIG_CRYPTO_SKCIPHER2`, which a cipher mode such as `CONFIG_CRYPTO_CBC` selects.
 * @function skcipher
 * @tparam string algname algorithm name (e.g., "cbc(aes)", "ctr(aes)")
 * @treturn crypto_skcipher
-* @raise "ENOENT" for an unknown algorithm or one no synchronous implementation serves ("EEXIST"
-*   on 6.12 and later for a template whose instance is asynchronous, such as `cryptd(...)`),
-*   "ENOMEM" or "not enough memory" on allocation failure, "not allowed in a hardirq runtime",
-*   "not allowed once the runtime is armed" from a softirq runtime past its body, since the
-*   allocation may sleep, and "not allowed under RTNL" from a callback that runs under it
+* @raise "EOPNOTSUPP" on a kernel without `CONFIG_CRYPTO_SKCIPHER2`, "ENOENT" for an unknown
+*   algorithm or one no synchronous implementation serves ("EEXIST" on 6.12 and later for a template
+*   whose instance is asynchronous, such as `cryptd(...)`), "ENOMEM" or "not enough memory" on
+*   allocation failure, "not allowed in a hardirq runtime", "not allowed once the runtime is armed"
+*   from a softirq runtime past its body, since the allocation may sleep, and
+*   "not allowed under RTNL" from a callback that runs under it
 * @usage
 *   local skcipher = require("crypto").skcipher
 *   local cipher = skcipher("cbc(aes)")
@@ -60,13 +69,15 @@
 /***
 * Creates an AEAD cipher transform.
 * Only a synchronous implementation is chosen: an asynchronous one, such as a hardware engine's
-* or a `cryptd(...)` instance, is passed over.
+* or a `cryptd(...)` instance, is passed over. Needs the kernel's AEAD API, `CONFIG_CRYPTO_AEAD2`,
+* which an AEAD mode such as `CONFIG_CRYPTO_GCM` selects.
 * @function aead
 * @tparam string algname algorithm name (e.g., "gcm(aes)", "ccm(aes)")
 * @treturn crypto_aead
-* @raise "ENOENT" for an unknown algorithm or one no synchronous implementation serves ("EEXIST"
-*   on 6.12 and later for a template whose instance is asynchronous, such as `cryptd(...)`),
-*   "ENOMEM" or "not enough memory" on allocation failure
+* @raise "EOPNOTSUPP" on a kernel without `CONFIG_CRYPTO_AEAD2`, "ENOENT" for an unknown algorithm
+*   or one no synchronous implementation serves ("EEXIST" on 6.12 and later for a template whose
+*   instance is asynchronous, such as `cryptd(...)`), "ENOMEM" or "not enough memory" on allocation
+*   failure
 * @usage
 *   local aead = require("crypto").aead
 *   local cipher = aead("gcm(aes)")
@@ -100,15 +111,17 @@
 * and the bare `ecdsa-nist-p256` is the kernel's raw form, which takes r and s in the kernel's own
 * digits and answers false and "EINVAL" to a DER or a P1363 signature. A script that runs on both
 * sides tries the newer name first and takes "ENOENT" as the cue for the older one.
-* The module links `crypto_alloc_sig`, which `CONFIG_CRYPTO_SIG2` builds on every kernel that has
-* a signature algorithm.
+* Needs the kernel's signature API, `CONFIG_CRYPTO_SIG2`, which a signature algorithm such as
+* `CONFIG_CRYPTO_ECDSA` selects on 6.13 and later, and on 6.12 and earlier the crypto manager, since
+* a signature algorithm selects the akcipher API there.
 * @function sig
 * @tparam string algname algorithm name (e.g., "x962(ecdsa-nist-p256)", "pkcs1(rsa,sha256)")
 * @treturn crypto_sig
-* @raise "ENOENT" for an unknown algorithm, or one the kernel serves only for encryption, such as
-*   `rsa` on 6.13 and later, "EINVAL" for a name its template refuses, such as
-*   `pkcs1pad(rsa,sha256)` on 6.14 and later, whose template serves only encryption, where 6.11 and
-*   earlier and 6.13 raise "ENOENT", "ENOMEM" or "not enough memory" on allocation failure
+* @raise "EOPNOTSUPP" on a kernel without `CONFIG_CRYPTO_SIG2`, "ENOENT" for an unknown algorithm,
+*   or one the kernel serves only for encryption, such as `rsa` on 6.13 and later, "EINVAL" for a
+*   name its template refuses, such as `pkcs1pad(rsa,sha256)` on 6.14 and later, whose template
+*   serves only encryption, where 6.11 and earlier and 6.13 raise "ENOENT", "ENOMEM" or
+*   "not enough memory" on allocation failure
 * @usage
 *   local sig = require("crypto").sig
 *   local function verifier(name, older)
@@ -148,11 +161,13 @@
 
 /***
 * Creates a compression transform.
+* Needs the kernel's compression API, `CONFIG_CRYPTO_ACOMP2`, which a compression algorithm such
+* as `CONFIG_CRYPTO_LZ4` selects.
 * @function comp
 * @tparam string algname algorithm name (e.g., "lz4", "deflate")
 * @treturn crypto_comp
-* @raise "ENOENT" for an unknown algorithm, "ENOMEM" or "not enough memory" on allocation
-*   failure
+* @raise "EOPNOTSUPP" on a kernel without `CONFIG_CRYPTO_ACOMP2`, "ENOENT" for an unknown algorithm,
+*   "ENOMEM" or "not enough memory" on allocation failure
 * @usage
 *   local comp = require("crypto").comp
 *   local c = comp("lz4")
@@ -182,17 +197,27 @@ static const luaL_Reg luacrypto_lib[] = {
 };
 
 static const lunatik_class_t *luacrypto_classes[] = {
+#if IS_REACHABLE(CONFIG_CRYPTO_HASH2)
 	&luacrypto_shash_class,
+#endif
+#if IS_REACHABLE(CONFIG_CRYPTO_SKCIPHER2)
 	&luacrypto_skcipher_class,
+#endif
+#if IS_REACHABLE(CONFIG_CRYPTO_AEAD2)
 	&luacrypto_aead_class,
+#endif
 #if IS_REACHABLE(CONFIG_CRYPTO_RNG2)
 	&luacrypto_rng_class,
 #endif
+#if IS_REACHABLE(CONFIG_CRYPTO_SIG2)
 	&luacrypto_sig_class,
+#endif
 #if IS_REACHABLE(CONFIG_CRYPTO_ECDH)
 	&luacrypto_kpp_class,
 #endif
+#if IS_REACHABLE(CONFIG_CRYPTO_ACOMP2)
 	&luacrypto_comp_class,
+#endif
 	NULL
 };
 

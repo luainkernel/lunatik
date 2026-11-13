@@ -8,7 +8,8 @@
 # does not, 6.11 and earlier, and on 6.13, where the binding's crypto_has_alg check before the
 # allocation answers every lookup that fails. This script writes the errno the running release gives
 # into sig_refused_errno.lua for the case, and skips where the kernel serves no hmac(sha256), which the
-# script allocates before its case and names.
+# script allocates before its case and names, and where its configuration lacks CONFIG_CRYPTO_HASH2 or
+# CONFIG_CRYPTO_SIG2, without which crypto.shash or crypto.sig raises EOPNOTSUPP.
 #
 # Usage: sudo bash tests/crypto/sig_refused.sh
 
@@ -34,6 +35,10 @@ if ! printf '6.12\n%s\n' "$release" | sort -CV || [[ "$release" == 6.13.* ]]; th
 fi
 printf 'return "%s"\n' "$refused" > "$ERRNO"
 
-served_case "crypto/sig_refused" run_test "$SCRIPT"
+if option=$(lacking CONFIG_CRYPTO_HASH2 CONFIG_CRYPTO_SIG2); then
+	ktap_skip "crypto/sig_refused: needs $option"
+else
+	served_case "crypto/sig_refused" run_test "$SCRIPT"
+fi
 ktap_totals
 

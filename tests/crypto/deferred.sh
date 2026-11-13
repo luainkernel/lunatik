@@ -18,7 +18,8 @@
 # dropped the flag, fails; an output shorter than the input raises from either the EINVAL the
 # completion carries. The module's count of what the worker completed, one per call the script
 # made, shows the asynchronous driver served them, and run_test reads no Lua error, warning or
-# oops in dmesg. Skips where the running kernel has no build tree, and unloads the module once the
+# oops in dmesg. Skips where the running kernel has no build tree, and where its configuration lacks
+# CONFIG_CRYPTO_ACOMP2, without which crypto.comp raises EOPNOTSUPP, and unloads the module once the
 # script that pins it stopped.
 #
 # Usage: sudo bash tests/crypto/deferred.sh
@@ -44,6 +45,7 @@ ktap_header
 ktap_plan 1
 
 [ -f "$BUILD/Makefile" ] || { ktap_skip "crypto/deferred: no build tree at $BUILD"; ktap_totals; exit 0; }
+lacks CONFIG_CRYPTO_ACOMP2 && { ktap_skip "crypto/deferred: needs CONFIG_CRYPTO_ACOMP2"; ktap_totals; exit 0; }
 
 TMP=$(mktemp -d)
 cp "$DIR/$MODULE.c" "$TMP/"

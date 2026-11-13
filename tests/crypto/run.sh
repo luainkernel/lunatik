@@ -7,8 +7,10 @@
 #
 # shash, skcipher, aead, rng, sig, kpp, hkdf, comp, quic and hardirq allocate each algorithm their cases use before
 # the first of them, through tests/lib.lua's alloc, and skip where the kernel serves one not at all, which the script
-# names. rng skips where the kernel's configuration has no CONFIG_CRYPTO_RNG2, without which crypto.rng raises
-# EOPNOTSUPP, and fails where it has the option and crypto.rng raises it.
+# names. Each skips where the kernel's configuration lacks the option of a class it reaches, CONFIG_CRYPTO_HASH2 for
+# shash, CONFIG_CRYPTO_SKCIPHER2 for skcipher, CONFIG_CRYPTO_AEAD2 for aead, CONFIG_CRYPTO_RNG2 for rng,
+# CONFIG_CRYPTO_SIG2 for sig and CONFIG_CRYPTO_ACOMP2 for comp, without which the class's constructor raises
+# EOPNOTSUPP, and fails where it has the option and the constructor raises it.
 #
 # quic: a softirq runtime's body creates hmac(sha256), through crypto.hkdf, ecb(aes) and ctr(aes), and its hook,
 # resumed with RFC 9001 A.2's protected client Initial, derives A.1's client keys from the packet's connection ID,
@@ -69,9 +71,23 @@ ecdh_served() {
 	grep -qE '^name[[:space:]]+: ecdh-nist-p256$' /proc/crypto
 }
 
+# the options of the classes test $1 reaches
+needs() {
+	case $1 in
+	shash|hkdf) echo CONFIG_CRYPTO_HASH2 ;;
+	skcipher) echo CONFIG_CRYPTO_SKCIPHER2 ;;
+	aead) echo CONFIG_CRYPTO_AEAD2 ;;
+	rng) echo CONFIG_CRYPTO_RNG2 ;;
+	sig) echo CONFIG_CRYPTO_SIG2 CONFIG_CRYPTO_HASH2 ;;
+	kpp) echo CONFIG_CRYPTO_AEAD2 CONFIG_CRYPTO_HASH2 ;;
+	quic|hardirq) echo CONFIG_CRYPTO_HASH2 CONFIG_CRYPTO_SKCIPHER2 ;;
+	comp) echo CONFIG_CRYPTO_ACOMP2 ;;
+	esac
+}
+
 for t in $TESTS; do
-	if [ "$t" = rng ] && lacks CONFIG_CRYPTO_RNG2; then
-		ktap_skip "crypto/rng: needs CONFIG_CRYPTO_RNG2"
+	if option=$(lacking $(needs "$t")); then
+		ktap_skip "crypto/$t: needs $option"
 	elif [ "$t" = kpp ] && ecdh_served; then
 		if output=$(run_test "tests/crypto/$t"); then
 			ktap_pass "crypto/$t"
