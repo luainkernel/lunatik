@@ -8,7 +8,6 @@ local crypto  = require("crypto")
 local hkdf    = require("crypto.hkdf")
 local util    = require("util")
 local closing = require("tests.crypto.closing")
-local refusal = require("tests.crypto.refusal")
 local lib     = require("tests.lib")
 
 local char    = string.char
@@ -16,7 +15,6 @@ local rep     = string.rep
 local hex2bin = util.hex2bin
 local test    = lib.test
 local raises  = lib.raises
-local refuses = refusal.check
 
 -- nil where the kernel has no CONFIG_CRYPTO_ECDH, which every ECDH provider selects
 local kpp = crypto.kpp or error("the kernel serves no ecdh-nist-p256", 0)
@@ -43,6 +41,19 @@ lib.alloc(kpp, "ecdh-nist-p256")
 lib.alloc(kpp, "ecdh-nist-p384")
 lib.alloc(crypto.aead, "gcm(aes)")
 lib.alloc(hkdf.new, "sha256")
+
+local function refuses(object, peer)
+	local secret, err = object:sharedsecret(peer)
+	assert(secret == nil, "sharedsecret answered a secret for a key the curve refuses")
+	assert(err == "EINVAL", "sharedsecret answered " .. tostring(err) .. " where EINVAL was expected")
+end
+
+local function refusespoints(object, size)
+	local one = rep("\0", size - 1) .. "\1"
+	refuses(object, one .. one) -- (1, 1): off a curve whose b is not 3
+	refuses(object, rep("\0", 2 * size)) -- the point at infinity
+	refuses(object, rep("\xff", 2 * size)) -- coordinates past the field's prime
+end
 
 -- a name the kernel may not serve raises ENOENT, and one it serves raises expected
 local function refusesname(expected, name, ...)
@@ -103,8 +114,10 @@ test("crypto.kpp answers nil and EINVAL for a peer's key the curve refuses", fun
 	refuses(ecdh, vector.peer:sub(1, 63) .. char(vector.peer:byte(64) ~ 1)) -- off the curve
 	refuses(ecdh, vector.peer:sub(1, 63))
 	refuses(ecdh, vector.peer .. "\0")
-	refuses(ecdh, rep("\0", 64))
+	refusespoints(ecdh, 32)
 	assert(ecdh:sharedsecret(vector.peer) == vector.shared, "a refused key changed the object")
+	local p384 <close> = kpp("ecdh-nist-p384")
+	refusespoints(p384, 48)
 end)
 
 test("crypto.kpp refuses a private key of another length or out of the curve's range", function()

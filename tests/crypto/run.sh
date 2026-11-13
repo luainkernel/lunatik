@@ -36,8 +36,9 @@
 #
 # kpp: crypto.kpp agrees ECDH secrets the kernel's P-256 vector gives and two generated keys agree on,
 # opens a secret an ephemeral key wrapped for a key generated in the kernel through hkdf and gcm(aes),
-# answers nil and EINVAL for a peer's key the curve refuses, and refuses a private key of another length,
-# out of range, or for another key agreement. crypto.kpp is nil where the kernel has no ECDH, and the
+# answers nil and EINVAL for a peer's key the curve refuses on P-256 and P-384, which only the binding's check
+# answers, a driver's own refusal raising, and refuses a private key of another length, out of range, or for
+# another key agreement. crypto.kpp is nil where the kernel has no ECDH, and the
 # script then raises as for an algorithm the kernel does not serve; where the kernel serves
 # ecdh-nist-p256, which /proc/crypto lists once crypto-ecdh loads, that raise is a binding that was not
 # built, and the case fails.
@@ -99,7 +100,5 @@ echo ""
 bash "$DIR/seed.sh" || RESULT=1
 echo ""
 bash "$DIR/sig_refused.sh" || RESULT=1
-echo ""
-bash "$DIR/kpp_peer.sh" || RESULT=1
 exit $RESULT
 

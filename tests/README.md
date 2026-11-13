@@ -177,8 +177,12 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   A sender's generated key wraps a string with `gcm(aes)` under an
   `hkdf` of its secret with a key generated in the kernel, which unwraps it from
   the sender's public key. `sharedsecret` answers nil and `EINVAL` for the peer's
-  key off the curve, 63 and 65 bytes long and all zero, and the vector's peer
-  then still agrees. The constructor raises `EINVAL` for a private key of 31
+  key off the curve, 63 and 65 bytes long, (1, 1), the point at infinity, whose
+  bytes are all zero, and coordinates of all `0xff` bytes, past the prime, and
+  the vector's peer then still agrees; a generated `ecdh-nist-p384` key answers the same for
+  the last three, of 96 bytes. A driver's own refusal raises, so the nil answer
+  is the binding's check, made before any driver sees the key. The constructor
+  raises `EINVAL` for a private key of 31
   bytes, of none, of 32 zero and 32 `0xff` bytes, and of 65568 bytes whose first
   32 are the vector's, which `struct ecdh` would truncate to them; `EINVAL` or
   `ENOENT`, where the kernel serves none, for `ffdhe2048(dh)` and `curve25519`,
@@ -276,15 +280,6 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   the binding's check before the allocation answers first; `sig_refused.sh`
   writes the errno of the running release for the case. Skipped where the kernel
   serves no `hmac(sha256)`.
-- **kpp_peer**: `sharedsecret` refuses a peer's key the curve refuses before the
-  transform sees it, so no driver computes with one, a hardware engine that hands
-  the point on unchecked included. On `ecdh-nist-p256-generic` and
-  `ecdh-nist-p384-generic` it answers nil and `EINVAL` for (1, 1), the point at
-  infinity and coordinates of all `0xff` bytes, and a kprobe on
-  `crypto_ecdh_shared_secret`, counting the calls from the CLI's task, sees only
-  the one secret agreed on each curve after them. Skipped where no kprobe can be
-  placed on `crypto_ecdh_shared_secret`, or where the kernel serves either
-  generic driver not at all.
 
 Each of `shash`, `skcipher`, `aead`, `rng`, `sig` and `comp` also closes an object
 through `closing.lua`: its metatable holds one function under `__close` and
