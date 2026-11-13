@@ -136,6 +136,7 @@
   <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
   <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
   <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_kpp.html">crypto_kpp</a></li>
   <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
   <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
   <li><a href="../classes/crypto_sig.html">crypto_sig</a></li>
@@ -206,8 +207,9 @@
  before its key is set, and
  &ldquo;not enough memory&rdquo; when the binding cannot allocate its own state, its output or the copy of its
  input. An AEAD message that does not authenticate is no error: <code>decrypt</code> answers nil and
- &ldquo;EBADMSG&rdquo; for it, and a signature that does not verify is none either: <code>verify</code> answers false and
- the errno&rsquo;s name.
+ &ldquo;EBADMSG&rdquo; for it, a signature that does not verify is none either: <code>verify</code> answers false and
+ the errno&rsquo;s name, and nor is a peer&rsquo;s key the curve refuses: <code>sharedsecret</code> answers nil and
+ &ldquo;EINVAL&rdquo; for it.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -218,6 +220,10 @@
 	<tr>
 	<td class="name"><a href="#comp">comp (algname)</a></td>
 	<td class="summary">Creates a compression transform.</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#kpp">kpp (algname[, key])</a></td>
+	<td class="summary">Creates an ECDH key agreement object, which holds one private key for its life.</td>
 	</tr>
 	<tr>
 	<td class="name"><a href="#rng">rng ([algname="stdrng"])</a></td>
@@ -301,6 +307,50 @@
     <h3>Usage</h3>
         <pre class="example"><span class="keyword">local</span> comp = <span class="global">require</span>(<span class="string">"crypto"</span>).comp
 <span class="keyword">local</span> c = <span class="function-name">comp</span>(<span class="string">"lz4"</span>)</pre>
+
+</dd>
+    <dt id="kpp"><a name="kpp"></a><strong>kpp (algname[, key])</strong></dt>
+    <dd>
+    Creates an ECDH key agreement object, which holds one private key for its life.
+ Without a key the kernel generates one, which only its public half, <code>publickey()</code>, ever leaves;
+ with one, it is the private scalar, big-endian and of the curve&rsquo;s size, 32 bytes for P-256, the
+ <code>privateKey</code> octets of SEC1 that tools export. The name is one of the kernel&rsquo;s <code>ecdh-nist-p192</code>,
+ <code>ecdh-nist-p256</code> and <code>ecdh-nist-p384</code>; no other key agreement is served, X25519 among them, which
+ the kernel offers as a library and not through this API from 6.18. Absent where the kernel is
+ built without <code>CONFIG_CRYPTO_ECDH</code>, which every ECDH implementation selects.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">algname</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         algorithm name (e.g., &ldquo;ecdh-nist-p256&rdquo;)
+        </li>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         the private key; without it the kernel generates one
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><span class="type">crypto_kpp</span></span>
+
+    </ol>
+
+    <h3>Raises</h3>
+     &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;EINVAL&rdquo; for the name of another key agreement, such as
+   <code>ffdhe2048(dh)</code>, and for a key of another length than the curve&rsquo;s or out of its range, &ldquo;ENOMEM&rdquo;
+   or &ldquo;not enough memory&rdquo; on allocation failure
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">local</span> kpp = <span class="global">require</span>(<span class="string">"crypto"</span>).kpp
+<span class="keyword">local</span> machine = <span class="function-name">kpp</span>(<span class="string">"ecdh-nist-p256"</span>)
+<span class="keyword">local</span> public = machine:<span class="function-name">publickey</span>()
+<span class="keyword">local</span> shared, err = machine:<span class="function-name">sharedsecret</span>(peer)</pre>
 
 </dd>
     <dt id="rng"><a name="rng"></a><strong>rng ([algname="stdrng"])</strong></dt>
@@ -476,7 +526,7 @@ v:<span class="function-name">setpubkey</span>(point)
 <a href="../../modules/crypto.html">5.1 docs</a> ·
 <a href="../../5.0/modules/crypto.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:47:40</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:55:51</span>
 </div>
 </footer>
 </body>
