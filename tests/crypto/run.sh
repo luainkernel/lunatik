@@ -34,10 +34,11 @@
 # sig: crypto.sig verifies the kernel's own ECDSA P-256 vector and an RSA PKCS#1 v1.5 pair openssl
 # signed, each verifier allocated by its 6.13 name and, on ENOENT, by the name of 6.12 and earlier.
 #
-# kpp: crypto.kpp agrees ECDH secrets the kernel's P-256 vector gives and two generated keys agree on,
-# opens a secret an ephemeral key wrapped for a key generated in the kernel through hkdf and gcm(aes),
-# answers nil and EINVAL for a peer's key the curve refuses, and refuses a private key of another length,
-# out of range, or for another key agreement. crypto.kpp is nil where the kernel has no ECDH, and the
+# kpp: crypto.kpp agrees ECDH secrets the kernel's P-256, P-384 and, where it serves the curve, P-192
+# vectors give and two generated keys agree on, opens a secret an ephemeral key wrapped for a key
+# generated in the kernel through hkdf and gcm(aes), answers nil and EINVAL for a peer's key the curve
+# refuses, and refuses a private key a byte short of each vector's, of another length, out of range, or
+# for another key agreement. crypto.kpp is nil where the kernel has no ECDH, and the
 # script then raises as for an algorithm the kernel does not serve; where the kernel serves
 # ecdh-nist-p256, which /proc/crypto lists once crypto-ecdh loads, that raise is a binding that was not
 # built, and the case fails.
