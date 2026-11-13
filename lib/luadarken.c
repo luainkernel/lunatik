@@ -11,6 +11,9 @@
 * and loaded immediately, with the decrypted plaintext never written
 * to persistent storage.
 *
+* Needs the kernel's AEAD API, `CONFIG_CRYPTO_AEAD2`, which `CONFIG_CRYPTO_GCM` selects; without
+* it the module loads and `load` and `run` raise `EOPNOTSUPP`.
+*
 * @module darken
 */
 
@@ -21,6 +24,7 @@
 
 #include <lunatik.h>
 
+#if IS_REACHABLE(CONFIG_CRYPTO_AEAD2)
 #define LUADARKEN_KEYLEN	32
 #define LUADARKEN_IVLEN		12
 #define LUADARKEN_TAGLEN	16
@@ -112,7 +116,8 @@ static void luadarken_decrypt(lua_State *L, luadarken_request_t *r, char *buf)
 * @tparam string iv 12-byte initialization vector (binary).
 * @tparam string key 32-byte AES-256 key (binary).
 * @treturn function the loaded script.
-* @raise "IV must be 12 bytes", "key must be 32 bytes", "not allowed once the runtime is armed" from
+* @raise "EOPNOTSUPP" on a kernel without `CONFIG_CRYPTO_AEAD2`, "IV must be 12 bytes",
+*   "key must be 32 bytes", "not allowed once the runtime is armed" from
 *   an interrupt-context runtime past its body, "EBADMSG" when the tag does not match (a wrong key
 *   or IV, or a ciphertext altered or shorter than the tag), the errno name of a failed transform
 *   allocation, key setting or decryption, "not enough memory", or the load error of the decrypted
@@ -160,6 +165,10 @@ static int luadarken_run(lua_State *L)
 	lua_call(L, 0, LUA_MULTRET);
 	return lua_gettop(L) - base + 1;
 }
+#else
+#define luadarken_load	lunatik_unsupported
+#define luadarken_run	lunatik_unsupported
+#endif
 
 static const luaL_Reg luadarken_lib[] = {
 	{"load", luadarken_load},

@@ -173,7 +173,8 @@ config LUNATIK_DARKEN
 	depends on LUNATIK_CRYPTO
 	default m
 	help
-	  AES-256-GCM encrypted Lua script support.
+	  AES-256-GCM encrypted Lua script support. It links the AEAD API,
+	  which CRYPTO_AEAD2 builds, and its calls raise EOPNOTSUPP without it.
 
 config LUNATIK_CPU
 	tristate "Lunatik CPU Support"
