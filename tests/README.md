@@ -274,8 +274,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   raises `EINVAL` on 6.12 and later, where the kernel hands the template's
   refusal to the allocation, and `ENOENT` on 6.11 and earlier and on 6.13, where
   the binding's check before the allocation answers first; `sig_refused.sh`
-  writes the errno of the running release for the case. Skipped where the kernel
-  serves no `hmac(sha256)`.
+  writes the errno of the running release for the case. Skipped where the kernel's
+  configuration has no `CONFIG_CRYPTO_HMAC`.
 - **kpp_peer**: `sharedsecret` refuses a peer's key the curve refuses before the
   transform sees it, so no driver computes with one, a hardware engine that hands
   the point on unchecked included. On `ecdh-nist-p256-generic` and
