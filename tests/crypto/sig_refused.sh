@@ -7,8 +7,9 @@
 # where the kernel hands the template's error to the allocation, 6.12 and later, and ENOENT where it
 # does not, 6.11 and earlier, and on 6.13, where the binding's crypto_has_alg check before the
 # allocation answers every lookup that fails. This script writes the errno the running release gives
-# into sig_refused_errno.lua for the case, and skips where the kernel serves no hmac(sha256), which the
-# script allocates before its case and names.
+# into sig_refused_errno.lua for the case, and skips where the kernel's configuration has no
+# CONFIG_CRYPTO_HMAC, without which 6.12 and later answer ENOENT too: an hmac(sha256) the kernel
+# serves is no proof of the template, since crypto/sha256.c registers one itself from 6.17.
 #
 # Usage: sudo bash tests/crypto/sig_refused.sh
 
@@ -26,6 +27,7 @@ cleanup
 
 ktap_header
 ktap_plan 1
+lacks CONFIG_CRYPTO_HMAC && skip_script "crypto/sig_refused: needs CONFIG_CRYPTO_HMAC"
 
 release=$(uname -r)
 refused=EINVAL

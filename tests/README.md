@@ -286,8 +286,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   raises `EINVAL` on 6.12 and later, where the kernel hands the template's
   refusal to the allocation, and `ENOENT` on 6.11 and earlier and on 6.13, where
   the binding's check before the allocation answers first; `sig_refused.sh`
-  writes the errno of the running release for the case. Skipped where the kernel
-  serves no `hmac(sha256)`.
+  writes the errno of the running release for the case. Skipped where the kernel's
+  configuration has no `CONFIG_CRYPTO_HMAC`.
 
 Each of `shash`, `skcipher`, `aead`, `rng`, `sig` and `comp` also closes an object
 through `closing.lua`: its metatable holds one function under `__close` and
