@@ -970,7 +970,9 @@ each case runs `depmod -b` over a tree of the suite's own.
   such as `EWOULDBLOCK` beside the name it shares a value with. A constant
   whose `#define` names another integer define is carried: the system calls
   `asm-generic/unistd.h` defines as their `__NR3264_` numbers, `mmap` among
-  them, are in `linux.syscall.numbers`.
+  them, are in `linux.syscall.numbers`. One whose `#define` is a cast is
+  carried where its spec lists it: `INT_MAX`, `((int)(~0U >> 1))` in
+  `vdso/limits.h`, is `linux.limits.int.MAX`.
 - **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, refuses a
   timeout outside 0 to 2^31 - 1 with `out of bounds` and takes 0, and sleeps in
   the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
