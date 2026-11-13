@@ -362,7 +362,7 @@ each script allocates before its cases, and each case that runs
   vmalloc-backed buffer grown from a `GFP_ATOMIC` runtime asks the page
   allocator for an order past `MAX_PAGE_ORDER`, so the allocation fails by
   construction and `data:resize()` has to keep the size and the bytes it
-  had. Skips when the buffer did not land in `vmalloc`.
+  had.
 - **zeroed**: an owned buffer holds no byte the script did not write.
   `data.new()` and a `data:resize()` that grows come back zeroed, on the
   `krealloc` and the `kvmalloc` arm of the allocator and from an atomic
