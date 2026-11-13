@@ -61,13 +61,14 @@ int luacrypto_##name##_new(lua_State *L)							\
 	return 1;										\
 }
 
-#define LUACRYPTO_RELEASERCTX(name, T, tfm_free)		\
+#define LUACRYPTO_RELEASERCTX(name, T, request_free, tfm_free)	\
 static void luacrypto_##name##_release(void *private)		\
 {								\
 	luacrypto_ctx_t *ctx = (luacrypto_ctx_t *)private;	\
 	if (ctx == NULL)					\
 		return;						\
-	name##_request_free(ctx->request);			\
+	if (ctx->request) /* acomp_request_free reads the request's transform on 6.14 and earlier */	\
+		request_free(ctx->request);			\
 	lunatik_free(ctx->iv);					\
 	if (ctx->tfm)						\
 		tfm_free((T *)ctx->tfm);			\
