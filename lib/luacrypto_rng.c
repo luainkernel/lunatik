@@ -99,12 +99,7 @@ LUNATIK_INTEGERGETTER(luacrypto_rng_seedsize, luacrypto_rng_check, crypto_rng_se
 * @function algname
 * @treturn string
 */
-static int luacrypto_rng_algname(lua_State *L)
-{
-	struct crypto_rng *tfm = luacrypto_rng_check(L, 1);
-	lua_pushstring(L, crypto_tfm_alg_name(crypto_rng_tfm(tfm)));
-	return 1;
-}
+LUACRYPTO_ALGNAME(rng, crypto_rng_tfm(private));
 
 /***
 * Releases the transform.

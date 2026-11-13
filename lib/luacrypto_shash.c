@@ -177,12 +177,7 @@ static int luacrypto_shash_import(lua_State *L)
 * @function algname
 * @treturn string
 */
-static int luacrypto_shash_algname(lua_State *L)
-{
-	struct shash_desc *sdesc = luacrypto_shash_check(L, 1);
-	lua_pushstring(L, crypto_tfm_alg_name(crypto_shash_tfm(sdesc->tfm)));
-	return 1;
-}
+LUACRYPTO_ALGNAME(shash, crypto_shash_tfm(private->tfm));
 
 /***
 * Releases the transform.

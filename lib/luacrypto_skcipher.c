@@ -126,12 +126,7 @@ LUACRYPTO_SKCIPHER_CRYPT(decrypt)
 * @function algname
 * @treturn string
 */
-static int luacrypto_skcipher_algname(lua_State *L)
-{
-	struct crypto_skcipher *tfm = luacrypto_skcipher_check(L, 1);
-	lua_pushstring(L, crypto_tfm_alg_name(crypto_skcipher_tfm(tfm)));
-	return 1;
-}
+LUACRYPTO_ALGNAME(skcipher, crypto_skcipher_tfm(private));
 
 /***
 * Releases the transform.
