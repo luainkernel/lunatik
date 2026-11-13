@@ -143,9 +143,6 @@ int luacrypto_rng_new(lua_State *L)
 }
 
 #else
-int luacrypto_rng_new(lua_State *L)
-{
-	return lunatik_unsupported(L);
-}
+LUACRYPTO_UNSUPPORTED(rng);
 #endif
 

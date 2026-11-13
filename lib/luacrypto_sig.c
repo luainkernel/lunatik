@@ -7,6 +7,7 @@
 * Lua interface to public key signature verification.
 * A verifier takes a public key with `setpubkey`, then answers whether a signature over a digest
 * verifies. It does not sign.
+* Not built where the kernel builds no user of its signature API, `CONFIG_CRYPTO_SIG2`.
 * @classmod crypto_sig
 */
 
@@ -17,6 +18,8 @@
 #include <linux/limits.h>
 
 #include "luacrypto.h"
+
+#if IS_REACHABLE(CONFIG_CRYPTO_SIG2)
 
 /* the most asn1_ber_decoder reads; on 6.12 and earlier crypto_akcipher_sync_prep copies both strings at once */
 #define LUACRYPTO_SIG_MAXLEN	U16_MAX
@@ -159,4 +162,8 @@ int luacrypto_sig_new(lua_State *L)
 	object->private = tfm;
 	return 1;
 }
+
+#else
+LUACRYPTO_UNSUPPORTED(sig);
+#endif
 

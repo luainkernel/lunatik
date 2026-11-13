@@ -12,18 +12,20 @@
 # and runs the kernel script, once per case, and skips a case where the kernel's configuration has no
 # option for its template, CONFIG_CRYPTO_CBC or CONFIG_CRYPTO_HMAC, without which 6.12 and later
 # answer ENOENT too: an algorithm the kernel serves under the name is no proof of the template, since
-# crypto/sha256.c registers hmac(sha256) itself from 6.17 and arm64's AES driver cbc(aes).
+# crypto/sha256.c registers hmac(sha256) itself from 6.17 and arm64's AES driver cbc(aes). It also skips
+# a case where the configuration has no option for the constructor's API, CONFIG_CRYPTO_HASH2,
+# CONFIG_CRYPTO_SKCIPHER2, CONFIG_CRYPTO_AEAD2 or CONFIG_CRYPTO_SIG2, without which it raises EOPNOTSUPP.
 #
 # Usage: sudo bash tests/crypto/refused.sh
 
 SCRIPT=tests/crypto/refused
 CASE=/lib/modules/lua/tests/crypto/refused_case.lua
 
-# <constructor> <name> <the option of the name's template>
-REFUSED="shash cbc(aes) CONFIG_CRYPTO_CBC
-skcipher hmac(sha256) CONFIG_CRYPTO_HMAC
-aead hmac(sha256) CONFIG_CRYPTO_HMAC
-sig hmac(sha256) CONFIG_CRYPTO_HMAC"
+# <constructor> <name> <the option of the name's template> <the option of the constructor's API>
+REFUSED="shash cbc(aes) CONFIG_CRYPTO_CBC CONFIG_CRYPTO_HASH2
+skcipher hmac(sha256) CONFIG_CRYPTO_HMAC CONFIG_CRYPTO_SKCIPHER2
+aead hmac(sha256) CONFIG_CRYPTO_HMAC CONFIG_CRYPTO_AEAD2
+sig hmac(sha256) CONFIG_CRYPTO_HMAC CONFIG_CRYPTO_SIG2"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
 
@@ -41,8 +43,8 @@ release=$(uname -r)
 refused=EINVAL
 printf '6.12\n%s\n' "$release" | sort -CV || refused=ENOENT
 
-while read -r class name option; do
-	if lacks "$option"; then
+while read -r class name template api; do
+	if option=$(lacking "$template" "$api"); then
 		ktap_skip "crypto/${class}_refused: needs $option"
 		continue
 	fi

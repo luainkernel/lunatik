@@ -38,6 +38,7 @@ end
 -- @tparam string alg base hash algorithm name (e.g., "sha256", "sha512").
 -- The "hmac(" prefix will be added automatically.
 -- @treturn hkdf An HKDF instance table with methods for key derivation.
+-- @raise what `crypto.shash` raises, "EOPNOTSUPP" on a kernel without `CONFIG_CRYPTO_HASH2` among it.
 -- @usage local hkdf_sha256 = require("crypto.hkdf").new("sha256")
 function hkdf.new(alg)
 	local tfm = shash("hmac(" .. alg .. ")")

@@ -20,7 +20,8 @@
 # case reads no Lua error, warning or oops in dmesg. Without the refusal, ctr-aes-ce on arm64 sets the key
 # in NEON, where kernel_neon_begin is a BUG with IRQs off, so the test skips unless the loaded luacrypto is
 # the installed one and that file carries the refusal. It also skips where the kernel has no HID bus or no
-# build tree, or serves no sha256 or ctr(aes).
+# build tree, serves no sha256 or ctr(aes), or lacks CONFIG_CRYPTO_HASH2 or CONFIG_CRYPTO_SKCIPHER2, without
+# which crypto.shash or crypto.skcipher raises EOPNOTSUPP.
 #
 # Usage: sudo bash tests/crypto/irqsoff.sh
 
@@ -48,6 +49,7 @@ ktap_plan 2
 
 [ -d /sys/bus/hid ] || skip_script "crypto/irqsoff: the kernel has no HID bus"
 [ -f "$BUILD/Makefile" ] || skip_script "crypto/irqsoff: no build tree at $BUILD"
+option=$(lacking CONFIG_CRYPTO_HASH2 CONFIG_CRYPTO_SKCIPHER2) && skip_script "crypto/irqsoff: needs $option"
 carries $CRYPTO "$REFUSAL" ||
 	skip_script "crypto/irqsoff: the loaded $CRYPTO does not carry the refusal: ctr-aes-ce would key in NEON with IRQs off"
 

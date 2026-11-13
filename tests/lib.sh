@@ -172,6 +172,15 @@ lacks() {
 	[ -n "$config" ] && ! grep -qE "^$1=[ym]\$" <<< "$config"
 }
 
+# lacking <option>...: prints the first of the options the kernel's configuration lacks, and fails where it lacks none
+lacking() {
+	local option
+	for option; do
+		lacks "$option" && echo "$option" && return 0
+	done
+	return 1
+}
+
 # a call refused with IRQs disabled: probe_refusal <case> <script> <prefix> runs the script in a
 # hardirq runtime, whose pre handler on the personality syscall prints "<prefix>refused" when the
 # call raises the refusal and "<prefix>" with anything else when it does not, makes the syscall with

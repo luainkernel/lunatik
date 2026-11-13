@@ -7,6 +7,7 @@
 * Lua interface to symmetric-key ciphers (SKCIPHER).
 * Every method raises "not allowed with IRQs disabled" where the CPU runs with them off, in every
 * callback of a hardirq runtime among them.
+* Not built where the kernel builds no user of its skcipher API, `CONFIG_CRYPTO_SKCIPHER2`.
 * @classmod crypto_skcipher
 */
 
@@ -17,6 +18,8 @@
 #include <linux/scatterlist.h>
 
 #include "luacrypto.h"
+
+#if IS_REACHABLE(CONFIG_CRYPTO_SKCIPHER2)
 
 LUACRYPTO_CHECKER(skcipher, struct crypto_skcipher,
 	lunatik_checkirqs(L); /* arm64's AES drivers set keys and cipher in NEON unguarded, a BUG with IRQs off */
@@ -166,4 +169,8 @@ LUACRYPTO_NEWCTX(skcipher, struct crypto_skcipher, crypto_alloc_skcipher, luacry
 	lunatik_checkhardirq(L);
 	lunatik_checkarmed(L);
 );
+
+#else
+LUACRYPTO_UNSUPPORTED(skcipher);
+#endif
 
