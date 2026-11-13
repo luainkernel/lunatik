@@ -301,8 +301,9 @@ after it.
 
 Every case but **shade_error**, **shade_mode** and **shade_argv** skips where
 the kernel serves no `gcm(aes)`, the algorithm `darken` decrypts with, which
-each script allocates before its cases, and each case that runs
-`tools/shade.sh` skips without `openssl`.
+each script allocates before its cases, and where its configuration lacks
+`CONFIG_CRYPTO_AEAD2`, without which `darken.load` and `darken.run` raise
+`EOPNOTSUPP`; each case that runs `tools/shade.sh` skips without `openssl`.
 
 - **context**: `darken.run` decrypts and runs a chunk in a process runtime,
   in its body and resumed past it, and in the body of a `softirq` and a
