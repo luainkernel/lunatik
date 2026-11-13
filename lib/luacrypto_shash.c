@@ -24,11 +24,8 @@ LUNATIK_PRIVATECHECKER(luacrypto_shash_check, struct shash_desc *, &luacrypto_sh
 static void luacrypto_shash_release(void *private)
 {
 	struct shash_desc *obj = (struct shash_desc *)private;
-	if (obj) {
-		if (obj->tfm)
-			crypto_free_shash(obj->tfm);
-		lunatik_free(obj);
-	}
+	crypto_free_shash(obj->tfm);
+	lunatik_free(obj);
 }
 
 /***

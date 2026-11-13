@@ -96,8 +96,7 @@ static int luatask_current(lua_State *L)
 
 static void luatask_release(void *private)
 {
-	if (private)
-		put_task_struct((struct task_struct *)private);
+	put_task_struct((struct task_struct *)private);
 }
 
 static const luaL_Reg luatask_lib[] = {

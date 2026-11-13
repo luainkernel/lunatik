@@ -1613,8 +1613,8 @@ allocated before the raise.
 
 ### LUACRYPTO\_RELEASER
 ```C
-#define LUACRYPTO_RELEASER(name, T, obj_free)
-#define LUACRYPTO_RELEASERCTX(name, T, request_free, tfm_free)
+#define LUACRYPTO_RELEASER(name, obj_free)
+#define LUACRYPTO_RELEASERCTX(name, request_free, tfm_free)
 ```
 Define `static void luacrypto_<name>_release(void *private)`, the `release` of a class:
 `LUACRYPTO_RELEASER` for one whose private is the transform, which it passes to `obj_free`, and
