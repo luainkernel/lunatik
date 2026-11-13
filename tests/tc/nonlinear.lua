@@ -27,6 +27,7 @@ local function unpulled(skb)
 	refuses(skb, "data")
 	refuses(skb, "copy")
 	refuses(skb, "resize", #skb - DELTA)
+	refuses(skb, "checksum")
 end
 
 local function pulled(skb)
