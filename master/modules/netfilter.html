@@ -315,7 +315,8 @@ netfilter.register{
    32 bits, or <code>priority</code> is past an <code>int</code>; <code>bad field &apos;mark&apos; (bits outside &apos;mask&apos;)</code> if <code>mark</code>
    sets a bit <code>mask</code> leaves out, which no packet could match; if the hook cannot be
    registered; in a percpu script, if this runtime already registered the same <code>pf</code>,
-   <code>hooknum</code>, <code>priority</code> and <code>mask</code>, with the same <code>mark</code> or both times without one
+   <code>hooknum</code>, <code>priority</code> and <code>mask</code>, with the same <code>mark</code> or both times without one, and has
+   not stopped that hook
 
 
     <h3>Usage</h3>
@@ -353,7 +354,7 @@ netfilter.<span class="function-name">register</span>{
 <a href="../../modules/netfilter.html">5.1 docs</a> ·
 <a href="../../5.0/modules/netfilter.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 13:20:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:13:43</span>
 </div>
 </footer>
 </body>
