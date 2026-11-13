@@ -7,7 +7,6 @@
 #define _LUACRYPTO_H
 
 #include <linux/err.h>
-#include <linux/version.h>
 #include <lunatik.h>
 
 #define LUACRYPTO_RELEASER(name, T, obj_free)			\
