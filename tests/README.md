@@ -1426,7 +1426,8 @@ publishes no BTF for the module whose kfunc its programs call.
   that declares no context, a runtime named by no script, one whose name the
   frame cannot hold, a call of the runtime itself and a method other than
   `run` are refused with their messages and lines. One runtime called from an
-  XDP and a TC program names both kfuncs in the object, and the key a call
+  XDP and a TC program names both kfuncs in the object, a function of the file
+  named as the kfunc takes another name there, and the key a call
   stores reads back as the runtime's name from an object of either byte order,
   as `llvm-objdump` disassembles it.
 - **miss**: with no runtime of the name called the call answers `nil` and the

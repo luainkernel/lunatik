@@ -21,6 +21,8 @@
 #     of the runtime itself and a method other than run are refused with their messages and lines
 #   - one runtime called from an XDP and a TC program names each program type's kfunc in the
 #     object: the kfunc a call lowers to is the program's
+#   - a function of the file named as the kfunc takes another name in the object, so the kfunc's is
+#     the one extern of that name
 #   - the key the call stores reads back as the runtime's name from an object of either byte order,
 #     as llvm-objdump disassembles it for that order; skipped where llvm-objdump is not installed
 # The runtime cases skip where the kernel publishes no BTF for luaxdp.
@@ -42,7 +44,7 @@ PASS=2
 CALLS=4
 REFUSALS=14
 
-luaebpf_start $((CALLS + 1 + REFUSALS + 2))
+luaebpf_start $((CALLS + 1 + REFUSALS + 3))
 
 # every row of a refusal is one program over one runtime, so only the body and the parameter list
 # the program declares differ
@@ -179,6 +181,34 @@ for kfunc in bpf_luaxdp_run bpf_luatc_run; do
 done
 [ -z "$missing" ] || { comment "$dump"; fail "luaebpf: the object names no extern for$missing"; }
 ktap_pass "luaebpf: a runtime called from both program types lowers to each program's own kfunc"
+
+# a function under the kfunc's name: one symbol for both would relocate its call against the kfunc
+cat > "$LUAEBPF_WORK/samename.bpf.lua" <<LUA
+local xdp     = require("bpf.xdp")
+local lunatik = require("lunatik")
+
+local words = lunatik.runtime("$SCRIPT")
+
+local function bpf_luaxdp_run(n)
+	return n + 1
+end
+
+return xdp.program(function(ctx)
+	local queue = ctx:queue()
+	local argument = bpf_luaxdp_run(queue)
+	local verdict = words:run(argument)
+	if verdict then
+		return verdict
+	end
+	return 2
+end, {name = "samename"})
+LUA
+output=$(luaebpf_written samename 2>&1) || { comment "$output"; fail "luaebpf: samename.bpf.lua did not compile"; }
+dump=$(bpftool btf dump file "$LUAEBPF_WORK/samename.bpf.o" format raw 2>&1)
+[ "$(grep -c "FUNC 'bpf_luaxdp_run' " <<< "$dump")" -eq 1 ] \
+	&& grep -q "FUNC 'bpf_luaxdp_run' .*linkage=extern" <<< "$dump" && grep -q "linkage=static" <<< "$dump" \
+	|| { comment "$dump"; fail "luaebpf: a function named as the kfunc shares its name in the object"; }
+ktap_pass "luaebpf: a function named as the kfunc takes another name, and the kfunc's is the one extern"
 
 if ! command -v llvm-objdump >/dev/null; then
 	ktap_skip "luaebpf: llvm-objdump is not installed"
