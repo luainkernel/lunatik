@@ -112,12 +112,7 @@ LUNATIK_INTEGERGETTER(luacrypto_sig_maxsize, luacrypto_sig_checkkeyed, crypto_si
 * @function algname
 * @treturn string
 */
-static int luacrypto_sig_algname(lua_State *L)
-{
-	struct crypto_sig *tfm = luacrypto_sig_check(L, 1);
-	lua_pushstring(L, crypto_tfm_alg_name(crypto_sig_tfm(tfm)));
-	return 1;
-}
+LUACRYPTO_ALGNAME(sig, crypto_sig_tfm(private));
 
 /***
 * Releases the transform.

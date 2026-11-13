@@ -1624,6 +1624,16 @@ Defines, with [`LUNATIK_PRIVATECHECKER`](#lunatik_privatechecker), the checker
 `luacrypto_<name>_class` at `ix`, and `luacrypto_<name>_check`, which returns its transform as a
 `T *`. They raise what the checker raises, `closed object` included.
 
+### LUACRYPTO\_ALGNAME
+```C
+#define LUACRYPTO_ALGNAME(name, tfm)
+```
+Defines `static int luacrypto_<name>_algname(lua_State *L)`, the `algname` method of a class: it
+takes the object at index 1 with `luacrypto_<name>_check(L, 1)` as `private` and pushes the name of
+the algorithm `tfm` was allocated with, `tfm` being an expression over `private` that gives the
+`struct crypto_tfm *`, as `crypto_shash_tfm(private->tfm)` does for `crypto.shash`. It raises what
+the checker raises.
+
 ### luacrypto\_checkiv
 ```C
 u8 *luacrypto_checkiv(lua_State *L, int idx, u8 *iv, size_t expected);

@@ -166,12 +166,7 @@ static int luacrypto_aead_decrypt(lua_State *L)
 * @function algname
 * @treturn string
 */
-static int luacrypto_aead_algname(lua_State *L)
-{
-	struct crypto_aead *tfm = luacrypto_aead_check(L, 1);
-	lua_pushstring(L, crypto_tfm_alg_name(crypto_aead_tfm(tfm)));
-	return 1;
-}
+LUACRYPTO_ALGNAME(aead, crypto_aead_tfm(private));
 
 /***
 * Releases the transform.

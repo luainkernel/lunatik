@@ -17,6 +17,14 @@ static void luacrypto_##name##_release(void *private)		\
 		obj_free(obj);					\
 }
 
+#define LUACRYPTO_ALGNAME(name, tfm)				\
+static int luacrypto_##name##_algname(lua_State *L)		\
+{								\
+	__auto_type private = luacrypto_##name##_check(L, 1);	\
+	lua_pushstring(L, crypto_tfm_alg_name(tfm));		\
+	return 1;						\
+}
+
 /* Per-tfm fixed-size state (request, IV) allocated once at creation, so
  * encrypt/decrypt never allocates on the hot path. */
 typedef struct luacrypto_ctx_s {

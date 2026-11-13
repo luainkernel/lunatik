@@ -91,12 +91,7 @@ LUACRYPTO_COMP_OPERATION(decompress);
 * @function algname
 * @treturn string
 */
-static int luacrypto_comp_algname(lua_State *L)
-{
-	struct crypto_acomp *tfm = luacrypto_comp_check(L, 1);
-	lua_pushstring(L, crypto_tfm_alg_name(crypto_acomp_tfm(tfm)));
-	return 1;
-}
+LUACRYPTO_ALGNAME(comp, crypto_acomp_tfm(private));
 
 /***
 * Releases the transform.
