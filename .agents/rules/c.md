@@ -184,6 +184,12 @@ the state, where a boolean stored on an existing node cannot.
   call to: a crypto algorithm's name resolves to the driver of highest priority registered under it, a
   hardware one included, so the check of a peer's point the generic `ecdh` driver makes is that
   driver's alone, and `hisi_hpre`, which registers `ecdh-nist-p256` too, makes none (#2448).
+* A guard on a kernel option that holds a whole unit and has no other arm opens the file below its
+  header and doc comment, before `pr_fmt` and the includes: `IS_REACHABLE` and `IS_ENABLED` come from
+  `linux/kconfig.h`, which Kbuild force-includes, so a unit that builds nothing reads nothing. One with
+  an `#else` arm, a stub that refuses, comes after the includes that arm reads. #2385's `luacrypto_rng.c`
+  and #2360's `luacrypto_kpp.c` first opened theirs after the includes, and the maintainer asked of
+  both; `tools/checks/idioms.sh` names such a guard.
 * A kernel version guard puts the current kernel's code in its `#if` arm and the older kernel's in
   `#else`, tested with `>=` on the version that introduced the API, or on the macro that arrived
   with it where a stable series backports the change: raising the floor then deletes `#else` arms
