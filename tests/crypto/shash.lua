@@ -119,6 +119,12 @@ test("crypto.shash:algname", function()
 	assert(name == "sha256", "algname should be 'sha256', got: " .. name)
 end)
 
+test("crypto.shash refuses an unknown name", function()
+	local status, err = pcall(shash, "nosuchhash")
+	assert(not status, "shash with an unknown name should fail")
+	assert(err == "ENOENT", "Error code should be 'ENOENT', got: " .. tostring(err))
+end)
+
 test("crypto.shash:close releases the transform, and __close is close", function()
 	closing.check(shash("sha256"), "digestsize")
 end)

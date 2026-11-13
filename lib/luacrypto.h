@@ -12,9 +12,7 @@
 #define LUACRYPTO_RELEASER(name, T, obj_free)			\
 static void luacrypto_##name##_release(void *private)		\
 {								\
-	T *obj = (T *)private;					\
-	if (obj)						\
-		obj_free(obj);					\
+	obj_free((T *)private);					\
 }
 
 #define LUACRYPTO_ALGNAME(name, tfm)				\
@@ -79,8 +77,6 @@ int luacrypto_##name##_new(lua_State *L)							\
 static void luacrypto_##name##_release(void *private)		\
 {								\
 	luacrypto_ctx_t *ctx = (luacrypto_ctx_t *)private;	\
-	if (ctx == NULL)					\
-		return;						\
 	if (ctx->request) /* acomp_request_free reads the request's transform on 6.14 and earlier */	\
 		request_free(ctx->request);			\
 	lunatik_free(ctx->iv);					\

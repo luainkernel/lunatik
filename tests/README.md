@@ -112,9 +112,9 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
 - **shash**: `sha256` and `hmac(sha256)` report a 32-byte digest and match
   known digests in one shot, in `init`/`update`/`final` parts and through
   `finup`, and a state exported from one hasher and imported into another
-  finishes to the same digest; `sha256` names itself through `algname`. Skipped
-  where the kernel serves no `sha256` or no `hmac(sha256)`, which the script
-  allocates before its cases.
+  finishes to the same digest; `sha256` names itself through `algname`, and an
+  unknown name is `ENOENT`. Skipped where the kernel serves no `sha256` or no
+  `hmac(sha256)`, which the script allocates before its cases.
 - **skcipher**: `cbc(aes)` encrypts and decrypts a known vector and reports a
   16-byte IV and block, refuses a short key, a short IV and data that is not a
   whole number of blocks with `EINVAL` and an unknown algorithm name with
