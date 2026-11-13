@@ -6,7 +6,9 @@
 # Runs the darken tests and reports aggregated KTAP results.
 #
 # context, decrypt, shade and shade_chunk skip where the kernel serves no gcm(aes), the
-# algorithm darken decrypts with, which each script allocates before its cases and names.
+# algorithm darken decrypts with, which each script allocates before its cases and names, and
+# where its configuration lacks CONFIG_CRYPTO_AEAD2, without which darken.load and darken.run
+# raise EOPNOTSUPP.
 #
 # context: darken.run allocates its transform with crypto_alloc_aead, which
 # allocates with GFP_KERNEL and may load a module, so a hook of an
@@ -190,17 +192,25 @@ shade_argv() {
 ktap_header
 ktap_plan 7
 
-if ! carries $MODULE "$REFUSAL"; then
+if lacks CONFIG_CRYPTO_AEAD2; then
+	ktap_skip "darken/context: needs CONFIG_CRYPTO_AEAD2"
+elif ! carries $MODULE "$REFUSAL"; then
 	ktap_skip "darken/context: the loaded $MODULE does not carry the refusal: it would allocate under a spinlock"
 else
 	served_case "darken/context" run_test "$SCRIPT"
 fi
 
-served_case "darken/decrypt" run_test "$DECRYPT"
+if lacks CONFIG_CRYPTO_AEAD2; then
+	ktap_skip "darken/decrypt: needs CONFIG_CRYPTO_AEAD2"
+else
+	served_case "darken/decrypt" run_test "$DECRYPT"
+fi
 
 for name in shade shade_chunk shade_error shade_mode shade_argv; do
 	if ! command -v openssl > /dev/null; then
 		ktap_skip "darken/$name: openssl not installed"
+	elif [[ $name == shade || $name == shade_chunk ]] && lacks CONFIG_CRYPTO_AEAD2; then
+		ktap_skip "darken/$name: needs CONFIG_CRYPTO_AEAD2"
 	elif [ "$name" = shade_chunk ] && ! command -v lunatic > /dev/null; then
 		ktap_skip "darken/$name: lunatic not installed"
 	else
