@@ -11,13 +11,17 @@
 # whole: cbc(aes) over the data matches cbc(aes) over each page chained by its last block, gcm(aes)
 # seals the data into what ctr(aes) gives from the second counter and opens it back under the
 # associated data, and a byte flipped in the last page of either fails the tag. lz4 compresses data
-# of a page and a block, within the 128 KiB a kernel up to 6.14 compresses in software, and
-# decompresses it back whole. A string past KMALLOC_MAX_SIZE, which kvmalloc always takes from
+# of a page and a block, and of 128 KiB, to fewer bytes and decompresses it back whole. Past 128 KiB,
+# 131073 bytes lz4 shrinks, and 131072 bytes of cbc(aes) ciphertext it cannot, given an output of
+# LZ4_COMPRESSBOUND, raise EINVAL on 6.14 and earlier, where scomp bounds the input and the output by
+# its 128 KiB scratch (crypto/scompress.c), and round-trip on 6.15 and later, the ciphertext's output
+# past 128 KiB as well. A string past KMALLOC_MAX_SIZE, which kvmalloc always takes from
 # vmalloc, is refused with "not enough memory" as the data of skcipher's encrypt and decrypt, of
 # aead's and of comp's compress and decompress, as aead's associated data and as the output size of
 # comp's, whose block holds the output too, and run_test reads no WARNING in dmesg, the copy asking
-# kmalloc for none. This script writes the page size and KMALLOC_MAX_SIZE, which lib.sh's kmalloc_max
-# reads from /proc/buddyinfo, into large_sizes.lua for the case.
+# kmalloc for none. This script writes the page size, KMALLOC_MAX_SIZE, which lib.sh's kmalloc_max
+# reads from /proc/buddyinfo, and whether the running release is 6.14 or earlier into large_sizes.lua
+# for the case.
 #
 # A build that maps the string itself hands the cipher a struct page virt_to_page() made up from a
 # vmalloc address, which arm64 reads when the walk flushes a page it wrote, an oops under the
@@ -51,7 +55,9 @@ grep -Eq " $COPY[[:space:]]\[$MODULE\]$" /proc/kallsyms 2> /dev/null || {
 }
 
 page=$(getconf PAGESIZE)
-printf 'return {page = %d, kmalloc = %d}\n' "$page" "$(kmalloc_max)" > "$SIZES"
+bounded=false
+printf '6.15\n%s\n' "$(uname -r)" | sort -CV || bounded=true
+printf 'return {page = %d, kmalloc = %d, bounded = %s}\n' "$page" "$(kmalloc_max)" "$bounded" > "$SIZES"
 
 served_case "crypto/large" run_test "$SCRIPT"
 ktap_totals
