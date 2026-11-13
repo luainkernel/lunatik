@@ -366,14 +366,16 @@ static inline void luaskb_setcsum6(struct sk_buff *skb, struct ipv6hdr *ip6h, in
 * header gives a length past its end, or on IPv4 shorter than the header or an IHL below 5, and one
 * too short to hold its TCP or UDP checksum field are left unchanged; `resize` does not rewrite that
 * length. The skb is linearized and unshared first, as `data` does; in a tc callback it is neither,
-* and one whose head a clone shares raises.
+* and a non-linear one, or one whose head a clone shares, raises.
 * @function checksum
-* @raise if the skb is not writable, in a tc callback or after a failed unshare
+* @raise if the skb is not linear, in a tc callback or after a failed linearization, or if it is not
+* writable, in a tc callback or after a failed unshare
 */
 static int luaskb_checksum(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
 	struct sk_buff *skb = lskb->skb;
+	luaskb_checklinear(L, lskb, 1);
 	luaskb_checkwritable(L, lskb, 1);
 
 	if (skb->protocol == htons(ETH_P_IP)) {

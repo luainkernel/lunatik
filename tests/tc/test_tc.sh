@@ -17,7 +17,7 @@
 # The non-linear case sends a TCP segment from the host to a listener in the
 # namespace instead: tcp_sendmsg keeps the payload in page fragments, so the skb
 # the classifier sees is non-linear. The program hands it to bpf_luatc_run, where
-# skb:data(), copy() and resize() raise "skb is not linear", then pulls it with
+# skb:data(), copy(), resize() and checksum() raise "skb is not linear", then pulls it with
 # bpf_skb_pull_data and hands it again, where the callback reads, copies and
 # shrinks the whole packet and drops it; TCP sends it again. The sender's
 # SO_PRIORITY picks the segment, a value outside 0..6, which only a process with
@@ -129,7 +129,7 @@ PIN="/sys/fs/bpf/lunatik_tc"
 PORT=5569
 PAYLOAD=1024             # PAYLOAD in nonlinear.lua
 PRIORITY=$((0x13690000)) # PRIORITY in nonlinear.lua
-REFUSED="tc nonlinear: data, copy and resize refuse a non-linear skb"
+REFUSED="tc nonlinear: data, copy, resize and checksum refuse a non-linear skb"
 PULLED="tc nonlinear: a pulled skb is read, copied and resized whole"
 COPIED="tc copy: a copy kept past its callback has no device, forward() raises and its bytes read"
 DETACHED="tc copy: a copy made before tc.detach() and a collection in its callback loses its device as it returns"
@@ -474,7 +474,7 @@ nonlinear_case()
 	kill "$listener" 2>/dev/null
 
 	check_dmesg || { ktap_fail "$REFUSED"; ktap_fail "$PULLED"; return 1; }
-	cells_verdict nonlinear "$REFUSED" data copy resize
+	cells_verdict nonlinear "$REFUSED" data copy resize checksum
 	cells_verdict nonlinear "$PULLED" pulled
 }
 

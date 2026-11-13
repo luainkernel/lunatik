@@ -1995,7 +1995,7 @@ returns for each start, at the network header, at the MAC header and at `skb->da
 the hook's skb object it was copied from, which it holds and reads its device from, `NULL` for that
 object; the callbacks the object was cleared after, which a copy takes from the skb it is copied
 from, so it reads its hook's device only while that callback runs; and whether the packet comes
-through a kfunc, where `skb:data()`, `resize` and `copy` refuse a non-linear skb rather than
+through a kfunc, where `skb:data()`, `resize`, `checksum` and `copy` refuse a non-linear skb rather than
 linearize it, and a head a clone shares is not unshared: `skb:data()` returns a read only view of it,
 and `resize` and `checksum` refuse it. Its release frees `skb` and drops `hook`, so a binding clears the packet it does not
 own before the last reference goes, with [`luaskb_clear`](#luaskb_reset) or `luaskb_close`.

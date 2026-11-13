@@ -2732,10 +2732,11 @@ was bound before, and a first attach, which finds nothing, logs nothing.
 - **tc nonlinear**: the host sends a TCP segment to a listener in the
   namespace, whose payload `tcp_sendmsg` keeps in page fragments, picked by
   its sender's `SO_PRIORITY`. Handed to the callback as it is,
-  `skb:data()`, `skb:copy()` and `skb:resize()` raise "skb is not linear";
-  handed again after the program's `bpf_skb_pull_data(skb, skb->len)`, the
-  callback reads and copies the whole packet and shrinks it, then drops it,
-  and TCP sends it again. Skips without `socat`.
+  `skb:data()`, `skb:copy()`, `skb:resize()` and `skb:checksum()` raise
+  "skb is not linear"; handed again after the program's
+  `bpf_skb_pull_data(skb, skb->len)`, the callback reads and copies the whole
+  packet and shrinks it, then drops it, and TCP sends it again. Skips without
+  `socat`.
 
 - **tc checksum**: the host sends a UDP datagram to the namespace without a
   checksum (`SO_NO_CHECK`), picked by its sender's `SO_PRIORITY`. The callback
