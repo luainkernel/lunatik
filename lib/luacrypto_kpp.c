@@ -32,7 +32,7 @@ typedef int (*luacrypto_kpp_op_t)(struct kpp_request *request);
 
 LUACRYPTO_CHECKER(kpp, struct crypto_kpp);
 
-LUACRYPTO_RELEASERCTX(kpp, struct crypto_kpp, kpp_request_free, crypto_free_kpp);
+LUACRYPTO_RELEASERCTX(kpp, kpp_request_free, crypto_free_kpp);
 
 typedef struct luacrypto_kpp_curve_s {
 	const char *name;

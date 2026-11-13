@@ -33,7 +33,7 @@ LUNATIK_PRIVATECHECKER(luacrypto_sig_checkkeyed, struct crypto_sig *, &luacrypto
 		lunatik_throw(L, -ENOKEY);
 );
 
-LUACRYPTO_RELEASER(sig, struct crypto_sig, crypto_free_sig);
+LUACRYPTO_RELEASER(sig, crypto_free_sig);
 
 #define luacrypto_sig_isfailure(ret)	((ret) == -ENOMEM || (ret) == -ENOSYS)
 

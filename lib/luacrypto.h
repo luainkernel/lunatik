@@ -9,12 +9,10 @@
 #include <linux/err.h>
 #include <lunatik.h>
 
-#define LUACRYPTO_RELEASER(name, T, obj_free)			\
+#define LUACRYPTO_RELEASER(name, obj_free)			\
 static void luacrypto_##name##_release(void *private)		\
 {								\
-	T *obj = (T *)private;					\
-	if (obj)						\
-		obj_free(obj);					\
+	obj_free(private);					\
 }
 
 #define LUACRYPTO_ALGNAME(name, tfm)				\
@@ -75,17 +73,15 @@ int luacrypto_##name##_new(lua_State *L)							\
 	return 1;										\
 }
 
-#define LUACRYPTO_RELEASERCTX(name, T, request_free, tfm_free)	\
+#define LUACRYPTO_RELEASERCTX(name, request_free, tfm_free)	\
 static void luacrypto_##name##_release(void *private)		\
 {								\
 	luacrypto_ctx_t *ctx = (luacrypto_ctx_t *)private;	\
-	if (ctx == NULL)					\
-		return;						\
 	if (ctx->request) /* acomp_request_free reads the request's transform on 6.14 and earlier */	\
 		request_free(ctx->request);			\
 	lunatik_free(ctx->iv);					\
 	if (ctx->tfm)						\
-		tfm_free((T *)ctx->tfm);			\
+		tfm_free(ctx->tfm);				\
 }
 
 static inline u8 *luacrypto_checkiv(lua_State *L, int idx, u8 *iv, size_t expected)

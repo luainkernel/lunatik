@@ -22,7 +22,7 @@ LUACRYPTO_CHECKER(skcipher, struct crypto_skcipher,
 	lunatik_checkirqs(L); /* arm64's AES drivers set keys and cipher in NEON unguarded, a BUG with IRQs off */
 );
 
-LUACRYPTO_RELEASERCTX(skcipher, struct crypto_skcipher, skcipher_request_free, crypto_free_skcipher);
+LUACRYPTO_RELEASERCTX(skcipher, skcipher_request_free, crypto_free_skcipher);
 
 /***
 * Sets the cipher key.

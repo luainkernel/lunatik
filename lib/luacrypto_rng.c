@@ -21,7 +21,7 @@
 
 LUNATIK_PRIVATECHECKER(luacrypto_rng_check, struct crypto_rng *, &luacrypto_rng_class);
 
-LUACRYPTO_RELEASER(rng, struct crypto_rng, crypto_free_rng);
+LUACRYPTO_RELEASER(rng, crypto_free_rng);
 
 /***
 * Generates random bytes.

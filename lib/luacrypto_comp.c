@@ -28,7 +28,7 @@
 
 LUACRYPTO_CHECKER(comp, struct crypto_acomp);
 
-LUACRYPTO_RELEASERCTX(comp, struct crypto_acomp, acomp_request_free, crypto_free_acomp);
+LUACRYPTO_RELEASERCTX(comp, acomp_request_free, crypto_free_acomp);
 
 typedef int (*luacrypto_comp_op_t)(struct acomp_req *request);
 
