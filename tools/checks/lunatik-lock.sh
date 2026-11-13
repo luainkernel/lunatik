@@ -32,6 +32,7 @@ busy=$(ps -eo pid,stat,args | awk '
 	echo "lunatik-lock: the device is busy; a second operation wedges it:"
 	echo "$busy"
 	echo "lunatik-lock: wait for it; one in D state never returns, and only a reboot clears it. Re-run with LUNATIK_LOCK_OK=1 as a command prefix only when what is listed is known to be stale."
+	echo "lunatik-lock: \`LUNATIK_HOST_WAIT=540 bash tools/lunatik-host true\` waits for a cycle that holds tools/lunatik-host and returns once it ends; a loop over ps or pgrep -f finds its own text in the shell that runs it, and never ends."
 } >&2
 exit 2
 

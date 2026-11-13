@@ -412,7 +412,11 @@ busy.
 reload, a run, a `list`, `-V`, the REPL on a pipe or with `-e`, or a suite, while another operation is on
 it, naming the processes it found; a process in
 D state among them is the wedged device, which no waiting clears. `LUNATIK_LOCK_OK=1` overrides it once
-what it lists is known to be stale. What a command runs is read by `commands.sh`, which the command
+what it lists is known to be stale. Its refusal names the wait for a cycle that holds
+`tools/lunatik-host`, `bash tools/lunatik-host true`, which returns once that cycle ends: the shell a
+tool runs a command in carries its text, so a wait over `ps | grep` or `pgrep -f` finds itself, and three
+builds of 2026-11-13 waited an hour in such loops.
+What a command runs is read by `commands.sh`, which the command
 guards share: a CLI verb, `make install`, a test script or `watchdog.sh` counts when it is the command,
 read through `sudo` and `env` with their options, `tools/lunatik-host` and a shell's `-c` string, and
 not when it is handed to `git`, `grep` or a check, to a shell's `-n`, which reads it and runs nothing,
