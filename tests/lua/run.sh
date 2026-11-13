@@ -6,7 +6,8 @@
 # Holds the vendored Lua to the contract the README documents, which the kernel
 # patch produces and no other suite asserts: a lost guard compiles and the rest
 # of the suite stays green, so a bump of lua/ is read against these. util holds
-# the util module to its documentation on that Lua's stack.
+# the util module to its documentation on that Lua's stack, and report holds
+# run_test to naming the case that failed.
 #
 # floats:      no float literal, no '^', integer '/' on constants, registers
 #              and coerced strings, no __div or __pow, no libm, no float
@@ -49,6 +50,13 @@
 #              from either case; each returns the string alone, the empty string
 #              included, and hex2bin refuses an odd length and a character that
 #              is not a hexadecimal digit with "invalid hexadecimal string".
+# report:      a case of tests/lib.lua's test raises ELOOP at level 0, which
+#              carries no position, as an errno a binding raises: run_test
+#              fails the script, and what it prints carries the line test
+#              prints for the case, FAIL, the case's name and ELOOP, a tab
+#              between them. Where run_test's pattern misses that line, or
+#              test prints another, run_test prints the traceback alone, which
+#              names neither the case nor its error.
 #
 # Usage: sudo bash tests/lua/run.sh
 
@@ -57,11 +65,11 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 TESTS="floats identifiers require loadfile patterns util"
-TOTAL=$(echo $TESTS | wc -w)
+TOTAL=$(($(echo $TESTS | wc -w) + 1))
 
 cleanup()
 {
-	for t in $TESTS; do
+	for t in $TESTS report; do
 		lunatik stop "tests/lua/$t" > /dev/null 2>&1
 	done
 }
@@ -79,6 +87,13 @@ for t in $TESTS; do
 		ktap_fail "lua/$t"
 	fi
 done
+
+if ! output=$(run_test tests/lua/report) && grep -qF $'FAIL\ta case that fails on purpose\tELOOP' <<< "$output"; then
+	ktap_pass "lua/report"
+else
+	[ -n "$output" ] && echo "$output"
+	ktap_fail "lua/report"
+fi
 
 ktap_totals
 

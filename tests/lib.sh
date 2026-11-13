@@ -141,7 +141,7 @@ run_test() {
 	local output errs
 	mark_dmesg
 	output=$(${CLI:-lunatik} run "$@" 2>&1)
-	errs=$(dmesg_since | grep -E "^[^:]+: (FAIL|fail)	|$KTAP_ERRORS" || true)
+	errs=$(dmesg_since | grep -E "(^|\] )FAIL	|$KTAP_ERRORS" || true)
 	[ -z "$output" ] && [ -z "$errs" ] && return 0
 
 	[ -n "$output" ] && comment "$output"
