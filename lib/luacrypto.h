@@ -25,6 +25,10 @@ static int luacrypto_##name##_algname(lua_State *L)		\
 	return 1;						\
 }
 
+#define LUACRYPTO_DECLARE(name)					\
+extern const lunatik_class_t luacrypto_##name##_class;		\
+int luacrypto_##name##_new(lua_State *L)
+
 /* Per-tfm fixed-size state (request, IV) allocated once at creation, so
  * encrypt/decrypt never allocates on the hot path. */
 typedef struct luacrypto_ctx_s {
@@ -109,19 +113,12 @@ static inline int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, size
 	return 1;
 }
 
-extern const lunatik_class_t luacrypto_shash_class;
-extern const lunatik_class_t luacrypto_skcipher_class;
-extern const lunatik_class_t luacrypto_aead_class;
-extern const lunatik_class_t luacrypto_rng_class;
-extern const lunatik_class_t luacrypto_sig_class;
-extern const lunatik_class_t luacrypto_comp_class;
-
-int luacrypto_shash_new(lua_State *L);
-int luacrypto_skcipher_new(lua_State *L);
-int luacrypto_aead_new(lua_State *L);
-int luacrypto_rng_new(lua_State *L);
-int luacrypto_sig_new(lua_State *L);
-int luacrypto_comp_new(lua_State *L);
+LUACRYPTO_DECLARE(shash);
+LUACRYPTO_DECLARE(skcipher);
+LUACRYPTO_DECLARE(aead);
+LUACRYPTO_DECLARE(rng);
+LUACRYPTO_DECLARE(sig);
+LUACRYPTO_DECLARE(comp);
 
 #endif /* _LUACRYPTO_H */
 
