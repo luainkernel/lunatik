@@ -302,6 +302,11 @@
     <dt id="rng"><a name="rng"></a><strong>rng ([algname="stdrng"])</strong></dt>
     <dd>
     Creates a random number generator and seeds it as <code>reset</code> does without a seed.
+ Needs the kernel&rsquo;s rng API, <code>CONFIG_CRYPTO_RNG2</code>, which the crypto manager selects on 7.0 and
+ earlier, and on 7.1 and later only with <code>CONFIG_CRYPTO_SELFTESTS</code>, so a kernel there has it
+ through a user such as <code>CONFIG_CRYPTO_DRBG</code>, <code>CONFIG_CRYPTO_JITTERENTROPY</code> or
+ <code>CONFIG_CRYPTO_USER_API_RNG</code>. The default name, <code>stdrng</code>, is the one a DRBG registers, and an
+ unknown algorithm where nothing does.
 
 
     <h3>Parameters</h3>
@@ -321,8 +326,9 @@
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation
-   failure, or the errno of the seeding it runs at creation
+     &ldquo;EOPNOTSUPP&rdquo; on a kernel without <code>CONFIG_CRYPTO_RNG2</code>, &ldquo;ENOENT&rdquo; for an unknown algorithm,
+   &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation failure, or the errno of the seeding it runs at
+   creation
 
 
     <h3>Usage</h3>
@@ -462,7 +468,7 @@ v:<span class="function-name">setpubkey</span>(point)
 <a href="../../modules/crypto.html">5.1 docs</a> ·
 <a href="../../5.0/modules/crypto.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-12 19:02:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 13:20:03</span>
 </div>
 </footer>
 </body>

@@ -2307,7 +2307,9 @@ allocator.</p>
 
 <p>The classes and constructors of <a href="../modules/crypto.html#shash">crypto.shash</a>, <a href="../modules/crypto.html#skcipher">crypto.skcipher</a>, <a href="../modules/crypto.html#aead">crypto.aead</a>, <a href="../modules/crypto.html#rng">crypto.rng</a>,
 <a href="../modules/crypto.html#sig">crypto.sig</a> and <a href="../modules/crypto.html#comp">crypto.comp</a>, which <code>luacrypto_core.c</code> opens as the <a href="../modules/crypto.html#">crypto</a> module; the module&rsquo;s reference says
-what each constructor raises. <a href="../modules/crypto.html#comp">crypto.comp</a> is declared on kernels before v6.15 alone.</p>
+what each constructor raises. <code>luacrypto_rng_class</code> is defined where <code>CONFIG_CRYPTO_RNG2</code> is reachable,
+since <code>luacrypto_rng.c</code> links <code>crypto_alloc_rng</code> and <code>crypto_rng_reset</code> from it, and <code>luacrypto_rng_new</code>
+raises <code>EOPNOTSUPP</code> where it is not; <a href="../modules/crypto.html#comp">crypto.comp</a> is declared on kernels before v6.15 alone.</p>
 
 <hr />
 
@@ -2786,7 +2788,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-12 19:02:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 13:20:03</span>
 </div>
 </footer>
 </body>
