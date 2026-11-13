@@ -137,8 +137,9 @@
 * @tparam[opt] string key the private key; without it the kernel generates one
 * @treturn crypto_kpp
 * @raise "ENOENT" for an unknown algorithm, "EINVAL" for the name of another key agreement, such as
-*   `ffdhe2048(dh)`, and for a key of another length than the curve's or out of its range, "ENOMEM"
-*   or "not enough memory" on allocation failure
+*   `ffdhe2048(dh)`, and for a key of another length than the curve's or out of its range, "EIO" for
+*   a key the engine refuses with a status that is not an errno, "ENOMEM" or "not enough memory" on
+*   allocation failure
 * @usage
 *   local kpp = require("crypto").kpp
 *   local machine = kpp("ecdh-nist-p256")
