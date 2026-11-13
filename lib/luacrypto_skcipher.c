@@ -18,7 +18,7 @@
 
 LUACRYPTO_CHECKER(skcipher, struct crypto_skcipher);
 
-LUACRYPTO_RELEASERCTX(skcipher, struct crypto_skcipher, crypto_free_skcipher);
+LUACRYPTO_RELEASERCTX(skcipher, struct crypto_skcipher, skcipher_request_free, crypto_free_skcipher);
 
 /***
 * Sets the cipher key.

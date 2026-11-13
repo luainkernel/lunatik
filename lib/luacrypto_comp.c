@@ -28,17 +28,7 @@
 
 LUACRYPTO_CHECKER(comp, struct crypto_acomp);
 
-static void luacrypto_comp_release(void *private)
-{
-	luacrypto_ctx_t *ctx = (luacrypto_ctx_t *)private;
-
-	if (ctx == NULL)
-		return;
-	if (ctx->request) /* acomp_request_free reads the request's transform on 6.14 and earlier */
-		acomp_request_free((struct acomp_req *)ctx->request);
-	if (ctx->tfm)
-		crypto_free_acomp((struct crypto_acomp *)ctx->tfm);
-}
+LUACRYPTO_RELEASERCTX(comp, struct crypto_acomp, acomp_request_free, crypto_free_acomp);
 
 typedef int (*luacrypto_comp_op_t)(struct acomp_req *request);
 

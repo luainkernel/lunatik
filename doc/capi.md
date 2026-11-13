@@ -1607,12 +1607,12 @@ allocated before the raise.
 ### LUACRYPTO\_RELEASER
 ```C
 #define LUACRYPTO_RELEASER(name, T, obj_free)
-#define LUACRYPTO_RELEASERCTX(name, T, tfm_free)
+#define LUACRYPTO_RELEASERCTX(name, T, request_free, tfm_free)
 ```
 Define `static void luacrypto_<name>_release(void *private)`, the `release` of a class:
 `LUACRYPTO_RELEASER` for one whose private is the transform, which it passes to `obj_free`, and
 `LUACRYPTO_RELEASERCTX` for one whose private is a `luacrypto_ctx_t`, whose request it frees with
-`<name>_request_free` and its IV with [`lunatik_free`](#lunatik_free) before it passes the transform
+`request_free` and its IV with [`lunatik_free`](#lunatik_free) before it passes the transform
 to `tfm_free`. Each frees only what is set, so it runs on the private of a constructor that raised.
 
 ### LUACRYPTO\_CHECKER

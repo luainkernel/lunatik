@@ -18,7 +18,7 @@
 
 LUACRYPTO_CHECKER(aead, struct crypto_aead);
 
-LUACRYPTO_RELEASERCTX(aead, struct crypto_aead, crypto_free_aead);
+LUACRYPTO_RELEASERCTX(aead, struct crypto_aead, aead_request_free, crypto_free_aead);
 
 /***
 * Sets the cipher key.
