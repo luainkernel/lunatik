@@ -12,6 +12,7 @@ local lib     = require("tests.lib")
 local test    = lib.test
 
 local INITIAL <const> = "tests/crypto/quic_initial"
+local EXTRACT <const> = "tests/crypto/quic_extract"
 
 -- RFC 9001 A.2, the client Initial as it goes on the wire
 local PACKET <const> = hex2bin(
@@ -55,7 +56,7 @@ local PACKET <const> = hex2bin(
 	"e221af44860018ab0856972e194cd934"
 )
 
--- the algorithms quic_initial allocates, before the case runs, so run.sh skips the test where the kernel lacks one
+-- the algorithms the runtimes allocate, before the cases run, so run.sh skips the test where the kernel lacks one
 lib.alloc(crypto.shash, "hmac(sha256)")
 lib.alloc(crypto.skcipher, "ecb(aes)")
 lib.alloc(crypto.skcipher, "ctr(aes)")
@@ -65,5 +66,10 @@ test("a softirq runtime's hook opens RFC 9001's client Initial with keys derived
 	local packet = data.new(#PACKET)
 	packet:setstring(0, PACKET)
 	runtime:resume(packet)
+end)
+
+test("a softirq runtime's hook hashes RFC 9001's extract input in parts to the digest of the whole", function()
+	local runtime <close> = lunatik.runtime(EXTRACT, "softirq")
+	runtime:resume()
 end)
 

@@ -13,6 +13,9 @@
 # quic: a softirq runtime's body creates hmac(sha256), through crypto.hkdf, ecb(aes) and ctr(aes), and its hook,
 # resumed with RFC 9001 A.2's protected client Initial, derives A.1's client keys from the packet's connection ID,
 # removes the header protection and deciphers the payload with ctr(aes) from GCM's second counter, its tag unchecked.
+# A second softirq runtime's body creates two hmac(sha256), and its hook keys both with RFC 9001's initial salt and
+# hashes A.1's connection ID in two parts, through init, update and final, through finup, and through export into
+# the second's import, to the digest of the whole, A.1's initial secret.
 #
 # hardirq: crypto.shash and crypto.skcipher refuse a hardirq runtime in its body and past it, and the methods of an
 # object handed over there refuse it, since its callbacks run with IRQs disabled.
