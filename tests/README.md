@@ -138,7 +138,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
 - **rng**: `stdrng` gives the number of bytes asked for through `generate`,
   with or without additional input, and `getbytes`, also after a reset without
   a seed, refuses 0 bytes as out of bounds and an additional input or a seed
-  that is not a string, and names itself through `algname`;
+  that is not a string, and names itself through `algname`; an unknown
+  algorithm name is refused with `ENOENT`;
   `drbg_nopr_hmac_sha512`, a DRBG named by its driver,
   gives bytes after a reset with a seed and reports a seed size of 0. Skipped
   where the kernel's configuration has no `CONFIG_CRYPTO_RNG2`, without which
