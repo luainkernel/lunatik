@@ -53,9 +53,6 @@ static const lunatik_class_t luanotifier_hardirq_class;
 LUNATIK_PRIVATECHECKERS(luanotifier_check, luanotifier_t *, "notifier", &luanotifier_softirq_class,
 	&luanotifier_hardirq_class);
 
-/* an event delivered inside register_fn, on the task that registered the block */
-#define luanotifier_isreplay(notifier)	(in_task() && (notifier)->registrant == current)
-
 typedef struct luanotifier_ctx_s {
 	luanotifier_t *notifier;
 	unsigned long event;
@@ -92,10 +89,8 @@ static int luanotifier_call(struct notifier_block *nb, unsigned long event, void
 	luanotifier_ctx_t ctx = {.notifier = notifier, .event = event, .data = data, .ret = NOTIFY_DONE};
 	int ret;
 
-	if (luanotifier_isreplay(notifier))
-		lunatik_handle(notifier->runtime, lunatik_catch, ret, luanotifier_docall, &ctx, "callback");
-	else
-		lunatik_run(notifier->runtime, lunatik_catch, ret, luanotifier_docall, &ctx, "callback");
+	lunatik_runcallback(notifier->registrant, notifier->runtime, lunatik_catch, ret, luanotifier_docall, &ctx,
+		"callback");
 
 	(void)ret; /* not ready, under its own lock or raised: the callback returned nothing */
 	return ctx.ret;
@@ -311,9 +306,8 @@ static int luanotifier_new(lua_State *L, luanotifier_register_t register_fn, lua
 
 	lunatik_registerobject(L, 1, object);
 
-	notifier->registrant = current; /* the replay register_fn delivers runs on this task */
-	int err = register_fn(&notifier->nb);
-	notifier->registrant = NULL;
+	int err;
+	lunatik_registering(notifier->registrant, err = register_fn(&notifier->nb));
 	if (err != 0) {
 		lunatik_unregisterobject(L, object);
 		lunatik_throw(L, err);
