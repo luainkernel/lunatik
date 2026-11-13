@@ -34,7 +34,7 @@ computes something else, the compiler emits what lies between:
 | `p:getint16(n)` | two bytes at `n`, signed; raises past the packet | a load the verifier refuses until the program tests the end | the offset tested unsigned against 65535 less the width, the end against `data_end`, and the sign extended by a shift left and an arithmetic shift right, where `BPF_MEMSX` would extend it |
 | `p:getint16(n)` on TC | the same, of the whole packet, past the skb's linear head too | a load stops at `data_end`, the end of the linear head | the offset tested unsigned against `INT_MAX`, the helper's own bound, since it takes the low 32 bits, then `bpf_skb_load_bytes` into the frame, which copies the bytes wherever the skb holds them, the default verdict where it answers non-zero, and the sign extended alike |
 | `#p` | the bytes the `data` object views | no instruction: the context holds the two bounds | `data_end` less `data`, both read from the context; on TC `len`, as `#skb` |
-| `skb:data()` on an skb that is not linear | the whole packet, in a tc callback, its bytes past the linear head read as copies | `data_end` ends the linear head, short of the packet | the context register, which the reads hand to `bpf_skb_load_bytes` |
+| `skb:data()` on an skb that is not linear | the whole packet, in a tc callback, read from a copy of it | `data_end` ends the linear head, short of the packet | the context register, which the reads hand to `bpf_skb_load_bytes` |
 | `skb:priority(v)` | raises outside 0 to `U32_MAX` | a four-byte store keeps the low 32 bits | a value the compiler holds checked against the field's width, and one the program computes tested, which takes the default verdict |
 | `m[k]` | the value, or nil | the helper answers a pointer, or NULL, which the verifier lets the program read only past a test | the helper, and a value typed "value or nil" until `if v then` reads it, on the branch that found it |
 | `m[k] = v`, `m[k] = nil` | the kernel's `bpf.map` raises when the map refuses the update, or refuses the delete for any reason but an absent key | the helper's return code | the helper, and the default verdict on any code but zero, or `-ENOENT` from a delete |
@@ -475,7 +475,8 @@ The context of a TC program is the kernel's `__sk_buff`, read at the offsets its
 at 0 and `priority` at 32. The packet is the context register under another name, and a read of it
 is `bpf_skb_load_bytes`, helper 26, which copies the bytes into the frame at `r10 - 32` wherever
 the skb holds them, past its linear head too, and answers non-zero past the packet: the kernel's
-`skb:data()` reads the same bytes through `skb_header_pointer`, which the helper calls.
+`skb:data()` reads the same bytes from a copy `skb_copy_bits` makes, which the helper calls for the
+bytes past the head.
 
 ```
      line 4: return tc.program(function(skb)

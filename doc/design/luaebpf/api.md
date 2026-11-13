@@ -134,9 +134,9 @@ refused, and `__sk_buff`'s `ingress_ifindex`, which it does not carry, is refuse
 `skb:data()` is the packet from `skb->data`, which in a TC program is the MAC header, and
 `skb:data("net")` and `skb:data("mac")`, the views the kernel object starts at a header, are
 refused until a compiled read reaches one. In a tc callback the kernel object reads an skb that is
-not linear, one whose `len` runs past `data_end`, whole, copying what lies past the linear head,
-so a compiled read goes through `bpf_skb_load_bytes`, which copies the same bytes, and `#` on the
-packet is `len`. `tc.program(fn, {egress = true})` puts the entry in `tcx/egress` rather
+not linear, one whose `len` runs past `data_end`, whole, from a copy of the packet the callback's
+first `skb:data()` makes, so a compiled read goes through `bpf_skb_load_bytes`, which copies the
+same bytes, and `#` on the packet is `len`. `tc.program(fn, {egress = true})` puts the entry in `tcx/egress` rather
 than `tcx/ingress`, which is how libbpf reads the attach point back.
 
 ## Maps

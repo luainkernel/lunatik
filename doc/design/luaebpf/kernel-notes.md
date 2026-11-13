@@ -361,12 +361,13 @@ under `sudo`.
   `skb->data + skb_headlen(skb)`
   ([include/linux/filter.h#L919-L926](https://github.com/torvalds/linux/blob/v7.2/include/linux/filter.h#L919-L926)).
   The proxy spells the packet `skb:data()` and refuses a layer, which no compiled read reaches. In
-  a tc callback the object reads an skb that is not linear, one whose `data_len` is not zero, in
-  place: its view runs to `len` and copies what lies past the linear head with
-  `skb_header_pointer`, which reads the head in place and `skb_copy_bits` the rest
-  ([include/linux/skbuff.h#L4048-L4066](https://github.com/torvalds/linux/blob/v6.8/include/linux/skbuff.h#L4048-L4066)).
-  `bpf_skb_load_bytes` is `skb_header_pointer` over a program's context, which answers `-EFAULT`
-  past `len`
+  a tc callback the object reads an skb that is not linear, one whose `data_len` is not zero,
+  from a copy: the callback's first `data` copies the packet with `skb_copy_bits` into a buffer the
+  object keeps, and its view runs over the copy to `len`, read only. `bpf_skb_load_bytes` is
+  `skb_header_pointer` over a program's context, which reads the head in place and
+  `skb_copy_bits` the rest
+  ([include/linux/skbuff.h#L4048-L4066](https://github.com/torvalds/linux/blob/v6.8/include/linux/skbuff.h#L4048-L4066)),
+  the same bytes, and answers `-EFAULT` past `len`
   ([net/core/filter.c#L1737-L1755](https://github.com/torvalds/linux/blob/v6.8/net/core/filter.c#L1737-L1755))
   and which `tc_cls_act_func_proto` offers `SCHED_CLS` from v6.6
   ([net/core/filter.c#L7968-L7974](https://github.com/torvalds/linux/blob/v6.6/net/core/filter.c#L7968-L7974)),

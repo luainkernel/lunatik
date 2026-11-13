@@ -50,9 +50,9 @@ local EGRESS  <const> = "tcx/egress"
 -- wide (net/core/filter.c); that set is kernel policy rather than layout, so BTF cannot supply it.
 -- skb:data(layer) starts where the header its layer names does, which no compiled read reaches
 -- yet, so the packet proxy is the view from skb->data and refuses a layer. In a tc callback
--- skb:data() reads an skb that is not linear through skb_header_pointer, and bpf_skb_load_bytes is
--- skb_header_pointer over the context up to an offset of INT_MAX (net/core/filter.c), so the packet
--- proxy reads with it.
+-- skb:data() reads an skb that is not linear whole, from a copy skb_copy_bits makes of it, and
+-- bpf_skb_load_bytes is skb_header_pointer over the context up to an offset of INT_MAX
+-- (net/core/filter.c), which reads the same bytes, so the packet proxy reads with it.
 local context = {
 	struct = "__sk_buff",
 	length = "len",
