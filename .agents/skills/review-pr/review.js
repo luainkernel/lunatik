@@ -169,7 +169,10 @@ ${JSON.stringify(a.body)}` : ''}
 For every mechanism the diff builds over a kernel primitive, name the kernel's own answer to the problem it
 solves, from Documentation/ and the primitive's users in the kernel tree, and say why the diff's shape and not
 that one. For every field the diff adds beside an embedded kernel object, say what the object already records.
-For every read the diff removes, name what was stored, sized or kept only for that read. For an object the
+For every read the diff removes, name what was stored, sized or kept only for that read. For every helper the
+diff extracts from functions that existed, read each caller's steps against the checks the helper now makes, in
+the order the old bodies ran them: a step one caller keeps around the helper's call is an argument the helper
+lacks. For an object the
 diff keeps past the code that lent it, read each of the kernel's keepers of such an object for every resource
 the object carries and list the line each has for each; a resource the diff handles otherwise than a keeper
 does is a finding unless it says why. Then residues of

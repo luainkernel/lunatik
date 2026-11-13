@@ -109,6 +109,11 @@ the state, where a boolean stored on an existing node cannot.
   partner releases or unregisters, and an argument on one appears on the other; a family of helpers
   or macros names the same argument the same way, carries the same prefix, and types a value for
   what it is, not for how it is stored.
+* A step one caller adds to a helper extracted from functions that exist is an argument the helper
+  takes and applies where the old body ran it, not a wrapper that runs the step and then returns the
+  helper. #2493's `luacrypto_pushbuffer` first left `crypto.aead`'s move of its result
+  in `luacrypto_aead_finish`, ahead of the check the old body ran it after, until the maintainer asked
+  why the indirection; `tools/checks/idioms.sh` names such a wrapper.
 * A secondary check that must always follow a `LUNATIK_PRIVATECHECKER` (a field that must be set,
   the class identity of the object) goes in the macro's vararg body, in the mold of `luaskb_check`;
   `L` and `ix` are in scope there. A hand written checker only when the macro's shape does not fit.

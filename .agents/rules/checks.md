@@ -102,7 +102,10 @@ with `?:`, which reads as two rules where an `||` of the exception and the rule 
 loop header a file spells twice, which a foreach macro names, as `lunatik_foreachruntime` does, and so
 is a helper of the file that steps a loop through out parameters, the shape #1896's `luaset_next` took
 past that check; and two functions whose one statement returns the same call with another argument,
-a pair a macro generates, as `LUABPF_OPENER` does. It names
+a pair a macro generates, as `LUABPF_OPENER` does. It names a static function of two statements, a call
+and the return of another call handed the function's parameters, a wrapper whose step runs ahead of the
+helper's checks, as #2493's `luacrypto_aead_finish` ran `crypto.aead`'s move of its result before
+`luacrypto_pushbuffer` checked the request's return; the step is an argument of the helper. It names
 a value a function computes before a check that raises and does not read it, which decides before
 validating, and a load of one mode, which refuses what `require` and `load` take. It names a refusal
 raised with the family's wording as a literal, `luaL_error(L, "not allowed ...")`, whose message is a
