@@ -23,7 +23,6 @@ test("AEAD AES-128-GCM encrypt", function()
 	c:setauthsize(16)
 
 	local expected = hex2bin"95be1ddc3dd13cdd2d8ffcc391561ade661d5b696ede5a918e"
-	-- The encrypt method returns ciphertext_with_tag, tag_length. We only need the first one for this assertion.
 	local result = c:encrypt("abcdefghijkl", "plaintext", "0123456789abcdef")
 	assert(result == expected, "Expected: " .. bin2hex(expected) .. ", got: " .. bin2hex(result))
 end)
