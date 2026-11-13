@@ -42,6 +42,10 @@
 # ecdh-nist-p256, which /proc/crypto lists once crypto-ecdh loads, that raise is a binding that was not
 # built, and the case fails.
 #
+# kpp_status: kpp raises EIO for an engine's positive status, from a module the test builds that answers
+# atmel-ecc's "ECC Fault" for one key's set_secret, and for another's public key and, from a worker,
+# its shared secret.
+#
 # Usage: sudo bash tests/crypto/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -101,5 +105,7 @@ echo ""
 bash "$DIR/sig_refused.sh" || RESULT=1
 echo ""
 bash "$DIR/kpp_peer.sh" || RESULT=1
+echo ""
+bash "$DIR/kpp_status.sh" || RESULT=1
 exit $RESULT
 

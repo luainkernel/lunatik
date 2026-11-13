@@ -69,6 +69,12 @@ static bool luacrypto_kpp_isoncurve(const luacrypto_kpp_curve_t *curve, const ch
 	return ecc_is_pubkey_valid_partial(ecc_get_curve(curve->id), &point) == 0;
 }
 
+/* atmel-ecc answers its chip's error status, a positive code that is not an errno */
+static int luacrypto_kpp_errno(int ret)
+{
+	return ret > 0 ? -EIO : ret;
+}
+
 static int luacrypto_kpp_compute(luacrypto_ctx_t *ctx, luacrypto_kpp_op_t op, struct scatterlist *src,
 	unsigned int srclen, char *output, unsigned int outputlen)
 {
@@ -81,14 +87,15 @@ static int luacrypto_kpp_compute(luacrypto_ctx_t *ctx, luacrypto_kpp_op_t op, st
 	kpp_request_set_output(request, &dst, outputlen);
 	/* hisi_hpre and atmel-ecc answer -EINPROGRESS without flagging CRYPTO_ALG_ASYNC */
 	kpp_request_set_callback(request, CRYPTO_TFM_REQ_MAY_BACKLOG, crypto_req_done, &wait);
-	return crypto_wait_req(op(request), &wait);
+	return luacrypto_kpp_errno(crypto_wait_req(op(request), &wait));
 }
 
 /***
 * Returns the public key, twice the curve's size: 64 bytes for P-256.
 * @function publickey
 * @treturn string `x || y`
-* @raise the errno of a kernel failure, "not enough memory" when the binding cannot allocate the key
+* @raise the errno of a kernel failure, "EIO" for an engine's status that is not an errno, "not enough
+*   memory" when the binding cannot allocate the key
 */
 static int luacrypto_kpp_publickey(lua_State *L)
 {
@@ -109,8 +116,8 @@ static int luacrypto_kpp_publickey(lua_State *L)
 * @tparam string peer the peer's public key, `x || y`, as `publickey` returns it
 * @treturn string the shared secret, of the curve's size, or nil and "EINVAL" for a key of another
 *   length than `publickey`'s, a point off the curve or the point at infinity
-* @raise the errno of a kernel failure, "not enough memory" when the binding cannot allocate the
-*   secret
+* @raise the errno of a kernel failure, "EIO" for an engine's status that is not an errno, "not enough
+*   memory" when the binding cannot allocate the secret
 */
 static int luacrypto_kpp_sharedsecret(lua_State *L)
 {
@@ -185,7 +192,7 @@ static void luacrypto_kpp_setsecret(lua_State *L, struct crypto_kpp *tfm, const 
 	char *secret = luacrypto_newbuffer(L, len);
 
 	crypto_ecdh_encode_key(secret, len, &params); /* fails only for a NULL buffer or another len */
-	int ret = crypto_kpp_set_secret(tfm, secret, len);
+	int ret = luacrypto_kpp_errno(crypto_kpp_set_secret(tfm, secret, len));
 	kfree_sensitive(secret);
 	if (ret < 0)
 		lunatik_throw(L, ret);
