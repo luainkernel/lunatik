@@ -302,7 +302,10 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
  such as a locally sent TCP segment or a GRO-merged one: the verifier keeps the program&rsquo;s packet
  pointers across a kfunc, and linearizing can move the packet out from under them. A program whose
  callback reads the whole packet calls <code>bpf_skb_pull_data(skb, skb-&gt;len)</code> before <code>bpf_luatc_run</code>,
- after which the verifier has it reload its packet pointers.
+ after which the verifier has it reload its packet pointers. For the same reason a packet whose head
+ a clone shares, as a packet socket&rsquo;s on ingress, is not unshared: <code>skb:data()</code> returns a read only
+ view of it, and <code>skb:resize()</code> and <code>skb:checksum()</code> raise &ldquo;skb is not writable&rdquo;. The same
+ <code>bpf_skb_pull_data</code> gives the packet a head of its own.
 
 
     <h3>Parameters</h3>
@@ -393,7 +396,7 @@ tc.<span class="function-name">attach</span>(my_traffic_shaper)
 <a href="../../modules/tc.html">5.1 docs</a> ·
 <a href="../../5.0/modules/tc.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:43:13</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:47:40</span>
 </div>
 </footer>
 </body>

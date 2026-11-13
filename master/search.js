@@ -374,7 +374,7 @@ window.LUNATIK_SEARCH = [
 ["skb:checksum ()","modules/skb.html#skb:checksum","skb · Recomputes IP and transport-layer (TCP/UDP) checksums and writes them into the packet."],
 ["skb:connmark ([value])","modules/skb.html#skb:connmark","skb · Gets or sets the conntrack mark: with no argument or nil reads it, with value sets it."],
 ["skb:copy ()","modules/skb.html#skb:copy","skb · Returns an independent copy of the skb with its own data buffer."],
-["skb:data ([layer])","modules/skb.html#skb:data","skb · Linearizes the skb and returns a view from where layer starts to the end of the packet: \"net\" at the network header and \"mac\" at the MAC header, or, with no layer, at skb->data, where the packet starts as the hook sees it: the network header in an IPv4 or IPv6 netfilter hook and the MAC header in a tc callback."],
+["skb:data ([layer])","modules/skb.html#skb:data","skb · Linearizes the skb, gives it a head of its own where a clone shares it, as a packet socket's does, and returns a view from where layer starts to the end of the packet: \"net\" at the network header and \"mac\" at the MAC header, or, with no layer, at skb->data, where the packet starts as the hook sees it: the network header in an IPv4 or IPv6 netfilter hook and the MAC header in a tc callback."],
 ["skb:forward ()","modules/skb.html#skb:forward","skb · Transmits a copy of the skb, from its MAC header on, out of skb->dev, the device skb:ifindex() names."],
 ["skb:hash ()","modules/skb.html#skb:hash","skb · Reads the flow hash the skb carries (skb->hash), the value an eBPF program reads as __sk_buff.hash."],
 ["skb:ifindex ()","modules/skb.html#skb:ifindex","skb · "],
