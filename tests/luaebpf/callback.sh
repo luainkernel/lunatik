@@ -95,7 +95,7 @@ keys() {
 
 reason=$(luaebpf_kfunc luaxdp)
 if [ -n "$reason" ]; then
-	luaebpf_skips $((CALLS + 1)) "$reason"
+	for _ in $(seq $((CALLS + 1))); do ktap_skip "luaebpf: $reason"; done
 else
 	output=$(luaebpf_compile callback) || { comment "$output"; fail "luaebpf: callback.bpf.lua did not compile"; }
 	output=$(luaebpf_loadall callback) || { comment "$output"; fail "luaebpf: a call into the runtime did not verify"; }

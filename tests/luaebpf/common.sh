@@ -56,12 +56,6 @@ luaebpf_maygoto() {
 	[ "$(printf '%s\n6.9\n' "$(uname -r | cut -d. -f1,2)" | sort -V | head -1)" = "6.9" ]
 }
 
-# luaebpf_skips <count> <reason>: that many cases skipped for the reason
-luaebpf_skips() {
-	local i
-	for i in $(seq "$1"); do ktap_skip "luaebpf: $2"; done
-}
-
 # luaebpf_start <plan> [<module>]: the plan, the skips a missing tool, or the module's missing BTF
 # where the case's programs call the kernel Lua runtime through <module>'s kfunc, turns every case
 # into, and a scratch directory of its own
