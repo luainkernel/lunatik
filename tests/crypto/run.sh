@@ -102,6 +102,6 @@ bash "$DIR/deferred.sh" || RESULT=1
 echo ""
 bash "$DIR/seed.sh" || RESULT=1
 echo ""
-bash "$DIR/sig_refused.sh" || RESULT=1
+bash "$DIR/refused.sh" || RESULT=1
 exit $RESULT
 

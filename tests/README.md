@@ -279,12 +279,15 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   give the same bytes, and other bytes once each is reset again without a seed;
   a seed of 31 bytes and an empty one are refused with `EINVAL`. Skips where the
   kernel has no `ansi_cprng`, and unloads it when the test loaded it.
-- **sig_refused**: `sig("hmac(sha256)")`, a name whose template builds a hash,
-  raises `EINVAL` on 6.12 and later, where the kernel hands the template's
-  refusal to the allocation, and `ENOENT` on 6.11 and earlier and on 6.13, where
-  the binding's check before the allocation answers first; `sig_refused.sh`
-  writes the errno of the running release for the case. Skipped where the kernel's
-  configuration has no `CONFIG_CRYPTO_HMAC`.
+- **refused**: a name whose template refuses the type the constructor asks for,
+  `shash("cbc(aes)")`, whose template builds a cipher, and `skcipher`, `aead` and
+  `sig` of `"hmac(sha256)"`, whose template builds a hash, raises `EINVAL` on
+  6.12 and later, where the kernel hands the template's refusal to the
+  allocation, and `ENOENT` on 6.11 and earlier, and `sig`'s on 6.13 too, where
+  the binding's check before the allocation answers first; `refused.sh` writes
+  the errno of the running release for each of the four cases. Each skips where
+  the kernel's configuration has no option for its template, `CONFIG_CRYPTO_CBC`
+  or `CONFIG_CRYPTO_HMAC`.
 
 Each of `shash`, `skcipher`, `aead`, `rng`, `sig` and `comp` also closes an object
 through `closing.lua`: its metatable holds one function under `__close` and
