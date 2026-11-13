@@ -184,7 +184,6 @@ local function reserve(names, declared)
 	end
 end
 
--- a line per call into the runtime the function makes, which `lunatik bpf` prints
 local function report(calls, frame)
 	for _, call in ipairs(frame.calls) do
 		table.insert(calls, string.format("%s:%d: calls the runtime '%s'", frame.chunk, call.line, call.key))
