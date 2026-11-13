@@ -22,6 +22,9 @@ typedef struct {
 	lunatik_object_t *hook;
 	u64 gen;
 	bool kfunc;
+	bool copied;
+	unsigned char *bytes;
+	size_t size;
 } luaskb_t;
 
 #define luaskb_foreachlayer(layer)	for (int layer = 0; (layer) < LUASKB_VIEWS; (layer)++)
@@ -39,6 +42,7 @@ static inline void luaskb_clear(lunatik_object_t *object)
 	luaskb_foreachview(lskb, layer, view)
 		luadata_clear(view);
 	lskb->gen++;
+	lskb->copied = false;
 	lskb->skb = NULL;
 }
 
