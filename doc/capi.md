@@ -1665,24 +1665,13 @@ kernel returned for it: moves the `len` bytes at `offset` to the buffer's start,
 for a negative `ret` frees the buffer with [`lunatik_free`](#lunatik_free) and raises the errno's name,
 having moved nothing.
 
-### luacrypto\_shash\_class
+### LUACRYPTO\_DECLARE
 ```C
-extern const lunatik_class_t luacrypto_shash_class;
-extern const lunatik_class_t luacrypto_skcipher_class;
-extern const lunatik_class_t luacrypto_aead_class;
-extern const lunatik_class_t luacrypto_rng_class;
-extern const lunatik_class_t luacrypto_sig_class;
-extern const lunatik_class_t luacrypto_comp_class;
-
-int luacrypto_shash_new(lua_State *L);
-int luacrypto_skcipher_new(lua_State *L);
-int luacrypto_aead_new(lua_State *L);
-int luacrypto_rng_new(lua_State *L);
-int luacrypto_sig_new(lua_State *L);
-int luacrypto_comp_new(lua_State *L);
+#define LUACRYPTO_DECLARE(name)
 ```
-The classes and constructors of `crypto.shash`, `crypto.skcipher`, `crypto.aead`, `crypto.rng`,
-`crypto.sig` and `crypto.comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
+Declares `extern const lunatik_class_t luacrypto_<name>_class` and `int luacrypto_<name>_new(lua_State *L)`,
+the class and the constructor of `crypto.<name>`, as `luacrypto.h` does for `shash`, `skcipher`, `aead`,
+`rng`, `sig` and `comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
 what each constructor raises. `luacrypto_rng_class` is defined where `CONFIG_CRYPTO_RNG2` is reachable,
 since `luacrypto_rng.c` links `crypto_alloc_rng` and `crypto_rng_reset` from it, and `luacrypto_rng_new`
 raises `EOPNOTSUPP` where it is not.
