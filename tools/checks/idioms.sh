@@ -35,6 +35,9 @@
 # parameters, is a wrapper whose step runs ahead of the helper's checks: #2493's luacrypto_aead_finish moved
 # crypto.aead's result before luacrypto_pushbuffer checked the request's return, until the maintainer
 # asked why the indirection.
+# A guard on a kernel option that holds a whole unit and has no other arm opens the file: IS_REACHABLE and
+# IS_ENABLED come from linux/kconfig.h, which Kbuild force-includes, and #2385's luacrypto_rng.c and
+# #2360's luacrypto_kpp.c first opened theirs after pr_fmt and the includes, until the maintainer asked twice.
 # Takes file paths; silent on files that carry none, and on the Lua fork under lua/, whose
 # guards keep upstream first. The report is read, not obeyed: a check-then-throw that releases
 # something first is not lunatik_try's, and the line between the two is what the reader
@@ -281,6 +284,44 @@ for file in "$@"; do
 						pushed[name] = NR
 				}
 		prev = line
+	}' "$file"
+	# a guard on a kernel option that holds the whole unit, with no other arm, opened after the includes
+	awk -v f="$file" '
+	function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+	{
+		line = trim($0)
+		if (comment) {
+			if (line ~ /\*\//)
+				comment = 0
+			next
+		}
+		if (line ~ /^\/\*/) {
+			comment = (line !~ /\*\//)
+			next
+		}
+		if (line == "")
+			next
+		if (closed)
+			after = 1
+		else if (line ~ /^#[ \t]*if/) {
+			if (depth == 0 && !guard && line ~ /CONFIG_/) {
+				guard = NR
+				text = line
+			}
+			depth++
+		}
+		else if (line ~ /^#[ \t]*(else|elif)/)
+			arm = arm || (depth == 1 && guard)
+		else if (line ~ /^#[ \t]*endif/)
+			closed = (--depth == 0 && guard)
+		else if (!guard && line ~ /^#[ \t]*(include|define)/)
+			included = 1
+		else if (!guard)
+			code = 1
+	}
+	END {
+		if (guard && closed && !after && !arm && included && !code)
+			printf "%s:%d: %s holds the whole unit and opens after its includes: IS_REACHABLE and IS_ENABLED come from linux/kconfig.h, which Kbuild force-includes, so the guard opens the file, before pr_fmt\n", f, guard, text
 	}' "$file"
 done
 

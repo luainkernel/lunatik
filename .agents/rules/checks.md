@@ -106,6 +106,9 @@ a pair a macro generates, as `LUABPF_OPENER` does. It names a static function of
 and the return of another call handed the function's parameters, a wrapper whose step runs ahead of the
 helper's checks, as #2493's `luacrypto_aead_finish` ran `crypto.aead`'s move of its result before
 `luacrypto_pushbuffer` checked the request's return; the step is an argument of the helper. It names
+a guard on a kernel option that holds a whole unit, with no `#else` arm, opened after the includes, as
+#2385's `luacrypto_rng.c` and #2360's `luacrypto_kpp.c` first opened theirs: `linux/kconfig.h` is
+force-included, so the guard opens the file. It names
 a value a function computes before a check that raises and does not read it, which decides before
 validating, and a load of one mode, which refuses what `require` and `load` take. It names a refusal
 raised with the family's wording as a literal, `luaL_error(L, "not allowed ...")`, whose message is a
