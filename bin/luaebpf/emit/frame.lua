@@ -11,7 +11,6 @@
 
 local insn  = require("luaebpf.insn")
 local proto = require("luaebpf.proto")
-local bpf   = proto.script("linux.bpf") -- not require: outside a body, the host's path would be searched first
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local opcodes    = proto.opcodes
@@ -23,7 +22,6 @@ local FIRST    <const> = reg.R6
 local SLOT     <const> = 8
 local NBITS    <const> = 64
 local BYTE     <const> = 8   -- bits
-local MAXSTACK <const> = bpf.max.STACK
 
 -- the words every frame reserves: the flag a callee raises through the pointer its caller
 -- passed, where the callee keeps that pointer, since R1-R5 do not survive a nested call, and
@@ -197,8 +195,9 @@ frame.depth = depth
 
 -- a frame deeper than eBPF allows is refused at the line that needs it
 local function stack(f, pc, bytes)
-	if bytes > MAXSTACK then
-		refuse(f, pc, "the function needs %d bytes of stack, over the %d eBPF allows", bytes, MAXSTACK)
+	local limit = f.unit.maxstack
+	if bytes > limit then
+		refuse(f, pc, "the function needs %d bytes of stack, over the %d eBPF allows", bytes, limit)
 	end
 end
 frame.stack = stack

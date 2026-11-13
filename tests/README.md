@@ -1136,7 +1136,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   directory whose `linux/xdp.lua` gives `PASS` another value and which lacks
   `class`, which raises, and then for the first directory, named by its absolute
   path, reads that directory the third time and writes the object `lunatik bpf
-  --scripts` wrote. A module the directory lacks, `class`, is not found, the
+  --scripts` wrote. The directory's `linux/bpf.lua` is `/lib/modules/lua`'s
+  until the case gives it a stack limit no frame fits, under which the program
+  is refused naming that limit: the compiler's own read of the kernel scripts is
+  the directory's too. A module the directory lacks, `class`, is not found, the
   message naming the directory's paths and none under `/lib/modules/lua`, which
   holds one, and no object is written. The compile without `--scripts` reads
   `/lib/modules/lua`, `--scripts` on a copy of it reads the copy, and the two

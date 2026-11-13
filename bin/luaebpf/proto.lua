@@ -98,7 +98,8 @@ end
 insert(package.searchers, search) -- last: a module package.path finds is the CLI's Lua and shadows the kernel's
 
 ---
--- Loads the kernel script named `name`, past any module the host's path holds under that name.
+-- Loads the kernel script named `name`, from `/lib/modules/lua` or the directory `luaebpf.proto.scripts`
+-- names, past any module the host's path holds under that name.
 -- @function luaebpf.proto.script
 -- @tparam string name a module's name, as a kernel script requires it
 -- @treturn any what the script returns

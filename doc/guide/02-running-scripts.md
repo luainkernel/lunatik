@@ -165,9 +165,10 @@ it builds the modules against: that kernel's version and whether it reads a word
 decide what a program may emit, and its byte order is the object's. The types a program reads, its
 context's struct and any layout `luaebpf.vmlinux` answers, come from that kernel's BTF:
 `/sys/kernel/btf/vmlinux` unless `--btf` names a raw BTF file, the bytes that path serves. The
-kernel scripts the body requires, its `linux.*` tables among them, come from `/lib/modules/lua/`
-unless `--scripts` names another directory laid out as that one; a module that directory lacks is
-not found, and is not read from `/lib/modules/lua/`.
+kernel scripts the body requires, its `linux.*` tables among them, and the `linux.bpf` the compiler
+reads the stack limit from, come from `/lib/modules/lua/` unless `--scripts` names another directory
+laid out as that one; a module that directory lacks is not found, and is not read from
+`/lib/modules/lua/`.
 
 A build host compiles for the kernel an image ships in three steps:
 

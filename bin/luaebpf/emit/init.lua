@@ -259,6 +259,8 @@ function emit.program(program)
 		kfunc = program.kfunc,
 		-- no lowering can require luaebpf.emit back; read here, after the body that may set them ran
 		maygoto = emit.maygoto, unaligned = emit.unaligned, bigendian = emit.bigendian,
+		-- read here, at each compile, so from the directory luaebpf.proto.scripts named for it
+		maxstack = proto.script("linux.bpf").max.STACK,
 		subprogram = subprogram,
 	}
 	local read = proto.read(program.fn)
