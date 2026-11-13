@@ -90,6 +90,23 @@ do {										\
 	lunatik_unpin(_object);							\
 } while(0)
 
+#define lunatik_registering(registrant, call)	\
+do {						\
+	WRITE_ONCE(registrant, current);	\
+	call;					\
+	WRITE_ONCE(registrant, NULL);		\
+} while (0)
+
+#define lunatik_isregistrant(registrant)	(in_task() && READ_ONCE(registrant) == current)
+
+#define lunatik_runcallback(registrant, runtime, handler, ret, ...)		\
+do {										\
+	if (lunatik_isregistrant(registrant)) /* the body runs on this task, unlocked */	\
+		lunatik_handle(runtime, handler, ret, ## __VA_ARGS__);		\
+	else									\
+		lunatik_run(runtime, handler, ret, ## __VA_ARGS__);		\
+} while (0)
+
 typedef void (*lunatik_release_t)(void *);
 
 typedef struct lunatik_defer_s {
@@ -386,6 +403,7 @@ static inline lua_Integer lunatik_checkfieldinteger(lua_State *L, const char *fi
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
 #define LUNATIK_ERR_HARDIRQ	"not allowed in a hardirq runtime"
+#define LUNATIK_ERR_REPLAY	"not allowed inside a replay"
 
 static inline void lunatik_checkclosing(lua_State *L)
 {

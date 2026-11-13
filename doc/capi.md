@@ -336,6 +336,28 @@ takes no lock, does not resolve a `percpu` object, does not check that the state
 ready, and records no stack pointer: the caller already runs inside the runtime, holding its lock
 or in its script body, and passes a plain runtime whose state it knows is open. Defined as a macro.
 
+### lunatik\_registering
+```C
+void lunatik_registering(struct task_struct *registrant, <statement> call);
+bool lunatik_isregistrant(struct task_struct *registrant);
+void lunatik_runcallback(struct task_struct *registrant, lunatik_object_t *runtime,
+	<inttype> (*handler)(...), <inttype> &ret, ...);
+```
+A kernel registration that delivers its callbacks inside the call, on the registering task, as
+`register_netdevice_notifier` replays a `REGISTER` for each device and `hid_register_driver` probes
+the devices already on the bus, delivers them while the script body runs, where
+[`lunatik_run`](#lunatik_run) answers `-ENXIO`. `lunatik_registering` runs `call` with the calling
+task in `registrant`, a field of the binding's own object, and clears it after; nothing in `call`
+may raise. `lunatik_isregistrant` returns `true` on that task, in task context, while `call` runs,
+and `lunatik_runcallback` then runs the callback through [`lunatik_handle`](#lunatik_handle), with no
+lock, since the body holds none, and through `lunatik_run` everywhere else: an interrupt taken on
+that task, and a callback of the same object on another task, are refused as before. The field is
+read without a lock, as `lunatik_rtnl` is: only the task that wrote it can find itself there.
+A callback delivered this way runs holding what the registration holds, a device lock among them, and
+a binding whose registration would take it again refuses one made from such a callback with
+[`LUNATIK_ERR_REPLAY`](#lunatik_err_closed), as `hid.register` and a hid driver's `stop` do.
+Defined as macros.
+
 ### lunatik\_cpcall
 ```C
 int lunatik_cpcall(lua_State *L, lua_CFunction f, void *ud);
@@ -1122,6 +1144,7 @@ handler, a `BUG()`. After a protected call or a resume fails, the error is read 
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
 #define LUNATIK_ERR_HARDIRQ	"not allowed in a hardirq runtime"
+#define LUNATIK_ERR_REPLAY	"not allowed inside a replay"
 #define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
 ```
 The messages of the refusals this page documents. A binding that refuses one of their conditions on
