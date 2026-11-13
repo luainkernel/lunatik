@@ -234,7 +234,7 @@ echoes() {
 }
 
 ktap_header
-ktap_plan 28
+ktap_plan 29
 
 skip_all()
 {
