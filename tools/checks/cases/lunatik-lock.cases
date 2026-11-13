@@ -14,4 +14,5 @@ pass	LUNATIK_LOCK_OK=1 sudo lunatik test set
 pass	git add tests/set/run.sh
 pass	cat tests/set/run.sh
 pass	grep -n lunatik tools/checks/lunatik-lock.sh
+pass	LUNATIK_HOST_WAIT=540 bash tools/lunatik-host true
 
