@@ -14,8 +14,9 @@
 # resumed with RFC 9001 A.2's protected client Initial, derives A.1's client keys from the packet's connection ID,
 # removes the header protection and deciphers the payload with ctr(aes) from GCM's second counter, its tag unchecked.
 #
-# hardirq: crypto.shash and crypto.skcipher refuse a hardirq runtime in its body and past it, and the methods of an
-# object handed over there refuse it, since its callbacks run with IRQs disabled.
+# hardirq: crypto.shash and crypto.skcipher refuse a hardirq runtime in its body and past it. A sha256 and a ctr(aes)
+# the script shares through lunatik._ENV digest and encrypt the vectors in the body, which runs with IRQs on before
+# the runtime is armed, and their methods refuse a callback they are handed over to, since it runs with IRQs disabled.
 #
 # context: a crypto object refused for its execution context leaves nothing
 # allocated, measured on the reference a tfm holds on the module implementing

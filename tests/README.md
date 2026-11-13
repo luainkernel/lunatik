@@ -207,10 +207,13 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   `hmac(sha256)`, `ecb(aes)` or `ctr(aes)`, which the script allocates before
   its case.
 - **hardirq**: `shash` and `skcipher` raise `not allowed in a hardirq runtime`
-  in a hardirq runtime's body and past it, and a `crypto.shash` and a
-  `crypto.skcipher` handed over to it raise `not allowed with IRQs disabled`
-  from a method, since its callbacks run with them off. Skipped where the
-  kernel serves no `sha256` or `ctr(aes)`.
+  in a hardirq runtime's body and past it. A `crypto.shash` and a
+  `crypto.skcipher` the script shares through `lunatik._ENV` run their methods
+  in the body, which runs with IRQs on: `sha256` digests the vector of
+  **shash**, and `ctr(aes)` sets the key of SP 800-38A F.5.1 and encrypts its
+  first block. Handed over to the runtime's callback, they raise
+  `not allowed with IRQs disabled` from a method, since its callbacks run with
+  them off. Skipped where the kernel serves no `sha256` or `ctr(aes)`.
 - **comp**: `lz4` names itself through `algname`, compresses to fewer bytes
   and decompresses back into an exact or a larger buffer; an empty string with
   a size of 0 is refused as out of bounds, and a buffer one byte short of the
