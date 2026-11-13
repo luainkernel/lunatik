@@ -110,13 +110,6 @@ static inline char *luacrypto_aead_prepare(lua_State *L, luacrypto_aead_request_
 	return buffer;
 }
 
-static inline int luacrypto_aead_finish(lua_State *L, luacrypto_aead_request_t *request,
-	char *buffer, int ret, size_t output_len)
-{
-	memmove(buffer, buffer + request->aad_len, output_len); /* the string frees the buffer from its start */
-	return luacrypto_pushbuffer(L, buffer, ret, output_len);
-}
-
 /***
 * Encrypts plaintext with authentication.
 * IV length must match `ivsize()`.
@@ -136,7 +129,7 @@ static int luacrypto_aead_encrypt(lua_State *L)
 	size_t output_len = request.crypt_len + request.authsize;
 	char *buffer = luacrypto_aead_prepare(L, &request, output_len);
 	int ret = crypto_aead_encrypt(request.aead);
-	return luacrypto_aead_finish(L, &request, buffer, ret, output_len);
+	return luacrypto_pushbuffer(L, buffer, ret, request.aad_len, output_len);
 }
 
 /***
@@ -165,7 +158,7 @@ static int luacrypto_aead_decrypt(lua_State *L)
 		lunatik_free(buffer);
 		return lunatik_pushfail(L, ret);
 	}
-	return luacrypto_aead_finish(L, &request, buffer, ret, output_len);
+	return luacrypto_pushbuffer(L, buffer, ret, request.aad_len, output_len);
 }
 
 /***

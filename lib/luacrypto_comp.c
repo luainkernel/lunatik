@@ -65,7 +65,7 @@ static int luacrypto_comp_operate(lua_State *L, luacrypto_comp_op_t op)
 		crypto_req_done, &wait);
 
 	int ret = crypto_wait_req(op(request), &wait);
-	return luacrypto_pushbuffer(L, buffer, ret, request->dlen);
+	return luacrypto_pushbuffer(L, buffer, ret, 0, request->dlen);
 }
 
 #define LUACRYPTO_COMP_OPERATION(name)							\

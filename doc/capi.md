@@ -1645,13 +1645,15 @@ allocator.
 
 ### luacrypto\_pushbuffer
 ```C
-int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, size_t len);
+int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, size_t offset, size_t len);
 ```
-Answers a request that wrote its result into `buffer`, a [`luacrypto_newbuffer`](#luacrypto_newbuffer)
-of at least `len + 1` bytes, from `ret`, what the kernel returned for it: pushes the first `len` bytes
-as a string with [`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which then owns the
-buffer, and returns `1`; for a negative `ret` frees the buffer with [`lunatik_free`](#lunatik_free)
-and raises the errno's name.
+Answers a request that wrote its result at `offset` into `buffer`, a
+[`luacrypto_newbuffer`](#luacrypto_newbuffer) of at least `offset + len + 1` bytes, from `ret`, what the
+kernel returned for it: moves the `len` bytes at `offset` to the buffer's start, as the result of
+`crypto.aead`, which follows its associated data, needs, pushes them as a string with
+[`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which then owns the buffer, and returns `1`;
+for a negative `ret` frees the buffer with [`lunatik_free`](#lunatik_free) and raises the errno's name,
+having moved nothing.
 
 ### luacrypto\_shash\_class
 ```C
