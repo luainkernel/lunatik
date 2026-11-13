@@ -1593,7 +1593,7 @@ allocated once, when the object is created, so an operation allocates only what 
 #define LUACRYPTO_NEWCTX(name, T, alloc, class)
 void luacrypto_initctx(lua_State *L, luacrypto_ctx_t *ctx, void *request, unsigned int ivsize);
 ```
-Define `int luacrypto_<name>_new(lua_State *L)`, the constructor of `class` a script calls with the
+Defines `int luacrypto_<name>_new(lua_State *L)`, the constructor of `class` a script calls with the
 algorithm's name at index `1`. `LUACRYPTO_NEWCTX` is for a class whose private is a `luacrypto_ctx_t`: it
 allocates the transform with `alloc(algname, 0, CRYPTO_ALG_ASYNC)`, which passes over an asynchronous
 implementation, then hands `luacrypto_initctx` the request `<name>_request_alloc` allocates with the
