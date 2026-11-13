@@ -30,6 +30,9 @@
 # deferred: comp waits for an asynchronous implementation, a module the test builds whose worker
 # completes each request after the call returned, through the backlog for decompress.
 #
+# irqsoff: shash and skcipher methods refuse a softirq runtime's hid raw_event reached with IRQs off, as an HCD
+# without HCD_BH reaches it, through a HID transport the test builds whose one report comes from hardirq context.
+#
 # seed: rng and reset without a seed seed an algorithm with seedsize() random bytes, ansi_cprng's 48.
 #
 # sig: crypto.sig verifies the kernel's own ECDSA P-256 vector and an RSA PKCS#1 v1.5 pair openssl
@@ -96,6 +99,8 @@ echo ""
 bash "$DIR/large.sh" || RESULT=1
 echo ""
 bash "$DIR/deferred.sh" || RESULT=1
+echo ""
+bash "$DIR/irqsoff.sh" || RESULT=1
 echo ""
 bash "$DIR/seed.sh" || RESULT=1
 echo ""
