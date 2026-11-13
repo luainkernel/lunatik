@@ -117,6 +117,11 @@ test("SKCIPHER AES-128-ECB round-trip without IV", function()
 	assert(decrypted == plaintext, "ECB round-trip mismatch")
 end)
 
+test("SKCIPHER AES-128-CBC algname", function()
+	local name = skcipher("cbc(aes)"):algname()
+	assert(name == "cbc(aes)", "algname should be 'cbc(aes)', got: " .. name)
+end)
+
 test("SKCIPHER close releases the transform, and __close is close", function()
 	closing.check(skcipher("cbc(aes)"), "ivsize")
 end)

@@ -112,21 +112,23 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
 - **shash**: `sha256` and `hmac(sha256)` report a 32-byte digest and match
   known digests in one shot, in `init`/`update`/`final` parts and through
   `finup`, and a state exported from one hasher and imported into another
-  finishes to the same digest. Skipped where the kernel serves no `sha256` or no
-  `hmac(sha256)`, which the script allocates before its cases.
+  finishes to the same digest; `sha256` names itself through `algname`. Skipped
+  where the kernel serves no `sha256` or no `hmac(sha256)`, which the script
+  allocates before its cases.
 - **skcipher**: `cbc(aes)` encrypts and decrypts a known vector and reports a
   16-byte IV and block, refuses a short key, a short IV and data that is not a
   whole number of blocks with `EINVAL` and an unknown algorithm name with
   `ENOENT`, encrypts and decrypts empty data to an empty string, survives 5000
-  round trips, and
+  round trips and names itself through `algname`, and
   `ecb(aes)` round-trips with no IV. Skipped where the kernel serves no
   `cbc(aes)` or no `ecb(aes)`, which the script allocates before its cases.
 - **aead**: `gcm(aes)` encrypts and decrypts a known vector with associated
   data and reports a 12-byte IV and the tag size it was set to, refuses a
   short key, an invalid tag size and a short IV with `EINVAL` and an unknown
   algorithm name with `ENOENT`, answers a
-  truncated or tampered tag with nil and `EBADMSG`, and round-trips without associated
-  data, an empty plaintext with and without it, and 5000 times.
+  truncated or tampered tag with nil and `EBADMSG`, round-trips without associated
+  data, an empty plaintext with and without it, and 5000 times, and names itself
+  through `algname`.
   `authenc(digest_null,ecb(cipher_null))`, keyed with an empty authentication and
   encryption key, reports no IV and a zero-byte tag, and encrypts and decrypts
   an empty input to an empty string and any other to itself.
@@ -136,7 +138,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `hkdf`,
 - **rng**: `stdrng` gives the number of bytes asked for through `generate`,
   with or without additional input, and `getbytes`, also after a reset without
   a seed, refuses 0 bytes as out of bounds and an additional input or a seed
-  that is not a string; `drbg_nopr_hmac_sha512`, a DRBG named by its driver,
+  that is not a string, and names itself through `algname`;
+  `drbg_nopr_hmac_sha512`, a DRBG named by its driver,
   gives bytes after a reset with a seed and reports a seed size of 0. Skipped
   where the kernel's configuration has no `CONFIG_CRYPTO_RNG2`, without which
   `crypto.rng` raises `EOPNOTSUPP`, or where the kernel serves no `stdrng` or no

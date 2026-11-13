@@ -161,6 +161,11 @@ test("AEAD AES-128-GCM stress round-trip", function()
 	end
 end)
 
+test("AEAD AES-128-GCM algname", function()
+	local name = aead("gcm(aes)"):algname()
+	assert(name == "gcm(aes)", "algname should be 'gcm(aes)', got: " .. name)
+end)
+
 test("AEAD close releases the transform, and __close is close", function()
 	closing.check(aead("gcm(aes)"), "ivsize")
 end)

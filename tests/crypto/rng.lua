@@ -96,6 +96,11 @@ test("RNG getbytes (different from previous)", function()
 	assert(bytes16 ~= bytes32, "Consecutive getbytes calls should produce different results (highly probable)")
 end)
 
+test("RNG algname", function()
+	local name = rng("stdrng"):algname()
+	assert(name == "stdrng", "algname should be 'stdrng', got: " .. name)
+end)
+
 test("RNG close releases the transform, and __close is close", function()
 	closing.check(rng(), "seedsize")
 end)
