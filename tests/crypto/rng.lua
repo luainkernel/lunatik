@@ -105,3 +105,9 @@ test("RNG close releases the transform, and __close is close", function()
 	closing.check(rng(), "seedsize")
 end)
 
+test("RNG refuses an unknown algorithm name", function()
+	local status, err = pcall(rng, "nosuchalg")
+	assert(not status, "rng with an unknown algorithm name should fail")
+	assert(err == "ENOENT", "Error code should be 'ENOENT', got: " .. tostring(err))
+end)
+
