@@ -1607,12 +1607,12 @@ allocated before the raise.
 ### LUACRYPTO\_RELEASER
 ```C
 #define LUACRYPTO_RELEASER(name, T, obj_free)
-#define LUACRYPTO_RELEASERCTX(name, T, tfm_free)
+#define LUACRYPTO_RELEASERCTX(name, T, request_free, tfm_free)
 ```
 Define `static void luacrypto_<name>_release(void *private)`, the `release` of a class:
 `LUACRYPTO_RELEASER` for one whose private is the transform, which it passes to `obj_free`, and
 `LUACRYPTO_RELEASERCTX` for one whose private is a `luacrypto_ctx_t`, whose request it frees with
-`<name>_request_free` and its IV with [`lunatik_free`](#lunatik_free) before it passes the transform
+`request_free` and its IV with [`lunatik_free`](#lunatik_free) before it passes the transform
 to `tfm_free`. Each frees only what is set, so it runs on the private of a constructor that raised.
 
 ### LUACRYPTO\_CHECKER
@@ -1623,6 +1623,16 @@ Defines, with [`LUNATIK_PRIVATECHECKER`](#lunatik_privatechecker), the checker
 `luacrypto_<name>_checkctx`, which returns the `luacrypto_ctx_t *` of an object of
 `luacrypto_<name>_class` at `ix`, and `luacrypto_<name>_check`, which returns its transform as a
 `T *`. They raise what the checker raises, `closed object` included.
+
+### LUACRYPTO\_ALGNAME
+```C
+#define LUACRYPTO_ALGNAME(name, tfm)
+```
+Defines `static int luacrypto_<name>_algname(lua_State *L)`, the `algname` method of a class: it
+takes the object at index 1 with `luacrypto_<name>_check(L, 1)` as `private` and pushes the name of
+the algorithm `tfm` was allocated with, `tfm` being an expression over `private` that gives the
+`struct crypto_tfm *`, as `crypto_shash_tfm(private->tfm)` does for `crypto.shash`. It raises what
+the checker raises.
 
 ### luacrypto\_checkiv
 ```C
@@ -1655,24 +1665,13 @@ kernel returned for it: moves the `len` bytes at `offset` to the buffer's start,
 for a negative `ret` frees the buffer with [`lunatik_free`](#lunatik_free) and raises the errno's name,
 having moved nothing.
 
-### luacrypto\_shash\_class
+### LUACRYPTO\_DECLARE
 ```C
-extern const lunatik_class_t luacrypto_shash_class;
-extern const lunatik_class_t luacrypto_skcipher_class;
-extern const lunatik_class_t luacrypto_aead_class;
-extern const lunatik_class_t luacrypto_rng_class;
-extern const lunatik_class_t luacrypto_sig_class;
-extern const lunatik_class_t luacrypto_comp_class;
-
-int luacrypto_shash_new(lua_State *L);
-int luacrypto_skcipher_new(lua_State *L);
-int luacrypto_aead_new(lua_State *L);
-int luacrypto_rng_new(lua_State *L);
-int luacrypto_sig_new(lua_State *L);
-int luacrypto_comp_new(lua_State *L);
+#define LUACRYPTO_DECLARE(name)
 ```
-The classes and constructors of `crypto.shash`, `crypto.skcipher`, `crypto.aead`, `crypto.rng`,
-`crypto.sig` and `crypto.comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
+Declares `extern const lunatik_class_t luacrypto_<name>_class` and `int luacrypto_<name>_new(lua_State *L)`,
+the class and the constructor of `crypto.<name>`, as `luacrypto.h` does for `shash`, `skcipher`, `aead`,
+`rng`, `sig` and `comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference says
 what each constructor raises. `luacrypto_rng_class` is defined where `CONFIG_CRYPTO_RNG2` is reachable,
 since `luacrypto_rng.c` links `crypto_alloc_rng` and `crypto_rng_reset` from it, and `luacrypto_rng_new`
 raises `EOPNOTSUPP` where it is not.

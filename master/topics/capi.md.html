@@ -2237,14 +2237,14 @@ allocated before the raise.</p>
 
 <pre>
 #define LUACRYPTO_RELEASER(name, T, obj_free)
-#define LUACRYPTO_RELEASERCTX(name, T, tfm_free)
+#define LUACRYPTO_RELEASERCTX(name, T, request_free, tfm_free)
 </pre>
 
 
 <p>Define <code>static void luacrypto_&lt;name&gt;_release(void *private)</code>, the <code>release</code> of a class:
 <code>LUACRYPTO_RELEASER</code> for one whose private is the transform, which it passes to <code>obj_free</code>, and
 <code>LUACRYPTO_RELEASERCTX</code> for one whose private is a <code>luacrypto_ctx_t</code>, whose request it frees with
-<code>&lt;name&gt;_request_free</code> and its IV with <a href="#lunatik_free"><code>lunatik_free</code></a> before it passes the transform
+<code>request_free</code> and its IV with <a href="#lunatik_free"><code>lunatik_free</code></a> before it passes the transform
 to <code>tfm_free</code>. Each frees only what is set, so it runs on the private of a constructor that raised.</p>
 
 <h3 id="luacrypto_checker">LUACRYPTO_CHECKER</h3>
@@ -2258,6 +2258,19 @@ to <code>tfm_free</code>. Each frees only what is set, so it runs on the private
 <code>luacrypto_&lt;name&gt;_checkctx</code>, which returns the <code>luacrypto_ctx_t <em></code> of an object of
 <code>luacrypto_&lt;name&gt;_class</code> at <code>ix</code>, and <code>luacrypto_&lt;name&gt;_check</code>, which returns its transform as a
 <code>T </em></code>. They raise what the checker raises, <code>closed object</code> included.</p>
+
+<h3 id="luacrypto_algname">LUACRYPTO_ALGNAME</h3>
+
+<pre>
+#define LUACRYPTO_ALGNAME(name, tfm)
+</pre>
+
+
+<p>Defines <code>static int luacrypto_&lt;name&gt;_algname(lua_State <em>L)</code>, the <code>algname</code> method of a class: it
+takes the object at index 1 with <code>luacrypto_&lt;name&gt;_check(L, 1)</code> as <code>private</code> and pushes the name of
+the algorithm <code>tfm</code> was allocated with, <code>tfm</code> being an expression over <code>private</code> that gives the
+<code>struct crypto_tfm </em></code>, as <code>crypto_shash_tfm(private-&gt;tfm)</code> does for <a href="../modules/crypto.html#shash">crypto.shash</a>. It raises what
+the checker raises.</p>
 
 <h3 id="luacrypto_checkiv">luacrypto_checkiv</h3>
 
@@ -2299,27 +2312,16 @@ kernel returned for it: moves the <code>len</code> bytes at <code>offset</code> 
 for a negative <code>ret</code> frees the buffer with <a href="#lunatik_free"><code>lunatik_free</code></a> and raises the errno&rsquo;s name,
 having moved nothing.</p>
 
-<h3 id="luacrypto_shash_class">luacrypto_shash_class</h3>
+<h3 id="luacrypto_declare">LUACRYPTO_DECLARE</h3>
 
 <pre>
-<span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_shash_class;
-<span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_skcipher_class;
-<span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_aead_class;
-<span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_rng_class;
-<span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_sig_class;
-<span class="keyword">extern</span> <span class="keyword">const</span> lunatik_class_t luacrypto_comp_class;
-
-<span class="keyword">int</span> <span class="function-name">luacrypto_shash_new</span>(lua_State *L);
-<span class="keyword">int</span> <span class="function-name">luacrypto_skcipher_new</span>(lua_State *L);
-<span class="keyword">int</span> <span class="function-name">luacrypto_aead_new</span>(lua_State *L);
-<span class="keyword">int</span> <span class="function-name">luacrypto_rng_new</span>(lua_State *L);
-<span class="keyword">int</span> <span class="function-name">luacrypto_sig_new</span>(lua_State *L);
-<span class="keyword">int</span> <span class="function-name">luacrypto_comp_new</span>(lua_State *L);
+#define LUACRYPTO_DECLARE(name)
 </pre>
 
 
-<p>The classes and constructors of <a href="../modules/crypto.html#shash">crypto.shash</a>, <a href="../modules/crypto.html#skcipher">crypto.skcipher</a>, <a href="../modules/crypto.html#aead">crypto.aead</a>, <a href="../modules/crypto.html#rng">crypto.rng</a>,
-<a href="../modules/crypto.html#sig">crypto.sig</a> and <a href="../modules/crypto.html#comp">crypto.comp</a>, which <code>luacrypto_core.c</code> opens as the <a href="../modules/crypto.html#">crypto</a> module; the module&rsquo;s reference says
+<p>Declares <code>extern const lunatik_class_t luacrypto_&lt;name&gt;_class</code> and <code>int luacrypto_&lt;name&gt;_new(lua_State *L)</code>,
+the class and the constructor of <code>crypto.&lt;name&gt;</code>, as <code>luacrypto.h</code> does for <code>shash</code>, <code>skcipher</code>, <code>aead</code>,
+<code>rng</code>, <code>sig</code> and <code>comp</code>, which <code>luacrypto_core.c</code> opens as the <a href="../modules/crypto.html#">crypto</a> module; the module&rsquo;s reference says
 what each constructor raises. <code>luacrypto_rng_class</code> is defined where <code>CONFIG_CRYPTO_RNG2</code> is reachable,
 since <code>luacrypto_rng.c</code> links <code>crypto_alloc_rng</code> and <code>crypto_rng_reset</code> from it, and <code>luacrypto_rng_new</code>
 raises <code>EOPNOTSUPP</code> where it is not.</p>
@@ -2801,7 +2803,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:17:10</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:19:38</span>
 </div>
 </footer>
 </body>
