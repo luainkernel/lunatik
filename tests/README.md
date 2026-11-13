@@ -311,6 +311,17 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   the errno of the running release for each of the four cases. Each skips where
   the kernel's configuration has no option for its template, `CONFIG_CRYPTO_CBC`
   or `CONFIG_CRYPTO_HMAC`.
+- **kpp_status**: `kpp` raises `EIO` where the engine answers a positive status,
+  the chip's error code atmel-ecc answers, which is not an errno. No test host
+  carries the chip, so the test builds `kpp_status.c` against the running kernel
+  and loads it: `lunatik-kpp-status`, an `ecdh-nist-p256` below the generic
+  driver's priority that serves every key through the generic driver but two.
+  For one its `set_secret` answers atmel's "ECC Fault", and the constructor
+  raises `EIO`; for the other its `generate_public_key` answers it, and
+  `publickey` raises `EIO`, and its `compute_shared_secret` answers
+  `-EINPROGRESS` and a worker completes the request with it, and `sharedsecret`
+  of a key on the curve raises `EIO`. Skipped where the kernel builds no ECDH or has
+  no build tree.
 
 Each of `shash`, `skcipher`, `aead`, `rng`, `sig` and `comp` also closes an object
 through `closing.lua`: its metatable holds one function under `__close` and
