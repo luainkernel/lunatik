@@ -194,6 +194,21 @@ static inline bool luaskb_writable(luaskb_t *lskb)
 #define luaskb_checkwritable(L, lskb, ix)	\
 	luaL_argcheck((L), luaskb_writable(lskb), (ix), "skb is not writable")
 
+static unsigned char *luaskb_copybits(lua_State *L, luaskb_t *lskb)
+{
+	struct sk_buff *skb = lskb->skb;
+	int headroom = skb_headroom(skb); /* copied as skb_copy() copies it, so each view's start lies in the copy */
+	size_t size = headroom + skb->len;
+
+	if (size > lskb->size) {
+		lskb->bytes = lunatik_checknull(L, lunatik_realloc(L, lskb->bytes, lskb->size, size));
+		lskb->size = size;
+	}
+	lunatik_try(L, skb_copy_bits, skb, -headroom, lskb->bytes, size);
+	lskb->copied = true;
+	return lskb->bytes;
+}
+
 static lunatik_object_t *luaskb_pushview(lua_State *L, lunatik_object_t **view)
 {
 	if (*view != NULL)
@@ -226,27 +241,31 @@ static unsigned char *luaskb_start(struct sk_buff *skb, int layer)
 * does, and returns a view from where `layer` starts to the end of the packet: "net" at the
 * network header and "mac" at the MAC header, or, with no `layer`, at `skb->data`, where the
 * packet starts as the hook sees it: the network header in an IPv4 or IPv6 netfilter hook and the
-* MAC header in a tc callback. In a tc callback the skb is neither linearized nor unshared: a
-* non-linear one raises, and one whose head a clone shares returns a read only view, whose setters
-* raise "read only".
+* MAC header in a tc callback. In a tc callback the skb is neither linearized nor unshared: one
+* whose head a clone shares returns a read only view, whose setters raise "read only", and so does a
+* non-linear one, over a copy of the packet the callback's first `data` makes (`skb_copy_bits`)
+* into a buffer the skb keeps. The buffer grows to the largest packet the runtime has seen, with the
+* headroom before it, and keeps that size.
 *
 * The skb keeps one view per start: the view with no layer and the "net" and "mac"
 * views are three objects, and a second call returns the same view, ending at the
-* tail as it is then: a `resize` alone does not move a view's end. The skb stays
-* linear once a view is taken, and in a netfilter hook its head its own, so no later call moves
-* the bytes a view reads. A view is valid until the callback that received the skb returns, or, for a
-* copy, until the copy is collected: afterwards its length is 0 and every access raises "out of
-* bounds".
+* end of the packet as it is then: a `resize` alone does not move a view's end. The skb stays
+* linear once a view is taken, and in a netfilter hook its head its own, while a non-linear one in a
+* tc callback is never resized, so no later call moves the bytes a view reads. A view is valid until
+* the callback that received the skb returns, or, for a copy, until the copy is collected: afterwards
+* its length is 0 and every access raises "out of bounds".
 * @function data
 * @tparam[opt] string layer "net" or "mac"
 * @treturn data the view, or nil when the layer's header is not set or lies past the tail
-* @raise if the skb is not linear, in a tc callback or after a failed linearization, if it is not
-* writable after a failed unshare, or if layer is invalid
+* @raise if the skb is not linear after a failed linearization, if it is not writable after a failed
+* unshare, if layer is invalid, or, in a tc callback, "not enough memory" when the buffer cannot grow
+* to hold a non-linear skb and `EFAULT` when its copy fails, as it does on 6.12 and later for a
+* fragment in memory the kernel does not read
 */
 static int luaskb_data(lua_State *L)
 {
 	luaskb_t *lskb = luaskb_check(L, 1);
-	luaskb_checklinear(L, lskb, 1);
+	luaL_argcheck(L, lskb->kfunc || !skb_linearize(lskb->skb), 1, "skb is not linear");
 	bool writable = luaskb_writable(lskb);
 	luaL_argcheck(L, writable || lskb->kfunc, 1, "skb is not writable");
 
@@ -255,11 +274,15 @@ static int luaskb_data(lua_State *L)
 	int layer = lua_isnoneornil(L, 2) ? LUASKB_DATA : luaL_checkoption(L, 2, NULL, layers);
 	unsigned char *start = luaskb_start(skb, layer);
 
-	if (luaskb_ispresent(skb, start))
+	if (!luaskb_ispresent(skb, start))
+		lua_pushnil(L);
+	else if (skb_is_nonlinear(skb)) /* only a tc callback leaves it so */
+		luadata_reset(luaskb_pushview(L, &lskb->view[layer]),
+			(lskb->copied ? lskb->bytes : luaskb_copybits(L, lskb)) + (start - skb->head),
+			skb->data + skb->len - start, LUADATA_OPT_READONLY);
+	else
 		luadata_reset(luaskb_pushview(L, &lskb->view[layer]), start, skb_tail_pointer(skb) - start,
 			writable ? LUADATA_OPT_NONE : LUADATA_OPT_READONLY);
-	else
-		lua_pushnil(L);
 	return 1;
 }
 
@@ -497,6 +520,7 @@ static void luaskb_release(void *private)
 		kfree_skb(lskb->skb);
 	if (lskb->hook)
 		lunatik_putobject(lskb->hook);
+	lunatik_free(lskb->bytes);
 }
 
 static int luaskb_gc(lua_State *L)
