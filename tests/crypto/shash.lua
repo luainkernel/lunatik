@@ -114,6 +114,11 @@ test("crypto.shash:export and import functionality", function()
 	assert(digest4 == digest_data1, "Imported state final digest does not match digest of data1")
 end)
 
+test("crypto.shash:algname", function()
+	local name = shash("sha256"):algname()
+	assert(name == "sha256", "algname should be 'sha256', got: " .. name)
+end)
+
 test("crypto.shash:close releases the transform, and __close is close", function()
 	closing.check(shash("sha256"), "digestsize")
 end)
