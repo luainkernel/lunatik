@@ -2195,7 +2195,12 @@ that resolution fails, as it does without <code>CONFIG_KPROBES</code> or <code>C
 
 <p><code>lib/luacrypto.h</code> is shared by the files <code>luacrypto.ko</code> is built from, a file per class of the
 <a href="../modules/crypto.html#">crypto</a> module and the one that opens it, and the module exports none of it: no other module links
-<code>luacrypto_newbuffer</code> or a class. The classes are process-context ones, so their constructors run
+<code>luacrypto_newbuffer</code> or a class. <a href="../modules/crypto.html#shash">crypto.shash</a> and <a href="../modules/crypto.html#skcipher">crypto.skcipher</a> are softirq classes: their
+constructors call <a href="#lunatik_checkhardirq"><code>lunatik_checkhardirq</code></a> and
+<a href="#lunatik_checkarmed"><code>lunatik_checkarmed</code></a> before they allocate the transform, which may sleep, and
+their checkers call <a href="#lunatik_checkirqs"><code>lunatik_checkirqs</code></a>, since arm64&rsquo;s AES setkey and ciphers
+enter NEON unguarded, a <code>BUG</code> with IRQs off. Their methods run under a spinlock and allocate with
+<code>GFP_ATOMIC</code> in any runtime. The other classes are process-context ones, so their constructors run
 in a process runtime, where the kernel&rsquo;s crypto allocations may sleep.</p>
 
 <h3 id="luacrypto_ctx_t">luacrypto_ctx_t</h3>
@@ -2217,13 +2222,14 @@ allocated once, when the object is created, so an operation allocates only what 
 <h3 id="luacrypto_newctx">LUACRYPTO_NEWCTX</h3>
 
 <pre>
-#define LUACRYPTO_NEWCTX(name, T, alloc, class)
+#define LUACRYPTO_NEWCTX(name, T, alloc, class, ...)
 <span class="keyword">void</span> <span class="function-name">luacrypto_initctx</span>(lua_State *L, luacrypto_ctx_t *ctx, <span class="keyword">void</span> *request, <span class="keyword">unsigned</span> <span class="keyword">int</span> ivsize);
 </pre>
 
 
 <p>Defines <code>int luacrypto_&lt;name&gt;_new(lua_State *L)</code>, the constructor of <a href="../modules/class.html#">class</a> a script calls with the
 algorithm&rsquo;s name at index <code>1</code>. <code>LUACRYPTO_NEWCTX</code> is for a class whose private is a <code>luacrypto_ctx_t</code>: it
+runs the statements its optional <code>...</code> gives, with <code>L</code> in scope, before it reads the name, then
 allocates the transform with <code>alloc(algname, 0, CRYPTO_ALG_ASYNC)</code>, which passes over an asynchronous
 implementation, then hands <code>luacrypto_initctx</code> the request <code>&lt;name&gt;_request_alloc</code> allocates with the
 runtime&rsquo;s <code>gfp</code> and the transform&rsquo;s <code>crypto_&lt;name&gt;_ivsize</code>. <code>luacrypto_initctx</code> stores the request and
@@ -2250,14 +2256,15 @@ to <code>tfm_free</code>. Each frees only what is set, so it runs on the private
 <h3 id="luacrypto_checker">LUACRYPTO_CHECKER</h3>
 
 <pre>
-#define LUACRYPTO_CHECKER(name, T)
+#define LUACRYPTO_CHECKER(name, T, ...)
 </pre>
 
 
 <p>Defines, with <a href="#lunatik_privatechecker"><code>LUNATIK_PRIVATECHECKER</code></a>, the checker
 <code>luacrypto_&lt;name&gt;_checkctx</code>, which returns the <code>luacrypto_ctx_t <em></code> of an object of
 <code>luacrypto_&lt;name&gt;_class</code> at <code>ix</code>, and <code>luacrypto_&lt;name&gt;_check</code>, which returns its transform as a
-<code>T </em></code>. They raise what the checker raises, <code>closed object</code> included.</p>
+<code>T </em></code>. The optional <code>...</code> are the checker&rsquo;s further statements, as <code>LUNATIK_PRIVATECHECKER</code>&rsquo;s are.
+They raise what the checker raises, <code>closed object</code> included.</p>
 
 <h3 id="luacrypto_algname">LUACRYPTO_ALGNAME</h3>
 
@@ -2291,7 +2298,8 @@ not <code>expected</code>, and what <code>luaL_checklstring</code> raises.</p>
 
 
 <p>Allocates the <code>size</code> bytes an operation reads its input from and writes its output to, with
-<code>kmalloc</code>, since a scatterlist maps linear memory, and the runtime&rsquo;s <code>gfp</code>, raising
+<code>kmalloc</code>, since a scatterlist maps linear memory, and the runtime&rsquo;s <code>gfp</code>, which a method of a
+softirq class finds <code>GFP_ATOMIC</code>, raising
 <code>not enough memory</code> when they cannot be had, as past <code>KMALLOC_MAX_SIZE</code>. The caller frees it with
 <a href="#lunatik_free"><code>lunatik_free</code></a> or hands it to
 <a href="#lunatik_pushexternalstring"><code>lunatik_pushexternalstring</code></a>, which frees it with the state&rsquo;s
@@ -2803,7 +2811,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:19:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:43:13</span>
 </div>
 </footer>
 </body>

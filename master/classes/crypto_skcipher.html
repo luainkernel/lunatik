@@ -191,7 +191,8 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-crypto">Cryptography</a></div>
 <h1>crypto_skcipher<span class="kind">Class</span></h1>
 <p class="lead">Lua interface to symmetric-key ciphers (SKCIPHER).</p>
-
+ Every method raises &ldquo;not allowed with IRQs disabled&rdquo; where the CPU runs with them off, in every
+ callback of a hardirq runtime among them.
 
 <h2 id="Methods">Methods</h2>
 <div class="tbl"><table class="function_list">
@@ -306,8 +307,9 @@
     </ol>
 
     <h3>Raises</h3>
-    on decryption failure or incorrect IV length, &ldquo;not enough memory&rdquo; when one kmalloc block
-   cannot be allocated for the data, always past <code>KMALLOC_MAX_SIZE</code>
+     on decryption failure or incorrect IV length, &ldquo;not enough memory&rdquo; when one kmalloc block
+   cannot be allocated for the data without sleeping, in any runtime: always past
+   <code>KMALLOC_MAX_SIZE</code>, and for data of several pages when memory is short
 
 
 
@@ -337,8 +339,9 @@
     </ol>
 
     <h3>Raises</h3>
-    on encryption failure or incorrect IV length, &ldquo;not enough memory&rdquo; when one kmalloc block
-   cannot be allocated for the data, always past <code>KMALLOC_MAX_SIZE</code>
+     on encryption failure or incorrect IV length, &ldquo;not enough memory&rdquo; when one kmalloc block
+   cannot be allocated for the data without sleeping, in any runtime: always past
+   <code>KMALLOC_MAX_SIZE</code>, and for data of several pages when memory is short
 
 
 
@@ -397,7 +400,7 @@
 <a href="../../classes/crypto_skcipher.html">5.1 docs</a> ·
 <a href="../../5.0/classes/crypto_skcipher.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:19:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:43:13</span>
 </div>
 </footer>
 </body>

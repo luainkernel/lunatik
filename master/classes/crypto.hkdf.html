@@ -192,8 +192,8 @@
 <h1>crypto.hkdf<span class="kind">Class</span></h1>
 <p class="lead">HMAC-based Extract-and-Expand Key Derivation Function (HKDF) based on RFC 5869.</p>
  This module provides functions to perform HKDF operations, utilizing the
- underlying <a href="../modules/crypto.html#">crypto</a> C module for HMAC calculations. Like every crypto object, an instance is
- created in a process runtime alone.
+ underlying <a href="../modules/crypto.html#">crypto</a> C module for HMAC calculations. An instance is created where its <code>shash</code> is,
+ in a process runtime or in a softirq script&rsquo;s body, whose hooks then derive keys with it.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -387,7 +387,7 @@
 <a href="../../classes/crypto.hkdf.html">5.1 docs</a> ·
 <a href="../../5.0/classes/crypto.hkdf.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:19:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:43:13</span>
 </div>
 </footer>
 </body>

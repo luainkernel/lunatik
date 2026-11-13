@@ -1572,7 +1572,12 @@ that resolution fails, as it does without `CONFIG_KPROBES` or `CONFIG_KALLSYMS`.
 
 `lib/luacrypto.h` is shared by the files `luacrypto.ko` is built from, a file per class of the
 `crypto` module and the one that opens it, and the module exports none of it: no other module links
-`luacrypto_newbuffer` or a class. The classes are process-context ones, so their constructors run
+`luacrypto_newbuffer` or a class. `crypto.shash` and `crypto.skcipher` are softirq classes: their
+constructors call [`lunatik_checkhardirq`](#lunatik_checkhardirq) and
+[`lunatik_checkarmed`](#lunatik_checkarmed) before they allocate the transform, which may sleep, and
+their checkers call [`lunatik_checkirqs`](#lunatik_checkirqs), since arm64's AES setkey and ciphers
+enter NEON unguarded, a `BUG` with IRQs off. Their methods run under a spinlock and allocate with
+`GFP_ATOMIC` in any runtime. The other classes are process-context ones, so their constructors run
 in a process runtime, where the kernel's crypto allocations may sleep.
 
 ### luacrypto\_ctx\_t
@@ -1590,11 +1595,12 @@ allocated once, when the object is created, so an operation allocates only what 
 
 ### LUACRYPTO\_NEWCTX
 ```C
-#define LUACRYPTO_NEWCTX(name, T, alloc, class)
+#define LUACRYPTO_NEWCTX(name, T, alloc, class, ...)
 void luacrypto_initctx(lua_State *L, luacrypto_ctx_t *ctx, void *request, unsigned int ivsize);
 ```
 Defines `int luacrypto_<name>_new(lua_State *L)`, the constructor of `class` a script calls with the
 algorithm's name at index `1`. `LUACRYPTO_NEWCTX` is for a class whose private is a `luacrypto_ctx_t`: it
+runs the statements its optional `...` gives, with `L` in scope, before it reads the name, then
 allocates the transform with `alloc(algname, 0, CRYPTO_ALG_ASYNC)`, which passes over an asynchronous
 implementation, then hands `luacrypto_initctx` the request `<name>_request_alloc` allocates with the
 runtime's `gfp` and the transform's `crypto_<name>_ivsize`. `luacrypto_initctx` stores the request and
@@ -1617,12 +1623,13 @@ to `tfm_free`. Each frees only what is set, so it runs on the private of a const
 
 ### LUACRYPTO\_CHECKER
 ```C
-#define LUACRYPTO_CHECKER(name, T)
+#define LUACRYPTO_CHECKER(name, T, ...)
 ```
 Defines, with [`LUNATIK_PRIVATECHECKER`](#lunatik_privatechecker), the checker
 `luacrypto_<name>_checkctx`, which returns the `luacrypto_ctx_t *` of an object of
 `luacrypto_<name>_class` at `ix`, and `luacrypto_<name>_check`, which returns its transform as a
-`T *`. They raise what the checker raises, `closed object` included.
+`T *`. The optional `...` are the checker's further statements, as `LUNATIK_PRIVATECHECKER`'s are.
+They raise what the checker raises, `closed object` included.
 
 ### LUACRYPTO\_ALGNAME
 ```C
@@ -1647,7 +1654,8 @@ not `expected`, and what `luaL_checklstring` raises.
 char *luacrypto_newbuffer(lua_State *L, size_t size);
 ```
 Allocates the `size` bytes an operation reads its input from and writes its output to, with
-`kmalloc`, since a scatterlist maps linear memory, and the runtime's `gfp`, raising
+`kmalloc`, since a scatterlist maps linear memory, and the runtime's `gfp`, which a method of a
+softirq class finds `GFP_ATOMIC`, raising
 `not enough memory` when they cannot be had, as past `KMALLOC_MAX_SIZE`. The caller frees it with
 [`lunatik_free`](#lunatik_free) or hands it to
 [`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which frees it with the state's

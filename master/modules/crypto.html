@@ -191,8 +191,13 @@
 <div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-crypto">Cryptography</a></div>
 <h1>crypto<span class="kind">Module</span></h1>
 <p class="lead">Lua interface to the Linux Crypto API.</p>
- Crypto objects are created in a process runtime alone: in a softirq or hardirq runtime a
- constructor raises &ldquo;&lsquo;crypto.shash&rsquo;: process-context class in interrupt-context runtime&rdquo;, naming
+ <a href="../modules/crypto.html#shash">shash</a> and <a href="../modules/crypto.html#skcipher">skcipher</a> objects serve softirq runtimes too: a script body, which runs in process
+ context, creates them, or a process runtime hands them over, and the hooks set their keys and run
+ them per packet, which sleeps nowhere. A key <code>setkey</code> sets is the object&rsquo;s, read by the call that
+ follows it, so each runtime keys an object of its own: two runtimes using one at once can run a
+ call under the other&rsquo;s key, with no error. Neither serves a hardirq runtime, whose callbacks run
+ with IRQs disabled. Every other object is created in a process runtime alone: in another, its
+ constructor raises &ldquo;&lsquo;crypto.aead&rsquo;: process-context class in interrupt-context runtime&rdquo;, naming
  its class. Errors are raised as errno names: &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;EINVAL&rdquo; for a
  wrong IV, key or state length or a block cipher input that is not a multiple of <code>blocksize()</code>,
  and on 6.12 and later for a name whose template refuses the type the constructor asks for, such
@@ -356,8 +361,10 @@
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation
-   failure
+     &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation
+   failure, &ldquo;not allowed in a hardirq runtime&rdquo;, &ldquo;not allowed once the runtime is armed&rdquo; from a
+   softirq runtime past its body, since the allocation may sleep, and &ldquo;not allowed under RTNL&rdquo;
+   from a callback that runs under it
 
 
     <h3>Usage</h3>
@@ -442,7 +449,9 @@ v:<span class="function-name">setpubkey</span>(point)
     <h3>Raises</h3>
      &ldquo;ENOENT&rdquo; for an unknown algorithm or one no synchronous implementation serves (&ldquo;EEXIST&rdquo;
    on 6.12 and later for a template whose instance is asynchronous, such as <code>cryptd(...)</code>),
-   &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation failure
+   &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on allocation failure, &ldquo;not allowed in a hardirq runtime&rdquo;,
+   &ldquo;not allowed once the runtime is armed&rdquo; from a softirq runtime past its body, since the
+   allocation may sleep, and &ldquo;not allowed under RTNL&rdquo; from a callback that runs under it
 
 
     <h3>Usage</h3>
@@ -467,7 +476,7 @@ v:<span class="function-name">setpubkey</span>(point)
 <a href="../../modules/crypto.html">5.1 docs</a> ·
 <a href="../../5.0/modules/crypto.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:19:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-13 15:43:13</span>
 </div>
 </footer>
 </body>
