@@ -1,6 +1,6 @@
 ---
 name: merged
-description: After a pull request merges, the maintainer's or a harness one the session merged once an agent's review passed it, retarget the pull requests stacked on its branch to the default branch, restack them onto it, delete the merged branch, and report the queue and the issues the merge closed. Use when told a pull request was merged, or to merge a harness pull request review.js returned ready.
+description: After a pull request merges, the maintainer's or a harness one the session merged once an agent's review passed it, retarget the pull requests stacked on its branch to the default branch, restack them onto it, delete the merged branch, and report the queue and the issues the merge closed. Use when told a pull request was merged, to merge a harness pull request review.js returned ready, or to merge one the maintainer approved in his own words.
 ---
 
 AGENTS.md, "Patches and commits", and the review-pr skill's process.md, "Comments and the verdict", are the authority; this card orders
@@ -22,6 +22,11 @@ the review returned, `git rev-parse <tip>^{tree}` against `<head>^{tree}`. What 
 issues is filed before the merge, as implement-issue's last stage files it. A pull request the
 maintainer orders merged in his own words takes `MERGE_OK=1`. The steps below follow either merge,
 and the report reaches him as it does for his own.
+
+A pull request the maintainer approved in his own words merges the same way, `MERGE_OK=1` on the
+merge in place of the review's status: its fixups folded, with `git rebase -i --autosquash`, into a
+head whose tree is the one he read, and the CI passed on that head. The steps below then run as
+after any merge.
 
 # 1. Read the merge
 

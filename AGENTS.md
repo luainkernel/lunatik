@@ -553,6 +553,11 @@ named, not one discovered at that consumer's build.
   or the settings that wire the guards, waits for him, and so does one that relaxes a rule, a check
   or a guard, which reverses what he decided. `tools/checks/merge-guard.sh` refuses any other merge
   the session runs; `MERGE_OK=1` merges one he ordered merged in his own words.
+* A pull request the maintainer approves in his own words, `2214 aprovado`, is the session's to
+  take to master: its fixups fold into the commits they correct, the tree the one he read and the
+  messages re-read against it, and once the CI passed on the folded head it merges by rebase, the
+  head named, with `MERGE_OK=1`, and the merged skill runs. A pull request of his own account carries
+  no GitHub approval, so his word is the approval: "o que eu aprovar, vc pode mergear vc mesmo".
 * No session links or assistant footers in a commit or a pull request beyond the `Co-Authored-By`
   trailer. The project settings turn the link off; one that slipped in is removed with a reword.
 * A root cause named in a commit body or a pull request rests on a captured stack or a source-traced
