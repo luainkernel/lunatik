@@ -15,9 +15,10 @@
 # and one that does not carry it, the last again under repos/drafts/, a path that reads as an
 # endpoint's, and the JSON gh api sends for each base, each saying why no script is shown; beside
 # them, naming the example, one that shows no code and says nothing of it, one that shows it in a fenced
-# block, one whose first sentence runs past a plain one, and one that carries a cell; under sub/,
-# read only after a cd into it, the body that names the example and a GraphQL mutation that carries no
-# text. For an issue edit, a gh on
+# block, one whose first sentence runs past a plain one, one that carries a cell, and one no reader
+# passed, where every other a reader passed, as body-read.sh records under guards/ and other/; under
+# sub/, read only after a cd into it, the body that names the example and a GraphQL mutation that
+# carries no text. For an issue edit, a gh on
 # stub/ that answers the body GitHub has for luainkernel/lunatik#5 and for luainkernel/lua#5, each
 # carrying a line untraced.sh fails, the bodies that repeat each, one that adds a line, and the held
 # lists review-post-guard writes, through that gh, for the session none: under ours/ for a comment on
@@ -71,6 +72,7 @@ printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spy
 printf 'A fifo of a megabyte fails to load on a fragmented host.\n\n```lua\nlocal fifo = require("fifo")\n```\n\nexamples/spyglass ran.\n' > fenced.md
 printf 'A fifo of %sfails to load.\n\nexamples/spyglass ran. Nothing a script calls changes.\n' "$(printf 'a page %.0s' $(seq 40))" > long.md
 printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran. Nothing a script calls changes, and the fallback keeps its cell.\n' > backstage.md
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran. Nothing a script calls changes, and no reader passed this text.\n' > unread.md
 mkdir -p repos/drafts
 cp silent.md repos/drafts/silent.md
 for base in master fifo; do
@@ -108,4 +110,11 @@ cat > keyed/gh <<STUB
 exit 1
 STUB
 chmod +x keyed/gh
+
+# a reader passed every body but unread.md, in each directory the cases that open a pull request read
+for dir in guards other; do
+	for body in *.md sub/body.md; do
+		[ "$body" = unread.md ] || LUNATIK_GUARD_DIR=$dir bash "$(dirname "$guard")/body-read.sh" --pass "$body"
+	done
+done
 

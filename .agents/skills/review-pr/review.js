@@ -7,7 +7,8 @@
 // from the cache when one does not: a reviewer that reads the change once, through the packet the
 // machine gathers for it, and a build that runs the host only when tools/checks/functional.sh names a
 // file it reads past the validated head, or past the base where none was, or an example the change
-// touches was not run on the validated head.
+// touches was not run on the validated head. Between them a reader with none of the change's history,
+// the lunatik-reader agent, reads the body the run returns.
 //
 // Every phase appends what it finds to a checkpoint file the moment it finds it, so a phase that
 // dies leaves its findings on disk and its successor continues from them instead of reading the
@@ -37,8 +38,10 @@
 //               the build answers the line the suite printed for each
 //   smallest    the implementer's smallest shape, when implement-issue launches the review
 //   body        the body a branch with no pull request yet opens with, which the reviewer answers
-//               corrected against the final diff, and the build reads for what it claims of the examples
-//   reviewer    false to run the build phase alone, as implement-issue does after a fix
+//               corrected against the final diff, a reader with none of its history reads, and the
+//               build reads for what it claims of the examples
+//   reviewer    false to run the build phase alone, as implement-issue does after a fix, and with build
+//               false too the reader of body alone, as the pr-prep skill runs it on a body the session posts
 //   effort      the reviewer's reasoning effort, default "high"
 //   model       the model the reviewer runs on, default the session's
 //   agents      {model, effort} for each phase's agent, under review and build: review's over effort
@@ -57,12 +60,13 @@
 //               false where nothing runs on the host
 //
 // It returns each phase's answer and findings_left, every finding a phase leaves as an issue,
-// with a title and a body that can be filed as they stand.
+// with a title and a body that can be filed as they stand, and read, the reader's answer, with the
+// file that holds the body it read and whether it passed.
 
 export const meta = {
   name: 'review-pr',
   description: 'Review a pull request: read it for findings over the packet the machine gathers, build and run only if needed',
-  phases: [{ title: 'Review' }, { title: 'Build' }],
+  phases: [{ title: 'Review' }, { title: 'Read' }, { title: 'Build' }],
 }
 
 const a = args
@@ -77,6 +81,7 @@ const packetTool = a.packet || 'tools/review-packet.sh'
 const unit = a.pr ? (lunatik ? `review${a.pr}` : `review-${github.split('/')[1]}-${a.pr}`) : `review-${a.branch}`
 const checkpoint = `${a.scratch}/${unit}/REVIEW.md`
 const packet = `${a.scratch}/${unit}/packet.txt`
+const bodyFile = `${a.scratch}/${unit}/body.md`
 // the prompt is read by an agent with a shell, so the default resolves on the machine that runs it
 const repo = a.repo || '$(git rev-parse --show-toplevel)'
 // gh is not on every machine; the same REST call goes through curl where it is absent
@@ -248,6 +253,20 @@ Remove your worktree when you are done (\`rm -rf <tree> && git -C ${repo} worktr
 under ${a.scratch}/, which holds every phase's checkpoints and defect patches.
 `
 
+const READ = (text) => `
+The body of ${a.pr ? `pull request #${a.pr}` : `the pull request the branch \`${a.branch}\` opens`} on ${github} is
+the file ${bodyFile}, which you write first with your Write tool, exactly as this text: ${JSON.stringify(text)}.
+The checkout is at \`${repo}\`.
+`
+
+const READ_OUT = { type: 'object', properties: {
+  restated: { type: 'string', description: 'what the pull request does and why, in two lines, from the body alone' },
+  problems: { type: 'array', items: { type: 'object', properties: {
+    quote: { type: 'string' }, rule: { type: 'string' }, why: { type: 'string' },
+  }, required: ['quote', 'rule', 'why'] } },
+  verdict: { type: 'string', enum: ['pass', 'fail'] },
+}, required: ['restated', 'problems', 'verdict'] }
+
 const LEFT = { type: 'array', items: { type: 'object', properties: {
   title: { type: 'string' }, body: { type: 'string' }, severity: { type: 'string', enum: ['high', 'medium', 'low'] },
   contract: { type: 'string', description: 'what the documentation promises for the stimulus, quoted with its file, or "undocumented"; the severity is read against it' },
@@ -321,6 +340,23 @@ if (a.reviewer !== false) {
   reviewer = await agent(REVIEW, { label: `review:${a.pr || a.branch}`, phase: 'Review', effort, schema: FINDINGS, ...model })
 }
 
+// the body the run returns, the one the reviewer corrected or, in a run of neither phase, the one handed, is read
+// by a reader with none of the change's history
+const handed = a.reviewer !== false ? !a.pr && (reviewer?.body || a.body) : a.build === false && a.body
+let read = null
+if (handed) {
+  phase('Read')
+  const answer = await agent(READ(handed), {
+    label: `read:${a.pr || a.branch}`, phase: 'Read', agentType: 'lunatik-reader', effort: 'high', schema: READ_OUT,
+  })
+  read = { passed: answer?.verdict === 'pass', file: bodyFile, answer }
+  if (!read.passed) {
+    if (reviewer)
+      reviewer.ready = false
+    log(`not ready: the reader of the body names ${(answer?.problems || []).map(p => JSON.stringify(p.quote)).join(', ') || 'nothing it answered'}`)
+  }
+}
+
 const changed = a.reviewer !== false && (!reviewer || reviewer.fixups.length > 0)
 let build = null
 if (a.build === false)
@@ -341,5 +377,5 @@ if (unsourced.length) {
 }
 
 const findings_left = [reviewer, build].flatMap(p => p?.findings_left || [])
-return { checkpoint, reviewer, build, validated: build && !build.skipped ? null : a.validated, findings_left, unsourced }
+return { checkpoint, reviewer, build, validated: build && !build.skipped ? null : a.validated, findings_left, unsourced, read }
 

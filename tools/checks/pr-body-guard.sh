@@ -22,7 +22,8 @@
 # current one cannot be. An edit that adds text other than a task to an issue or pull
 # request review-post-guard held a post on in the same session waits for the same
 # REVIEW_POST_OK, as the held post by another route. A pull request body is read against the
-# files its change carries.
+# files its change carries, and one the session posts to this repository only once a reader
+# with none of the change's history passed its text (body-read.sh).
 
 input=$(cat)
 
@@ -268,6 +269,38 @@ held() {
 	done <<< "$1"
 }
 
+# a body the session posts to a pull request was passed first by a reader with none of the change's history
+# (body-read.sh); a subagent's post is implement-issue's opening, whose body review.js's reader passed
+reader() {
+	local post body file
+	[ -n "$(printf '%s' "$input" | jq -r '.agent_id // empty' 2> /dev/null)" ] && return
+	while IFS= read -r post; do
+		[ -n "$post" ] || continue
+		body=$(gh_body "$post")
+		case $body in
+		inline)
+			continue ;;
+		"")
+			# gh pr create opens on the commits' own text when it is given no body, as --fill asks
+			case $(printf '%s' "$post" | awk '{ print $2, $3 }') in
+			"pr create"|"pr new")
+				echo "pr-body-guard: gh pr create with no body file opens the pull request on the commits' own text, which no reader passed: write the body to a file, run the reader over it as the pr-prep skill says, and pass it as --body-file <file>." >&2
+				exit 2 ;;
+			esac
+			continue ;;
+		esac
+		file=${body#* }
+		if [ "${body%% *}" = input ]; then
+			jq -e 'has("body")' "$file" > /dev/null 2>&1 || continue
+			jq -r .body "$file" > "$tmp/read"
+			file=$tmp/read
+		fi
+		bash "$(dirname "$0")/body-read.sh" "$file" 2> /dev/null && continue
+		echo "pr-body-guard: no reader passed this body. Run the reader over it as the pr-prep skill says, review.js with reviewer and build false, which reads it with none of the change's history and records the text it passed, and post the file it leaves; a text changed after the read is read again." >&2
+		exit 2
+	done <<< "$1"
+}
+
 # the writes of <writes> to this repository, or a fork of it: the examples, the contract and the
 # severity labels are its tree's and its tracker's, and a write to another repository answers to its own
 ours() {
@@ -290,6 +323,7 @@ case "$(command_text "$input")" in
 	*EXAMPLES_OK=1*) ;;
 	*) examples "$(ours "$(gh_writes "$cmds" 'pr (create|new)' "$repo/pulls\$")")" ;;
 esac
+reader "$(ours "$(gh_writes "$cmds" 'pr (create|new|edit)' "$repo/pulls(/[0-9]+)?\$")")"
 check "$(gh_writes "$cmds" 'issue (create|new|edit)' "$repo/issues(/[0-9]+)?\$")" untraced.sh added
 check "$(gh_writes "$cmds" 'issue (create|new|edit)' "$repo/issues(/[0-9]+)?\$")" decision.sh added
 # a new issue is a finding, read for a stimulus out of contract; an edit or a comment may argue about one

@@ -277,7 +277,12 @@ and no sentence on why no script is shown, "Nothing a script calls changes"; and
 a cell, a stimulus, a plan line, a fixup, a squash, "this push", outside a change of the tests or of
 the harness, whose subject they are. Without files it asks for no example and looks for those words in
 every body. None of the 128 bodies merged from 2026-11-01 to 2026-11-14 fails over its files, and
-#2527's first body fails all three.
+#2527's first body fails all three. A plain sentence is more than its length, and what the words
+mean no check of form reads: `body-read.sh` keeps the texts a reader with none of the change's
+history passed, the `lunatik-reader` agent, which `review.js` runs over the body it returns and, with
+neither phase, over one the session posts (the pr-prep skill), and `pr-body-guard.sh` refuses the
+session's post of a pull request body none passed. A subagent's post is implement-issue's opening,
+of the body its review's reader passed.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate
