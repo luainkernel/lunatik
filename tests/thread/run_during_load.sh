@@ -40,7 +40,7 @@ listed=$(lunatik list)
 case "$listed" in
 	*"$DUMMY"*) fail "the refused spawn left the runtime registered: $listed" ;;
 esac
-ktap_pass "runner.spawn() from a script body returns error instead of hanging"
+check_dmesg && ktap_pass "runner.spawn() from a script body returns error instead of hanging"
 
 ktap_totals
 

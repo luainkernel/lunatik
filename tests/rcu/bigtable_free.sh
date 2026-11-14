@@ -29,20 +29,16 @@ ktap_plan 1
 
 vmalloc_kib() { grep VmallocUsed /proc/meminfo | awk '{print $2}'; }
 
+mark_dmesg
 before=$(vmalloc_kib)
 run_script tests/rcu/bigtable_free
 after=$(vmalloc_kib)
 delta_mib=$(( (after - before) / 1024 ))
 
-mark_dmesg
 lunatik stop tests/rcu/bigtable_free 2>/dev/null
-log=$(dmesg_since)
-crash=$(echo "$log" | grep -E "$KTAP_KERNEL_ERRORS" || true)
 
-if [ -n "$crash" ]; then
-	ktap_fail "rcu/bigtable_free: kernel crashed freeing a vmalloc'd private"
-	echo "# ${crash%%$'\n'*}"
-elif [ "$delta_mib" -lt 16 ]; then
+check_dmesg || { ktap_totals; exit 1; }
+if [ "$delta_mib" -lt 16 ]; then
 	ktap_skip "rcu/bigtable_free: private not vmalloc-backed (delta ${delta_mib}MiB), cannot exercise kvfree"
 else
 	ktap_pass "rcu/bigtable_free"
