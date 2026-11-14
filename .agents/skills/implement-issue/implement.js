@@ -86,9 +86,13 @@ CHECKPOINT: ${groomCheckpoint} is your memory across a death. If it exists, read
 it. Append a line per step as you take it, and your answer before you return.
 
 An issue is a request, not a decision to implement it. Judge it before you shape it:
-1. Its merit: whether the need is real and general or one consumer's, whether its contract holds against the
-   binding's documentation and the honest-mistake bullet of AGENTS.md, "Deciding what to change", and what
-   leaving it undone costs.
+1. Its merit, before you build or measure anything: who has the need, read in the tree and in the clones
+   LUNATIK_CONSUMERS lists, and how their code meets it today; the shape that changes nothing in this tree,
+   the consumer's own code over the API it already holds, and whether it meets the need, which makes the
+   verdict decline (AGENTS.md, "Deciding what to change"); whether its contract holds against the binding's
+   documentation and the honest-mistake bullet there; and what leaving it undone costs. An experiment, a
+   build or a measurement is for a shape whose merit stands. A private clone is named in nothing the run
+   publishes.
 2. Its approach: the smallest shape that meets the need, written first, beside the one the issue proposes and
    the alternatives, each with what it buys and what it costs, the comparison starting in the kernel's own
    answer, resource by resource for an object kept past the code that lent it (AGENTS.md, "Deciding what to
@@ -324,14 +328,15 @@ const OPENED = { type: 'object', properties: {
 
 const GROOMED = { type: 'object', properties: {
   verdict: { type: 'string', enum: ['implement', 'reshape', 'decline'] },
-  merit: { type: 'string', description: 'whether the need is real, general and in contract, and what leaving it undone costs' },
+  merit: { type: 'string', description: 'whether the need is real, this tree\'s and in contract, and what leaving it undone costs' },
+  consumer: { type: 'string', description: 'who has the need, in the tree and in the clones LUNATIK_CONSUMERS lists, how their code meets it today, and whether the shape that changes nothing in this tree meets it, with why' },
   shapes: { type: 'array', items: { type: 'object', properties: {
     shape: { type: 'string' }, buys: { type: 'string' }, costs: { type: 'string' },
-  }, required: ['shape', 'buys', 'costs'] }, description: 'the smallest first, then the issue\'s and the alternatives' },
+  }, required: ['shape', 'buys', 'costs'] }, description: 'the smallest first, which for a need a consumer states is the one that changes nothing in this tree, then the issue\'s and the alternatives' },
   update: { type: 'string', description: 'for implement, the text the issue takes under its Update: line; empty otherwise' },
   sources: { type: 'array', items: { type: 'string' }, description: 'what was read, as file:line or URL' },
   notes: { type: 'string' },
-}, required: ['verdict', 'merit', 'shapes', 'update', 'sources', 'notes'] }
+}, required: ['verdict', 'merit', 'consumer', 'shapes', 'update', 'sources', 'notes'] }
 
 const PREPARED = { type: 'object', properties: {
   writes: { type: 'array', items: { type: 'object', properties: {
