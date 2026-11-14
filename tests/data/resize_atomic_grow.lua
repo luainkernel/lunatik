@@ -4,10 +4,11 @@
 --
 -- Atomic-context body for the failed-resize test (see resize_atomic.sh).
 
-local data = require("data")
+local data  = require("data")
+local sizes = require("tests.data.resize_atomic_sizes")
 
-local BIG    <const> = 1 << 26 -- vmalloc-backed where MAX_PAGE_ORDER + PAGE_SHIFT is under 26; the .sh skips elsewhere
-local BIGGER <const> = 1 << 27
+local BIG    <const> = sizes.vmalloc
+local BIGGER <const> = BIG * 2
 local MARK   <const> = 0x5a
 
 local buffer = data.new(BIG)
