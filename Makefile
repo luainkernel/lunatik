@@ -186,6 +186,7 @@ scripts_install:
 	${INSTALL} -m 0644 bin/luaebpf/*.lua ${LUAEBPF_INSTALL_PATH}
 	${INSTALL} -m 0644 ${LUAEBPF_TABLES} ${LUAEBPF_INSTALL_PATH}/bytecode
 	${INSTALL} -m 0644 bin/luaebpf/emit/*.lua ${LUAEBPF_INSTALL_PATH}/emit
+	${INSTALL} -m 0644 bin/luaebpf/lib/*.lua ${LUAEBPF_INSTALL_PATH}/lib
 	${INSTALL} -m 0644 bin/luaebpf/lib/bpf/*.lua ${LUAEBPF_INSTALL_PATH}/lib/bpf
 
 scripts_uninstall:

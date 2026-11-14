@@ -4,14 +4,16 @@
 --
 
 ---
--- The returns, CALL and the invocation of a subprogram: a call is a method of a proxy, or a BPF-to-BPF
--- call to a Lua function the file declares, whose abort comes back through a flag in the caller's frame.
+-- The returns, CALL and the invocation of a subprogram: a call is a method of a proxy, a call into the
+-- kernel Lua runtime, or a BPF-to-BPF call to a Lua function the file declares, whose abort comes back
+-- through a flag in the caller's frame.
 -- @module luaebpf.emit.call
 
-local insn   = require("luaebpf.insn")
-local frame  = require("luaebpf.emit.frame")
-local loads  = require("luaebpf.emit.loads")
-local packet = require("luaebpf.emit.packet")
+local insn    = require("luaebpf.insn")
+local frame   = require("luaebpf.emit.frame")
+local loads   = require("luaebpf.emit.loads")
+local packet  = require("luaebpf.emit.packet")
+local runtime = require("luaebpf.emit.runtime")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local getinfo = debug.getinfo
@@ -100,22 +102,13 @@ end
 
 local function invoke(f, target, nargs)
 	f.code:storei(reg.FP, ABORTED, 0)
-	f.code:alu(alu.MOV, reg.R1 + nargs, reg.FP)
-	f.code:alui(alu.ADD, reg.R1 + nargs, ABORTED)
+	frame.address(f, reg.R1 + nargs, ABORTED)
 	f.code:call(target.name)
 	f.code:load(reg.R1, reg.FP, ABORTED)
 	f.code:branchi(jump.JNE, reg.R1, 0, abort(f))
 end
 
-function call.CALL(f, pc, ins, state)
-	local callee = state[ins.a]
-	if ins.b == 0 or ins.c == 0 then
-		refuse(f, pc, "a call with a variable number of values cannot be compiled")
-	end
-	if callee ~= nil and callee.t == METHOD then
-		method(f, pc, ins, state, callee)
-		return filled(f, pc, ins, state)
-	end
+local function subprogram(f, pc, ins, state, callee)
 	callable(f, pc, callee)
 	local params = parameters(f, pc, ins, state)
 	local target = f.unit.subprogram(f, pc, callee.k, callee.name, params)
@@ -126,6 +119,20 @@ function call.CALL(f, pc, ins, state)
 	if ins.c > 1 then
 		setreg(f, ins.a, reg.R0)
 		state[ins.a] = {t = target.rettype}
+	end
+end
+
+function call.CALL(f, pc, ins, state)
+	local callee = state[ins.a]
+	if ins.b == 0 or ins.c == 0 then
+		refuse(f, pc, "a call with a variable number of values cannot be compiled")
+	end
+	if callee ~= nil and callee.t == METHOD then
+		method(f, pc, ins, state, callee)
+	elseif callee ~= nil and runtime.isproxy(callee.k) then
+		runtime.call(f, pc, ins, state, callee)
+	else
+		subprogram(f, pc, ins, state, callee)
 	end
 	filled(f, pc, ins, state)
 end

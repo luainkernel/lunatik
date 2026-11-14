@@ -36,16 +36,12 @@ local format  = string.format
 local insert  = table.insert
 local copy, reach, refuse, setreg = frame.copy, frame.reach, frame.refuse, frame.setreg
 
-local MAXSTACK <const> = 512 -- MAX_BPF_STACK
 local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
 local MAYGOTO  <const> = 6 << 16 | 9 << 8 -- KERNEL_VERSION(6, 9, 0): v6.9 and later take may_goto
 
 local CALLER   <const> = frame.CALLER
 local CTX      <const> = context.CTX
-local NREGS    <const> = frame.NREGS
-local RESERVED <const> = frame.RESERVED
-local SLOT     <const> = frame.SLOT
 
 local typenames = frame.typenames
 
@@ -163,10 +159,7 @@ end
 -- @tparam table f the frame: `fn`, `proto`, `chunk`, `params`, `default`, `isprogram`, `drop`
 -- @raise `<file>:<line>: <reason>` for every construct the subset refuses
 local function lower(f)
-	local stack = (f.proto.maxstacksize - NREGS + RESERVED) * SLOT
-	if stack > MAXSTACK then
-		refuse(f, 1, "the function needs %d bytes of stack, over the %d eBPF allows", stack, MAXSTACK)
-	end
+	frame.stack(f, 1, frame.depth(f))
 	if f.proto.isvararg then
 		refuse(f, 1, "a vararg function cannot be compiled")
 	end
@@ -174,6 +167,7 @@ local function lower(f)
 	f.bounded = {}
 	for _ = 1, ROUNDS do
 		f.changed = false
+		f.calls = {}
 		walk(f)
 		if not f.changed then
 			return
@@ -254,7 +248,7 @@ end
 ---
 -- Compiles one program: its function, and every function that function reaches.
 -- @function luaebpf.emit.program
--- @tparam table program `{name, fn, default, drop, names, context}`
+-- @tparam table program `{name, fn, default, drop, names, context, kfunc}`
 -- @treturn table the frames, the program's own first
 -- @raise `a program takes one argument, the context`, and `<file>:<line>: <reason>` for every
 --   construct the subset refuses
@@ -262,8 +256,12 @@ function emit.program(program)
 	local unit = {
 		functions = {}, order = {}, lowering = {}, names = program.names or {},
 		default = program.default, drop = program.drop, context = program.context,
+		kfunc = program.kfunc,
 		-- no lowering can require luaebpf.emit back; read here, after the body that may set them ran
-		maygoto = emit.maygoto, unaligned = emit.unaligned, subprogram = subprogram,
+		maygoto = emit.maygoto, unaligned = emit.unaligned, bigendian = emit.bigendian,
+		-- read here, at each compile, so from the directory luaebpf.proto.scripts named for it
+		maxstack = proto.script("linux.bpf").max.STACK,
+		subprogram = subprogram,
 	}
 	local read = proto.read(program.fn)
 	if read.numparams > 1 then

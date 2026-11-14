@@ -9,12 +9,15 @@
 #   - a directory laid out as /lib/modules/lua, named relative to where the compile runs, whose
 #     linux/xdp.lua gives PASS a value no kernel gives it and whose class is a class/init.lua of its
 #     own: the body's class is that file, and the program, which returns the action.PASS the body
-#     read, returns that value
+#     read, returns that value; its linux/bpf.lua, where the compiler reads the stack limit, is
+#     /lib/modules/lua's
 #   - luaebpf.compile, called in one process for /lib/modules/lua, then for a directory whose
 #     linux/xdp.lua gives PASS another value and which lacks class, which raises, and then for the
 #     first directory, named by its absolute path, reads that directory the third time and writes
 #     the object lunatik bpf --scripts wrote: the modules an earlier body loaded, the one that raised
 #     included, are not the next one's
+#   - the directory's linux/bpf.lua given a stack limit no frame fits: the program is refused naming
+#     that limit, so the compiler's own read of the kernel scripts is the directory's too
 #   - a module the directory lacks, class, is not found: the message names the directory's paths and
 #     none under /lib/modules/lua, which holds one, and no object is written
 #   - the compile without --scripts reads /lib/modules/lua, --scripts on a copy of it reads the
@@ -29,10 +32,11 @@ source "$DIR/common.sh"
 
 SCRIPTS=/lib/modules/lua
 SENTINEL=7 # PASS in no kernel's linux.xdp
+TIGHT=8    # a stack limit in bytes, below the words every frame reserves
 
 trap cleanup EXIT
 
-luaebpf_start 4
+luaebpf_start 5
 
 # compile <object> [<option>...]: scripts.bpf.lua compiled into <object> with the options given
 compile() {
@@ -50,6 +54,7 @@ dir="$LUAEBPF_WORK/scripts"
 mkdir -p "$dir/linux" "$dir/class" || fail "luaebpf: the scripts directory could not be made"
 echo "return {action = {PASS = $SENTINEL}}" > "$dir/linux/xdp.lua"
 echo 'return function() end' > "$dir/class/init.lua"
+cp "$SCRIPTS/linux/bpf.lua" "$dir/linux/" || fail "luaebpf: $SCRIPTS/linux/bpf.lua could not be copied"
 broken="$LUAEBPF_WORK/broken"
 mkdir -p "$broken/linux" || fail "luaebpf: the directory lacking class could not be made"
 echo "return {action = {PASS = $((SENTINEL + 1))}}" > "$broken/linux/xdp.lua"
@@ -72,7 +77,7 @@ local ok, err = pcall(luaebpf.compile, program, nil, broken)
 assert(not ok and err:find("module 'class' not found", 1, true),
 	"the compile of a directory lacking class gave: " .. tostring(err))
 local file = assert(io.open(object, "wb"))
-assert(file:write(luaebpf.compile(program, nil, scripts)))
+assert(file:write((luaebpf.compile(program, nil, scripts))))
 assert(file:close())
 LUA
 ) || { comment "$output"; fail "luaebpf: scripts.bpf.lua did not compile again in one process"; }
@@ -81,6 +86,12 @@ LUA
 cmp -s "$LUAEBPF_WORK/again.bpf.o" "$LUAEBPF_WORK/scripts.bpf.o" \
 	|| fail "luaebpf: the third compile in one process writes another object than lunatik bpf --scripts"
 ktap_pass "luaebpf: a compile reads its own kernel scripts, not those an earlier compile in its process loaded"
+
+echo "return {max = {STACK = $TIGHT}}" > "$dir/linux/bpf.lua"
+output=$(compile "$LUAEBPF_WORK/tight.bpf.o" --scripts="$dir")
+[ $? -ne 0 ] && grep -qF "over the $TIGHT eBPF allows" <<< "$output" && [ ! -e "$LUAEBPF_WORK/tight.bpf.o" ] \
+	|| { comment "$output"; fail "luaebpf: the stack limit is not the one the --scripts directory gives"; }
+ktap_pass "luaebpf: a function is held to the stack limit the --scripts directory gives"
 
 rm -r "$dir/class"
 output=$(compile "$LUAEBPF_WORK/missing.bpf.o" --scripts="$dir")

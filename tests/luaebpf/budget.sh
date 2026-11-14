@@ -9,6 +9,8 @@
 #     corpus is reported as a KTAP comment and asserted under a ceiling
 #   - the loops under a may_goto header are among them only on a kernel that has it, since
 #     forvar.bpf.lua is refused on one that does not
+#   - the calls into the kernel Lua runtime are among them only where the kernel publishes luaxdp's
+#     BTF, in which libbpf resolves their kfunc
 # The ceiling is set from what was measured, not predicted; the figures are in
 # doc/design/luaebpf/plan.md.
 #
@@ -25,6 +27,7 @@ CEILING=20000
 
 CORPORA="pass arith divzero branch forconst call ctx packet bounds mapget mapset struct"
 luaebpf_maygoto && CORPORA="$CORPORA forvar"
+[ -z "$(luaebpf_kfunc luaxdp)" ] && CORPORA="$CORPORA callback"
 
 luaebpf_start 1
 
