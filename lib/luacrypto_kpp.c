@@ -135,7 +135,7 @@ static int luacrypto_kpp_sharedsecret(lua_State *L)
 
 	/* hisi_hpre refuses a shorter output and writes x first */
 	int ret = luacrypto_kpp_compute(ctx, crypto_kpp_compute_shared_secret, &src, publiclen, buffer, maxsize);
-	return luacrypto_pushbuffer(L, buffer, ret, -EINVAL, 0, len);
+	return luacrypto_pushbuffer(L, buffer, ret, 0, 0, len);
 }
 
 /***
