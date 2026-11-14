@@ -13,5 +13,5 @@ out:close()
 
 return xdp.program(function(_)
 	return action.PASS
-end, {name = "scripts"})
+end, {name = "scripts", default = action.PASS})
 

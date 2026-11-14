@@ -14,5 +14,5 @@ return tc.program(function(skb)
 		return action.SHOT
 	end
 	return action.OK
-end, {egress = true, name = "compiled_drop"})
+end, {egress = true, name = "compiled_drop", default = action.OK})
 

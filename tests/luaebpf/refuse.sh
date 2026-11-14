@@ -23,8 +23,10 @@
 # the body runs in the CLI's Lua: a float its libraries return, as a value, as a field of a table
 # and as the default verdict, a float literal, which lunatic refuses to parse, a C function, which
 # has no bytecode, and a function the CLI's Lua compiled from a string, which lunatic never saw;
-# and a map key or value the compiler holds that its spec does not pack, where the kernel's bpf.map
-# raises in string.pack: a key in a register and as the small index a GETI carries, and a value.
+# a map key or value the compiler holds that its spec does not pack, where the kernel's bpf.map
+# raises in string.pack: a key in a register and as the small index a GETI carries, and a value;
+# and xdp.program and tc.program called with no default verdict, with options and with none, at
+# the line of the program's function rather than the call's.
 #
 # Usage: sudo bash tests/luaebpf/refuse.sh
 
@@ -35,7 +37,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-ROWS=42
+ROWS=46
 
 luaebpf_start $ROWS
 
@@ -55,11 +57,11 @@ row() {
 	local name="$1" message="$2" body="$3" preamble="${4:-}" params="${5:-ctx}"
 	{
 		echo 'local xdp = require("bpf.xdp")'
-		echo ''
+		echo 'local action = require("linux.xdp").action'
 		echo "$preamble"
 		echo "return xdp.program(function($params)"
 		echo "$body"
-		echo 'end)'
+		echo 'end, {default = action.PASS})'
 	} > "$LUAEBPF_WORK/$name.bpf.lua"
 	refused "$name" "$message"
 }
@@ -85,7 +87,7 @@ row metatable "metatable.bpf.lua:5: a method call cannot be compiled" \
 row unknown_global "unknown_global.bpf.lua:5: global 'nowhere' is not a compile-time value" \
 	$'\treturn nowhere'
 row unknown_field "unknown_field.bpf.lua:5: 'action.TYPO' is not a compile-time value" \
-	$'\treturn action.TYPO' 'local action = require("linux.xdp").action'
+	$'\treturn action.TYPO'
 row unknown_call "unknown_call.bpf.lua:5: a call through a value the compiler cannot resolve" \
 	$'\tlocal v = ctx(1)\n\treturn v'
 row context "context.bpf.lua:5: a context has no value in the kernel here" \
@@ -155,17 +157,44 @@ end, {default = math.sqrt(4)})
 LUA
 refused floatdefault "floatdefault.bpf.lua:3: xdp.program's default verdict is not an integer"
 
+# a constructor called with no default verdict, the function defined lines above the call, so the
+# refusal names the line of the program's function rather than the call's
+defaultless() {
+	local name="$1" message="$2" module="$3" call="$4"
+	{
+		echo "local $module = require(\"bpf.$module\")"
+		echo ''
+		echo 'local function program(_)'
+		echo '	return 0'
+		echo 'end'
+		echo ''
+		echo "return $call"
+	} > "$LUAEBPF_WORK/$name.bpf.lua"
+	refused "$name" "$message"
+}
+
+defaultless nodefault "nodefault.bpf.lua:3: xdp.program's default verdict is not an integer" xdp \
+	'xdp.program(program, {name = "nodefault"})'
+defaultless noopts "noopts.bpf.lua:3: xdp.program's default verdict is not an integer" xdp \
+	'xdp.program(program)'
+defaultless tcnodefault "tcnodefault.bpf.lua:3: tc.program's default verdict is not an integer" tc \
+	'tc.program(program, {egress = true})'
+defaultless tcnoopts "tcnoopts.bpf.lua:3: tc.program's default verdict is not an integer" tc \
+	'tc.program(program)'
+
 cat > "$LUAEBPF_WORK/cfunction.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
-return xdp.program(string.len)
+return xdp.program(string.len, {default = action.PASS})
 LUA
 refused cfunction "xdp.program takes a Lua function"
 
 cat > "$LUAEBPF_WORK/loaded.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
-return xdp.program(load("return function(ctx) return 2 end")())
+return xdp.program(load("return function(ctx) return 2 end")(), {default = action.PASS})
 LUA
 refused loaded '[string "return function(ctx) return 2 end"]:1: a compiled function is defined in the program file'
 

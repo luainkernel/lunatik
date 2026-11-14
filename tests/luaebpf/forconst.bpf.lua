@@ -5,6 +5,7 @@
 -- Program file of the forconst case (see forconst.sh).
 
 local corpus = require("tests.luaebpf.corpus")
+local action = require("linux.xdp").action
 
 local makers = {}
 
@@ -53,7 +54,7 @@ local order = {"forward", "zerotrip", "descending", "bigstep", "onestep", "neste
 
 local rows = corpus.new()
 for _, op in ipairs(order) do
-	rows:declare(op, makers[op]())
+	rows:declare(op, makers[op](), action.PASS)
 end
 rows:close()
 

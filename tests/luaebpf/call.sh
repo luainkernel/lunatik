@@ -48,6 +48,7 @@ ktap_pass "luaebpf: the object carries one static FUNC per subprogram"
 
 cat > "$LUAEBPF_WORK/fiveargs.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local function five(a, b, c, d, e)
 	return a + b + c + d + e
@@ -56,14 +57,15 @@ end
 return xdp.program(function(ctx)
 	local v = five(1, 2, 3, 4, 5)
 	return v
-end)
+end, {default = action.PASS})
 LUA
-output=$(luaebpf_refuses fiveargs "fiveargs.bpf.lua:8: a compiled function takes at most 4 arguments, not 5") \
+output=$(luaebpf_refuses fiveargs "fiveargs.bpf.lua:9: a compiled function takes at most 4 arguments, not 5") \
 	|| { comment "$output"; fail "luaebpf: a five-argument call is not refused"; }
 ktap_pass "luaebpf: a call with five arguments is refused with its line"
 
 cat > "$LUAEBPF_WORK/fewargs.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local function pair(a, b)
 	return a + b
@@ -72,14 +74,15 @@ end
 return xdp.program(function(ctx)
 	local v = pair(1)
 	return v
-end)
+end, {default = action.PASS})
 LUA
-output=$(luaebpf_refuses fewargs "fewargs.bpf.lua:8: 'pair' takes 2 arguments and is called with 1") \
+output=$(luaebpf_refuses fewargs "fewargs.bpf.lua:9: 'pair' takes 2 arguments and is called with 1") \
 	|| { comment "$output"; fail "luaebpf: a call short of an argument is not refused"; }
 ktap_pass "luaebpf: a call with fewer arguments than the callee declares is refused with its line"
 
 cat > "$LUAEBPF_WORK/recurse.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local function walk(n)
 	if n <= 0 then
@@ -92,9 +95,9 @@ end
 return xdp.program(function(ctx)
 	local v = walk(3)
 	return v
-end)
+end, {default = action.PASS})
 LUA
-output=$(luaebpf_refuses recurse "recurse.bpf.lua:7: recursion through 'walk'") \
+output=$(luaebpf_refuses recurse "recurse.bpf.lua:8: recursion through 'walk'") \
 	|| { comment "$output"; fail "luaebpf: recursion is not refused"; }
 ktap_pass "luaebpf: recursion is refused with its line"
 

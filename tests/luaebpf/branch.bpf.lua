@@ -5,6 +5,7 @@
 -- Program file of the branch case (see branch.sh).
 
 local corpus = require("tests.luaebpf.corpus")
+local action = require("linux.xdp").action
 
 local MIN <const> = math.mininteger
 local MAX <const> = math.maxinteger
@@ -56,5 +57,5 @@ local order = {"lt", "le", "gt", "ge", "eq", "ne", "lti", "lei", "gti", "gei", "
 local operands = {{1, 2}, {2, 1}, {-1, 1}, {1, -1}, {-2, -1}, {0, 0}, {MIN, MAX}, {MAX, MIN},
 	{-1, 1000000}, {1000000, -1}}
 
-corpus.declare(makers, order, operands)
+corpus.declare(makers, order, operands, action.PASS)
 

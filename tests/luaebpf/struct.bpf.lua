@@ -9,6 +9,7 @@ local map     = require("bpf.map")
 local struct  = require("struct")
 local vmlinux = require("luaebpf.vmlinux")
 local xdp     = require("bpf.xdp")
+local action  = require("linux.xdp").action
 
 local pack, bytes    = string.pack, corpus.bytes
 local insert, sort = table.insert, table.sort
@@ -48,7 +49,7 @@ local function totlen(_) local v = headers[AT] if v then return v.tot_len end re
 local reads = {{"u8", u8}, {"i8", i8}, {"u16", u16}, {"i16", i16}, {"u32", u32}, {"i32", i32},
 	{"ttl", ttl}, {"protocol", protocol}, {"totlen", totlen}}
 for _, read in ipairs(reads) do
-	xdp.program(read[2], {name = read[1]})
+	xdp.program(read[2], {name = read[1], default = action.PASS})
 end
 
 corpus.frame()

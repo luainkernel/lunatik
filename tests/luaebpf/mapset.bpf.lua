@@ -123,7 +123,7 @@ local programs = {{"update", update}, {"computed", computed}, {"remove", remove}
 	{"widedelete", widedelete}, {"negvalue", negvalue}, {"narrowvalue", narrowvalue},
 	{"overflow", overflow}, {"full", full}, {"arraydelete", arraydelete}}
 for _, program in ipairs(programs) do
-	xdp.program(program[2], {name = program[1]})
+	xdp.program(program[2], {name = program[1], default = action.PASS})
 end
 
 local frame = corpus.frame()

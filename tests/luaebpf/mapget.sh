@@ -95,12 +95,12 @@ row() {
 	{
 		echo 'local map = require("bpf.map")'
 		echo 'local xdp = require("bpf.xdp")'
-		echo ''
+		echo 'local action = require("linux.xdp").action'
 		echo 'local flows = map.hash("flows", {key = "I4", value = "I4", entries = 8})'
 		echo ''
 		echo 'return xdp.program(function(ctx)'
 		echo "$body"
-		echo 'end)'
+		echo 'end, {default = action.PASS})'
 	} > "$LUAEBPF_WORK/$name.bpf.lua"
 	local output
 	output=$(luaebpf_refuses "$name" "$name.bpf.lua:$line: $message")
@@ -121,6 +121,7 @@ row valuemethod 8 "the map value has no method 'foo'" $'\tlocal v = flows[1]\n\t
 cat > "$LUAEBPF_WORK/twomaps.bpf.lua" <<'LUA'
 local map = require("bpf.map")
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local wide = map.hash("wide", {key = "I4", value = "I8", entries = 8})
 local thin = map.hash("thin", {key = "I4", value = "I1", entries = 8})
@@ -137,9 +138,9 @@ return xdp.program(function(ctx)
 		return v
 	end
 	return 0
-end)
+end, {default = action.PASS})
 LUA
-output=$(luaebpf_refuses twomaps "twomaps.bpf.lua:15: a map value here comes from more than one map") \
+output=$(luaebpf_refuses twomaps "twomaps.bpf.lua:16: a map value here comes from more than one map") \
 	|| { comment "$output"; fail "luaebpf: a value two maps merge into is not refused"; }
 ktap_pass "luaebpf: a value two maps merge into is refused with its line"
 
@@ -147,6 +148,7 @@ ktap_pass "luaebpf: a value two maps merge into is refused with its line"
 cat > "$LUAEBPF_WORK/backedge.bpf.lua" <<'LUA'
 local map = require("bpf.map")
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local wide = map.hash("wide", {key = "I4", value = "I8", entries = 8})
 local thin = map.hash("thin", {key = "I4", value = "I1", entries = 8})
@@ -160,9 +162,9 @@ return xdp.program(function(_)
 		v = thin[1]
 	end
 	return 0
-end)
+end, {default = action.PASS})
 LUA
-output=$(luaebpf_refuses backedge "backedge.bpf.lua:10: a map value here comes from more than one map") \
+output=$(luaebpf_refuses backedge "backedge.bpf.lua:11: a map value here comes from more than one map") \
 	|| { comment "$output"; fail "luaebpf: a value a back edge merges from two maps is not refused"; }
 ktap_pass "luaebpf: a value a back edge merges from two maps is refused with its line"
 
@@ -172,12 +174,12 @@ declared() {
 	{
 		echo 'local map = require("bpf.map")'
 		echo 'local xdp = require("bpf.xdp")'
-		echo ''
+		echo 'local action = require("linux.xdp").action'
 		echo "$body"
 		echo ''
 		echo 'return xdp.program(function(_)'
 		echo '	return 0'
-		echo 'end)'
+		echo 'end, {default = action.PASS})'
 	} > "$LUAEBPF_WORK/$name.bpf.lua"
 	local output
 	output=$(luaebpf_refuses "$name" "$name.bpf.lua:$line: $message")

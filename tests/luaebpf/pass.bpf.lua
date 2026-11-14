@@ -9,7 +9,7 @@ local action = require("linux.xdp").action
 
 xdp.program(function(_)
 	return action.PASS
-end, {name = "pass"})
+end, {name = "pass", default = action.PASS})
 
 return xdp.program(function(_)
 	return action.DROP

@@ -14,5 +14,5 @@ return xdp.program(function(ctx)
 		return action.PASS
 	end
 	return action.DROP
-end, {name = "compiled_pass"})
+end, {name = "compiled_pass", default = action.PASS})
 

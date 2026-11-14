@@ -83,25 +83,26 @@ exit.
 A packet read, `p:getuint16(16)`, held to the bounds of the packet:
 
 ```Lua
-local xdp = require("bpf.xdp")
+local xdp    = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
 	local length = p:getuint16(16)
 	return length
-end)
+end, {default = action.PASS})
 ```
 
 Byte 16 of an Ethernet frame that carries IPv4 is the total length of the IPv4 packet, two bytes
 in network order.
 
 ```
-     line 3: return xdp.program(function(ctx)
+     line 4: return xdp.program(function(ctx)
   0  r6 = r1                       ctx
-     line 4: local p = ctx:packet()
+     line 5: local p = ctx:packet()
   1  r8 = r6                       the packet: the context register
   2  r7 = r8                       p
-     line 5: local length = p:getuint16(16)
+     line 6: local length = p:getuint16(16)
   3  r9 = r7
   4  r1 = 16
   5  *(u64 *)(r10 -40) = r1
@@ -115,10 +116,10 @@ in network order.
  13  if r4 > r2 goto 18            past the end of the packet: stops
  14  r1 = *(u16 *)(r1 +0)          two bytes, in the kernel byte order
  15  r8 = r1                       length
-     line 6: return length
+     line 7: return length
  16  r0 = r8
  17  exit
-     line 7: end)
+     line 8: end, {default = action.PASS})
  18  r0 = 2                        XDP_PASS, the default verdict
  19  exit
 ```
@@ -149,26 +150,27 @@ what lies between.
 ### Floor division and modulo
 
 ```Lua
-local xdp = require("bpf.xdp")
+local xdp    = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
 	local a = p:getint8(14)
 	local b = p:getint8(15)
 	return a // b
-end)
+end, {default = action.PASS})
 ```
 
 `a` and `b` are read from the packet, so `lunatic` folds nothing and the division is compiled. In
 the kernel's Lua `a / b` is `a // b`, and it compiles to the same instructions.
 
 ```
-     line 3: return xdp.program(function(ctx)
+     line 4: return xdp.program(function(ctx)
   0  r6 = r1                       ctx
-     line 4: local p = ctx:packet()
+     line 5: local p = ctx:packet()
   1  r8 = r6
   2  r7 = r8                       p
-     line 5: local a = p:getint8(14)
+     line 6: local a = p:getint8(14)
   3  r9 = r7
   4  r1 = 14
   5  *(u64 *)(r10 -40) = r1
@@ -184,10 +186,10 @@ the kernel's Lua `a / b` is `a // b`, and it compiles to the same instructions.
  15  r1 <<= 56                     its sign extended by a shift pair
  16  r1 s>>= 56
  17  r8 = r1                       a
-     line 6: local b = p:getint8(15)
+     line 7: local b = p:getint8(15)
  18  to 32: the same read at 15
  33  r9 = r1                       b
-     line 7: return a // b
+     line 8: return a // b
  34  r1 = r8                       a
  35  r2 = r9                       b
  36  if r2 == 0 goto 54            Lua raises: stops
@@ -208,7 +210,7 @@ the kernel's Lua `a / b` is `a // b`, and it compiles to the same instructions.
  51  r0 = *(u64 *)(r10 -40)
  52  r0 = r0
  53  exit
-     line 8: end)
+     line 9: end, {default = action.PASS})
  54  r0 = 2                        XDP_PASS, the default verdict
  55  exit
 ```
@@ -239,7 +241,7 @@ With `b` at 0, instruction 36 jumps to 54, and the program returns 2, `XDP_PASS`
 `a % b` is the same program with `return a % b`; instructions 0 to 33 read `a` and `b` as above:
 
 ```
-     line 7: return a % b
+     line 8: return a % b
  34  r1 = r8                       a
  35  r2 = r9                       b
  36  if r2 == 0 goto 54            Lua raises: stops
@@ -260,7 +262,7 @@ With `b` at 0, instruction 36 jumps to 54, and the program returns 2, `XDP_PASS`
  51  r0 = *(u64 *)(r10 -40)
  52  r0 = r0
  53  exit
-     line 8: end)
+     line 9: end, {default = action.PASS})
  54  r0 = 2                        XDP_PASS, the default verdict
  55  exit
 ```
@@ -276,7 +278,7 @@ The same program with `return a << n`, `n` read from byte 15; instructions 0 to 
 `n`:
 
 ```
-     line 7: return a << n
+     line 8: return a << n
  34  r1 = r8                       a
  35  r2 = r9                       n
  36  if r2 s< 0 goto 40            a negative count shifts right
@@ -292,7 +294,7 @@ The same program with `return a << n`, `n` read from byte 15; instructions 0 to 
  46  r0 = *(u64 *)(r10 -40)
  47  r0 = r0
  48  exit
-     line 8: end)
+     line 9: end, {default = action.PASS})
  49  r0 = 2                        XDP_PASS, the default verdict
  50  exit
 ```
@@ -327,7 +329,7 @@ return xdp.program(function(ctx)
 		return action.DROP
 	end
 	return action.PASS
-end)
+end, {default = action.PASS})
 ```
 
 `a < 1` is signed, as every comparison of Lua integers is. `n` is a number, and a number is true in
@@ -356,7 +358,7 @@ tests `small` alone. Instructions 0 to 17 read `a` into `r8`.
      line 12: return action.PASS
  46  r1 = 2                        XDP_PASS
  47  to 50: r0 is 2, and the exit
-     line 13: end)
+     line 13: end, {default = action.PASS})
  51  r0 = 2                        XDP_PASS, the default verdict
  52  exit
 ```
@@ -393,7 +395,7 @@ return xdp.program(function(ctx)
 		return action.DROP
 	end
 	return action.PASS
-end)
+end, {default = action.PASS})
 ```
 
 `protocols` is a table the body built. The function reads `protocols.udp` when it is compiled, and
@@ -412,7 +414,7 @@ the program holds 17, the value the body left there. Instructions 0 to 15 read b
  22  r9 = 2                        XDP_PASS
  23  r0 = r9
  24  exit
-     line 13: end)
+     line 13: end, {default = action.PASS})
  25  r0 = 2                        XDP_PASS, the default verdict
  26  exit
 ```
@@ -425,18 +427,19 @@ refused; so are `#protocols` and a write to the table.
 ## The verdict
 
 ```Lua
-local xdp = require("bpf.xdp")
+local xdp    = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
 	return p:getbyte(14) == 1
-end)
+end, {default = action.PASS})
 ```
 
 Instructions 0 to 15 read byte 14 into `r8`.
 
 ```
-     line 5: return p:getbyte(14) == 1
+     line 6: return p:getbyte(14) == 1
  16  r1 = r8
  17  r2 = 1
  18  if r1 == r2 goto 21
@@ -445,7 +448,7 @@ Instructions 0 to 15 read byte 14 into `r8`.
  21  r8 = 1                        true
  22  r0 = r8                       the verdict: 1 or 0
  23  exit
-     line 6: end)
+     line 7: end, {default = action.PASS})
  24  r0 = 2                        XDP_PASS, the default verdict
  25  exit
 ```
@@ -466,7 +469,7 @@ return tc.program(function(skb)
 	local class = p:getint8(15)
 	skb:priority(class)
 	return action.OK
-end)
+end, {default = action.OK})
 ```
 
 The context of a TC program is the kernel's `__sk_buff`, read at the offsets its BTF gives: `len`
@@ -502,7 +505,7 @@ at 0, `priority` at 32, `data` at 76 and `data_end` at 80.
  34  r9 = 0                        TC_ACT_OK
  35  r0 = r9
  36  exit
-     line 9: end)
+     line 9: end, {default = action.OK})
  37  r0 = 0                        TC_ACT_OK, the default verdict
  38  exit
 ```
@@ -531,7 +534,7 @@ return xdp.program(function(ctx)
 		seen[proto] = 1
 	end
 	return action.PASS
-end)
+end, {default = action.PASS})
 ```
 
 `seen[proto]` is a lookup, whose value is a number or nil until `if n then` tests it. The helpers
@@ -570,7 +573,7 @@ prints the map as a relocation, which libbpf fills in when it loads the object. 
  54  to 70: the same update, with the value 1
      line 16: return action.PASS
  71  to 75: r0 is 2, and the exit
-     line 17: end)
+     line 17: end, {default = action.PASS})
  76  r0 = 2                        XDP_PASS, the default verdict
  77  exit
 ```
@@ -593,7 +596,8 @@ a time, by a load at the field's offset and width.
 ## Loops
 
 ```Lua
-local xdp = require("bpf.xdp")
+local xdp    = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
@@ -602,7 +606,7 @@ return xdp.program(function(ctx)
 		s = s + p:getbyte(i)
 	end
 	return s
-end)
+end, {default = action.PASS})
 ```
 
 The compiler holds the three values, 14, 17 and 1, so it counts the passes when it compiles, as
@@ -612,29 +616,29 @@ count, the step and `i`: here `r9`, `r10 - 40` and `r10 - 48`. Instructions 0 to
 `p`.
 
 ```
-     line 5: local s = 0
+     line 6: local s = 0
   3  r8 = 0                        s
-     line 6: for i = 14, 17 do
+     line 7: for i = 14, 17 do
   4  to 8: the three values, as the bytecode loads them
   9  r9 = 3                        the count, known when compiled
  10  to 11: r10 -40 is 1           the step
  12  to 13: r10 -48 is 14          i
-     line 7: s = s + p:getbyte(i)
+     line 8: s = s + p:getbyte(i)
  14  to 26: the read of byte i, held to the bounds of the packet
  27  to 29: s in r1, the byte in r2
  30  r1 += r2                      s + the byte
  31  r8 = r1                       s
-     line 6: for i = 14, 17 do
+     line 7: for i = 14, 17 do
  32  r1 = r9
  33  if r1 == 0 goto 41            no pass left
  34  r1 += -1
  35  r9 = r1
  36  to 39: i + the step
  40  goto 14                       the back edge
-     line 9: return s
+     line 10: return s
  41  r0 = r8
  42  exit
-     line 10: end)
+     line 11: end, {default = action.PASS})
  43  r0 = 2                        XDP_PASS, the default verdict
  44  exit
 ```
@@ -652,7 +656,8 @@ cannot bound needs may_goto, which this kernel lacks".
 ## Goto
 
 ```Lua
-local xdp = require("bpf.xdp")
+local xdp    = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
@@ -663,7 +668,7 @@ return xdp.program(function(ctx)
 		::continue::
 	end
 	return n
-end)
+end, {default = action.PASS})
 ```
 
 The label closes the body, so `goto continue` jumps to the loop's step, as `continue` does in C.
@@ -674,24 +679,24 @@ Instructions 0 to 13 take `ctx` and `p`, set `n` to 0 and start the loop as the 
 count in `r9`, the step in `r10 - 40` and `i` in `r10 - 48`.
 
 ```
-     line 7: if p:getbyte(i) == 0 then goto continue end
+     line 8: if p:getbyte(i) == 0 then goto continue end
  14  to 27: the read of byte i, held to the bounds of the packet
  28  r1 = *(u64 *)(r10 -56)        the byte
  29  r2 = 0
  30  if r1 != r2 goto 32           not 0: on to n = n + 1
  31  goto 36                       goto continue: to the loop's step
-     line 8: n = n + 1
+     line 9: n = n + 1
  32  to 34: n + 1 in r1
  35  r8 = r1                       n
-     line 6: for i = 14, 17 do
+     line 7: for i = 14, 17 do
  36  r1 = r9
  37  if r1 == 0 goto 45            no pass left
  38  to 43: the count less one, i + the step
  44  goto 14                       the back edge
-     line 11: return n
+     line 12: return n
  45  r0 = r8
  46  exit
-     line 12: end)
+     line 13: end, {default = action.PASS})
  47  r0 = 2                        XDP_PASS, the default verdict
  48  exit
 ```
@@ -714,7 +719,8 @@ compiled yet".
 ## Calls
 
 ```Lua
-local xdp = require("bpf.xdp")
+local xdp    = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local function half(n, d)
 	return n // d
@@ -726,7 +732,7 @@ return xdp.program(function(ctx)
 	local b = p:getint8(15)
 	local v = half(a, b)
 	return v
-end)
+end, {default = action.PASS})
 ```
 
 `half` is compiled once, as a BPF-to-BPF function in the section `.text`. Its arguments go in `r1`
@@ -735,7 +741,7 @@ and `r2`, and the address of the caller's flag in the register after them, `r3`.
 
 ```
   the program, in the section xdp
-     line 11: local v = half(a, b)
+     line 12: local v = half(a, b)
  34  to 37: r1 is a, r2 is b
  38  *(u64 *)(r10 -8) = 0          the flag, lowered
  39  r3 = r10
@@ -744,21 +750,21 @@ and `r2`, and the address of the caller's flag in the register after them, `r3`.
  42  r1 = *(u64 *)(r10 -8)
  43  if r1 != 0 goto 48            raised: stops
  44  *(u64 *)(r10 -40) = r0        v
-     line 12: return v
+     line 13: return v
  45  to 47: r0 is v, and the exit
-     line 13: end)
+     line 14: end, {default = action.PASS})
  48  r0 = 2                        XDP_PASS, the default verdict
  49  exit
 
   half, in the section .text
-     line 3: local function half(n, d)
+     line 4: local function half(n, d)
   0  *(u64 *)(r10 -16) = r3        the address of the flag
   1  r6 = r1                       n
   2  r7 = r2                       d
-     line 4: return n // d
+     line 5: return n // d
   3  to 18: the floor division above, its zero test jumping to 22
  19  to 21: r0 is n // d, and the exit
-     line 5: end
+     line 6: end
  22  r1 = *(u64 *)(r10 -16)
  23  *(u64 *)(r1 +0) = 1           the flag, raised
  24  r0 = 0                        the verifier reads r0 on every exit

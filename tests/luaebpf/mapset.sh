@@ -75,15 +75,16 @@ ktap_pass "luaebpf: an update and a delete from a compiled program are what the 
 cat > "$LUAEBPF_WORK/boolvalue.bpf.lua" <<'LUA'
 local map = require("bpf.map")
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local flows = map.hash("flows", {key = "I4", value = "I4", entries = 4})
 
 return xdp.program(function(ctx)
 	flows[1] = true
 	return 0
-end)
+end, {default = action.PASS})
 LUA
-output=$(luaebpf_refuses boolvalue "boolvalue.bpf.lua:7: a map value is a number here") \
+output=$(luaebpf_refuses boolvalue "boolvalue.bpf.lua:8: a map value is a number here") \
 	|| { comment "$output"; fail "luaebpf: a boolean map value is not refused"; }
 ktap_pass "luaebpf: a map value that is not a number is refused with its line"
 
