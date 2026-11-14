@@ -2,16 +2,19 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- The rows a corpus case's program file declares (see common.sh): each is handed to the
--- constructor its context's program type takes, xdp.program where it names no context, and what
--- the CLI's Lua answers for it is written beside the object, which the case compares against
--- what the compiled program returns. A program file's body requires it, so it installs with the
--- kernel scripts and loads through lunatic, which makes that answer the one the kernel computes;
--- nothing runs it in the kernel.
+-- The programs a case's program file declares to keep what they compute (see common.sh): each
+-- hands its value to a function that stores it in the map `results`, under a key of its own, and
+-- returns its default verdict, the map holding the 64 bits of a value where a verdict is an action.
+-- A corpus row is handed to the constructor its context's program type takes, xdp.program where
+-- it names no context, and what its program keeps when the CLI's Lua runs it on the twin of that
+-- context is written beside the object, which the case compares against what the compiled program
+-- kept. A program file's body requires it, so it installs with the kernel scripts and loads through
+-- lunatic, which makes that answer the one the kernel computes; nothing runs it in the kernel.
 
 local class   = require("class")
 local vmlinux = require("luaebpf.vmlinux")
 local packets = require("tests.luaebpf.packets")
+local map     = require("bpf.map")
 local xdp     = require("bpf.xdp")
 local tc      = require("bpf.tc")
 
@@ -19,9 +22,12 @@ local pack, unpack     = string.pack, string.unpack
 local tabunpack, insert = table.unpack, table.insert
 local concat            = table.concat
 
-local VERDICT  <const> = 0xffffffff -- the 32 bits bpf_prog_run returns
 local U32MAX   <const> = 0xffffffff -- the largest value luaskb_integer stores
 local ORACLE   <const> = "oracle.txt"
+local KEYS     <const> = "keys.txt"
+local RESULTS  <const> = "results"
+local KEY      <const> = "I4"
+local VALUE    <const> = "i8" -- a Lua integer, whole
 local LOOPBACK <const> = 1
 local QUEUE    <const> = 0
 local FRAME    <const> = "\xff\xff\xff\xff\xff\xff\x00\x11\x22\x33\x44\x55\x08\x00"
@@ -202,29 +208,72 @@ function corpus.bytes(packed, how)
 	return concat(out, " ")
 end
 
-local function answer(ok, value)
-	if not ok then
-		return "raises"
+-- what the programs keep, by key: a table while the body runs them on the host, which the oracle
+-- reads, and from corpus.close the map a compiled program's keep writes
+local kept = {}
+local names = {}
+
+local function keeper(key)
+	return function(v)
+		kept[key] = v
 	end
-	if type(value) == "boolean" then
-		return value and "1" or "0"
+end
+
+-- declares the program build(keep, ...) makes, whose keep stores what the program hands it under
+-- a key of the program's own; answers the declared program and that key
+function corpus.program(constructor, opts, build, ...)
+	insert(names, opts.name)
+	local key = #names
+	return constructor(build(keeper(key), ...), opts), key
+end
+
+-- the program of a function of no context, which keeps what the function returns: the function is
+-- handed a 0 for the argument it ignores, since a compiled call passes every one the callee declares
+function corpus.returning(keep, fn)
+	return function(_)
+		local v = fn(0)
+		keep(v)
 	end
-	return tostring(value & VERDICT)
+end
+
+-- declares the map the programs keep their values in, once every one of them is declared, and
+-- writes the key each keeps under beside the object, where luaebpf_kept reads it
+function corpus.close()
+	kept = map.hash(RESULTS, {key = KEY, value = VALUE, entries = #names})
+	local out = assert(io.open(KEYS, "w"))
+	for key, name in ipairs(names) do
+		out:write(name, "\t", corpus.bytes(pack(KEY, key)), "\n")
+	end
+	out:close()
 end
 
 function corpus.new()
 	return rows:new{out = assert(io.open(ORACLE, "w"))}
 end
 
-function rows:declare(name, fn, default, ctx)
-	local declare = ctx ~= nil and states[ctx].program or xdp.program
-	local program = declare(fn, {name = name, default = default})
-	self.out:write(name, "\t", answer(pcall(fn, ctx or 0)), "\t", program.default, "\t",
+-- the oracle's line for a row: what its program kept when the body ran it, "absent" where it raised
+-- before keeping anything
+local function answer(self, program, key, ctx)
+	pcall(program.fn, ctx)
+	local value = kept[key]
+	self.out:write(program.name, "\t", value ~= nil and tostring(value) or "absent", "\t", program.default, "\t",
 		ctx ~= nil and states[ctx].name or "", "\n")
+end
+
+-- a row over a function of no context, whose program keeps what it returns
+function rows:declare(name, fn, default)
+	answer(self, corpus.program(xdp.program, {name = name, default = default}, corpus.returning, fn))
+end
+
+-- a row over the program build(keep) makes, of the type whose context ctx is the twin of
+function rows:stores(name, build, default, ctx)
+	local program, key = corpus.program(states[ctx].program, {name = name, default = default}, build)
+	answer(self, program, key, ctx)
 end
 
 function rows:close()
 	self.out:close()
+	corpus.close()
 end
 
 -- a row per maker in order and argument list in operands, named after the maker and the list's place

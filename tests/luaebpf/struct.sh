@@ -6,7 +6,7 @@
 # Tests a map whose value spec is a struct codec, which a compiled function reads a field at a
 # time rather than as one number.
 #   - one field of every width and signedness, with a gap the codec reads as padding: the case
-#     seeds the value with `bpftool map update` and each program returns one field, so a wrong
+#     seeds the value with `bpftool map update` and each program keeps one field, so a wrong
 #     offset, width or sign extension changes the number
 #   - a layout `luaebpf.vmlinux` read out of the running kernel's BTF as the value spec, seeded
 #     with an IPv4 header: that ties the reader to the map path, since a field read at a wrong
@@ -53,7 +53,7 @@ while IFS=$'\t' read -r kind name key value; do
 done < "$ROWS"
 
 read=$(while IFS=$'\t' read -r kind name value; do
-	[ "$kind" = expect ] && echo "$name $(luaebpf_verdict "$name" frame)"
+	[ "$kind" = expect ] && echo "$name $(luaebpf_keeps "$name" frame)"
 done < "$ROWS")
 rm -rf "$LUAEBPF_PINS"
 

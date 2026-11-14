@@ -40,9 +40,11 @@ function makers.zero() return function(_) if 0 then return 11 end return 22 end 
 function makers.andzero() return function(_) local v = 0 and 1 return v end end
 function makers.notnil() return function(_) local v = nil if not v then return 11 end return 22 end end
 function makers.notfalse() return function(_) local v = false if not v then return 11 end return 22 end end
-function makers.boolean(a, b) return function(_) return a < b end end
+function makers.boolean(a, b) return function(_) local v = a < b if v then return 11 end return 22 end end
 function makers.testset(a, b) return function(_) local v = (a > b) and a or b return v end end
-function makers.orvalue(a, b) return function(_) local v = (a ~= 0) or (b ~= 0) return v end end
+function makers.orvalue(a, b)
+	return function(_) local v = (a ~= 0) or (b ~= 0) if v then return 11 end return 22 end
+end
 -- a value the compiler does not hold, against a constant only its type can answer for: the bits
 -- carry neither nil, nor a boolean, nor a string apart from the zero every one of them shares
 function makers.nilvalue(a, b) return function(_) local v = a + b if v == nil then return 11 end return 22 end end

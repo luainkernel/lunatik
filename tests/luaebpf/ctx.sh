@@ -10,8 +10,8 @@
 #     object's own spelling, and a TC program reads #skb, skb:ifindex() and skb:priority(), the
 #     kernel's skb object's: each answers what prog run was told to build the context from. The
 #     program file's body writes those bytes at the offsets luaebpf.vmlinux reports, so a wrong
-#     offset fills a field the program does not read and prog run answers the other number, or
-#     refuses the context outright
+#     offset fills a field the program does not read and the program keeps the other number, or
+#     prog run refuses the context outright
 #   - skb:hash() compiles and answers 0 on both sides, prog run building its skb with no hash;
 #     the offset it reads at is btfview.sh's
 #   - skb:priority(n) answers n read back through the kernel's own context, and the case reads
@@ -58,7 +58,7 @@ reported() {
 
 at=$(reported priority)
 want=$(reported written)
-got=$(luaebpf_verdict skbsetprio skbwrite "$LUAEBPF_WORK/skbwrite.out")
+got=$(luaebpf_keeps skbsetprio skbwrite "$LUAEBPF_WORK/skbwrite.out")
 [ "$got" = "$want" ] || fail "luaebpf: the priority write answered '$got', not '$want'"
 out=$(od -An -tu4 -j "$at" -N 4 "$LUAEBPF_WORK/skbwrite.out" | tr -d ' ')
 [ "$out" = "$want" ] || fail "luaebpf: ctx_out carries priority '$out' at offset $at, not '$want'"
@@ -71,8 +71,8 @@ out=$(od -An -tu4 -j "$at" -N 4 "$LUAEBPF_WORK/skbwide.out" | tr -d ' ')
 [ "$out" = "$want" ] || fail "luaebpf: a priority past 32 bits left '$out' in ctx_out, not '$want'"
 ktap_pass "luaebpf: a priority past 32 bits takes the default verdict and leaves the priority as it was"
 
-got=$(luaebpf_verdict skbegress skbctx)
-want=$(luaebpf_verdict skblen skbctx)
+got=$(luaebpf_keeps skbegress skbctx)
+want=$(luaebpf_keeps skblen skbctx)
 [ -n "$got" ] && [ "$got" = "$want" ] || fail "luaebpf: the egress program answered '$got', the ingress one '$want'"
 ktap_pass "luaebpf: an egress program loads from its own section and reads the context"
 
