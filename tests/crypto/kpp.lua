@@ -21,16 +21,44 @@ local refuses = refusal.check
 -- nil where the kernel has no CONFIG_CRYPTO_ECDH, which every ECDH provider selects
 local kpp = crypto.kpp or error("the kernel serves no ecdh-nist-p256", 0)
 
--- the kernel's ecdh_p256_tv_template
-local vector <const> = {
-	scalar = hex2bin("24d121ebe5cf2d83f6621b6e43843aa38be086c32019da92505303e1c0eab882"),
-	public = hex2bin(
-		"1a7feb5200bd3c317db670c186a6c7c43bc55f6c6f583cf5b66382773324a15f6aca436ff77eff023708cc405e7afd6a" ..
-		"6a026e4187683877faa944432def09df"),
-	peer = hex2bin(
-		"ccb4da74b1473fea6c709e382dc7aab729b2470319abdd34bda82c93e1a474d96463f770202fa4e69f4a38ccc02c492f" ..
-		"b132bbaf2261dacb6fdba9aafc7781f3"),
-	shared = hex2bin("ea176f7e6e5726388bfb41ebbac86da5a872d1ffc9473daa58439f340f8cf3c9"),
+-- the kernel's ecdh_p192_tv_template, ecdh_p256_tv_template and ecdh_p384_tv_template, without struct ecdh
+local vectors <const> = {
+	["ecdh-nist-p192"] = {
+		scalar = hex2bin("b505b1711ebf8cda4e191e621f232331361ed3842fcc2172"),
+		public = hex2bin(
+			"1a04dba5e1dd4e79a3e6ef0e5c804985fa78b4ef49bd4c7c22902102f91b815d" ..
+			"0c8aa898d62769885ebc94d8159e21ce"),
+		peer = hex2bin(
+			"c3ba674b71ecd0767a99756436139a945d8bdc609091fd3fb01f8a0a68c6886e" ..
+			"8387dd6709f88d9607d6bd1ce68d9d67"),
+		shared = hex2bin("f457cc4f1f4e31cce34060c80693c62e99808128afc55174"),
+	},
+	["ecdh-nist-p256"] = {
+		scalar = hex2bin("24d121ebe5cf2d83f6621b6e43843aa38be086c32019da92505303e1c0eab882"),
+		public = hex2bin(
+			"1a7feb5200bd3c317db670c186a6c7c43bc55f6c6f583cf5b66382773324a15f" ..
+			"6aca436ff77eff023708cc405e7afd6a6a026e4187683877faa944432def09df"),
+		peer = hex2bin(
+			"ccb4da74b1473fea6c709e382dc7aab729b2470319abdd34bda82c93e1a474d9" ..
+			"6463f770202fa4e69f4a38ccc02c492fb132bbaf2261dacb6fdba9aafc7781f3"),
+		shared = hex2bin("ea176f7e6e5726388bfb41ebbac86da5a872d1ffc9473daa58439f340f8cf3c9"),
+	},
+	["ecdh-nist-p384"] = {
+		scalar = hex2bin(
+			"099f3c7034d4a2c699884d73a375a67f7624ef7c6b3c0f160647b67414dce655" ..
+			"e35b538041e649ee3faef896783ab194"),
+		public = hex2bin(
+			"667842d7d180ac2cde6f74f37551f55755c7645c20ef73e31634fe72b4c55ee6" ..
+			"de3ac808acb4bdb4c88732aee95f41aa9482ed1fc0eeb9cafc4984625ccfc23f" ..
+			"65032149e0e144ada024181535a0f38eeb9fcff3c2c947dae69b4c634573a81c"),
+		peer = hex2bin(
+			"e558dbef53eecde3d3fccfc1aea08a89a987475d12fd950d83cfa41732bc509d" ..
+			"0d1ac43a0336def96fda41d0774a3571dcfbec7aacf3196472169e838430367f" ..
+			"66eebe3c6e70c416dd5f0c68759dd1fff83fa40142209dff5eaad96db9e6386c"),
+		shared = hex2bin(
+			"11187331c279962d93d604243fd592cb9d0a926f422e47187521287e7156c5c4" ..
+			"d603135569b9e9d09cf5d4a270f59746"),
+	},
 }
 
 local U16MAX <const> = 65535 -- the most struct ecdh's key_size holds
@@ -62,6 +90,13 @@ local function agree(name, publiclen)
 	assert(secret == b:sharedsecret(apublic), name .. "'s two sides disagree")
 end
 
+local function answers(name)
+	local vector = vectors[name]
+	local ecdh <close> = kpp(name, vector.scalar)
+	assert(ecdh:publickey() == vector.public, name .. "'s publickey does not match the vector")
+	assert(ecdh:sharedsecret(vector.peer) == vector.shared, name .. "'s sharedsecret does not match the vector")
+end
+
 local function derive(secret)
 	local h <close> = hkdf.new("sha256")
 	return h:hkdf("", secret, "wrap", 32)
@@ -73,10 +108,11 @@ local function cipher(key)
 	return gcm
 end
 
-test("crypto.kpp answers the kernel's ECDH P-256 vector", function()
-	local ecdh <close> = kpp("ecdh-nist-p256", vector.scalar)
-	assert(ecdh:publickey() == vector.public, "publickey does not match the vector")
-	assert(ecdh:sharedsecret(vector.peer) == vector.shared, "sharedsecret does not match the vector")
+test("crypto.kpp answers the kernel's ECDH vectors", function()
+	answers("ecdh-nist-p256")
+	answers("ecdh-nist-p384")
+	local ok, err = pcall(answers, "ecdh-nist-p192") -- FIPS mode serves no ecdh-nist-p192
+	assert(ok or err == "ENOENT", tostring(err))
 end)
 
 test("crypto.kpp agrees a secret between two generated keys", function()
@@ -99,6 +135,7 @@ test("crypto.kpp opens a secret wrapped for a key generated in the kernel", func
 end)
 
 test("crypto.kpp answers nil and EINVAL for a peer's key the curve refuses", function()
+	local vector = vectors["ecdh-nist-p256"]
 	local ecdh <close> = kpp("ecdh-nist-p256", vector.scalar)
 	refuses(ecdh, vector.peer:sub(1, 63) .. char(vector.peer:byte(64) ~ 1)) -- off the curve
 	refuses(ecdh, vector.peer:sub(1, 63))
@@ -108,7 +145,10 @@ test("crypto.kpp answers nil and EINVAL for a peer's key the curve refuses", fun
 end)
 
 test("crypto.kpp refuses a private key of another length or out of the curve's range", function()
+	local vector = vectors["ecdh-nist-p256"]
 	raises("EINVAL", kpp, "ecdh-nist-p256", vector.scalar:sub(2))
+	raises("EINVAL", kpp, "ecdh-nist-p384", vectors["ecdh-nist-p384"].scalar:sub(2))
+	refusesname("EINVAL", "ecdh-nist-p192", vectors["ecdh-nist-p192"].scalar:sub(2))
 	raises("EINVAL", kpp, "ecdh-nist-p256", "")
 	raises("EINVAL", kpp, "ecdh-nist-p256", rep("\0", 32))
 	raises("EINVAL", kpp, "ecdh-nist-p256", rep("\xff", 32))

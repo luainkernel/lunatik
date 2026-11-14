@@ -167,8 +167,10 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   and raises `ENOSYS` from `verify`; where the verifier is `pkcs1` it is `ENOENT`.
   An unknown name is `ENOENT`. Skipped where the kernel serves neither name of
   the ECDSA or of the RSA verifier, which the script allocates before its cases.
-- **kpp**: `ecdh-nist-p256` with the private key of the kernel's `testmgr.h`
-  vector answers its public key and, with its peer's key, its shared secret.
+- **kpp**: `ecdh-nist-p256`, `ecdh-nist-p384` and, where the kernel serves it,
+  `ecdh-nist-p192`, each with the private key of its curve's vector in the
+  kernel's `testmgr.h`, answer its public key and, with its peer's key, its
+  shared secret.
   Two generated `ecdh-nist-p256` keys differ and agree a 32-byte secret both ways
   over 64-byte public keys, two `ecdh-nist-p384` ones a 48-byte secret over
   96-byte keys, two allocated by the driver name `ecdh-nist-p256-generic` a
@@ -177,10 +179,11 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   A sender's generated key wraps a string with `gcm(aes)` under an
   `hkdf` of its secret with a key generated in the kernel, which unwraps it from
   the sender's public key. `sharedsecret` answers nil and `EINVAL` for the peer's
-  key off the curve, 63 and 65 bytes long and all zero, and the vector's peer
-  then still agrees. The constructor raises `EINVAL` for a private key of 31
-  bytes, of none, of 32 zero and 32 `0xff` bytes, and of 65568 bytes whose first
-  32 are the vector's, which `struct ecdh` would truncate to them; `EINVAL` or
+  key off the curve, 63 and 65 bytes long and all zero, and the P-256 vector's
+  peer then still agrees. The constructor raises `EINVAL` for a private key a
+  byte short of each vector's, P-192's where the kernel serves it, of none, of
+  32 zero and 32 `0xff` bytes, and of 65568 bytes whose first 32 are the P-256
+  vector's, which `struct ecdh` would truncate to them; `EINVAL` or
   `ENOENT`, where the kernel serves none, for `ffdhe2048(dh)` and `curve25519`,
   also with 26 bytes, which packed are a key of curve25519's size; and `ENOENT`
   for an unknown name. `algname` is the name; closed twice, `publickey` raises
