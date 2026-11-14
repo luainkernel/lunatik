@@ -14,8 +14,9 @@
 # resumed with RFC 9001 A.2's protected client Initial, derives A.1's client keys from the packet's connection ID,
 # removes the header protection and deciphers the payload with ctr(aes) from GCM's second counter, its tag unchecked.
 #
-# hardirq: crypto.shash and crypto.skcipher refuse a hardirq runtime in its body and past it, and the methods of an
-# object handed over there refuse it, since its callbacks run with IRQs disabled.
+# hardirq: crypto.shash and crypto.skcipher refuse a hardirq runtime in its body and past it. A sha256 and a ctr(aes)
+# the script shares through lunatik._ENV digest and encrypt the vectors in the body, which runs with IRQs on before
+# the runtime is armed, and their methods refuse a callback they are handed over to, since it runs with IRQs disabled.
 #
 # context: a crypto object refused for its execution context leaves nothing
 # allocated, measured on the reference a tfm holds on the module implementing
@@ -28,6 +29,9 @@
 #
 # deferred: comp waits for an asynchronous implementation, a module the test builds whose worker
 # completes each request after the call returned, through the backlog for decompress.
+#
+# irqsoff: shash and skcipher methods refuse a softirq runtime's hid raw_event reached with IRQs off, as an HCD
+# without HCD_BH reaches it, through a HID transport the test builds whose one report comes from hardirq context.
 #
 # seed: rng and reset without a seed seed an algorithm with seedsize() random bytes, ansi_cprng's 48.
 #
@@ -95,6 +99,8 @@ echo ""
 bash "$DIR/large.sh" || RESULT=1
 echo ""
 bash "$DIR/deferred.sh" || RESULT=1
+echo ""
+bash "$DIR/irqsoff.sh" || RESULT=1
 echo ""
 bash "$DIR/seed.sh" || RESULT=1
 echo ""

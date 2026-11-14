@@ -207,10 +207,13 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   `hmac(sha256)`, `ecb(aes)` or `ctr(aes)`, which the script allocates before
   its case.
 - **hardirq**: `shash` and `skcipher` raise `not allowed in a hardirq runtime`
-  in a hardirq runtime's body and past it, and a `crypto.shash` and a
-  `crypto.skcipher` handed over to it raise `not allowed with IRQs disabled`
-  from a method, since its callbacks run with them off. Skipped where the
-  kernel serves no `sha256` or `ctr(aes)`.
+  in a hardirq runtime's body and past it. A `crypto.shash` and a
+  `crypto.skcipher` the script shares through `lunatik._ENV` run their methods
+  in the body, which runs with IRQs on: `sha256` digests the vector of
+  **shash**, and `ctr(aes)` sets the key of SP 800-38A F.5.1 and encrypts its
+  first block. Handed over to the runtime's callback, they raise
+  `not allowed with IRQs disabled` from a method, since its callbacks run with
+  them off. Skipped where the kernel serves no `sha256` or `ctr(aes)`.
 - **comp**: `lz4` names itself through `algname`, compresses to fewer bytes
   and decompresses back into an exact or a larger buffer; an empty string with
   a size of 0 is refused as out of bounds, and a buffer one byte short of the
@@ -263,6 +266,19 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   an output shorter than the input raises from either the `EINVAL` the
   completion carries; the module counts one completion from the worker per
   call. Skips where the running kernel has no build tree.
+- **irqsoff**: a `crypto.shash` and a `crypto.skcipher` method raise
+  `not allowed with IRQs disabled` in a softirq runtime's callback reached with
+  IRQs off, where `hid`'s `raw_event` runs for a device behind an HCD without
+  `HCD_BH`, OHCI's. No test host carries one, so the test builds `irqsoff.c`
+  against the running kernel and loads it: a HID transport whose one device
+  gets one input report from a hard `irq_work`, in hardirq context. A softirq
+  runtime's body creates `sha256` and a keyed `ctr(aes)` and registers a driver
+  only that device matches, whose `raw_event` calls `digest`, `setkey` and
+  `encrypt` and answers `-EPROTO` once each method refused; `hid_input_report`
+  returns that `-EPROTO`, and `dmesg` holds no Lua error, warning or oops. Skips
+  unless the loaded `luacrypto` carries the refusal, since without it
+  `ctr-aes-ce` keys in NEON with IRQs off, a `BUG` on arm64, and where the
+  kernel has no HID bus or build tree, or serves no `sha256` or `ctr(aes)`.
 - **seed**: `rng` and `reset` without a seed seed an algorithm with `seedsize()`
   random bytes the kernel draws. `ansi_cprng`, which refuses a seed under 32
   bytes with `EINVAL`, is created, reports a seed size of 48 and gives other
