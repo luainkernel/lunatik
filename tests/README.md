@@ -1032,8 +1032,9 @@ each case runs `depmod -b` over a tree of the suite's own.
 ### lua
 
 Holds the vendored Lua to the contract the top-level README documents, so a
-bump of `lua/` that drops a kernel guard fails here instead of compiling, and
-the `util` module to its documentation on that Lua's stack.
+bump of `lua/` that drops a kernel guard fails here instead of compiling, the
+`util` module to its documentation on that Lua's stack, and `run_test`, in
+`tests/lib.sh`, to naming the case that failed.
 
 - **floats**: no float literal, exponent, hexadecimal float or `^` compiles;
   `/` is integer division on a constant, a register and a coerced string,
@@ -1079,6 +1080,12 @@ the `util` module to its documentation on that Lua's stack.
   back from either case; each returns the string alone, the empty string
   included, and `hex2bin` refuses an odd length and a character that is not a
   hexadecimal digit with `invalid hexadecimal string`.
+- **report**: a case of `tests/lib.lua`'s `test` raises `ELOOP` at level 0,
+  which carries no position, as an errno a binding raises: `run_test` fails the
+  script, and what it prints carries the line `test` prints for the case,
+  `FAIL`, the case's name and `ELOOP`, a tab between them. Where `run_test`'s
+  pattern misses that line, or `test` prints another, `run_test` prints the
+  traceback alone, which names neither the case nor its error.
 
 ### luac
 
