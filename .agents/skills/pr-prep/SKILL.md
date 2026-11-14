@@ -48,7 +48,11 @@ no "Test plan" section, no em dashes. On top of it:
 - The body is written as AGENTS.md, "Patches and commits", says: the need, what the change lets a
   script or a user do with the code they write in a fenced block that reads on its own, what changes
   from today and what it costs; four short paragraphs at most, an example counting as none;
-  `bash tools/checks/pr-body.sh <file>` before posting it.
+  `bash tools/checks/pr-body.sh <file> <changed files>` before posting it. It names a first sentence
+  longer than any a merged body opened on, a change that reaches what a script writes or calls, under
+  `lib/`, `common/` or `bin/luaebpf/lib/`, with no fenced block and no sentence on why no script is
+  shown, "Nothing a script calls changes", and the commits' words, a cell, a stimulus, a plan line, a
+  fixup, a squash, "this push", in a change that is not the tests' or the harness's.
 - A pull request that finishes a phase of an epic carries `Closes #<phase issue>` on a line of its
   own, and one that finishes none says `#<epic>, which it does not close`: a body that only says it
   is part of the epic, or answers an issue, closes nothing when it merges, and `pr-body.sh` fails it.

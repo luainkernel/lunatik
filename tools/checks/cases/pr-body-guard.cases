@@ -26,6 +26,13 @@ block	gh -R luainkernel/lunatik pr create --head fifo-test --base master --body-
 block	gh -Rluainkernel/lunatik pr create --head fifo-test --base master --body-file silent.md
 pass	gh -R luainkernel/lunatik pr create --head fifo-test --base master --body-file named.md
 pass	EXAMPLES_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@silent.md
+# a body is read against the files its change carries
+block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@nocode.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@fenced.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=fifo -F draft=true -F body=@nocode.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@long.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@backstage.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=fifo -F draft=true -F body=@backstage.md
 # an issue edit is read against the body its issue has in the repository the write targets, which the
 # gh on stub/ answers, with no post held
 # env: PATH=stub:/usr/local/bin:/usr/bin:/bin

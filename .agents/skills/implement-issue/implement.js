@@ -165,8 +165,9 @@ you take it, what you read, decided, committed and measured, and your answer bef
    Run no install, reload, suite or example yourself. List the examples tools/checks/examples-touched.sh
    names over the changed files.
 6. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/pr-body.sh
-   passes the body, which carries \`Closes #${a.issue}\` on a line of its own, or \`#${a.issue}, which it does
-   not close\` where it is the binding of a change split in two, and names each example as run:
+   passes the body over the changed files, and the body carries \`Closes #${a.issue}\` on a line of its
+   own, or \`#${a.issue}, which it does not close\` where it is the binding of a change split in two, and
+   names each example as run:
    the pull request opens only on a head the host run passed, and says of an example the host only loaded,
    and of what the body claims of one and the host did not show, what the build said. Open nothing.
 7. Remove your worktree (\`rm -rf <tree> && git worktree prune\`) once the branch is pushed: the review, the host
@@ -219,8 +220,9 @@ record of what the suite printed on ${kernel}:
 ${JSON.stringify(unproved)}` : ''}:
 ${JSON.stringify(body)}
 
-Write the body with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it, and pass that
-path spelled out in the command that opens the pull request (\`-F body=@${bodyFile}\`): the guards before a shell
+Write the body with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it and the files
+\`git diff --name-only ${impl.base}...${head}\` lists, and pass that path spelled out in the command that
+opens the pull request (\`-F body=@${bodyFile}\`): the guards before a shell
 call read the file the command names, and refuse a path a shell variable holds. Label nothing: the session
 labels it, with the label \`bash tools/complexity.sh <number>\` prints, which your answer carries as
 complexity. Your answer is the pull request's number; a write refused goes in notes, word for word.
