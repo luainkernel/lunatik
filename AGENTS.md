@@ -24,7 +24,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | Path | What lives there |
 |------|------------------|
 | `lunatik_*.c`, `lunatik.h` | core runtime, object model, C API |
-| `lua/` | the Lua fork (luainkernel/lua): upstream's git mirror plus the `_KERNEL` patch, which only modifies, `#ifndef _KERNEL` with upstream first; code the kernel side needs is added on the Lunatik side, `luac/` included, never to the fork |
+| `lua/` | the Lua fork (luainkernel/lua): upstream's git mirror plus the `_KERNEL` patch, which adapts Lua to the kernel and gives the VM no behaviour upstream's lacks, modifying only, `#ifndef _KERNEL` with upstream first; code the kernel side needs is added on the Lunatik side, `luac/` included, never to the fork |
 | `luac/` | the luac fork (luainkernel/luac): the release tarball's `luac.c`, which the git mirror does not carry, plus the `_KERNEL` patch; a bump is an "update to Lua x.y.z" commit made from the tarball |
 | `klibc/` | the klibc fork (luainkernel/klibc): upstream's tags mirrored, and per release a `klibc-x.y.z-kernel` branch, upstream's tag plus Lunatik's two setjmp patches (arm64 saves x18, x86_64 returns through the retpoline and rethunk thunks), which the fork's `lunatik` branch follows; the tree links only each architecture's `setjmp.S`, `archsetjmp.h` and `archconfig.h` and libgcc's 64-bit division helpers, so a bump is read against those files |
 | `include/` | the C library headers the kernel's Lua includes, written over the kernel's headers and klibc's setjmp |
