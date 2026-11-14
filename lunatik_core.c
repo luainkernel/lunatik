@@ -415,6 +415,7 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 	lunatik_runtimeof(runtime)->ready = false;
 	lunatik_runtimeof(runtime)->cpu = cpu;
 	lunatik_runtimeof(runtime)->percpu = percpu;
+	lunatik_runtimeof(runtime)->replay = NULL;
 
 	runtime->gfp = GFP_KERNEL; /* might use kvmalloc while running in process */
 	lua_setallocf(L, lunatik_alloc, runtime);
