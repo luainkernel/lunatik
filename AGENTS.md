@@ -40,7 +40,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | `tools/` | maintenance scripts, and the mechanical convention checks in `tools/checks/` |
 | `.agents/skills/` | the recurring workflows packaged as agent skills (open `SKILL.md` format) |
 | `.agents/rules/` | the rules for a kind of file, loaded by the paths each one names |
-| `.agents/agents/` | the agents a workflow runs a narrow job in, the host's and GitHub's |
+| `.agents/agents/` | the agents a workflow runs a narrow job in, the host's, GitHub's and the reader's of a pull request body |
 | `.claude/` | Claude Code's wiring of the guards, the checks and the skills, with no logic of its own (see *Skills*) |
 | `.github/` | the CI workflows |
 | `doc/` | all documentation: the guide pages (`doc/guide/`), the hand written C API reference (`doc/capi.md`), design notes (`doc/design/`), the site's style (`doc/style/`), and generated LDoc output (everything else, gitignored) |
@@ -176,7 +176,8 @@ does a shape a review proposes, and `implement-guard.sh` refuses a commit of cod
 own thread that is not a fixup. An
 agent's context is paid for on every turn it takes, so the work that only waits on the host, or only
 writes to GitHub, runs in the agents `.agents/agents/` defines, which load no CLAUDE.md and run on a
-smaller model. The implementer's prompt names the rule a step needs and restates
+smaller model, and a pull request body is read in one that loads none so that it knows nothing of the
+change. The implementer's prompt names the rule a step needs and restates
 none: every agent loads this file, and a rule pasted into a prompt is a copy the next change here
 does not reach.
 What the implementer and the review leave as issues, their `findings_left`, the workflow prepares as its
@@ -515,11 +516,17 @@ named, not one discovered at that consumer's build.
   write, in a fenced block that reads on its own, every name in it defined there; what changes from
   today, the hand-written stub it replaces or the refusal it lifts; and what it costs or needs, a
   kernel, a build step, a path that pays more. An example counts as no paragraph. How the problem was
-  found, what was measured and what was tried belong in the commits, and so does the mechanism: the
+  found, what was measured and what was tried belong in the commits, and so do the words of that work,
+  a test's cells and plan lines, a fixup, a squash, the push, and so does the mechanism: the
   body says what a reader of the API meets, not how the code reaches it. #2202 opened on "the kfuncs
   ... are reachable from hand-written C stubs alone" and a paragraph on how the call lowers into
   the frame, and the maintainer could not tell what it was for until a program file handing UDP
-  frames to a kernel script showed it. `tools/checks/pr-body.sh` holds a body file to the count.
+  frames to a kernel script showed it. #2527's opened on one sentence of 86 words over a driver its
+  change never reaches, showed no code, and spoke of the cell and the plan line its test kept, with
+  every check passing it. `tools/checks/pr-body.sh` holds a body file and the files of its change to
+  the count, a plain first sentence, the example and the commits' words, and a reader with none of the
+  change's history restates the body before it goes out (the pr-prep skill), which
+  `pr-body-guard.sh` holds the session to.
 * A pull request that replaces another says so in the body, `Alternative to #N`, and the merge of
   the replacement closes #N in the same breath: one left open is a claim about the queue nobody made.
   `tools/pr-status.sh` marks an open pull request a merged body names that way as superseded and

@@ -38,7 +38,7 @@ comments, after a round. Follow it whole; this card is only the GitHub mechanics
   over every binding with the same shape. Each pass is its own read of the diff; the first round of
   #848 and #849 ran the rules and left all three for a second.
 - The body closes what the pull request finishes: `Closes #<phase issue>` for a phase of an epic, or
-  `#<epic>, which it does not close`. `bash tools/checks/pr-body.sh` over the body fails one that
+  `#<epic>, which it does not close`. `bash tools/checks/pr-body.sh <body> <changed files>` fails one that
   ties itself to an issue and does neither; the ten bodies of the fsnotify stack did, and its phase
   issues stayed open after every merge.
 
@@ -79,6 +79,8 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
   `tools/review-packet.sh` gathers, the commits, the files, every check's lines over the change and the
   diff with each function it touches whole, and answers each check's line; the build runs in the
   `lunatik-host` agent, which loads no CLAUDE.md, so `args.machine` says how this machine gets root.
+  Between them the `lunatik-reader` agent reads the body the run returns, with none of the change's
+  history, and the run is ready only on a body it passed.
   Each phase returns a `schema`, so a crash loses one phase and the cache replays the ones that
   completed under `resumeFromRunId`.
 - A head the suite already passed is not built again by the review: the totals, the core
