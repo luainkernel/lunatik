@@ -205,7 +205,11 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   payload with `ctr(aes)` from GCM's second counter into the CRYPTO frame and
   its PADDING, the tag unchecked. Skipped where the kernel serves no
   `hmac(sha256)`, `ecb(aes)` or `ctr(aes)`, which the script allocates before
-  its case.
+  its cases. A second softirq runtime's body creates two `hmac(sha256)`, and
+  its hook keys both with RFC 9001's initial salt and hashes A.1's connection
+  ID in two parts, through `init`, `update` and `final`, through `finup`, and
+  through `export` into the second's `import`, each to what `digest` gives of
+  the whole, A.1's initial secret.
 - **hardirq**: `shash` and `skcipher` raise `not allowed in a hardirq runtime`
   in a hardirq runtime's body and past it, and a `crypto.shash` and a
   `crypto.skcipher` handed over to it raise `not allowed with IRQs disabled`
