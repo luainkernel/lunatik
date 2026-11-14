@@ -79,6 +79,8 @@ card is the workflow that follows them (`Workflow({scriptPath: '.agents/skills/r
   `tools/review-packet.sh` gathers, the commits, the files, every check's lines over the change and the
   diff with each function it touches whole, and answers each check's line; the build runs in the
   `lunatik-host` agent, which loads no CLAUDE.md, so `args.machine` says how this machine gets root.
+  Between them the `lunatik-reader` agent reads the body the run returns, with none of the change's
+  history, and the run is ready only on a body it passed.
   Each phase returns a `schema`, so a crash loses one phase and the cache replays the ones that
   completed under `resumeFromRunId`.
 - A head the suite already passed is not built again by the review: the totals, the core

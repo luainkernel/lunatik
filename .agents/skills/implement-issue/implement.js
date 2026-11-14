@@ -417,7 +417,8 @@ if (implemented?.branch && a.push !== false) {
   }
   const missing = unrun(implemented, build)
   const unsourced = review?.unsourced || []
-  if (passed(build) && !missing.length && !unsourced.length && a.gh !== false) {
+  const unread = !review?.read?.passed
+  if (passed(build) && !missing.length && !unsourced.length && !unread && a.gh !== false) {
     phase('Open')
     const unrelated = fixes.filter(f => f && !f.caused).map(f => f.notes)
     const opened = await agent(OPEN(implemented, head, unrelated, body, build?.loaded || [], build?.skipped, build?.unmet || [],
@@ -428,7 +429,8 @@ if (implemented?.branch && a.push !== false) {
     complexity = opened?.complexity || null
   } else {
     const why = !passed(build) ? 'the host run did not pass' : missing.length ? `the host run left ${missing.join(', ')} unrun`
-      : unsourced.length ? `the review kept ${unsourced.map(b => b.mechanism).join('; ')} without a source` : 'gh is absent'
+      : unsourced.length ? `the review kept ${unsourced.map(b => b.mechanism).join('; ')} without a source`
+      : unread ? 'the reader of its body did not pass it' : 'gh is absent'
     log(`no pull request for #${a.issue}: ${why}; the session reads the result`)
   }
 } else {

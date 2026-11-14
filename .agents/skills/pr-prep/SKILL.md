@@ -53,6 +53,19 @@ no "Test plan" section, no em dashes. On top of it:
   `lib/`, `common/` or `bin/luaebpf/lib/`, with no fenced block and no sentence on why no script is
   shown, "Nothing a script calls changes", and the commits' words, a cell, a stimulus, a plan line, a
   fixup, a squash, "this push", in a change that is not the tests' or the harness's.
+- A body the session posts, opening a pull request or editing one, is read first by a reader with none
+  of the change's history, the `lunatik-reader` agent, which `review.js` runs with neither phase:
+
+        Workflow({scriptPath: '<checkout>/.agents/skills/review-pr/review.js',
+              args: {pr: <N, or 0 before it opens>, branch: '<branch>', head: '<sha>', base: '<sha>',
+                     scratch: '<absolute dir>', repo: '<checkout>', body: '<the text>',
+                     reviewer: false, build: false}})
+
+  It restates in two lines what the pull request does and why, from the body alone, and names each
+  place it cannot follow, quoting the words and the rule. What goes out is `read.file`, once
+  `read.passed`, and the hand-back carries the restatement. `pr-body-guard.sh` refuses the session's
+  post of a body no reader passed, the text as it stands, so a body edited after the read is read
+  again; one `review.js` returned ready was read already.
 - A pull request that finishes a phase of an epic carries `Closes #<phase issue>` on a line of its
   own, and one that finishes none says `#<epic>, which it does not close`: a body that only says it
   is part of the epic, or answers an issue, closes nothing when it merges, and `pr-body.sh` fails it.

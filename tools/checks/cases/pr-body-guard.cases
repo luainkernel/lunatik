@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 # run in the repository pr-body-guard.fixture.sh builds
+# env: LUNATIK_GUARD_DIR=guards
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -F body=@silent.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@named.md
@@ -26,13 +27,20 @@ block	gh -R luainkernel/lunatik pr create --head fifo-test --base master --body-
 block	gh -Rluainkernel/lunatik pr create --head fifo-test --base master --body-file silent.md
 pass	gh -R luainkernel/lunatik pr create --head fifo-test --base master --body-file named.md
 pass	EXAMPLES_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@silent.md
-# a body is read against the files its change carries
+# a body is read against the files its change carries, and the session's only once a reader passed its text
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@nocode.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@fenced.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=fifo -F draft=true -F body=@nocode.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@long.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@backstage.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=fifo -F draft=true -F body=@backstage.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@unread.md
+block	gh pr create --head fifo-test --base master --body-file unread.md
+block	gh pr create --fill --head fifo-test --base master
+block	gh -R luainkernel/lunatik pr create -f -H fifo-test -B master
+# agent: open
+pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@unread.md
+# agent:
 # an issue edit is read against the body its issue has in the repository the write targets, which the
 # gh on stub/ answers, with no post held
 # env: PATH=stub:/usr/local/bin:/usr/bin:/bin
@@ -64,6 +72,16 @@ block	gh issue edit 5 -R LuaInKernel/Lua --body-file new.md
 block	gh issue edit 5 -R github.com/luainkernel/lua --body-file new.md
 pass	gh issue edit 5 --body-file new.md
 pass	gh issue edit 6 -R luainkernel/lua --body-file new.md
+# an edit of a pull request's body is the session's post as its opening is, in either spelling; the gh on
+# stub/ answers for no pull request, so the body is read with no changed files, and another repository's
+# pull request waits for no reader
+block	gh api -X PATCH repos/luainkernel/lunatik/pulls/5 -F body=@unread.md
+block	gh pr edit 5 --body-file unread.md
+pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/5 -F body=@named.md
+pass	gh pr edit 5 --body-file named.md
+block	gh api -X PATCH repos/luainkernel/lunatik/pulls/5 -F body=@backstage.md
+pass	gh pr edit 5 --title fifo
+pass	gh api -X PATCH repos/luainkernel/lua/pulls/6 -F body=@unread.md
 
 block	GH_REPO=luainkernel/lua gh pr merge 7 --rebase
 block	env GH_REPO=luainkernel/lua gh pr merge 7 --rebase
