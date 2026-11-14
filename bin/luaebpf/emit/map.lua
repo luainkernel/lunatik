@@ -54,7 +54,7 @@ end
 map.packable = packable
 
 -- a spec narrower than a word holds the values its signedness reaches, and one the program
--- computes outside them takes the default verdict where string.pack would raise
+-- computes outside them stops the program where string.pack would raise
 local function fits(f, src, spec)
 	if spec.size * BYTE == NBITS then
 		return

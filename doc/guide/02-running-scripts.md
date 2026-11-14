@@ -242,7 +242,7 @@ The maps exist before the script opens them, and the programs attach once the ru
 failure at any step undoes the steps before it and exits 1 with that step's message, the verifier's
 own log when the kernel rejects a program, which quotes the Lua line; libbpf's own warnings, which
 name what failed where the kernel logs nothing, print on stderr before it. Once attached, a program
-logs nothing: a packet it cannot compute gets its default verdict, as
+logs nothing: a packet it cannot compute is dropped, with `XDP_ABORTED` or `TC_ACT_SHOT`, as
 [What a program returns](08-luaebpf.md#what-a-program-returns) says. `lunatik stop <script>`
 runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each
 directory above it the root leaves empty. A root holds pins and nothing else, so a stop of a name

@@ -7,15 +7,10 @@
 local tc     = require("bpf.tc")
 local action = require("linux.tc").action
 
-local PAYLOAD <const> = 1024 -- PAYLOAD in nonlinear.sh
-
-local function drop(skb)
-	if #skb < PAYLOAD then
-		return action.OK
-	end
+local function open(skb)
 	skb:data()
-	return action.SHOT
+	return action.OK
 end
 
-return tc.program(drop, {egress = true, default = action.OK, name = "nonlinear"})
+return tc.program(open, {egress = true, default = action.OK, name = "nonlinear"})
 

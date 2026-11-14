@@ -1106,7 +1106,8 @@ Every corpus case is differential: the program file's body calls the same
 functions it hands to `xdp.program` on the host and writes what each returned
 beside the object, and the case compares that with what the compiled program
 returns, truncated to the 32 bits `bpf_prog_run` gives back. Where the
-interpreter raises, the compiled program owes its default verdict instead.
+interpreter raises, the compiled program owes the error verdict of its type
+instead, `XDP_ABORTED` or `TC_ACT_SHOT`.
 
 - **host**: the body runs from the chunk `lunatic` compiles, rewritten for
   the CLI's Lua, and computes as the kernel does: `10 / 4` is the integer 2,
@@ -1186,9 +1187,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   and immediate forms over negatives, zero, `-1`, `mininteger`, `maxinteger`
   and shift counts of 0, 1, 63, 64, 65 and `-1`.
 - **divzero**: `// 0` and `% 0`, by a constant divisor and by one the program
-  computes, take the default verdict; `mininteger // -1` and `x % -1` match
-  the interpreter; with `LUAEBPF_DROP=divisor` the raw eBPF answers come
-  through instead.
+  computes, return `XDP_ABORTED` and not the default the file names, a
+  quotient by zero returned plus one so that eBPF's own, 0, is not read as
+  `XDP_ABORTED`; `mininteger // -1` and `x % -1` match the interpreter; with
+  `LUAEBPF_DROP=divisor` the raw eBPF answers come through instead.
 - **branch**: every comparison in its register and immediate forms with a
   negative against a positive, `if`/`elseif`/`else`, `and`, `or`, `not`,
   `TEST`/`TESTSET`, a returned boolean, Lua's truth, where `0` is true, and
@@ -1200,16 +1202,19 @@ interpreter raises, the compiled program owes its default verdict instead.
   them taking a `may_goto`.
 - **forvar**: a numeric `for` whose bounds the program computes: it takes a
   `may_goto` header, verifies and terminates; without the header the verifier
-  rejects it; a step a called function gets at run time takes the default
-  verdict, and one that is zero at compile time is refused. On a kernel below
-  v6.9 the case asserts the compiler's refusal instead.
+  rejects it; a step that is zero at run time, in the program and in a function
+  it calls, returns `XDP_ABORTED`, and one that is zero at compile time is
+  refused. On a kernel below v6.9 the case asserts the compiler's refusal
+  instead.
 - **call**: calls to file-declared functions as BPF-to-BPF subprograms: one
   call, two levels, four arguments, a shared helper, the deepest chain
   `MAX_CALL_FRAMES` takes with every level able to abort, a helper returning
   true or nil, which its caller tests, a call asking for two results, where
   Lua fills the second with nil, and a body that spills to the frame; a
-  division inside a called function takes the program's default verdict, and
-  a callee that reaches nothing but its abort tail still loads; one static BTF
+  division inside a called function returns `XDP_ABORTED` and not the default
+  the file names, a row past such a call adding one so that a caller that went
+  on past the flag is not read as `XDP_ABORTED`, and a callee that reaches
+  nothing but its abort tail still loads; one static BTF
   `FUNC` per subprogram; five arguments, since the fifth register carries the
   abort pointer, a call short of an argument the callee declares, and
   recursion refused with their lines.
@@ -1240,7 +1245,7 @@ interpreter raises, the compiled program owes its default verdict instead.
   constant, of `U32_MAX` and of a value computed from `#skb` with the field's
   top bit set, answers `v` back through the kernel's own context, the constant
   in `ctx_out` too, and a value the program computes past 32 bits or below zero
-  takes the default verdict and leaves `ctx_out` with the priority it was
+  returns `TC_ACT_SHOT` and leaves `ctx_out` with the priority it was
   given. A field read or assigned on either context, `ctx.ingress_ifindex`,
   `ctx.rx_queue_index`, `skb.len` and `skb.priority` among them, `#` on an XDP
   context, `ingress_ifindex`, which the kernel's skb object does not carry, a
@@ -1264,18 +1269,19 @@ interpreter raises, the compiled program owes its default verdict instead.
 - **bounds**: a read one byte past the last, one above the offset ceiling, one
   that lands in the whole ClientHello but past the truncated one, and one at a
   negative offset the program computed, each through `ctx:packet()` and through
-  `skb:data()` and declared under either default so the answer is the verdict
-  the file asked for; with `LUAEBPF_DROP=bounds` the object is still written and
-  the verifier refuses it naming an invalid packet access.
+  `skb:data()` and declared under two defaults, each returning `XDP_ABORTED` or
+  `TC_ACT_SHOT` whatever default the file named; with `LUAEBPF_DROP=bounds` the
+  object is still written and the verifier refuses it naming an invalid packet
+  access.
 - **nonlinear**: `skb:data()` on an skb that is not linear, which `prog run`
   builds only from v6.19: the TC program is attached with `tc` to the egress of
-  a veth pair whose peer sits in a namespace, lets a packet shorter than 1024
-  bytes out, and opens `skb:data()` on a longer one and drops it, its default
-  verdict letting the packet out. A short ping is answered and a long one,
-  which `ip_append_data` builds linear, is dropped; a TCP segment carrying 1024
-  bytes, whose payload `tcp_sendmsg` keeps in page fragments, reaches the
-  listener, the default verdict taken at `skb:data()`, where the kernel's
-  `skb:data()` raises in a tc callback. The same program attached at the host
+  a veth pair whose peer sits in a namespace, opens `skb:data()` on every packet
+  and lets it out, as its default verdict does. A short ping and one of 1024
+  bytes, which `ip_append_data` builds linear, are answered; a TCP segment
+  carrying 1024 bytes, whose payload `tcp_sendmsg` keeps in page fragments,
+  never reaches the listener that accepted its connection: the program stops at
+  `skb:data()`, where the kernel's `skb:data()` raises in a tc callback, with
+  `TC_ACT_SHOT`. The same program attached at the host
   side's ingress, in a run of its own, answers the pings and the segment the
   namespace sends the host the same way. Skips the device cases without `socat`
   or `tc`.
@@ -1290,10 +1296,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   register nil on the path that skips the lookup, tested as the lookup is, on a
   frame that takes the lookup and on one that skips it, a key
   the program computes past its unsigned or its signed spec, whose low bytes are
-  a seeded key, which takes the default verdict, and a negative key a signed
+  a seeded key, which returns `XDP_ABORTED`, and a negative key a signed
   spec packs. The program file's body writes what each owes either way, from
   the constants and specs the programs were compiled against, a key
-  `string.pack` refuses owing the default. An untested use, a string key, a
+  `string.pack` refuses owing `XDP_ABORTED`. An untested use, a string key, a
   method call on a lookup and a register two lookups in different maps merge
   into, at a branch or through a loop's back edge, are refused with their
   messages and lines, and so is a declaration the
@@ -1308,10 +1314,10 @@ interpreter raises, the compiled program owes its default verdict instead.
   array entry, all against the bytes the program file's body wrote from the
   constants and specs the programs were compiled with. A value the program
   computes past its unsigned or its signed spec, and a key past its spec in an
-  update and in a delete, take the default verdict, and the entries their low
+  update and in a delete, return `XDP_ABORTED`, and the entries their low
   bytes name are found untouched; a negative value a signed spec packs is kept.
   A write the map refuses, an index past an array's entries, a second key in a
-  hash of one entry and a delete from an array, takes the default verdict, and
+  hash of one entry and a delete from an array, returns `XDP_ABORTED`, and
   what the map held is kept. A value that is not a number is refused.
 - **struct**: a map whose value spec is a `struct` codec, read a field at a
   time: one field of every width and signedness with a gap the codec reads as

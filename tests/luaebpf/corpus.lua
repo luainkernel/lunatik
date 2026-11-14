@@ -25,6 +25,8 @@ local ORACLE   <const> = "oracle.txt"
 local LOOPBACK <const> = 1
 local QUEUE    <const> = 0
 local FRAME    <const> = "\xff\xff\xff\xff\xff\xff\x00\x11\x22\x33\x44\x55\x08\x00"
+local ABORTED  <const> = require("linux.xdp").action.ABORTED
+local SHOT     <const> = require("linux.tc").action.SHOT
 
 local corpus = {}
 
@@ -41,6 +43,10 @@ local states = setmetatable({}, {__mode = "k"})
 
 -- the program type whose context each struct is
 local constructors = {xdp_md = xdp.program, __sk_buff = tc.program}
+
+-- what a program owes where the interpreter raises, by its constructor: XDP's verdict for a program
+-- error, and in TC, which has none, the drop
+local raised = {[xdp.program] = ABORTED, [tc.program] = SHOT}
 
 local function read(self, format, at)
 	if at < 0 then
@@ -218,8 +224,8 @@ end
 
 function rows:declare(name, fn, default, ctx)
 	local declare = ctx ~= nil and states[ctx].program or xdp.program
-	local program = declare(fn, {name = name, default = default})
-	self.out:write(name, "\t", answer(pcall(fn, ctx or 0)), "\t", program.default, "\t",
+	declare(fn, {name = name, default = default})
+	self.out:write(name, "\t", answer(pcall(fn, ctx or 0)), "\t", raised[declare], "\t",
 		ctx ~= nil and states[ctx].name or "", "\n")
 end
 

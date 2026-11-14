@@ -5,16 +5,14 @@
 #
 # Tests skb:data() on an skb that is not linear, which BPF_PROG_TEST_RUN builds only from v6.19:
 # the compiled TC program is attached with tc to the egress of a veth pair whose peer sits in a
-# network namespace, as the tc suite attaches its own. It lets a packet shorter than PAYLOAD
-# bytes out, and opens skb:data() on a longer one and drops it, while its default verdict lets the
-# packet out.
-#   - a ping shorter than PAYLOAD bytes is answered, and one of PAYLOAD bytes, which
-#     ip_append_data builds linear, is dropped: the program runs on what the device sends and
-#     opens a linear skb's packet
+# network namespace, as the tc suite attaches its own. It opens skb:data() on every packet and lets
+# the packet out, and its default verdict lets a packet out too, so only the stop drops one.
+#   - a ping shorter than PAYLOAD bytes and one of PAYLOAD bytes, which ip_append_data builds
+#     linear, are answered: the program opens a linear skb's packet and answers its own verdict
 #   - a TCP segment carrying PAYLOAD bytes from the host to a listener in the namespace, whose
 #     payload tcp_sendmsg keeps in page fragments, so that the skb is not linear and the kernel's
-#     skb:data() raises on it in a tc callback, reaches the listener: the program took its default
-#     verdict at skb:data()
+#     skb:data() raises on it in a tc callback, never reaches the listener, which accepted the
+#     connection: the program stopped at skb:data() with TC_ACT_SHOT, which drops the segment
 #   - the same program attached at the host side's ingress instead, in a run of its own, answers
 #     the same pings and segment the namespace sends the host the same way: cls_bpf pushes the MAC
 #     header back before it computes data_end there, and the segment arrives as tcp_sendmsg built it
@@ -28,9 +26,9 @@ NETNS="lunatik_luaebpf"
 HOST="10.197.0.1"
 TARGET="10.197.0.2"
 PORT=5570
-PAYLOAD=1024 # PAYLOAD in nonlinear.bpf.lua
+PAYLOAD=1024
 LINEAR="luaebpf: a linear skb is opened by skb:data() and answers the program's verdict"
-SEGMENT="luaebpf: an skb that is not linear takes the default verdict at skb:data()"
+SEGMENT="luaebpf: an skb that is not linear stops the program at skb:data() with TC_ACT_SHOT"
 INGRESS=" at ingress"
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -79,23 +77,26 @@ exchange() {
 	listener=$!
 	awaited listening "$to"
 	head -c "$PAYLOAD" /dev/zero | inside "$from" timeout 5 socat -u - "TCP:$address:$PORT" 2>/dev/null
-	awaited ended
+	# the dropped segment leaves the listener waiting on a connection that never ends
+	awaited ended || pkill -f "TCP-LISTEN:$PORT,"
 	received=$(stat -c %s "$LUAEBPF_WORK/received" 2>/dev/null)
 }
 
-# what the exchange owes, under the titles with the suffix a run names: the long ping dropped by
-# the program's verdict and the segment let through by its default one
+# what the exchange owes, under the titles with the suffix a run names: both pings answered by the
+# program's verdict, and the segment dropped by its stop on a connection the listener accepted
 verdicts() {
 	local where="$1"
 	if [ "$short" -ne 0 ]; then
 		ktap_fail "$LINEAR$where: a ping shorter than $PAYLOAD bytes was not answered"
-	elif [ "$long" -eq 0 ]; then
-		ktap_fail "$LINEAR$where: the ping was answered, so the program took its default verdict"
+	elif [ "$long" -ne 0 ]; then
+		ktap_fail "$LINEAR$where: the ping of $PAYLOAD bytes was not answered, so the program stopped"
 	else
 		ktap_pass "$LINEAR$where"
 	fi
-	if [ "$received" != "$PAYLOAD" ]; then
-		ktap_fail "$SEGMENT$where: the listener received '${received:-nothing}', not $PAYLOAD bytes"
+	if [ -z "$received" ]; then
+		ktap_fail "$SEGMENT$where: the listener accepted no connection"
+	elif [ "$received" -ne 0 ]; then
+		ktap_fail "$SEGMENT$where: the listener received $received bytes, so the program did not stop"
 	else
 		ktap_pass "$SEGMENT$where"
 	fi

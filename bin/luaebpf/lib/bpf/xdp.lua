@@ -10,8 +10,9 @@
 -- `program` is compiled to eBPF and runs in the kernel on each packet the device receives. It takes
 -- one argument, the context, and returns a verdict, a value of `linux.xdp.action`, of which the
 -- kernel reads the low 32 bits: any value that is not an action drops the packet. Where Lua would
--- raise, at a read past the packet or a division by 0, the program stops and returns its default
--- verdict.
+-- raise, at a read past the packet or a division by 0, the program stops and returns `XDP_ABORTED`,
+-- the kernel's verdict for a program error, which drops the packet; where it returns no value, it
+-- returns its default verdict.
 --
 -- The context has the methods of the kernel's XDP `ctx` object: `ctx:packet()`, the packet, read
 -- with `getbyte`, `getint16` and the other reads of the kernel's `data` object, in the kernel's
@@ -55,17 +56,16 @@ local xdp = {}
 -- Declares `fn` as an XDP program.
 -- @function bpf.xdp.program
 -- @tparam function fn the program; it takes the context and returns a verdict.
--- @tparam[opt] table opts `default`, the verdict the program returns where it stops, where Lua
---   would raise (`linux.xdp.action.PASS`), and `name`, what the program is called in the object,
---   cut to the fifteen characters `BPF_OBJ_NAME_LEN` leaves and made unique against the names
---   already taken.
+-- @tparam[opt] table opts `default`, the verdict the program returns where its function returns no
+--   value (`linux.xdp.action.PASS`), and `name`, what the program is called in the object, cut to the
+--   fifteen characters `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken.
 -- @treturn table the declared program
 -- @raise `xdp.program takes a Lua function`, or `<file>:<line>: xdp.program's default verdict is not
 --   an integer`, the line where `fn` is defined
 function xdp.program(fn, opts)
 	opts = opts or {}
 	return programs.declare("xdp.program", fn, {section = SECTION, default = opts.default or action.PASS,
-		name = opts.name, context = context})
+		error = action.ABORTED, name = opts.name, context = context})
 end
 
 return xdp

@@ -33,7 +33,7 @@ end
 
 -- Lua's floor division over the magnitudes, since the s390 JIT of v6.6 and others of the range read
 -- BPF_SDIV as BPF_DIV: the quotient is corrected toward minus infinity when the operands' signs
--- differ, and a divisor of zero raises, so the program takes its default verdict
+-- differ, and a divisor of zero raises, so the program stops
 local function floordiv(f)
 	local code = f.code
 	local done = code:label()

@@ -239,15 +239,15 @@ method names (`getbyte`, `getuint16`, ...) and the bounds check every access car
 struct layouts read from `/sys/kernel/btf/vmlinux`, and map proxies declared with the `bpf.map`
 specs and emitted as BTF-defined maps, a `struct` value read by field name. `nil` from a lookup is
 a type the translator forces the program to test, and a key or a value outside its spec, like a
-priority outside its field, is refused when the compiler holds it and takes the default verdict
-when the program computes it, where the kernel's `bpf.map` and `skb:priority` raise. A check that
-fails inside a called function reaches the program's default verdict through a flag the callee
-raises in its caller's frame, which costs the fifth argument register and leaves a compiled
+priority outside its field, is refused when the compiler holds it and stops the program when the
+program computes it, where the kernel's `bpf.map` and `skb:priority` raise. A check that fails
+inside a called function stops the program through a flag the callee raises in its caller's frame,
+which costs the fifth argument register and leaves a compiled
 function four of its own.
 
 Tests: packet fields read through the proxy match the bytes handed to `bpftool prog run`; an
-access past `data_end` takes the failure path and returns the default verdict; a map seeded by
-`bpftool map update` decides the verdict.
+access past `data_end` takes the failure path and returns `XDP_ABORTED` or `TC_ACT_SHOT`; a map
+seeded by `bpftool map update` decides the verdict.
 
 ### Phase 3: the loader
 
@@ -337,7 +337,7 @@ from it on, a user runs one.
 | The CLI's libraries hand the body a float the kernel's Lua would not (`math.sqrt`, a string coerced to a number) | A float reached from a compiled function is refused at the line that reaches it |
 | libbpf on the target lacks `bpf_program__attach_tcx` (1.3.0) | The loader reports the missing attach as an error naming the version; the suite skips |
 | A stale pinned program or link survives a failed run | `lunatik stop` and the suite cleanup unpin everything under the script's root, up front and in the trap |
-| The compiled and the interpreted program disagree on an edge (division by zero, out-of-bounds) | The differential tests in `testing.md` run both on the same inputs; the failure path is specified as the program type's default verdict, and the interpreted side raises where the compiled side takes that path |
+| The compiled and the interpreted program disagree on an edge (division by zero, out-of-bounds) | The differential tests in `testing.md` run both on the same inputs; the failure path is specified as the program type's error verdict, `XDP_ABORTED` or `TC_ACT_SHOT`, and the interpreted side raises where the compiled side takes that path |
 
 ## Definition of done, per phase
 
