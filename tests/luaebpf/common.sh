@@ -103,11 +103,11 @@ luaebpf_verdict() {
 }
 
 # every row of the oracle against the program of the same name; where the interpreter raised,
-# the compiled program owes the default verdict that row declared instead
+# the compiled program owes the error verdict of its type, which that row wrote, instead
 luaebpf_differential() {
-	local name value default context got mismatch=0
-	while IFS=$'\t' read -r name value default context; do
-		[ "$value" = "raises" ] && value="$default"
+	local name value raised context got mismatch=0
+	while IFS=$'\t' read -r name value raised context; do
+		[ "$value" = "raises" ] && value="$raised"
 		got=$(luaebpf_verdict "$name" "$context")
 		if [ "$got" != "$value" ]; then
 			echo "$name: returned '$got', the interpreter says '$value'"

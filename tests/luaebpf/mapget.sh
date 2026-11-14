@@ -17,8 +17,8 @@
 #     which is where the verifier has to narrow it, and a register nil on the path that skips
 #     the lookup, which the test narrows as it narrows the lookup, run on a frame that takes the
 #     lookup and on one that skips it, where the nil answers as a miss does
-#   - a key the program computes outside what its spec packs, unsigned and signed, takes the
-#     default verdict, where the kernel's bpf.map raises in string.pack: each one's low bytes are
+#   - a key the program computes outside what its spec packs, unsigned and signed, returns
+#     XDP_ABORTED, where the kernel's bpf.map raises in string.pack: each one's low bytes are
 #     a seeded key, so a key stored truncated answers the seeded value instead; and a negative
 #     key a signed spec packs finds what the shell seeded under it
 #   - a lookup used as a number with no test, a lookup keyed by a string, and a method call on

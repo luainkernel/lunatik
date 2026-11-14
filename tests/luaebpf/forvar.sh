@@ -7,11 +7,12 @@
 #   - a limit, a step and an initial value the program computes: the loop takes a may_goto
 #     header, verifies, and terminates with the interpreter's answer. The verifier's own log is
 #     what shows the header, since the kernel rewrites it into a loop counter on the way in
-#   - a step that is zero at run time takes the default verdict, which the interpreter raises on
+#   - a step that is zero at run time, which the interpreter raises on, returns XDP_ABORTED
 #   - with LUAEBPF_DROP=maygoto the header is gone and the verifier rejects the loop, which is
 #     what proves the header is emitted
-#   - a step a called function gets at run time takes the default verdict too, through the flag
-#     the callee raises in its caller's frame
+#   - a step a called function gets at run time returns XDP_ABORTED too, through the flag the
+#     callee raises in its caller's frame, and the row adds one past the call, so a caller that went
+#     on past the flag returns 1 and not 0, XDP_ABORTED's value
 #   - a step that is zero at compile time is refused with its message and line
 # On a kernel without may_goto (below v6.9) the loop cannot be emitted at all, so the case skips
 # the load and asserts the compiler's refusal instead.

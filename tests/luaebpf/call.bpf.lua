@@ -54,10 +54,11 @@ function makers.once(n) return function(_) local v = twice(n) return v end end
 function makers.twolevels(n) return function(_) local v = quadruple(n) return v end end
 function makers.fourarguments(n) return function(_) local v = four(n, 1, 2, 3) return v end end
 function makers.shared(n) return function(_) local v = twice(n) + quadruple(n) return v end end
-function makers.deepest(n) return function(_) local v = deep1(n) return v end end
+-- a callee that stops answers 0, XDP_ABORTED's value, so a row whose callee may stop adds one past the call
+function makers.deepest(n) return function(_) local v = deep1(n) return v + 1 end end
 function makers.nilable(n) return function(_) if positive(n) then return 11 end return 22 end end
-function makers.calleddiv(n) return function(_) local v = half(10, n) return v end end
-function makers.onlyabort(n) return function(_) local v = always(n) return v end end
+function makers.calleddiv(n) return function(_) local v = half(10, n) return v + 1 end end
+function makers.onlyabort(n) return function(_) local v = always(n) return v + 1 end end
 -- a call asking for two results, where Lua fills the second with nil
 function makers.oneresult(n) return function(_) local v, w = twice(n) if w == nil then return 11 end return v end end
 -- more live values than the emitter keeps in registers, so the rest go to the frame
@@ -77,6 +78,6 @@ local order = {"once", "twolevels", "fourarguments", "shared", "deepest", "nilab
 	"onlyabort", "oneresult", "spilled"}
 local operands = {{0}, {3}, {-5}, {1000000}}
 
--- a default no other path returns, so a raise answers the verdict the file asked for
+-- a default no row owes, so a stop that took it rather than XDP_ABORTED is told apart
 corpus.declare(makers, order, operands, action.REDIRECT)
 

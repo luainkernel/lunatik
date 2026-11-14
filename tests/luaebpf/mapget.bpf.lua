@@ -94,7 +94,7 @@ local function spilled(_)
 end
 
 -- a key the program computes past what its spec packs, whose low four bytes are the seeded one:
--- string.pack raises on it, so the program owes its default verdict and not the seeded value
+-- string.pack raises on it, so the program owes XDP_ABORTED and not the seeded value
 local function widekey(ctx)
 	local p = ctx:packet()
 	local k = p:getbyte(0) << WORD | PRESENT
@@ -167,10 +167,10 @@ for _, program in ipairs(programs) do
 	xdp.program(program[2], {name = program[1]})
 end
 
--- the verdict a lookup under a key owes: what it finds where string.pack takes the key, and the
--- default where it raises, as the kernel's bpf.map does
+-- the verdict a lookup under a key owes: what it finds where string.pack takes the key, and
+-- XDP_ABORTED where it raises, as the kernel's bpf.map does
 local function owed(format, key, found)
-	return pcall(pack, format, key) and found or action.PASS
+	return pcall(pack, format, key) and found or action.ABORTED
 end
 
 local frame = corpus.frame()

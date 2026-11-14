@@ -7,15 +7,16 @@
 # the compiled TC program is attached with tc to the egress of a veth pair whose peer sits in a
 # network namespace, as the tc suite attaches its own. It lets a packet shorter than PAYLOAD
 # bytes out, and on a longer one drops it where '#' on skb:data() is #skb and the packet's last
-# byte is FILL, letting it out otherwise, as its default verdict does.
-#   - a ping shorter than PAYLOAD bytes is answered, and one of PAYLOAD bytes of FILL, which
-#     ip_append_data builds linear, is dropped: the program runs on what the device sends and
-#     reads a linear skb's packet
+# byte is FILL, letting it out otherwise.
+#   - a ping shorter than PAYLOAD bytes is answered, and of two of PAYLOAD bytes, which
+#     ip_append_data builds linear, the one of OTHER is answered and the one of FILL is dropped:
+#     the program runs on what the device sends and reads a linear skb's packet, where a program
+#     that stopped drops both
 #   - a TCP segment carrying PAYLOAD bytes of FILL from the host to a listener in the namespace,
 #     whose payload tcp_sendmsg keeps in page fragments, so that its last byte lies past the
 #     linear head, never reaches the listener, while one of other bytes does: the program read
 #     the whole skb's length and a byte past the head, as the kernel's skb:data() does in a tc
-#     callback, where a program that took its default verdict at skb:data() lets both through
+#     callback, where a program that stopped at skb:data() drops both
 #   - the same program attached at the host side's ingress instead, in a run of its own, answers
 #     the same pings and segments the namespace sends the host the same way: cls_bpf pushes the
 #     MAC header back before it runs the program there, and the segment arrives as tcp_sendmsg
@@ -23,7 +24,7 @@
 #   - a ping of LARGEST bytes of FILL, a packet of 65549 with its headers, which the veth's MTU
 #     lets out whole, is dropped, while one of other bytes is answered, at either attachment: the
 #     program read the last byte of a packet past 65535 bytes, where a read held to the offsets a
-#     packet pointer takes stops and lets both out
+#     packet pointer takes stops and drops both
 # The device cases skip without socat or tc.
 #
 # Usage: sudo bash tests/luaebpf/nonlinear.sh
@@ -100,12 +101,15 @@ pinged() {
 }
 
 # from one side to an address on the other, a ping shorter than PAYLOAD bytes, one of PAYLOAD bytes
-# of FILL, a segment of OTHER and one of FILL to a listener there, and a ping of LARGEST bytes of
-# OTHER and one of FILL; sets short, long, other, filled, largestother and largest
+# of OTHER and one of FILL, a segment of OTHER and one of FILL to a listener there, and a ping of
+# LARGEST bytes of OTHER and one of FILL; sets short, longother, long, other, filled, largestother
+# and largest
 exchange() {
 	local from="$1" to="$2" address="$3"
 	inside "$from" ping -c 1 -W 1 "$address" > /dev/null 2>&1
 	short=$?
+	pinged "$from" "$address" "$PAYLOAD" "$OTHER"
+	longother=$?
 	pinged "$from" "$address" "$PAYLOAD" "$FILL"
 	long=$?
 	transfer "$from" "$to" "$address" "$OTHER"
@@ -119,14 +123,16 @@ exchange() {
 }
 
 # what the exchange owes, under the titles with the suffix a run names: the long ping, the segment
-# and the largest ping of FILL dropped by the program's verdict, and the segment and the largest
-# ping of OTHER let through
+# and the largest ping of FILL dropped by the program's verdict, and the long ping, the segment and
+# the largest ping of OTHER let through
 verdicts() {
 	local where="$1"
 	if [ "$short" -ne 0 ]; then
 		ktap_fail "$LINEAR$where: a ping shorter than $PAYLOAD bytes was not answered"
+	elif [ "$longother" -ne 0 ]; then
+		ktap_fail "$LINEAR$where: a ping of $PAYLOAD bytes of $OTHER was not answered"
 	elif [ "$long" -eq 0 ]; then
-		ktap_fail "$LINEAR$where: the ping was answered, so the program took its default verdict"
+		ktap_fail "$LINEAR$where: the ping of $FILL was answered, so the program did not read its last byte"
 	else
 		ktap_pass "$LINEAR$where"
 	fi
@@ -140,7 +146,7 @@ verdicts() {
 	if [ "$largestother" -ne 0 ]; then
 		ktap_fail "$BEYOND$where: a ping of $LARGEST bytes of $OTHER was not answered"
 	elif [ "$largest" -eq 0 ]; then
-		ktap_fail "$BEYOND$where: the ping of $FILL was answered, so the program stopped before its last byte"
+		ktap_fail "$BEYOND$where: the ping of $FILL was answered, so the program did not read its last byte"
 	else
 		ktap_pass "$BEYOND$where"
 	fi

@@ -7,8 +7,8 @@
 local corpus = require("tests.luaebpf.corpus")
 local action = require("linux.xdp").action
 
--- a 'for' whose step the callee gets at run time: the check reaches the default verdict through
--- the flag, as a division's does
+-- a 'for' whose step the callee gets at run time: the check stops the program through the flag, as
+-- a division's does
 local function sum(step)
 	local s = 0
 	for i = 1, 10, step do
@@ -23,7 +23,8 @@ local makers = {}
 function makers.varlimit(n) return function(_) local s = 0 for i = 1, n + 1 do s = s + i end return s end end
 function makers.varstep(n) return function(_) local s = 0 for i = 1, 20, n + 1 do s = s + i end return s end end
 function makers.varinit(n) return function(_) local s = 0 for i = n + 1, 6 do s = s + i end return s end end
-function makers.calledstep(n) return function(_) local v = sum(n) return v end end
+-- a callee that stops answers 0, XDP_ABORTED's value, so the row adds one past the call
+function makers.calledstep(n) return function(_) local v = sum(n) return v + 1 end end
 
 local order = {"varlimit", "varstep", "varinit", "calledstep"}
 local operands = {{0}, {4}, {-1}, {-6}}

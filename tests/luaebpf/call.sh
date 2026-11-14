@@ -8,9 +8,10 @@
 #     MAX_CALL_FRAMES takes with every level able to abort, a helper returning true or nil, which
 #     its caller tests, a call asking for two results, where Lua fills the second with nil, and a
 #     body with more live values than the emitter keeps in registers, so the rest go to the frame
-#   - a division inside a called function takes the program's default verdict, through the flag
-#     each frame raises in its caller's, and the file declares a default no other path returns,
-#     so the answer is the verdict it asked for; a row whose callee reaches nothing but its abort
+#   - a division inside a called function returns XDP_ABORTED, through the flag each frame raises
+#     in its caller's, and not the default the file declares, which no row owes; a callee that
+#     stops answers 0, XDP_ABORTED's value, so such a row adds one past the call, which a caller
+#     that went on past the flag would return; a row whose callee reaches nothing but its abort
 #     tail loads, which it would not if that tail left R0 uninitialised, since the verifier reads
 #     R0 on the caller's fall-through without pairing the flag with the path
 #   - the object carries one BTF FUNC per subprogram, named as the file names it
