@@ -514,8 +514,9 @@ that line. Each construct links to its listing.</p>
 
 
 <p>Besides what the table refuses, these are refused: a table constructor, <code>..</code>, a closure, an
-assignment to an upvalue or a global, a generic <code>for</code>, <code>while</code>, <code>repeat</code>, a vararg function and a
-to-be-closed variable. <a href="#messages">Messages</a> lists what each refusal says.</p>
+assignment to an upvalue or a global, a write to a table that is not a map, a generic <code>for</code>,
+<code>while</code>, <code>repeat</code>, a vararg function and a to-be-closed variable.
+<a href="#messages">Messages</a> lists what each refusal says.</p>
 
 <p><a name="The_packet"></a></p>
 
@@ -685,7 +686,7 @@ it, since the kernel holds <code>nil</code>, <code>false</code> and <code>0</cod
 <pre>
 <span class="keyword">local</span> v
 <span class="keyword">if</span> p:<span class="function-name">getbyte</span>(<span class="number">14</span>) &gt; <span class="number">0</span> <span class="keyword">then</span> v = <span class="number">7</span> <span class="keyword">end</span>
-<span class="keyword">if</span> v == <span class="number">7</span> <span class="keyword">then</span> <span class="keyword">return</span> action.DROP <span class="keyword">end</span> <span class="comment">-- "a value cannot be compared with a number here"</span>
+<span class="keyword">if</span> v == <span class="number">7</span> <span class="keyword">then</span> <span class="keyword">return</span> action.DROP <span class="keyword">end</span> <span class="comment">-- "a number that may be nil cannot be compared with a number here"</span>
 </pre>
 
 
@@ -760,7 +761,12 @@ nil as 0, which is an action.</li>
 </tr>
 <tr>
 <td> a global cannot be assigned in a compiled function </td>
-<td> <code>counter = 1</code>, <code>t.x = 1</code> </td>
+<td> <code>counter = 1</code> </td>
+<td> a map </td>
+</tr>
+<tr>
+<td> a table cannot be written in a compiled function </td>
+<td> <code>t.x = 1</code>, <code>t[1] = 1</code>, <code>t</code> a table of the body </td>
 <td> a map </td>
 </tr>
 <tr>
@@ -809,13 +815,13 @@ nil as 0, which is an action.</li>
 <td> <code>if v then</code> </td>
 </tr>
 <tr>
-<td> a value cannot be compared with a number here </td>
+<td> a number that may be nil cannot be compared with a number here </td>
 <td> <code>==</code> on a variable nil on one path </td>
 <td> <code>local v = 0</code> </td>
 </tr>
 <tr>
-<td> a value has no truth value in a compiled function </td>
-<td> <code>if v then</code>, <code>v</code> a number or nil </td>
+<td> a number that may be nil has no truth value in a compiled function </td>
+<td> <code>if v then</code>, <code>v</code> nil on one path </td>
 <td> <code>local v = 0</code>, then <code>if v ~= 0 then</code> </td>
 </tr>
 <tr>
@@ -940,7 +946,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-14 12:16:50</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-14 12:44:15</span>
 </div>
 </footer>
 </body>
