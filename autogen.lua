@@ -177,7 +177,9 @@ end
 -- `NF_BR_PRI_*`) or to drop non-syscall aliases like `__NR_syscalls`.
 -- `spec.include`, if set, keeps only names whose suffix (after the
 -- prefix) matches one of the listed items -- useful when a spec should
--- emit only a curated subset of a broad prefix.
+-- emit only a curated subset of a broad prefix. A #define it lists is
+-- taken whatever its value: the compiler tells whether it is an integer,
+-- which `is_integer_expr` cannot for a cast such as INT_MAX's.
 -- @tparam table spec
 -- @treturn {string,...} names matching `spec.prefix`, sorted
 function enumerate.candidates(spec)
@@ -187,7 +189,7 @@ function enumerate.candidates(spec)
 	local define_pattern = "^#define%s+(" .. spec.prefix .. "[%w_]+)%s+(.+)$"
 	for line in text:gmatch("[^\n]+") do
 		local name, value = line:match(define_pattern)
-		if name and (is_integer_expr(value) or is_integer_alias(text, value)) then
+		if name and (spec.include or is_integer_expr(value) or is_integer_alias(text, value)) then
 			seen[name] = true
 		end
 	end

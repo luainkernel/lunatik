@@ -229,7 +229,7 @@ function loads.LEN(f, pc, ins, state)
 	if value == nil or value.t ~= PACKET then
 		refuse(f, pc, "'#' cannot be applied in a compiled function")
 	end
-	packetlen(f, ins, state)
+	packetlen(f, pc, ins, state)
 end
 
 return loads

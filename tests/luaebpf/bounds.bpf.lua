@@ -12,6 +12,7 @@ local tc      = require("linux.tc").action
 local CEILING <const> = 70000 -- above the last offset the verifier lets a packet pointer take
 local DEEP    <const> = 120   -- inside the whole ClientHello's SNI, past the truncated one
 local BELOW   <const> = 256   -- past what a byte holds, so a byte less this is a negative offset
+local WRAPPED <const> = 1 << 32 -- past 32 bits, the low 32 of which name the packet's first byte
 
 -- each row over the packet as each program type opens it: ctx:packet() on XDP and skb:data() on TC
 local makers, skbmakers = {}, {}
@@ -24,6 +25,8 @@ function makers.deep() return function(ctx) local p = ctx:packet() local v = p:g
 function makers.negative()
 	return function(ctx) local p = ctx:packet() local v = p:getbyte(p:getbyte(0) - BELOW) return v end
 end
+-- an offset a call that takes 32 bits would read the first byte at, which the interpreter raises on
+function makers.wrapped() return function(ctx) local p = ctx:packet() local v = p:getbyte(WRAPPED) return v end end
 
 function skbmakers.past() return function(skb) local p = skb:data() local v = p:getbyte(#p) return v end end
 function skbmakers.high() return function(skb) local p = skb:data() local v = p:getbyte(CEILING) return v end end
@@ -31,8 +34,9 @@ function skbmakers.deep() return function(skb) local p = skb:data() local v = p:
 function skbmakers.negative()
 	return function(skb) local p = skb:data() local v = p:getbyte(p:getbyte(0) - BELOW) return v end
 end
+function skbmakers.wrapped() return function(skb) local p = skb:data() local v = p:getbyte(WRAPPED) return v end end
 
-local order = {"past", "high", "deep", "negative"}
+local order = {"past", "high", "deep", "negative", "wrapped"}
 
 local contexts, skbcontexts = corpus.packets(), corpus.skbpackets()
 

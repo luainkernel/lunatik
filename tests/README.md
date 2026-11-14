@@ -970,7 +970,9 @@ each case runs `depmod -b` over a tree of the suite's own.
   such as `EWOULDBLOCK` beside the name it shares a value with. A constant
   whose `#define` names another integer define is carried: the system calls
   `asm-generic/unistd.h` defines as their `__NR3264_` numbers, `mmap` among
-  them, are in `linux.syscall.numbers`.
+  them, are in `linux.syscall.numbers`. One whose `#define` is a cast is
+  carried where its spec lists it: `INT_MAX`, `((int)(~0U >> 1))` in
+  `vdso/limits.h`, is `linux.limits.int.MAX`.
 - **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, refuses a
   timeout outside 0 to 2^31 - 1 with `out of bounds` and takes 0, and sleeps in
   the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
@@ -1257,28 +1259,38 @@ interpreter raises, the compiled program owes its default verdict instead.
   bytes with `string.unpack`; a method neither proxy has, `getuint64` among
   them, is refused by name, and so is an accessor called without an offset or
   with one that is not a number, and a function an earlier call compiled for a
-  number that a later one hands a packet. A read wider than a byte is refused,
-  and a byte read is not, where the kernel lacks efficient unaligned access:
-  the program file's body sets `luaebpf.emit.unaligned` to the answer such a
-  kernel gives, since the suite runs on x86 and arm64, which always have it.
+  number that a later one hands a packet. An XDP read wider than a byte is
+  refused, and a byte read is not, where the kernel lacks efficient unaligned
+  access, while a TC read that wide compiles, since `bpf_skb_load_bytes`
+  copies its bytes into the frame: the program file's body sets
+  `luaebpf.emit.unaligned` to the answer such a kernel gives, since the suite
+  runs on x86 and arm64, which always have it.
 - **bounds**: a read one byte past the last, one above the offset ceiling, one
-  that lands in the whole ClientHello but past the truncated one, and one at a
-  negative offset the program computed, each through `ctx:packet()` and through
+  that lands in the whole ClientHello but past the truncated one, one at a
+  negative offset the program computed, and one past 32 bits whose low 32 name
+  the packet's first byte, each through `ctx:packet()` and through
   `skb:data()` and declared under either default so the answer is the verdict
   the file asked for; with `LUAEBPF_DROP=bounds` the object is still written and
-  the verifier refuses it naming an invalid packet access.
+  the verifier refuses it naming an invalid packet access, and with
+  `LUAEBPF_DROP=loadbytes`, which drops the test of what `bpf_skb_load_bytes`
+  answers, it verifies and the TC reads past the last byte and above the
+  ceiling answer 0, the second since a TC read tests its offset against
+  `INT_MAX`, the helper's own bound, and not against the ceiling.
 - **nonlinear**: `skb:data()` on an skb that is not linear, which `prog run`
   builds only from v6.19: the TC program is attached with `tc` to the egress of
   a veth pair whose peer sits in a namespace, lets a packet shorter than 1024
-  bytes out, and opens `skb:data()` on a longer one and drops it, its default
-  verdict letting the packet out. A short ping is answered and a long one,
-  which `ip_append_data` builds linear, is dropped; a TCP segment carrying 1024
-  bytes, whose payload `tcp_sendmsg` keeps in page fragments, reaches the
-  listener, the default verdict taken at `skb:data()`, where the kernel's
-  `skb:data()` raises in a tc callback. The same program attached at the host
-  side's ingress, in a run of its own, answers the pings and the segment the
-  namespace sends the host the same way. Skips the device cases without `socat`
-  or `tc`.
+  bytes out, and drops a longer one whose `#skb:data()` is `#skb` and whose last
+  byte is an `X`, letting the rest out. A short ping is answered and a long one
+  of `X`, which `ip_append_data` builds linear, is dropped; of two TCP segments
+  carrying 1024 bytes, whose payload `tcp_sendmsg` keeps in page fragments past
+  the linear head, the one of `Y` reaches the listener and the one of `X` does
+  not, as the kernel's `skb:data()` reads such an skb in a tc callback. Of two
+  pings of 65507 bytes, packets of 65549 with their headers, which the veth's
+  MTU of 65535 lets out whole, the one of `Y` is answered and the one of `X` is
+  dropped, by a read of the last byte of a packet past 65535 bytes. The same
+  program attached at the host side's ingress, in a run of its own, answers the
+  pings and the segments the namespace sends the host the same way. Skips the
+  device cases without `socat` or `tc`.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, each as the type its constructor names,
   and every program is run against the empty

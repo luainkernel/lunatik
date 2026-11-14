@@ -6,13 +6,21 @@
 # Tests the bounds check every packet access carries.
 #   - a read one byte past the last, a read at an offset above the ceiling the verifier lets a
 #     packet pointer take, a read that lands in the whole ClientHello but past the truncated one,
-#     and a read at a negative offset the program computed: the interpreter raises on each, and
-#     the compiled program owes its default verdict, through ctx:packet() on XDP and skb:data() on
-#     TC, whose bounds sit at other offsets of the context
+#     a read at a negative offset the program computed, and a read at an offset past 32 bits whose
+#     low 32 name the packet's first byte, which bpf_skb_load_bytes, taking 32, would read: the
+#     interpreter raises on each, and the compiled program owes its default verdict, through
+#     ctx:packet() on XDP, read between the context's bounds, and skb:data() on TC, read through
+#     bpf_skb_load_bytes
 #   - every row is declared twice, once with each default, so the answer is the verdict the file
 #     asked for and not a number the failure path happened to leave in R0
 #   - with LUAEBPF_DROP=bounds the object is still written, and the verifier rejects it naming an
 #     invalid packet access, which is what says the check is emitted rather than implied
+#   - with LUAEBPF_DROP=loadbytes the test of what bpf_skb_load_bytes answers is gone from a TC
+#     read, which the verifier takes, and the read one byte past the last answers the 0 the helper
+#     leaves in the frame where the interpreter raises, which is what says the test is emitted. The
+#     read above the ceiling answers 0 too, which says a TC read tests its offset against INT_MAX,
+#     the helper's own bound, and not against the ceiling. It is a hook of its own: under the other
+#     the object's XDP rows are rejected with it
 #
 # Usage: sudo bash tests/luaebpf/bounds.sh
 
@@ -23,7 +31,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 3
+luaebpf_start 5
 
 output=$(luaebpf_compile bounds) || { comment "$output"; fail "luaebpf: bounds.bpf.lua did not compile"; }
 output=$(luaebpf_loadall bounds) || { comment "$output"; fail "luaebpf: the bounds checks did not verify"; }
@@ -39,6 +47,16 @@ output=$(luaebpf_loadall bounds 2>&1)
 echo "$output" | grep -q "invalid access to packet" \
 	|| { comment "$output"; fail "luaebpf: without its bounds check the load was not refused for the packet"; }
 ktap_pass "luaebpf: without the bounds check the verifier refuses the packet access"
+
+rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
+output=$(luaebpf_compile bounds loadbytes) || { comment "$output"; fail "luaebpf: the dropped build failed"; }
+output=$(luaebpf_loadall bounds) || { comment "$output"; fail "luaebpf: without the helper's test the TC rows did not verify"; }
+raw=$(luaebpf_verdict skbpast1 skbarp)
+[ "$raw" = "0" ] || fail "luaebpf: without the helper's test a TC read past the packet answers 0, got '$raw'"
+ktap_pass "luaebpf: without the test of the helper's answer a TC read past the packet answers 0"
+raw=$(luaebpf_verdict skbhigh1 skbarp)
+[ "$raw" = "0" ] || fail "luaebpf: without the helper's test a TC read above the ceiling answers 0, got '$raw'"
+ktap_pass "luaebpf: a TC read above the ceiling reaches bpf_skb_load_bytes"
 
 check_dmesg
 ktap_totals
