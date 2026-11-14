@@ -450,6 +450,24 @@ each script allocates before its cases, and each case that runs
   anything: `/proc/devices` lists no major with an empty name, and the kernel
   logs no WARNING, which `kobject_add_internal` prints for such a name.
 
+### dmesg
+
+Tests for what the cases read the kernel log for: `KTAP_ERRORS` and its
+kernel half, `KTAP_KERNEL_ERRORS`, in `tests/lib.sh`, and `check_dmesg` and
+`run_test`, which read the log against them. Nothing is loaded and nothing is
+written to the log: the script stubs `dmesg` to print one line per case,
+spelled as the kernel or Lua prints it and matched by one alternative of the
+pattern alone.
+
+A Lua error at a file's position, one at `?:?` and a `Lua warning:` line match
+`KTAP_ERRORS` and not its kernel half. The heads of a kernel warning, a UBSAN
+report, an arm64 oops (`Internal error:`), the unclaimed BRK trap,
+`BUG: scheduling while atomic`, `BUG: sleeping function`, `BUG: KFENCE:`, a
+soft lockup, an x86 NULL dereference, `Oops:`, a `general protection fault`
+without `Oops:`, `kernel BUG at` and `Unable to handle kernel` match both. On
+each of those lines `check_dmesg` and `run_test` fail. A `DEBUG:` line and
+debugobjects' `ODEBUG:` line match neither, and both functions pass over them.
+
 ### cli
 
 Tests for `bin/lunatik`, the command line tool: its usage, its exit status, its
