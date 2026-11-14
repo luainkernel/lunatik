@@ -416,7 +416,8 @@ named, not one discovered at that consumer's build.
   he takes in one read: `Decision:` and the question in a line, the options lettered `A)`, `B)`, each
   with what it changes, and `Recommendation:` with the option and its reason; "the maintainer's call"
   names who decides and not what. The options include the smallest change that makes the defect
-  unreachable, and each larger one says what it buys over it. Each decision carries an ID, `D1`, `D2`,
+  unreachable, or, for a need a consumer states, the one that changes nothing in this tree, and each
+  larger one says what it buys over it. Each decision carries an ID, `D1`, `D2`,
   kept until it is answered, so the answer is `D3 B`; a text that brings two or more opens with a table
   of them, the ID, the question, the options and the recommendation in a few words each, and gives below
   each ID what its options change. `tools/checks/decision.sh` names a decision without its ID, and two
@@ -467,6 +468,14 @@ named, not one discovered at that consumer's build.
   be written, or that reaches what it needs through a channel no contract states, is evidence of a
   gap in the API; what fills that gap is decided from what the binding is for, and the commit and
   the pull request argue it that way.
+* A need a consumer states is met first in that consumer's own code, over the API it already holds:
+  the tree takes it only where that code cannot meet it, traced, and the shape that changes nothing
+  here is the first one weighed, before anything is built or measured. That other embeddings carry an
+  answer to the same need makes it common, not this tree's. #2442 asked the core to bound the work of
+  a runtime's callback for an embedding that bounds it with a count hook in its own Lua, where each
+  escape the core would have closed has a fix over the Lua that embedding holds; its groomer spent
+  three hours and 337k tokens measuring the VM, proposed two lines of the fork that gave it new
+  behaviour, and the maintainer had to ask twice what the core bought before the issue closed.
 
 ## Patches and commits
 

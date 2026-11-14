@@ -41,6 +41,13 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   requirement of the issue in part, or otherwise than its words, is a `reshape`: what an issue asks is
   narrowed by the maintainer, and an `Update:` that narrows it in passing reads to the issue's author as
   the requirement met.
+- The groomer judges merit before it builds or measures anything: who has the need, read in the tree and in
+  the clones `LUNATIK_CONSUMERS` lists, and whether that consumer's own code, over the API it already holds,
+  meets it, which is a `decline` (AGENTS.md, *Deciding what to change*); its answer's `consumer` says so. The
+  session brings a `reshape` with the merit first and, among the options of its decision, the shape that
+  changes nothing in this tree whenever the groomer weighed one. #2442's groomer measured the VM for three
+  hours, the session brought two decisions on how to build the bound, and the maintainer asked twice what
+  the core bought before the issue closed for the embedding's own Lua to do.
 - A change that takes a C binding of `lib/` and the compiler under `bin/luaebpf` runs twice on its issue
   (AGENTS.md, *Patches and commits*): the groomer's `Update:` says so, the first run's implementer commits
   the binding alone under `#N, which it does not close`, and the session launches the second with `base`
