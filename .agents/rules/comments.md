@@ -59,7 +59,7 @@ paths:
 * A condition that needs a comment to say what it tests is a predicate that has not been named yet:
   give it one in the `lunatik_isirq` family's shape, one expression over one argument, defined where
   its reader is, with the line of reason on the definition and nothing on the use:
-  `luanotifier_isreplay(notifier)`, not `if (in_task() && notifier->registrant == current) /* the
+  `lunatik_isregistrant(registrant)`, not `if (in_task() && READ_ONCE(registrant) == current) /* the
   replay... */`. So is a condition of three tests or more, or one that runs onto the next line,
   comment or not, as `luaskb_iswhole4` names one; `tools/checks/idioms.sh` names them.
 * A comment on a definition gives the one reason its name and body cannot state, never what the

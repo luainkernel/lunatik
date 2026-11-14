@@ -896,7 +896,18 @@ after the watch is stopped.
   table all the same. A
   raw_event raising on a burst of reports logs fewer errors than the burst,
   and a runtime stopped while it holds a device stops and lets the device
-  go. Skips without `/dev/uhid` (`CONFIG_UHID`), `CONFIG_HIDRAW` or gcc.
+  go. Four devices the peer creates before the script, which `hid-generic`
+  binds, get their callbacks inside the body: one gets `probe` and
+  `report_fixup` inside `hid.register()` and its reports pass its hidraw node,
+  and a `hid.register()` and a `stop` from that probe, and a `hid.register()`
+  from a coroutine it runs, raise "not allowed inside a replay"; another gets `remove` at a `stop` in the body; the third, which
+  the test releases from `hid-generic`, gets `probe` inside `hid.register()`
+  with no driver to take it from, and its reports pass; and the fourth, whose
+  descriptor `report_fixup` breaks, gets `remove` inside `hid.register()` when
+  the HID core fails its probe. Skips without
+  `/dev/uhid` (`CONFIG_UHID`), `CONFIG_HIDRAW` or gcc; those cases skip without
+  `hid-generic`, or unless the loaded `luahid` is the installed one and carries
+  the refusal, without which the nested call waits forever.
 - **stop**: a driver's `stop` unregisters it while the script body loads, its
   `__close` is that stop, and the stop is refused once the runtime is armed. A
   softirq runtime the runner keeps registers three drivers under a vendor no

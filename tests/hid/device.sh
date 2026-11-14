@@ -42,6 +42,30 @@
 # - stopping the runtime while it holds a device returns, and the device
 #   leaves the driver.
 #
+# The peer then creates four devices before the script loads, hid-generic
+# binds them and the test releases the third; the peer sends their reports
+# once the script is loaded, since raw_event refuses until the body returns.
+# The body registers lunatik_hid_handing for the second one, then
+# lunatik_hid_device, and stops lunatik_hid_handing, and the callbacks print
+# which of those calls delivers them, which a flag the body sets before each
+# tells:
+#
+# - a device on hid-generic gets probe and report_fixup inside hid.register,
+#   and its reports reach the hidraw node made there;
+# - a hid.register and a stop from the probe hid.register delivers, and a
+#   hid.register from a coroutine that probe runs, raise "not allowed inside
+#   a replay", and return;
+# - a stop in the body delivers remove to the device the driver holds;
+# - a device no driver holds gets probe inside hid.register, and its reports
+#   reach its hidraw node;
+# - a device on hid-generic whose descriptor report_fixup breaks gets remove
+#   inside hid.register, where the HID core fails its probe.
+#
+# A build that delivers the probe without that refusal waits forever on the
+# device lock the probe holds, so those cases skip unless the loaded luahid is
+# the installed one and that file carries the refusal, which is inline and has
+# no symbol of its own, and where the kernel has no hid-generic.
+#
 # Skips where there is no /dev/uhid (CONFIG_UHID), no hidraw (CONFIG_HIDRAW) or no
 # gcc to build the peer.
 #
@@ -49,11 +73,19 @@
 
 SCRIPT="tests/hid/device"
 DRIVER="lunatik_hid_device"
+MODULE="luahid"
 VENDOR="F055"
 SOUND="0001"
 SECOND="0002"
 RAISE="0003"   # its probe raises
 BREAK="0004"   # its report_fixup breaks the descriptor
+PRESENT="0005" # on the bus before the script, its probe calls hid.register and stop
+HANDED="0006"  # on the bus before the script, held by the driver the body stops
+UNBOUND="0007" # on the bus before the script, released from hid-generic so that no driver holds it
+HANDED_DATA=7
+HANDED_SEEN=3  # probe, report_fixup and remove, by the driver the body stops
+GENERIC="hid-generic"
+REFUSAL="not allowed inside a replay" # in luahid's own strings, which LUNATIK_ERR_REPLAY puts there
 STORM=30       # reports raw_event raises on in the burst
 INVALID=6      # returns raw_event refuses, three on each of the two devices
 FIXED="06 00 ff 09 01 a1 01 09 03 15 00 26 ff 00 75 08 95 02 81 02 c0"
@@ -110,8 +142,16 @@ callback() { logged "luahid: $1: $2"; }
 # the driver core's line for a failed probe: "probe of <device>" up to v6.8, "<device>: probe with driver" from v6.9
 probefailed() { dmesg_since | grep -qE "0003:$VENDOR:$1\.[0-9A-F]+.* failed with error $2"; }
 
+# whether the device of the product given is bound to the driver given
+bound() {
+	local driver
+	driver=$(readlink /sys/bus/hid/devices/0003:$VENDOR:$1.*/driver)
+	[ "${driver##*/}" = "$2" ]
+}
+ready() { grep -qx ready "$OUT"; }
+
 ktap_header
-ktap_plan 12
+ktap_plan 17
 
 mark_dmesg
 run_script --context=softirq "$SCRIPT"
@@ -175,6 +215,55 @@ driver=$(readlink /sys/bus/hid/devices/0003:$VENDOR:$SOUND.*/driver)
 [ "${driver##*/}" != "$DRIVER" ] || fail "the device stayed with $DRIVER after its runtime stopped"
 peer_stop
 ktap_pass "a runtime stopped while it holds a device stops, and the device leaves the driver"
+
+PRESENTED=(
+	"a device on hid-generic gets probe and report_fixup inside hid.register, and its hidraw node passes its reports"
+	"a hid.register and a stop from a callback hid.register delivers, or from its coroutine, are refused, and return"
+	"a stop in the body delivers remove to the device the driver holds"
+	"a device no driver holds gets probe inside hid.register, and its hidraw node passes its reports"
+	"a device on hid-generic whose probe the HID core fails inside hid.register gets remove there"
+)
+if [ -n "$CONFIG" ] && ! grep -qE '^CONFIG_HID_GENERIC=(y|m)$' <<< "$CONFIG"; then
+	for name in "${PRESENTED[@]}"; do ktap_skip "$name: no $GENERIC to hold a device before the script"; done
+elif ! carries $MODULE "$REFUSAL"; then
+	for name in "${PRESENTED[@]}"; do ktap_skip "$name: the loaded $MODULE does not carry the refusal: it would wait on the device lock"; done
+else
+	"$PEER_BIN" -r 1 -w "$PRESENT" "$HANDED" "$UNBOUND" "$BREAK" > "$OUT" 2>&1 &
+	PEER=$!
+	for product in "$PRESENT" "$HANDED" "$UNBOUND" "$BREAK"; do
+		awaited bound "$product" "$GENERIC" ||
+			fail "the devices the peer created before the script are not on $GENERIC: $(cat "$OUT")"
+	done
+	basename /sys/bus/hid/devices/0003:$VENDOR:$UNBOUND.* > /sys/bus/hid/drivers/$GENERIC/unbind
+	run_script --context=softirq "$SCRIPT"
+	kill -USR1 "$PEER" # the body returned, so raw_event passes the reports
+	awaited ready || fail "the peer did not report: $(cat "$OUT")"
+	peer_stop
+	lunatik stop "$SCRIPT"
+
+	logged "hid/device: probe lunatik_hid_$PRESENT f055 42 registering" &&
+		grep -qxF "$PRESENT rdesc $FIXED" "$OUT" && [ "$(reports "$PRESENT")" = "$PASSED" ] ||
+		fail "a device on $GENERIC was not probed and fixed inside hid.register, or its reports did not pass: $(wrote)"
+	ktap_pass "${PRESENTED[0]}"
+
+	logged "hid/device: nested register $REFUSAL" && logged "hid/device: nested stop $REFUSAL" &&
+		logged "hid/device: nested coroutine register $REFUSAL" ||
+		fail "a hid.register or a stop from a probe hid.register delivered, or from its coroutine, was not refused"
+	ktap_pass "${PRESENTED[1]}"
+
+	logged "hid/device: probe lunatik_hid_$HANDED f055 $HANDED_DATA registering" &&
+		logged "hid/device: remove lunatik_hid_$HANDED $HANDED_SEEN stopping" ||
+		fail "a stop in the body did not deliver remove to the device the driver held: $(wrote)"
+	ktap_pass "${PRESENTED[2]}"
+
+	logged "hid/device: probe lunatik_hid_$UNBOUND f055 42 registering" && [ "$(reports "$UNBOUND")" = "$PASSED" ] ||
+		fail "a device no driver held was not probed inside hid.register, or its reports did not pass: $(wrote)"
+	ktap_pass "${PRESENTED[3]}"
+
+	logged "hid/device: remove lunatik_hid_$BREAK $BROKEN registering" ||
+		fail "a device on $GENERIC whose probe the HID core failed got no remove inside hid.register: $(wrote)"
+	ktap_pass "${PRESENTED[4]}"
+fi
 
 check_dmesg && ktap_pass "no Lua errors, kernel warnings or oopses"
 
