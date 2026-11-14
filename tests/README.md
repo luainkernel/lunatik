@@ -2731,12 +2731,21 @@ was bound before, and a first attach, which finds nothing, logs nothing.
 
 - **tc nonlinear**: the host sends a TCP segment to a listener in the
   namespace, whose payload `tcp_sendmsg` keeps in page fragments, picked by
-  its sender's `SO_PRIORITY`. Handed to the callback as it is,
-  `skb:data()`, `skb:copy()`, `skb:resize()` and `skb:checksum()` raise
-  "skb is not linear"; handed again after the program's
-  `bpf_skb_pull_data(skb, skb->len)`, the callback reads and copies the whole
-  packet and shrinks it, then drops it, and TCP sends it again. Skips without
-  `socat`.
+  its sender's `SO_PRIORITY`. Handed to the callback as it is, `skb:data()`
+  reads the whole packet from a copy: `#skb:data()` is `#skb`, the last
+  payload byte, a `getuint32` and a `getint64` across the payload's start and
+  a `getstring` of the whole packet read what the sender wrote, as `tostring`
+  does, the view's `checksum` is a flat copy's of the same bytes, the "net" and
+  "mac" views read the same bytes from their headers to the packet's end, a
+  read past it raises "out of bounds" and a `setbyte`, a `setstring` and a
+  `resize` "read only"; `skb:copy()`, `skb:resize()` and `skb:checksum()`
+  raise "skb is not linear". Handed again after the program's
+  `bpf_skb_pull_data(skb, skb->len)`, the view the first callback kept reads
+  nothing, and the callback writes the linear skb's view, reads and copies the
+  whole packet and shrinks it, then drops it. TCP sends it again, non-linear as
+  it was and under another IP ID, and `skb:data()` reads that segment from a
+  copy of its own, where a build whose skb keeps the first callback's copy
+  reads the first segment's bytes. Skips without `socat`.
 
 - **tc checksum**: the host sends a UDP datagram to the namespace without a
   checksum (`SO_NO_CHECK`), picked by its sender's `SO_PRIORITY`. The callback

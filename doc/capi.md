@@ -1988,16 +1988,22 @@ typedef struct {
 	lunatik_object_t *hook;
 	u64 gen;
 	bool kfunc;
+	bool copied;
+	unsigned char *bytes;
+	size_t size;
 } luaskb_t;
 ```
 The private of an skb object: the packet, `NULL` outside a callback; the data object `skb:data()`
 returns for each start, at the network header, at the MAC header and at `skb->data`; for a copy,
 the hook's skb object it was copied from, which it holds and reads its device from, `NULL` for that
 object; the callbacks the object was cleared after, which a copy takes from the skb it is copied
-from, so it reads its hook's device only while that callback runs; and whether the packet comes
-through a kfunc, where `skb:data()`, `resize`, `checksum` and `copy` refuse a non-linear skb rather than
-linearize it, and a head a clone shares is not unshared: `skb:data()` returns a read only view of it,
-and `resize` and `checksum` refuse it. Its release frees `skb` and drops `hook`, so a binding clears the packet it does not
+from, so it reads its hook's device only while that callback runs; whether the packet comes
+through a kfunc, where `resize`, `checksum` and `copy` refuse a non-linear skb rather than linearize it
+and `skb:data()` views a copy of one, and a head a clone shares is not unshared: `skb:data()` returns a
+read only view of it, and `resize` and `checksum` refuse it; whether `bytes` holds the callback's
+packet; and the buffer `skb:data()` copies a kfunc's non-linear packet into, from its head, and its
+size, the largest such packet the object has seen with its headroom. Its release frees `skb` and
+`bytes` and drops `hook`, so a binding clears the packet it does not
 own before the last reference goes, with [`luaskb_clear`](#luaskb_reset) or `luaskb_close`.
 
 ### luaskb\_foreachlayer
@@ -2027,8 +2033,9 @@ void luaskb_close(lunatik_object_t *object);
 ```
 `luaskb_reset` points the skb object at `skb` for the callback about to run, taking no reference and
 no lock, and is a macro; a view reads the packet once `skb:data()` points it there. `luaskb_clear`
-clears each view, so one kept past the callback reads nothing, and the packet, so every method
-raises `skb is not set`, and counts the callback in `gen`, so a copy made while it ran reads no
+clears each view, so one kept past the callback reads nothing, the packet, so every method
+raises `skb is not set`, and `copied`, so the next callback's `skb:data()` copies its own packet, and
+counts the callback in `gen`, so a copy made while it ran reads no
 device past it: a binding calls it once the callback returns, before it releases the runtime's lock.
 `luaskb_close` clears the
 object and drops a reference the caller holds, as a binding's `release` does. None sleeps, so a
