@@ -235,8 +235,8 @@ taught it; a lesson kept in one assistant's notes is one the next contributor pa
 a check that lands is run that day over the open pull requests it reaches, and each one it names gets
 a fixup or a reason.
 
-`pr-body.sh` takes a pull request body file and fails it on more than four paragraphs outside its fenced
-examples, an em dash,
+`pr-body.sh` takes a pull request body file and the files its change carries, and fails it on more
+than four paragraphs outside its fenced examples, an em dash,
 a "Test plan" section or an assistant's footer; `pr-body-guard.sh`, wired before a shell call like `crash-guard.sh`,
 blocks a `gh` write to pulls that carries a body file the check fails on, or that `machine-leak.sh`
 finds the machine in; a body it cannot read is refused rather than skipped, as in the review guard below.
@@ -267,6 +267,17 @@ and this tracker's, so they bind a write to this repository or a fork of it; a w
 repository answers to that repository's own guards. So does the name of a private repository: the
 guards hold a text to `LUNATIK_CONSUMERS` only where it is published to this repository, since an issue
 filed on the private one names it by right.
+
+With the change's files, `pr-body.sh` reads three shapes of a body the checks of form passed in #2527's,
+which the maintainer received with "vc me fez perder tempo; custa muito para mim iniciar o review humano
+em PRs com descricao ilegivel": a first sentence of more words outside its code spans than any a merged
+body opened on, #2232's 81, where #2527's ran 86 over a driver its change never reaches; a change
+under `lib/`, `common/` or `bin/luaebpf/lib/`, what a script writes or calls, with no fenced block
+and no sentence on why no script is shown, "Nothing a script calls changes"; and the commits' words,
+a cell, a stimulus, a plan line, a fixup, a squash, "this push", outside a change of the tests or of
+the harness, whose subject they are. Without files it asks for no example and looks for those words in
+every body. None of the 128 bodies merged from 2026-11-01 to 2026-11-14 fails over its files, and
+#2527's first body fails all three.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate

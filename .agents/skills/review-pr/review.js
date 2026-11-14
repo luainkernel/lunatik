@@ -141,7 +141,7 @@ open a file beyond it only for what it does not show: a caller, a sibling, the k
 files you read load with them, from .agents/rules/.${a.pr ? `
 Read the pull request's threads too (\`${api(`repos/${github}/pulls/${a.pr}/comments`)}\` and
 \`${api(`repos/${github}/issues/${a.pr}/comments`)}\`), which record what the maintainer cares about,
-and run tools/checks/pr-body.sh over its body.` : ''}${asked ? `
+and run tools/checks/pr-body.sh over its body and the files the change carries.` : ''}${asked ? `
 The change answers ${asked}: read it and its comments${a.update ? `, and the Update the run appends to it, which
 binds as the issue does: ${JSON.stringify(a.update)}` : ''}. Your answer's requirements holds the final diff to
 each requirement it states and each point an Update: settles, quoted: how the diff meets it, and the case that

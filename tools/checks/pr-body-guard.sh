@@ -21,7 +21,8 @@
 # build log and its paths, is not the edit's to rewrite. The whole body is read when the
 # current one cannot be. An edit that adds text other than a task to an issue or pull
 # request review-post-guard held a post on in the same session waits for the same
-# REVIEW_POST_OK, as the held post by another route.
+# REVIEW_POST_OK, as the held post by another route. A pull request body is read against the
+# files its change carries.
 
 input=$(cat)
 
@@ -35,6 +36,7 @@ esac
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
+project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
 
 # the GraphQL mutations the skills run, none of which carries text a guard would read
 textless='markPullRequestReadyForReview|createProjectV2|addProjectV2ItemById|linkProjectV2ToRepository'
@@ -57,6 +59,17 @@ added() {
 	fi
 	awk 'NR == FNR { sub(/\r$/, ""); seen[$0]; next } { sub(/\r$/, ""); print ($0 in seen) ? "" : $0 }' \
 		<(printf '%s\n' "$current") "$file"
+}
+
+# the files of the change of the pull request the write <post> to this repository opens or edits, which
+# pr-body.sh reads the body against; none where the checkout cannot read the change
+changed() {
+	local target head from files
+	gh_ours "$1" || return 0
+	read -r target head <<< "$(gh_refs "$input" "$1")"
+	[ -n "$head" ] || return 0
+	read -r from files <<< "$(gh_change "$input" "$1" "$target" "$head" "$project")"
+	printf '%s\n' "$files"
 }
 
 # each body among the writes <writes> goes through machine-leak.sh, then through the check <check>;
@@ -109,7 +122,7 @@ check() {
 		scan=$file
 		[ -z "$3" ] || { scan=$tmp/added; added "$post" "$file" > "$scan"; }
 		leaked=$(LUNATIK_CONSUMERS=$private bash "$(dirname "$0")/machine-leak.sh" "$scan")
-		findings=$(bash "$(dirname "$0")/$2" "$scan")
+		findings=$(bash "$(dirname "$0")/$2" "$scan" $([ "$2" != pr-body.sh ] || changed "$post"))
 		leaked=${leaked//$scan/$shown}
 		findings=${findings//$scan/$shown}
 		if [ -n "$leaked" ]; then
@@ -186,8 +199,7 @@ environment() {
 # a pull request opened on a branch names every example its change touches (examples-named.sh), the
 # change from the base to the head the write names
 examples() {
-	local post body file head target change from files findings project
-	project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
+	local post body file head target change from files findings
 	while IFS= read -r post; do
 		[ -n "$post" ] || continue
 		body=$(gh_body "$post")

@@ -13,8 +13,11 @@
 # bodies the cases post, one that names the example as examples/<name>, one that names it in backticks,
 # one that names it beside a command run under GH_REPO, one that carries its name only as a bare word
 # and one that does not carry it, the last again under repos/drafts/, a path that reads as an
-# endpoint's, and the JSON gh api sends for each base; under sub/, read only after a cd into it, the
-# body that names the example and a GraphQL mutation that carries no text. For an issue edit, a gh on
+# endpoint's, and the JSON gh api sends for each base, each saying why no script is shown; beside
+# them, naming the example, one that shows no code and says nothing of it, one that shows it in a fenced
+# block, one whose first sentence runs past a plain one, and one that carries a cell; under sub/,
+# read only after a cd into it, the body that names the example and a GraphQL mutation that carries no
+# text. For an issue edit, a gh on
 # stub/ that answers the body GitHub has for luainkernel/lunatik#5 and for luainkernel/lua#5, each
 # carrying a line untraced.sh fails, the bodies that repeat each, one that adds a line, and the held
 # lists review-post-guard writes, through that gh, for the session none: under ours/ for a comment on
@@ -59,11 +62,15 @@ git checkout -q master
 printf 'local fifo = {}\n' > examples/spyglass/device.lua
 printf 'A device.\n' > examples/spyglass/README.md
 
-printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nThe case now forces the fallback.\n' > silent.md
-printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran.\n' > named.md
-printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nThe spyglass of the host ran.\n' > bare.md
-printf "A fifo of a megabyte fails to load on a fragmented host.\n\n\`spyglass\` ran.\n" > ticked.md
-printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran, GH_REPO=luainkernel/lunatik lunatik spawn.\n' > repo.md
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nThe case now forces the fallback. Nothing a script calls changes.\n' > silent.md
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran. Nothing a script calls changes.\n' > named.md
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nThe spyglass of the host ran. Nothing a script calls changes.\n' > bare.md
+printf "A fifo of a megabyte fails to load on a fragmented host.\n\n\`spyglass\` ran. Nothing a script calls changes.\n" > ticked.md
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran, GH_REPO=luainkernel/lunatik lunatik spawn. Nothing a script calls changes.\n' > repo.md
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran.\n' > nocode.md
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\n```lua\nlocal fifo = require("fifo")\n```\n\nexamples/spyglass ran.\n' > fenced.md
+printf 'A fifo of %sfails to load.\n\nexamples/spyglass ran. Nothing a script calls changes.\n' "$(printf 'a page %.0s' $(seq 40))" > long.md
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran. Nothing a script calls changes, and the fallback keeps its cell.\n' > backstage.md
 mkdir -p repos/drafts
 cp silent.md repos/drafts/silent.md
 for base in master fifo; do
