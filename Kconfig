@@ -150,15 +150,20 @@ config LUNATIK_CRYPTO
 	tristate "Lunatik Crypto Support"
 	depends on CRYPTO_ECDH || !CRYPTO_ECDH
 	depends on CRYPTO_RNG2 || !CRYPTO_RNG2
+	depends on CRYPTO_HASH2 || !CRYPTO_HASH2
+	depends on CRYPTO_SKCIPHER2 || !CRYPTO_SKCIPHER2
+	depends on CRYPTO_AEAD2 || !CRYPTO_AEAD2
+	depends on CRYPTO_SIG2 || !CRYPTO_SIG2
+	depends on CRYPTO_ACOMP2 || !CRYPTO_ACOMP2
 	default m
 	help
 	  Linux Crypto API support (hash, cipher, AEAD, RNG, compression,
-	  signature verification, ECDH key agreement). Signature verification
-	  links crypto_alloc_sig, which CRYPTO_SIG2 builds. The RNG links
-	  crypto_alloc_rng and crypto_rng_reset, which CRYPTO_RNG2 builds,
-	  and raises EOPNOTSUPP without it; where CRYPTO_RNG2 is a module
-	  this is one too, as with CRYPTO_ECDH. Compression links
-	  crypto_alloc_acomp, which CRYPTO_ACOMP2 builds. Key agreement links
+	  signature verification, ECDH key agreement). Each of the hash,
+	  cipher, AEAD, RNG, signature and compression classes links the API
+	  its option builds, CRYPTO_HASH2, CRYPTO_SKCIPHER2, CRYPTO_AEAD2,
+	  CRYPTO_RNG2, CRYPTO_SIG2 and CRYPTO_ACOMP2, and its constructor
+	  raises EOPNOTSUPP without it; where one of them is a module this is
+	  one too, as with CRYPTO_ECDH. Key agreement links
 	  crypto_ecdh_encode_key, which CRYPTO_ECDH builds, and is absent
 	  without it; where CRYPTO_ECDH is a module this is one too, since a
 	  built-in one could not link it.
@@ -168,7 +173,8 @@ config LUNATIK_DARKEN
 	depends on LUNATIK_CRYPTO
 	default m
 	help
-	  AES-256-GCM encrypted Lua script support.
+	  AES-256-GCM encrypted Lua script support. It links the AEAD API,
+	  which CRYPTO_AEAD2 builds, and its calls raise EOPNOTSUPP without it.
 
 config LUNATIK_CPU
 	tristate "Lunatik CPU Support"

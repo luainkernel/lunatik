@@ -15,8 +15,10 @@
 # object is a spawned body's, since thread.run is refused from a script body.
 # The matrix skips where the kernel serves no algorithm its shash, skcipher, aead,
 # rng or sig row allocates, ecdsa-nist-p256 without CONFIG_CRYPTO_ECDSA among them,
-# which the script names, and where the kernel's configuration has no
-# CONFIG_CRYPTO_RNG2, without which crypto.rng raises EOPNOTSUPP.
+# which the script names, and where the kernel's configuration lacks the option of
+# one of those classes, CONFIG_CRYPTO_HASH2, CONFIG_CRYPTO_SKCIPHER2,
+# CONFIG_CRYPTO_AEAD2, CONFIG_CRYPTO_RNG2 or CONFIG_CRYPTO_SIG2, without which its
+# constructor raises EOPNOTSUPP.
 #
 # The close case, foreign_checker_close, closes a thread, a device and a
 # runtime through fifo's close, lunatik_closeobject, which refuses each as an
@@ -30,7 +32,8 @@
 # so the case skips unless the loaded core is the installed one and that file
 # carries the refusal: the check is inline, so no symbol of its own is in
 # /proc/kallsyms, and the message is what the installed lunatik.ko has. It
-# skips as well where the kernel serves no sha256, which the script names.
+# skips as well where the kernel serves no sha256, which the script names, and
+# where its configuration lacks CONFIG_CRYPTO_HASH2.
 #
 # Usage: sudo bash tests/runtime/foreign_checker.sh
 
@@ -38,6 +41,7 @@ SCRIPT="tests/runtime/foreign_checker"
 CLOSE="tests/runtime/foreign_checker_close"
 BODY="tests/runtime/my_body"
 MODULE="lunatik"
+OPTIONS="CONFIG_CRYPTO_HASH2 CONFIG_CRYPTO_SKCIPHER2 CONFIG_CRYPTO_AEAD2 CONFIG_CRYPTO_RNG2 CONFIG_CRYPTO_SIG2"
 REFUSAL="object of another class"
 
 source "$(dirname "$(readlink -f "$0")")/../lib.sh"
@@ -58,8 +62,8 @@ ktap_plan 2
 mark_dmesg
 output=$(lunatik spawn "$BODY" 2>&1)
 [ -n "$output" ] && fail "spawn failed: $output"
-if lacks CONFIG_CRYPTO_RNG2; then
-	ktap_skip "the checker matrix: its crypto.rng row needs CONFIG_CRYPTO_RNG2"
+if option=$(lacking $OPTIONS); then
+	ktap_skip "the checker matrix: its crypto rows need $option"
 elif output=$(lunatik run "$SCRIPT" 2>&1); [[ "$output" == *"the kernel serves no "* ]]; then
 	ktap_skip "the checker matrix: ${output#lunatik: }"
 else
@@ -69,7 +73,9 @@ else
 	ktap_pass "every checker refuses another class, nil, a foreign userdata and a closed object"
 fi
 
-if carries $MODULE "$REFUSAL"; then
+if lacks CONFIG_CRYPTO_HASH2; then
+	ktap_skip "the close case: its crypto.shash needs CONFIG_CRYPTO_HASH2"
+elif carries $MODULE "$REFUSAL"; then
 	output=$(lunatik run "$CLOSE" 2>&1)
 	if [[ "$output" == *"the kernel serves no "* ]]; then
 		ktap_skip "the close case: ${output#lunatik: }"

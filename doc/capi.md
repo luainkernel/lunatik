@@ -1683,10 +1683,20 @@ raises the errno's name, or, where `ret` is `outcome`, the errno a script reads 
 Declares `extern const lunatik_class_t luacrypto_<name>_class` and `int luacrypto_<name>_new(lua_State *L)`,
 the class and the constructor of `crypto.<name>`, as `luacrypto.h` does for `shash`, `skcipher`, `aead`,
 `rng`, `sig`, `kpp` and `comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference
-says what each constructor raises. `luacrypto_rng_class` is defined where `CONFIG_CRYPTO_RNG2` is reachable,
-since `luacrypto_rng.c` links `crypto_alloc_rng` and `crypto_rng_reset` from it, and `luacrypto_rng_new`
-raises `EOPNOTSUPP` where it is not; `crypto.kpp` is declared where `CONFIG_CRYPTO_ECDH` is reachable, since
+says what each constructor raises. Every class but kpp is defined where the option that builds the API its
+file links is reachable, `CONFIG_CRYPTO_HASH2` for `shash`, `CONFIG_CRYPTO_SKCIPHER2` for `skcipher`,
+`CONFIG_CRYPTO_AEAD2` for `aead`, `CONFIG_CRYPTO_RNG2` for `rng`, `CONFIG_CRYPTO_SIG2` for `sig` and
+`CONFIG_CRYPTO_ACOMP2` for `comp`, and where it is not its file defines the constructor alone, with
+`LUACRYPTO_UNSUPPORTED`; `crypto.kpp` is declared where `CONFIG_CRYPTO_ECDH` is reachable, since
 `luacrypto_kpp.c` links `crypto_ecdh_encode_key` from it.
+
+### LUACRYPTO\_UNSUPPORTED
+```C
+#define LUACRYPTO_UNSUPPORTED(name)
+```
+Defines `int luacrypto_<name>_new(lua_State *L)`, which raises `EOPNOTSUPP` through
+[`lunatik_unsupported`](#lunatik_unsupported): the constructor of a class the kernel builds no API for,
+so `crypto.<name>` exists on every kernel and its file never compiles to nothing.
 
 ---
 

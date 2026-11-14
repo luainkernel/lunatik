@@ -17,14 +17,16 @@
 # bpf maps are pinned with bpftool, and their case skips where it cannot pin
 # them. The first case skips where the kernel serves no sha256, cbc(aes),
 # gcm(aes), stdrng or lz4, which the script names, and where the kernel's
-# configuration has no CONFIG_CRYPTO_RNG2, without which crypto.rng raises
-# EOPNOTSUPP.
+# configuration lacks CONFIG_CRYPTO_HASH2, CONFIG_CRYPTO_SKCIPHER2,
+# CONFIG_CRYPTO_AEAD2, CONFIG_CRYPTO_RNG2 or CONFIG_CRYPTO_ACOMP2, without which
+# the constructor of the class it names raises EOPNOTSUPP.
 #
 # Usage: sudo bash tests/runtime/require_cloneobject.sh
 
 SCRIPT="tests/runtime/require_cloneobject"
 BPF="tests/runtime/require_cloneobject_bpf"
 MODULE="luadata"
+OPTIONS="CONFIG_CRYPTO_HASH2 CONFIG_CRYPTO_SKCIPHER2 CONFIG_CRYPTO_AEAD2 CONFIG_CRYPTO_RNG2 CONFIG_CRYPTO_ACOMP2"
 
 BPF_FS=/sys/fs/bpf
 HASH_MAP=$BPF_FS/test_require_cloneobject_hash
@@ -52,8 +54,8 @@ ktap_plan 2
 
 cat /sys/module/$MODULE/refcnt > /dev/null 2>&1 || skip_script "$MODULE not loaded"
 
-if lacks CONFIG_CRYPTO_RNG2; then
-	ktap_skip "data, set and the crypto classes: crypto.rng needs CONFIG_CRYPTO_RNG2"
+if option=$(lacking $OPTIONS); then
+	ktap_skip "data, set and the crypto classes: the crypto classes need $option"
 else
 	clones "$SCRIPT" "data, set and crypto.shash, skcipher, aead, rng and comp reach a runtime that never required them"
 fi

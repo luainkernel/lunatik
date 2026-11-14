@@ -109,6 +109,15 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
 Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
 `hkdf`, `comp`.
 
+Each case skips where the kernel's configuration, which `tests/lib.sh`'s `lacks`
+reads, lacks the option of a class it reaches, `CONFIG_CRYPTO_HASH2` for `shash`
+and the `hkdf` over it, `CONFIG_CRYPTO_SKCIPHER2` for `skcipher`,
+`CONFIG_CRYPTO_AEAD2` for `aead`, `CONFIG_CRYPTO_RNG2` for `rng`,
+`CONFIG_CRYPTO_SIG2` for `sig` and `CONFIG_CRYPTO_ACOMP2` for `comp`, without
+which the class's constructor raises `EOPNOTSUPP`; a constructor that raises it
+where the configuration has the option fails the case. **async** and **seed**
+skip without `cryptd` and `ansi_cprng`, which select the APIs they reach.
+
 - **shash**: `sha256` and `hmac(sha256)` report a 32-byte digest and match
   known digests in one shot, in `init`/`update`/`final` parts and through
   `finup`, and a state exported from one hasher and imported into another
@@ -141,11 +150,8 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   that is not a string, and names itself through `algname`;
   `drbg_nopr_hmac_sha512`, a DRBG named by its driver,
   gives bytes after a reset with a seed and reports a seed size of 0. Skipped
-  where the kernel's configuration has no `CONFIG_CRYPTO_RNG2`, without which
-  `crypto.rng` raises `EOPNOTSUPP`, or where the kernel serves no `stdrng` or no
-  `drbg_nopr_hmac_sha512`, which the script allocates before its cases; a
-  `crypto.rng` that raises `EOPNOTSUPP` where the configuration has the option
-  fails it.
+  where the kernel serves no `stdrng` or no `drbg_nopr_hmac_sha512`, which the
+  script allocates before its cases.
 - **sig**: each verifier is allocated by its 6.13 name, `x962(ecdsa-nist-p256)`
   or `pkcs1(rsa,sha256)`, and on `ENOENT` by the name of 6.12 and earlier,
   `ecdsa-nist-p256` or `pkcs1pad(rsa,sha256)`. ECDSA verifies the P-256 vector of
@@ -295,8 +301,9 @@ after it.
 
 Every case but **shade_error**, **shade_mode** and **shade_argv** skips where
 the kernel serves no `gcm(aes)`, the algorithm `darken` decrypts with, which
-each script allocates before its cases, and each case that runs
-`tools/shade.sh` skips without `openssl`.
+each script allocates before its cases, and where its configuration lacks
+`CONFIG_CRYPTO_AEAD2`, without which `darken.load` and `darken.run` raise
+`EOPNOTSUPP`; each case that runs `tools/shade.sh` skips without `openssl`.
 
 - **context**: `darken.run` decrypts and runs a chunk in a process runtime,
   in its body and resumed past it, and in the body of a `softirq` and a
@@ -1957,14 +1964,16 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   this case skips where the kernel serves no algorithm the `crypto.shash`,
   `crypto.skcipher`, `crypto.aead`, `crypto.rng` or `crypto.sig` row allocates,
   `ecdsa-nist-p256` without `CONFIG_CRYPTO_ECDSA` among them, and where the
-  kernel's configuration has no `CONFIG_CRYPTO_RNG2`.
+  kernel's configuration lacks the option of one of those classes,
+  `CONFIG_CRYPTO_HASH2`, `CONFIG_CRYPTO_SKCIPHER2`, `CONFIG_CRYPTO_AEAD2`,
+  `CONFIG_CRYPTO_RNG2` or `CONFIG_CRYPTO_SIG2`.
   A close of another class, `fifo`'s `close` on a thread, a device and a
   runtime, and the runtime's `stop` on a thread, a device and a fifo, is
   refused, and each object then answers its own methods; a `crypto.shash`
   closes through its `__close`. The close case skips unless the loaded core is
   the installed `lunatik.ko` and that file carries the refusal, since a build
   without it closes the thread under a stop that dereferences NULL, and where
-  the kernel serves no `sha256`.
+  the kernel serves no `sha256` or its configuration lacks `CONFIG_CRYPTO_HASH2`.
 
 - **resume_percpu**: `percpu:resume()` delivers the objects it is given to
   every runtime of a process set and of a softirq one, each marking its own
@@ -2000,8 +2009,9 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   must not sleep, and `set`, the crypto classes and the `bpf` maps into a
   process one. The `bpf` case skips where bpftool cannot pin a map, and
   the first where the kernel serves no `sha256`, `cbc(aes)`, `gcm(aes)`,
-  `stdrng` or `lz4`, or where the kernel's configuration has no
-  `CONFIG_CRYPTO_RNG2`.
+  `stdrng` or `lz4`, or where the kernel's configuration lacks the option of
+  one of the crypto classes, `CONFIG_CRYPTO_HASH2`, `CONFIG_CRYPTO_SKCIPHER2`,
+  `CONFIG_CRYPTO_AEAD2`, `CONFIG_CRYPTO_RNG2` or `CONFIG_CRYPTO_ACOMP2`.
 
 - **require_reopen**: a library opened in a state that already has its
   classes (the `_ENV` object's clone creates the `rcu.table` metatables,

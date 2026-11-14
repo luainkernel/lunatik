@@ -7,6 +7,7 @@
 * Lua interface to synchronous message digest (hash) algorithms, including HMAC.
 * Every method raises "not allowed with IRQs disabled" where the CPU runs with them off, in every
 * callback of a hardirq runtime among them.
+* Not built where the kernel builds no user of its hash API, `CONFIG_CRYPTO_HASH2`.
 * @classmod crypto_shash
 */
 
@@ -16,6 +17,8 @@
 #include <linux/err.h>
 
 #include "luacrypto.h"
+
+#if IS_REACHABLE(CONFIG_CRYPTO_HASH2)
 
 LUNATIK_PRIVATECHECKER(luacrypto_shash_check, struct shash_desc *, &luacrypto_shash_class,
 	lunatik_checkirqs(L); /* arm64's AES MACs set keys in NEON unguarded, a BUG with IRQs off */
@@ -236,4 +239,8 @@ int luacrypto_shash_new(lua_State *L)
 	object->private = sdesc;
 	return 1;
 }
+
+#else
+LUACRYPTO_UNSUPPORTED(shash);
+#endif
 

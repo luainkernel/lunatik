@@ -12,6 +12,7 @@
 * Up to 6.14, an algorithm the kernel serves through scomp, `lz4` and `deflate` among them,
 * refuses an input past 128 KiB with `EINVAL` and fails an output past 128 KiB whatever `max_len`
 * says, so `lz4` raises `EINVAL` on incompressible data of 131072 bytes.
+* Not built where the kernel builds no user of its compression API, `CONFIG_CRYPTO_ACOMP2`.
 * @classmod crypto_comp
 */
 
@@ -25,6 +26,8 @@
 #include <linux/scatterlist.h>
 
 #include "luacrypto.h"
+
+#if IS_REACHABLE(CONFIG_CRYPTO_ACOMP2)
 
 LUACRYPTO_CHECKER(comp, struct crypto_acomp);
 
@@ -132,4 +135,8 @@ int luacrypto_comp_new(lua_State *L)
 	luacrypto_initctx(L, ctx, acomp_request_alloc(tfm), 0);
 	return 1;
 }
+
+#else
+LUACRYPTO_UNSUPPORTED(comp);
+#endif
 

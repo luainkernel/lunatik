@@ -29,6 +29,12 @@ static int luacrypto_##name##_algname(lua_State *L)		\
 extern const lunatik_class_t luacrypto_##name##_class;		\
 int luacrypto_##name##_new(lua_State *L)
 
+#define LUACRYPTO_UNSUPPORTED(name)				\
+int luacrypto_##name##_new(lua_State *L)			\
+{								\
+	return lunatik_unsupported(L);				\
+}
+
 /* Per-tfm fixed-size state (request, IV) allocated once at creation, so
  * encrypt/decrypt never allocates on the hot path. */
 typedef struct luacrypto_ctx_s {
