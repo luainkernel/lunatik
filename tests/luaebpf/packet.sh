@@ -18,8 +18,8 @@
 #   - an accessor asked for two results, where Lua fills the second with nil: a second result
 #     left carrying the receiver's type answers the read instead of the fill
 #   - an accessor inside a called function: examples/common/sni.lua's u16 helper, unchanged. The
-#     proxy passes in one argument, and a failed bounds check there reaches the program's
-#     default verdict through the flag a callee raises in its caller's frame
+#     proxy passes in one argument, and a failed bounds check there stops the program through the
+#     flag a callee raises in its caller's frame
 #   - a method neither proxy publishes is refused by name. getuint64 is the one a reader expects
 #     and the kernel object does not have: a Lua integer is 64-bit signed, with no unsigned twin
 #   - an accessor called without an offset, or with one that is not a number, is refused. The

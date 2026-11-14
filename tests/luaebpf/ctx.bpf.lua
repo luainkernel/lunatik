@@ -72,7 +72,7 @@ local function skbsetmax(skb)
 end
 
 -- a computed value past the field's 32 bits, and one below zero, which the kernel's setter raises
--- on: the compiled one owes the default verdict, where a store of the low bits would answer them
+-- on: the compiled one owes TC_ACT_SHOT, where a store of the low bits would answer them
 local function skbsetwide(skb)
 	local priority = skb:priority(#skb + U32MAX)
 	return priority

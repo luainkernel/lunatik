@@ -143,7 +143,7 @@ local function walk(f)
 		code:place(f.aborted)
 		if f.isprogram then
 			if f.drop ~= "verdict" then
-				code:set(reg.R0, f.default)
+				code:set(reg.R0, f.unit.error)
 			end
 		else
 			code:load(reg.R1, reg.FP, CALLER)
@@ -254,14 +254,14 @@ end
 ---
 -- Compiles one program: its function, and every function that function reaches.
 -- @function luaebpf.emit.program
--- @tparam table program `{name, fn, default, drop, names, context}`
+-- @tparam table program `{name, fn, default, error, drop, names, context}`
 -- @treturn table the frames, the program's own first
 -- @raise `a program takes one argument, the context`, and `<file>:<line>: <reason>` for every
 --   construct the subset refuses
 function emit.program(program)
 	local unit = {
 		functions = {}, order = {}, lowering = {}, names = program.names or {},
-		default = program.default, drop = program.drop, context = program.context,
+		default = program.default, error = program.error, drop = program.drop, context = program.context,
 		-- no lowering can require luaebpf.emit back; read here, after the body that may set them ran
 		maygoto = emit.maygoto, unaligned = emit.unaligned, subprogram = subprogram,
 	}

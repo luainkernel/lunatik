@@ -220,7 +220,8 @@ under `sudo`.
 * **Exceptions are one way.** `bpf_throw`
   ([helpers.c#L3388](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/helpers.c#L3388))
   unwinds to the program's exception callback and never returns. `pcall` cannot be compiled; the
-  design does not emit `bpf_throw` either, a failed check returns the program's default verdict.
+  design does not emit `bpf_throw` either, a failed check returns the error verdict of the
+  program's type, `XDP_ABORTED` or `TC_ACT_SHOT`.
 * **A callee answers through R0 and through the caller's stack, and nothing else.**
   `set_callee_state` copies R1-R5 into the callee, types and ranges included, so `PTR_TO_CTX`,
   `PTR_TO_PACKET` and `PTR_TO_STACK` all propagate
@@ -372,7 +373,7 @@ under `sudo`.
   and which `tc_cls_act_func_proto` offers `SCHED_CLS` from v6.6
   ([net/core/filter.c#L7968-L7974](https://github.com/torvalds/linux/blob/v6.6/net/core/filter.c#L7968-L7974)),
   so a compiled read goes through it, `#` on the packet is `__sk_buff.len`, and a non-zero answer
-  takes the default verdict where the object raises "out of bounds". A load between `data` and
+  stops the program where the object raises "out of bounds". A load between `data` and
   `data_end` would stop at the linear head, and `bpf_skb_pull_data` would linearize the skb for the
   rest of the stack where the object only reads. A test run builds a non-linear skb only from
   v6.19, when `ctx_in`'s `data_end` stops short of the packet

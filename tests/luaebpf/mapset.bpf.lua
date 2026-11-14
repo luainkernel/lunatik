@@ -132,10 +132,10 @@ local function key(value)
 	return bytes(pack(KEY, value))
 end
 
--- the verdict a store owes: DONE where string.pack takes what it packs, and the default where
+-- the verdict a store owes: DONE where string.pack takes what it packs, and XDP_ABORTED where
 -- it raises, as the kernel's bpf.map does
 local function owed(format, value)
-	return pcall(pack, format, value) and DONE or action.PASS
+	return pcall(pack, format, value) and DONE or action.ABORTED
 end
 
 local BYTE0    <const> = frame:packet():getbyte(0)
@@ -154,9 +154,9 @@ out:write("run\twidekey\t", owed(KEY, BYTE0 << WORD | WIDE), "\n")
 out:write("run\twidedelete\t", owed(KEY, BYTE0 << WORD | KEPT), "\n")
 out:write("run\tnegvalue\t", owed(SIGNED, NEGATIVE), "\n")
 out:write("run\tnarrowvalue\t", owed(SIGNED, NEGATIVE - SPAN), "\n")
-out:write("run\toverflow\t", action.PASS, "\n")
-out:write("run\tfull\t", action.PASS, "\n")
-out:write("run\tarraydelete\t", action.PASS, "\n")
+out:write("run\toverflow\t", action.ABORTED, "\n")
+out:write("run\tfull\t", action.ABORTED, "\n")
+out:write("run\tarraydelete\t", action.ABORTED, "\n")
 out:write("check\tflows\t", key(WRITTEN), "\t", bytes(pack(VALUE, STORED), HEX), "\n")
 out:write("check\tflows\t", key(BYTE0), "\t", bytes(pack(VALUE, STORED), HEX), "\n")
 out:write("check\tflows\t", key(DELETED), "\tabsent\n")

@@ -19,7 +19,7 @@
 #     program computes from another field, with the field's top bit set, which the store takes
 #     from a register, and U32_MAX, the largest the field holds
 #   - a value the program computes past 32 bits or below zero, where the kernel's skb:priority
-#     raises, takes the default verdict, and ctx_out carries the priority prog run was given
+#     raises, returns TC_ACT_SHOT, and ctx_out carries the priority prog run was given
 #   - a TC program declared with {egress = true} loads from its own section and reads #skb as
 #     the ingress one does
 #   - neither context has a field, read or assigned, the xdp_md and __sk_buff fields the proxies
@@ -66,10 +66,10 @@ ktap_pass "luaebpf: what skb:priority(v) stores is what ctx_out carries back"
 
 want=$(reported held)
 got=$(luaebpf_verdict skbsetwide skbctx "$LUAEBPF_WORK/skbwide.out")
-[ "$got" = 0 ] || fail "luaebpf: a priority past 32 bits answered '$got', not the default verdict"
+[ "$got" = 2 ] || fail "luaebpf: a priority past 32 bits answered '$got', not TC_ACT_SHOT, 2"
 out=$(od -An -tu4 -j "$at" -N 4 "$LUAEBPF_WORK/skbwide.out" | tr -d ' ')
 [ "$out" = "$want" ] || fail "luaebpf: a priority past 32 bits left '$out' in ctx_out, not '$want'"
-ktap_pass "luaebpf: a priority past 32 bits takes the default verdict and leaves the priority as it was"
+ktap_pass "luaebpf: a priority past 32 bits returns TC_ACT_SHOT and leaves the priority as it was"
 
 got=$(luaebpf_verdict skbegress skbctx)
 want=$(luaebpf_verdict skblen skbctx)
