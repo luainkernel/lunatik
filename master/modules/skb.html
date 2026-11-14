@@ -337,13 +337,14 @@ sum the device took on receipt.</li>
  header gives a length past its end, or on IPv4 shorter than the header or an IHL below 5, and one
  too short to hold its TCP or UDP checksum field are left unchanged; <a href="../modules/skb.html#skb:resize">resize</a> does not rewrite that
  length. The skb is linearized and unshared first, as <a href="../modules/data.html#">data</a> does; in a tc callback it is neither,
- and one whose head a clone shares raises.
+ and a non-linear one, or one whose head a clone shares, raises.
 
 
 
 
     <h3>Raises</h3>
-    if the skb is not writable, in a tc callback or after a failed unshare
+    if the skb is not linear, in a tc callback or after a failed linearization, or if it is not
+ writable, in a tc callback or after a failed unshare
 
 
 
@@ -646,7 +647,7 @@ sum the device took on receipt.</li>
 <a href="../../modules/skb.html">5.1 docs</a> ·
 <a href="../../5.0/modules/skb.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-14 12:04:22</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-14 12:16:50</span>
 </div>
 </footer>
 </body>

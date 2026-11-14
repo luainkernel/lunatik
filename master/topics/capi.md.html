@@ -2713,7 +2713,7 @@ returns for each start, at the network header, at the MAC header and at <code>sk
 the hook&rsquo;s skb object it was copied from, which it holds and reads its device from, <code>NULL</code> for that
 object; the callbacks the object was cleared after, which a copy takes from the skb it is copied
 from, so it reads its hook&rsquo;s device only while that callback runs; and whether the packet comes
-through a kfunc, where <code>skb:data()</code>, <code>resize</code> and <code>copy</code> refuse a non-linear skb rather than
+through a kfunc, where <code>skb:data()</code>, <code>resize</code>, <code>checksum</code> and <code>copy</code> refuse a non-linear skb rather than
 linearize it, and a head a clone shares is not unshared: <code>skb:data()</code> returns a read only view of it,
 and <code>resize</code> and <code>checksum</code> refuse it. Its release frees <a href="../modules/skb.html#">skb</a> and drops <code>hook</code>, so a binding clears the packet it does not
 own before the last reference goes, with <a href="#luaskb_reset"><code>luaskb_clear</code></a> or <code>luaskb_close</code>.</p>
@@ -2817,7 +2817,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-14 12:04:22</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-14 12:16:50</span>
 </div>
 </footer>
 </body>
