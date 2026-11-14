@@ -10,7 +10,8 @@
 # module is the installed file and not that the file carries the fix, the way
 # tests/runtime/self_stop first skipped; and a message the header says
 # check_dmesg reads that tests/lib.sh's KTAP_ERRORS does not match, the BUG line
-# tests/rcu/entry_release first claimed. In a test's Lua script, it names a case
+# tests/rcu/entry_release first claimed, before the pattern read it. In a test's Lua
+# script, it names a case
 # run under a condition, which reports nothing when the condition is false while
 # the script's one KTAP line counts it as passed, the way tests/runtime/percpu_object
 # ran its failing case only on more than one CPU, as #1166 found; and a case harness
