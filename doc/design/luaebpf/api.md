@@ -106,8 +106,12 @@ cannot prove aligned; x86 and arm64 always have it, and the eight-bit reads comp
 `data_end`, and tests its offset first against 65535 less its width, the last offset a read that
 wide can start at, since the verifier refuses arithmetic between a packet pointer and a register
 whose range it does not know. An access that fails either does not raise (there is nothing to
-raise to): the function returns the program's **default verdict**, the type's safe answer
-(`PASS` for XDP, `OK` for TC), overridable in the constructor:
+raise to): the program stops and returns the **error verdict** of its type, `XDP_ABORTED` in XDP,
+the kernel's verdict for a program error, which drops the packet and, in the generic path and in
+most drivers, fires the `xdp:xdp_exception` tracepoint, and `TC_ACT_SHOT` in TC, which has no
+error verdict and drops the packet. The **default verdict**, `PASS` for XDP and `OK` for TC unless
+the constructor names another, is what the program returns where its function returns no value,
+`return` or `return nil`, and never where it stops:
 
     return xdp.program(function(ctx) ... end, {default = action.DROP})
 
@@ -115,7 +119,7 @@ Division by zero and every other check the interpreter would turn into an error 
 path, from any frame. A subprogram returns to its caller rather than to the hook, so every
 compiled function takes one argument beyond its own: a pointer to a word in its caller's frame. A
 check that fails there stores a one through it and returns; the caller reads the word and takes
-its own failure path, which is the default verdict in the program's own frame. That is the fifth
+its own failure path, which is the error verdict in the program's own frame. That is the fifth
 register argument, and why a compiled function takes four of its own. This is the compiled
 analogue of what the trampoline does today, where a raising callback makes the kfunc return `-1`
 and the stub falls back.
@@ -126,13 +130,13 @@ flow hash the skb carries as it stands, and `skb:priority()` its priority, which
 `skb:priority(v)` sets and answers, the one `__sk_buff` field of the four the kernel lets a
 program write. The kernel object takes a priority from 0 up to `U32_MAX` and raises outside them,
 so a value the compiler holds outside them is refused at its line and one the program computes
-takes the default verdict. The object has methods and no fields, so a field read or assigned is
+stops the program. The object has methods and no fields, so a field read or assigned is
 refused, and `__sk_buff`'s `ingress_ifindex`, which it does not carry, is refused too.
 `skb:data()` is the packet from `skb->data`, which in a TC program is the MAC header, and
 `skb:data("net")` and `skb:data("mac")`, the views the kernel object starts at a header, are
 refused until a compiled read reaches one. In a tc callback the kernel object raises on an skb
-that is not linear, one whose `len` runs past `data_end`, so a compiled `skb:data()` takes the
-default verdict on it. `tc.program(fn, {egress = true})` puts the entry in `tcx/egress` rather
+that is not linear, one whose `len` runs past `data_end`, so a compiled `skb:data()` stops the
+program on it. `tc.program(fn, {egress = true})` puts the entry in `tcx/egress` rather
 than `tcx/ingress`, which is how libbpf reads the attach point back.
 
 ## Maps
@@ -159,9 +163,9 @@ and store take. Inside a compiled function a map is a table proxy with `bpf.map`
 indexing looks up, assignment updates, assigning `nil` deletes. A key and a value are numbers, as
 the spec packs them, and one the spec does not pack is where the kernel's `bpf.map` raises in
 `string.pack`: one the compiler holds is refused at its line, and one the program computes is
-tested where it is stored and takes the default verdict outside the spec's range. A write the map
+tested where it is stored and stops the program outside the spec's range. A write the map
 refuses, an update of a full hash or at an index past an array's entries and every delete from an
-array, takes the default verdict too, where the kernel's `bpf.map` raises; a delete of a key the
+array, stops it too, where the kernel's `bpf.map` raises; a delete of a key the
 map does not hold does nothing, as there.
 
     local cached = flows[key]

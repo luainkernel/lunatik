@@ -11,7 +11,8 @@
 -- sends. It takes one argument, the context, and returns a verdict, a value of `linux.tc.action`,
 -- of which the kernel reads the low 32 bits: `OK`, `SHOT` and `REDIRECT` act, and any other value
 -- reads as `UNSPEC`, which decides nothing. Where Lua would raise, at a read past the packet or a
--- division by 0, the program stops and returns its default verdict.
+-- division by 0, the program stops and returns `TC_ACT_SHOT`, which drops the packet, since TC has no
+-- verdict for a program error; where it returns no value, it returns its default verdict.
 --
 -- The program's argument is spelled as the kernel's `skb` object: `#skb` is the packet's length,
 -- `skb:ifindex()` its device's index, `skb:hash()` its flow hash and `skb:priority()` its
@@ -64,7 +65,7 @@ local tc = {}
 -- @function bpf.tc.program
 -- @tparam function fn the program; it takes the context and returns a verdict.
 -- @tparam[opt] table opts `egress`, which attaches the program on the way out rather than in,
---   `default`, the verdict the program returns where it stops, where Lua would raise
+--   `default`, the verdict the program returns where its function returns no value
 --   (`linux.tc.action.OK`), and `name`, what the program is called in the object, cut to the
 --   fifteen characters `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken.
 -- @treturn table the declared program
@@ -73,7 +74,7 @@ local tc = {}
 function tc.program(fn, opts)
 	opts = opts or {}
 	return programs.declare("tc.program", fn, {section = opts.egress and EGRESS or INGRESS,
-		default = opts.default or action.OK, name = opts.name, context = context})
+		default = opts.default or action.OK, error = action.SHOT, name = opts.name, context = context})
 end
 
 return tc

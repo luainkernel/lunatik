@@ -157,10 +157,10 @@ end
 -- "'<name>' may be nil here; test it first". A lookup in an array within its entries always finds
 -- a value, 0 where nothing was written. A key or a value its spec cannot pack, and an update or a
 -- delete the map refuses, a full hash map, an index past an array, a delete from an array, stop
--- the program with its default verdict. A `struct` value spec gives a read-only value read by field
--- name, `v.ttl`, as the kernel module decodes such a value into a table keyed by the layout's
--- names; an index into it is refused, and so is a field wider than a byte on a kernel without
--- efficient unaligned access, as a packet read is.
+-- the program, which returns `XDP_ABORTED` or `TC_ACT_SHOT`. A `struct` value spec gives a read-only
+-- value read by field name, `v.ttl`, as the kernel module decodes such a value into a table keyed by
+-- the layout's names; an index into it is refused, and so is a field wider than a byte on a kernel
+-- without efficient unaligned access, as a packet read is.
 -- @section declare
 
 ---

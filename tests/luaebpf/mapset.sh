@@ -12,11 +12,11 @@
 #     to seed, the programs to run with the verdict each owes, and the bytes to expect, from the
 #     same constants and the same specs the programs were compiled against
 #   - a value the program computes past its unsigned spec or its signed one, and a key past its
-#     spec, written and deleted, take the default verdict, where the kernel's bpf.map raises in
+#     spec, written and deleted, return XDP_ABORTED, where the kernel's bpf.map raises in
 #     string.pack: each one's low bytes name an entry the case then finds untouched, which a
 #     store that truncated would have written or removed; and a negative value a signed spec
 #     packs is kept as its two bytes
-#   - a write the map refuses takes the default verdict, where the kernel's bpf.map raises: an
+#   - a write the map refuses returns XDP_ABORTED, where the kernel's bpf.map raises: an
 #     update at an index past the array's entries, a second key in a hash of one entry, whose
 #     first entry is kept, and a delete from an array, whose entry is kept
 #   - a value that is not a number is refused with its line
@@ -64,7 +64,7 @@ owed=$(awk -F'\t' '$1 == "run" {print $2, $3}' "$ROWS")
 diff <(echo "$ran") <(echo "$owed") > "$LUAEBPF_WORK/ran.diff"
 [ -s "$LUAEBPF_WORK/ran.diff" ] && { comment "$(cat "$LUAEBPF_WORK/ran.diff")";
 	fail "luaebpf: a map write answered another verdict than the one it owes"; }
-ktap_pass "luaebpf: a write past its spec takes the default verdict, and the rest answer theirs"
+ktap_pass "luaebpf: a write past its spec returns XDP_ABORTED, and the rest answer theirs"
 
 owed=$(awk -F'\t' '$1 == "check" {print $2, $3 ": " $4}' "$ROWS")
 diff <(echo "$kept") <(echo "$owed") > "$LUAEBPF_WORK/kept.diff"

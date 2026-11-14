@@ -7,10 +7,10 @@
 #   - a read one byte past the last, a read at an offset above the ceiling the verifier lets a
 #     packet pointer take, a read that lands in the whole ClientHello but past the truncated one,
 #     and a read at a negative offset the program computed: the interpreter raises on each, and
-#     the compiled program owes its default verdict, through ctx:packet() on XDP and skb:data() on
-#     TC, whose bounds sit at other offsets of the context
-#   - every row is declared twice, once with each default, so the answer is the verdict the file
-#     asked for and not a number the failure path happened to leave in R0
+#     the compiled program owes XDP_ABORTED through ctx:packet() on XDP and TC_ACT_SHOT through
+#     skb:data() on TC, whose bounds sit at other offsets of the context
+#   - every row is declared twice, once with each of two defaults, so the answer is the error
+#     verdict of the program's type whatever default the file named
 #   - with LUAEBPF_DROP=bounds the object is still written, and the verifier rejects it naming an
 #     invalid packet access, which is what says the check is emitted rather than implied
 #
@@ -30,7 +30,7 @@ output=$(luaebpf_loadall bounds) || { comment "$output"; fail "luaebpf: the boun
 ktap_pass "luaebpf: every out-of-bounds row verifies"
 
 output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a bounds row differs from the interpreter"; }
-ktap_pass "luaebpf: every out-of-bounds read takes the verdict its program declared"
+ktap_pass "luaebpf: every out-of-bounds read returns the error verdict of its program's type"
 
 rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
 output=$(luaebpf_compile bounds bounds) || { comment "$output"; fail "luaebpf: the dropped build failed"; }

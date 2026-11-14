@@ -44,7 +44,7 @@ end)
 The file has two parts. Its body, every line outside the function, runs once, on the host, when
 the file is compiled: it declares the map `counts` and the program. The function is the program:
 it is compiled to eBPF and runs in the kernel on each packet. It returns `XDP_PASS`, so every
-packet goes on to the network stack.
+packet it can read goes on to the network stack.
 
 Compile it into place and attach it to a device:
 
@@ -64,8 +64,9 @@ return counts[6], counts[17]'
 ```
 
 A frame that says IPv4 but is shorter than 24 bytes has no byte 23: its read stops the program,
-which returns its default verdict, `XDP_PASS`, and counts nothing. The lookup and the update are
-two steps, so two CPUs that count the same protocol at once can lose one of the increments.
+which returns `XDP_ABORTED`, so the frame is dropped and nothing is counted. The lookup and the
+update are two steps, so two CPUs that count the same protocol at once can lose one of the
+increments.
 
 ```Shell
 sudo lunatik stop protocols
@@ -93,7 +94,8 @@ sudo lunatik stop protocols
        and the packet goes on
 
   where Lua would raise, at a read past the packet or x // 0, the
-  program stops and returns its default verdict
+  program stops: XDP_ABORTED in XDP, TC_ACT_SHOT in TC, either one
+  dropping the packet; where it returns no value, its default verdict
 ```
 
 A program returns its verdict, which tells the kernel what to do with the packet: a value of
@@ -110,17 +112,21 @@ A program returns its verdict, which tells the kernel what to do with the packet
 * A boolean is returned as 1 or 0: `return p:getbyte(23) == 6` returns `XDP_DROP` for TCP and
   `XDP_ABORTED` for any other protocol (#1945).
 
-A `return` with no value, or with `nil`, returns the default verdict, and so does a program that
-stops. A verdict that may be nil is refused: "the verdict may be nil here; test it first". The
-default verdict is `XDP_PASS` or `TC_ACT_OK`, unless the constructor names another:
+A `return` with no value, or with `nil`, returns the default verdict. A verdict that may be nil is
+refused: "the verdict may be nil here; test it first". The default verdict is `XDP_PASS` or
+`TC_ACT_OK`, unless the constructor names another:
 
 ```Lua
 return xdp.program(filter, {default = action.DROP})
 ```
 
-With the default, a packet the program cannot read goes through; a filter that must drop what it
-cannot check names `DROP`. A value the program computes reaches a kernel script through a map,
-not through the verdict.
+A program that stops, where Lua would raise, does not return its default. An XDP program returns
+`XDP_ABORTED`, the kernel's verdict for a program error, which drops the packet and, in the
+generic path and in most drivers, fires the tracepoint `xdp:xdp_exception`; a TC program, whose
+type has no such verdict, returns `TC_ACT_SHOT`, which drops the packet. A packet the program
+cannot read is dropped, whatever its default: a program that must let it through tests `#p`
+before it reads. A value the program computes reaches a kernel script through a map, not through
+the verdict.
 
 ## When a program cannot be compiled or computed
 
@@ -130,10 +136,10 @@ not through the verdict.
         | lunatik bpf            | lunatik run --dev      | on the device
         v                        v                        v
   REFUSED                  REFUSED AT LOAD          STOPS
-  lunatik: file:line:      the verifier log,        the default verdict
-  reason; exit 1, no       which quotes the Lua     for that packet;
-  object written           line; exit 1, nothing    nothing logged
-                           attached
+  lunatik: file:line:      the verifier log,        XDP_ABORTED or
+  reason; exit 1, no       which quotes the Lua     TC_ACT_SHOT: the packet
+  object written           line; exit 1, nothing    is dropped; nothing
+                           attached                 logged
 
   what the subset does     a program past the       where Lua would raise:
   not compile, and a       limits of the verifier,  x // 0, a read past
@@ -152,18 +158,20 @@ fails in one of three places.
   A program past the verifier's limits, most often a loop of many passes, is refused there:
   `lunatik run` prints the verifier's log, which quotes the Lua lines, exits 1 and leaves nothing
   attached.
-* **Stops.** In the kernel, on a packet, the program returns its default verdict at once, and
-  nothing is logged (#2098). A program stops at a read past the packet, a division or a modulo by
-  0, a `for` step of 0 it computed, a map key or value its spec cannot pack, a map update or delete
-  the map refuses, a `skb:data()` of an skb that is not linear, a `skb:priority` it computed outside
-  0 to 4294967295, and in a function it called that stops. A division by a 0 the compiler knows is
-  not refused: the program stops on every packet that reaches it.
+* **Stops.** In the kernel, on a packet, the program returns at once `XDP_ABORTED` in XDP or
+  `TC_ACT_SHOT` in TC, which drop the packet, and nothing is logged (#2098); a tracer reads an
+  XDP program's stops at the tracepoint `xdp:xdp_exception`. A program stops at a read past the
+  packet, a division or a modulo by 0, a `for` step of 0 it computed, a map key or value its spec
+  cannot pack, a map update or delete the map refuses, a `skb:data()` of an skb that is not
+  linear, a `skb:priority` it computed outside 0 to 4294967295, and in a function it called that
+  stops. A division by a 0 the compiler knows is not refused: the program stops on every packet
+  that reaches it.
 
 ## The Lua a program may use
 
 A compiled function computes what the kernel's Lua computes, or stops, or is refused. "Stops"
-means the program returns its default verdict; "refused" means `lunatik bpf` refuses the file at
-that line. Each construct links to its listing.
+means the program returns `XDP_ABORTED` or `TC_ACT_SHOT`, which drop the packet; "refused" means
+`lunatik bpf` refuses the file at that line. Each construct links to its listing.
 
 | You write | The program gives | It stops when | It is refused when |
 |-----------|-------------------|---------------|--------------------|
@@ -232,6 +240,10 @@ method 'setbyte'". The bounds of the packet are not numbers: `ctx.data_end - ctx
 efficient unaligned access, a read wider than a byte is refused (#2047): "'getuint16' reads more
 than a byte, and this kernel lacks efficient unaligned access". `skb:data(layer)` is refused:
 "'data' with a layer is not compiled yet".
+
+`skb:data()` stops the program on an skb that is not linear, one whose bytes do not all lie in its
+head. A TCP segment the host sends with data is one, its payload lying in page fragments, so a TC
+program on egress that opens the packet drops that segment (#2190).
 
 ## Maps
 

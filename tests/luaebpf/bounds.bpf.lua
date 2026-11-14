@@ -36,8 +36,8 @@ local order = {"past", "high", "deep", "negative"}
 
 local contexts, skbcontexts = corpus.packets(), corpus.skbpackets()
 
--- each row twice, under either default, so the answer is the verdict the file asked for rather
--- than a number the failure path happens to leave behind
+-- each row twice, under two defaults, so the answer is the error verdict of the program's type
+-- whatever default the file named
 local rows = corpus.new()
 for _, op in ipairs(order) do
 	for i, name in ipairs(packets.order) do

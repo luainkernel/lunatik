@@ -303,8 +303,8 @@ local function labelof(f, pc)
 end
 frame.labelof = labelof
 
--- the tail taken where the interpreter would raise: the program's default verdict in its own
--- frame, and the flag that carries the verdict one frame up everywhere else
+-- the tail taken where the interpreter would raise: the error verdict of the program's type in its
+-- own frame, and the flag that carries the stop one frame up everywhere else
 local function abort(f)
 	if f.aborted == nil then
 		f.aborted = f.code:label()
@@ -313,8 +313,8 @@ local function abort(f)
 end
 frame.abort = abort
 
--- a value the program computes past `size` unsigned bytes, fewer than a register holds, takes
--- the default verdict
+-- a value the program computes past `size` unsigned bytes, fewer than a register holds, stops
+-- the program
 local function fitsunsigned(f, src, size)
 	local code = f.code
 	code:alu(alu.MOV, reg.R5, src)
