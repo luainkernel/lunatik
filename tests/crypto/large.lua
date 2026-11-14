@@ -23,12 +23,17 @@ local GCM_COUNTER <const> = NONCE .. "\0\0\0\2" -- gcm(aes) ciphers with ctr(aes
 local BLOCK <const> = 16
 local ENOMEM <const> = "not enough memory"
 local EBADMSG <const> = "EBADMSG"
+local EINVAL <const> = "EINVAL"
+local SCRATCH <const> = 128 * 1024 -- what scomp bounds the input and the output by on 6.14 and earlier
+local LZ4_BOUND <const> = SCRATCH + SCRATCH // 255 + 16 -- LZ4_COMPRESSBOUND(SCRATCH), lz4's worst output
 
 local page = sizes.page
 local spanning = rep("a", page) .. rep("b", page) .. rep("c", BLOCK)
 local associated = rep("d", page) .. rep("e", page + 1)
 local oversized = rep("x", sizes.kmalloc + page)
 local paged = sub(spanning, 1, page + BLOCK) -- within the 128 KiB 6.14 and earlier compress in software
+local bounded = sizes.bounded
+local past = bounded and "raises " .. EINVAL or "round-trips"
 
 -- the algorithms the cases allocate, before they run, so large.sh skips the test where the kernel lacks one
 lib.alloc(crypto.skcipher, CBC)
@@ -75,6 +80,12 @@ local function refused(expected, name, method, c, ...)
 	assert(err == expected, name .. ": expected '" .. expected .. "', got: " .. tostring(err))
 end
 
+local function roundtrip(c, data, max_len)
+	local packed = c:compress(data, max_len)
+	assert(c:decompress(packed, #data) == data, "round-trip mismatch")
+	return #packed
+end
+
 test("SKCIPHER AES-128-CBC data spanning pages matches its pages chained", function()
 	local c = cbc()
 	local ciphertext = c:encrypt(IV, spanning)
@@ -111,9 +122,32 @@ end)
 
 test("COMP lz4 data past a page round-trips", function()
 	local c = crypto.comp(LZ4)
-	local packed = c:compress(paged, 2 * #paged)
-	assert(#packed < #paged, "compressed data is not shorter than the original")
-	assert(c:decompress(packed, #paged) == paged, "round-trip mismatch")
+	assert(roundtrip(c, paged, 2 * #paged) < #paged, "compressed data is not shorter than the original")
+end)
+
+test("COMP lz4 data of 128 KiB round-trips", function()
+	local c = crypto.comp(LZ4)
+	roundtrip(c, rep("z", SCRATCH), page)
+end)
+
+test("COMP lz4 data past 128 KiB " .. past, function()
+	local c = crypto.comp(LZ4)
+	local data = rep("z", SCRATCH + 1)
+	if bounded then
+		refused(EINVAL, "compress", c.compress, c, data, page)
+	else
+		roundtrip(c, data, page)
+	end
+end)
+
+test("COMP lz4 output past 128 KiB " .. past, function()
+	local c = crypto.comp(LZ4)
+	local data = cbc():encrypt(IV, rep("z", SCRATCH)) -- what lz4 cannot shrink
+	if bounded then
+		refused(EINVAL, "compress", c.compress, c, data, LZ4_BOUND)
+	else
+		assert(roundtrip(c, data, LZ4_BOUND) > SCRATCH, "compressed data is not past 128 KiB")
+	end
 end)
 
 test("COMP lz4 data or output past KMALLOC_MAX_SIZE", function()

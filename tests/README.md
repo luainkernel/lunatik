@@ -242,9 +242,13 @@ Covers the `crypto` module: `shash`, `skcipher`, `aead`, `rng`, `sig`, `kpp`,
   pages and a byte, go through it whole: `cbc(aes)` matches its pages chained by
   their last block, `gcm(aes)` seals into what `ctr(aes)` gives from the second
   counter and opens back, and a byte flipped in the last page of either answers
-  nil and `EBADMSG`; `lz4` compresses data of a page and a block, within the 128
-  KiB a kernel up to 6.14 compresses in software, to fewer bytes and decompresses
-  it back whole. A string past `KMALLOC_MAX_SIZE`, always vmalloc's, is refused
+  nil and `EBADMSG`; `lz4` compresses data of a page and a block, and of 128 KiB,
+  to fewer bytes and decompresses it back whole. Past 128 KiB, 131073 bytes `lz4`
+  shrinks, and 131072 bytes of `cbc(aes)` ciphertext it cannot, given an output
+  of `LZ4_COMPRESSBOUND`, raise `EINVAL` on 6.14 and earlier, where scomp bounds
+  input and output by its 128 KiB scratch, and round-trip on 6.15 and later;
+  `large.sh` writes which the running release is. A string past
+  `KMALLOC_MAX_SIZE`, always vmalloc's, is refused
   with "not enough memory" as the data of each `encrypt`, `decrypt`, `compress`
   and `decompress`, as `aead`'s associated data and as the output size of
   `compress` and `decompress`, whose block holds the output too, with no warning
