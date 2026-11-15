@@ -50,6 +50,7 @@ file = {
 	'./bin/luaebpf/vmlinux.lua',
 	'./lunatik_core.c',
 	'./lunatik_percpu.c',
+	'./bin/luaebpf/lib/lunatik.lua',
 	'./lib/lunatik/runner.lua',
 	'./lib/mailbox.lua',
 	'./lib/net.lua',

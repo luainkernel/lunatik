@@ -138,7 +138,7 @@ static inline void lunatik_checkowners(lua_State *L, lunatik_percpu_t *percpu)
 *   with the runtimes after it not resumed. A runtime that refuses a value stays where it yielded;
 *   one that raises is dead, so every later resume delivers to the CPUs before it again and fails
 *   on it again; "not allowed from the runtime itself" from under the lock of one of the set's
-*   runtimes, the contexts `stop` names, where its resumption would wait on that lock;
+*   runtimes, the contexts @{percpu:stop|stop} names, where its resumption would wait on that lock;
 *   "EINTR" if the stop of the calling kernel thread, or a fatal signal to any other task,
 *   ends its wait for the lock of one of the set's runtimes, the runtimes after it not resumed
 */
@@ -203,11 +203,11 @@ const lunatik_class_t lunatik_percpu_class = {
 * the last reference to the set is dropped. A hook its script registers with the kernel is one
 * the runtimes share, and it holds the set until `stop()`, so dropping the handle does not close a
 * set whose script registered one, and `stop()` cannot be called once its last handle is gone. A
-* script stops the sets it creates, as it stops a runtime: see `lunatik.runtime`. Only a process
-* runtime's `lunatik` module has it.
+* script stops the sets it creates, as it stops a runtime: see @{runtime|lunatik.runtime}. Only a
+* process runtime's `lunatik` module has it.
 * @function percpu
 * @tparam string script script name (e.g., `"mymod"` loads `/lib/modules/lua/mymod.lua`)
-* @tparam[opt="process"] string context execution context, as in `lunatik.runtime`
+* @tparam[opt="process"] string context execution context, as in @{runtime|lunatik.runtime}
 * @treturn percpu
 * @raise if allocation fails or the script errors on load, after releasing the runtimes
 *   already created
