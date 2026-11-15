@@ -288,6 +288,32 @@ the command that recorded one, as "Undermining Oversight", and the guard then re
 reader had passed. A subagent's post, whose hook input carries the `agent_id` a main thread's never
 does, is implement-issue's opening, of the body its review's reader passed.
 
+`title.sh` holds a pull request title or a commit subject to the shape AGENTS.md, *Patches and
+commits*, gives a subject, `<area>: <what changes for whoever uses it>` in one plain clause, which the
+maintainer asked for after #2541: "precisamos alem dessa melhoria no corpo, melhoria no titulo tb.. os
+titulos tao ruins e incompreensiveis.. o corpo melhorou". It names a title with no area before its
+colon, one past 60 characters and one that carries a word opening a subordinate clause, his "where",
+"so", "whose" and "as ...", and their kin, which, since, because, unless, when, while, whereas, though,
+although and if, its code spans left out, and a name that holds one, `socket.so`, is none; a relative
+"that", as in #2223's `luaebpf: refuse a verdict that is not an action of its type`, is part of a plain
+clause. A `fixup!`, `amend!` or `squash!` subject, a revert, the `Reapply` of one and a merge pass as
+git writes them. The seven titles he took on 2026-11-15 for #2202, #2222, #2223, #2235, #2484, #2485
+and #2545 pass, and the seven they replaced fail, two on the length alone; of the 265 titles merged
+from 2026-10-17 to 2026-11-14 it names 233, 231 of them past the length, and of the 355 subjects master
+took in that time, 322. `pr-body-guard.sh` refuses a write that gives a pull request of this repository
+a title it names: `--title` or `-t` of `gh pr create`, `new` or `edit`, gh api's `title` field, read
+from the file `-F title=@` names, and the JSON `--input` sends. It refuses too a title it cannot read,
+one the shell expands or a file the same command writes holds, and a `gh pr create` given none, which
+opens under a commit's subject or the name of the branch. `commit-msg` refuses a commit whose subject
+it names, reading the `title.sh` beside the hook, so a worktree on a base older than the check commits
+under it too; it is installed as `pre-commit` is:
+
+    ln -s ../../tools/checks/commit-msg .git/hooks/commit-msg
+
+git runs it on a commit, an amend and a merge, and not on the picks of a rebase or a cherry-pick, so a
+branch written before the rule restacks. `advisory.sh` runs the check over a change's subjects, which the
+`Checks` workflow annotates and a review's packet carries.
+
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate
 of a commit that no longer exists, in a pull request nobody edited. It reads the push through

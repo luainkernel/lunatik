@@ -38,5 +38,6 @@ done
 for check in core-subject kernel-answer; do
 	report "$check" "$(for commit in $commits; do bash "$dir/$check.sh" "$commit" 2>&1; done)"
 done
+report title "$(git log --reverse --format=%s "$base..$head" | bash "$dir/title.sh" 2>&1)"
 true
 

@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+#
+# Commit-msg hook: reject a subject title.sh names (AGENTS.md, "Patches and commits"). Git hands the
+# message before it cleans it, so the subject is its first line neither blank nor a comment; title.sh
+# is read beside this hook, so a worktree on a base older than it commits under the same rule.
+# Install with: ln -s ../../tools/checks/commit-msg .git/hooks/commit-msg
+
+subject=$(grep -v '^#' "$1" | grep -m 1 -v '^[[:space:]]*$')
+findings=$(bash "$(dirname "$(readlink -f "$0")")/title.sh" "$subject") && exit 0
+echo "ERROR: the subject $findings"
+exit 1
+

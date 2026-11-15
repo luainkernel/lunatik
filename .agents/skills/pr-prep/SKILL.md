@@ -4,8 +4,9 @@ description: Prepare a branch for a pull request and draft its title and body. U
 ---
 
 Run AGENTS.md, "Before opening a pull request" (every item) and the pull request prose rule
-under "Patches and commits": title and body say what and why, nothing the commits already say,
-no "Test plan" section, no em dashes. On top of it:
+under "Patches and commits": the title is a subject, `<area>: <what changes for whoever uses it>`,
+the body says what and why, nothing the commits already say, no "Test plan" section, no em dashes.
+On top of it:
 
 - A fix answers a finding a script using the API as documented reaches; one whose stimulus is a
   script out of contract (AGENTS.md, "Deciding what to change") closes as not a defect instead.
@@ -67,6 +68,11 @@ no "Test plan" section, no em dashes. On top of it:
   post of a body no reader of its workflow runs passed, read from the reader's own transcript, the text
   as it stands, so a body edited after the read is read again; one `review.js` returned ready was read
   already.
+- The title and every subject of the branch are one plain clause of about 60 characters at most,
+  with no subordinate clause, "where", "so", "whose", "as ...", the why left to the body:
+  `bash tools/checks/title.sh '<title>'` and
+  `git log --format=%s origin/master..HEAD | bash tools/checks/title.sh` name one with no area, past
+  the length or opening such a clause, and `pr-body-guard.sh` refuses the title the session posts.
 - A pull request that finishes a phase of an epic carries `Closes #<phase issue>` on a line of its
   own, and one that finishes none says `#<epic>, which it does not close`: a body that only says it
   is part of the epic, or answers an issue, closes nothing when it merges, and `pr-body.sh` fails it.
