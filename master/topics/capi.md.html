@@ -635,6 +635,31 @@ takes no lock, does not resolve a <code>percpu</code> object, does not check tha
 ready, and records no stack pointer: the caller already runs inside the runtime, holding its lock
 or in its script body, and passes a plain runtime whose state it knows is open. Defined as a macro.</p>
 
+<h3 id="lunatik_registering">lunatik_registering</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_registering</span>(<span class="keyword">struct</span> task_struct *registrant, &lt;statement&gt; call);
+<span class="keyword">bool</span> <span class="function-name">lunatik_isregistrant</span>(<span class="keyword">struct</span> task_struct *registrant);
+<span class="keyword">void</span> <span class="function-name">lunatik_runcallback</span>(<span class="keyword">struct</span> task_struct *registrant, lunatik_object_t *runtime,
+    &lt;inttype&gt; (*handler)(...), &lt;inttype&gt; &amp;ret, ...);
+</pre>
+
+
+<p>A kernel registration that delivers its callbacks inside the call, on the registering task, as
+<code>register_netdevice_notifier</code> replays a <code>REGISTER</code> for each device and <code>hid_register_driver</code> probes
+the devices already on the bus, delivers them while the script body runs, where
+<a href="#lunatik_run"><code>lunatik_run</code></a> answers <code>-ENXIO</code>. <code>lunatik_registering</code> runs <code>call</code> with the calling
+task in <code>registrant</code>, a field of the binding&rsquo;s own object, and clears it after; nothing in <code>call</code>
+may raise. <code>lunatik_isregistrant</code> returns <code>true</code> on that task, in task context, while <code>call</code> runs,
+and <code>lunatik_runcallback</code> then runs the callback through <a href="#lunatik_handle"><code>lunatik_handle</code></a>, with no
+lock, since the body holds none, and through <code>lunatik_run</code> everywhere else: an interrupt taken on
+that task, and a callback of the same object on another task, are refused as before. The field is
+read without a lock, as <code>lunatik_rtnl</code> is: only the task that wrote it can find itself there.
+A callback delivered this way runs holding what the registration holds, a device lock among them, and
+a binding whose registration would take it again refuses one made from such a callback with
+<a href="#lunatik_err_closed"><code>LUNATIK_ERR_REPLAY</code></a>, as <a href="../modules/hid.html#register">hid.register</a> and a hid driver&rsquo;s <code>stop</code> do.
+Defined as macros.</p>
+
 <h3 id="lunatik_cpcall">lunatik_cpcall</h3>
 
 <pre>
@@ -1643,6 +1668,7 @@ handler, a <code>BUG()</code>. After a protected call or a resume fails, the err
 #define LUNATIK_ERR_CLOSING "not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS    "not allowed with IRQs disabled"
 #define LUNATIK_ERR_HARDIRQ "not allowed in a hardirq runtime"
+#define LUNATIK_ERR_REPLAY  "not allowed inside a replay"
 #define LUNATIK_ERR_PERCPU  "not allowed in a percpu runtime"
 </pre>
 
@@ -2826,7 +2852,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:59:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 14:17:54</span>
 </div>
 </footer>
 </body>
