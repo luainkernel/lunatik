@@ -311,7 +311,7 @@ from it on, a user runs one.
 ## Non goals
 
 * **A new language.** The source is Lua as the kernel runs it. The subset is what the verifier can
-  check; there is no syntax of its own and no annotation beyond the program constructor.
+  check; there is no syntax of its own. Whether a program declares its types is #2141's to decide.
 * **A kernel-side loader.** `kern_sys_bpf` is namespaced against this use and returns no log
   (`kernel-notes.md`). Revisited only if that changes upstream.
 * **A C or LLVM back end.** A second emitter is two mechanisms doing one job.
