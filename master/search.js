@@ -555,6 +555,7 @@ window.LUNATIK_SEARCH = [
 ["Tracing","topics/05-examples.md.html#tracing","Guide · Examples"],
 ["Input devices","topics/05-examples.md.html#input-devices","Guide · Examples"],
 ["Filesystem","topics/05-examples.md.html#filesystem","Guide · Examples"],
+["Process scheduling","topics/05-examples.md.html#process-scheduling","Guide · Examples"],
 ["Development","topics/06-development.md.html","Guide"],
 ["Testing","topics/06-development.md.html#testing","Guide · Development"],
 ["Contributing","topics/06-development.md.html#contributing","Guide · Development"],

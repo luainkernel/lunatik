@@ -198,8 +198,8 @@ run it. <code>sudo make install</code> puts them under <code>/lib/modules/lua/ex
 that path as its README names, <code>sudo lunatik run [--context=&lt;context&gt;] examples/&lt;dir&gt;/&lt;script&gt;</code>, or
 <code>sudo lunatik spawn examples/&lt;dir&gt;/&lt;script&gt;</code> for a script that returns a thread body.</p>
 
-<p><code>filter</code> and <code>sniclassify</code> also load an eBPF program, which needs <code>sudo make btf_install</code> before
-<code>make</code>, then <code>make ebpf</code>; their READMEs load the program from the source tree with <code>bpftool</code>.
+<p><code>filter</code>, <code>sniclassify</code> and <code>workload</code> also load an eBPF program, which needs <code>sudo make btf_install</code>
+before <code>make</code>, then <code>make ebpf</code>; their READMEs load the program from the source tree with <code>bpftool</code>.
 <code>ifquarantine</code>, <code>tcpreject</code>, <code>dnsblock</code> and
 <code>dnsdoctor</code> act on the host&rsquo;s own traffic, and <code>ifquarantine</code> can cut the host off: run them from the
 source tree through <code>tools/watchdog.sh</code>, which stops the script when the host has lost its
@@ -288,6 +288,19 @@ pointer on a swipe.</li>
 <li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/execguard">execguard</a>: an allowlist for <code>exec</code> over one directory.</li>
 </ul>
 
+
+<p><a name="Process_scheduling"></a></p>
+
+<h2 id="process-scheduling">Process scheduling</h2>
+
+<ul>
+<li><a href="https://github.com/luainkernel/lunatik/blob/master/examples/workload">workload</a>: a sched-ext/eBPF scheduler which
+associates tasks with dispatch queues and time slices, while a Lua kernel
+script applies a Lua policy table to assign a queue and slice to each task
+seen for the first time. Needs a kernel 6.12 or later with <code>CONFIG_SCHED_CLASS_EXT</code>, and what
+filter needs.</li>
+</ul>
+
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/04-lua.md.html"><span>Previous</span>Lua in the kernel</a>
     <a class="next" href="../topics/06-development.md.html"><span>Next</span>Development</a>
@@ -308,7 +321,7 @@ pointer on a swipe.</li>
 <a href="../../topics/05-examples.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/05-examples.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 16:31:31</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 16:50:11</span>
 </div>
 </footer>
 </body>
