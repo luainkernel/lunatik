@@ -12,9 +12,10 @@
 -- as a kernel script's tc callback does: `OK`, `SHOT` and `REDIRECT` act, and the rest decides
 -- nothing. Where it computes a verdict that is no action, and where Lua would raise, at a read past
 -- the packet or a division by 0, the program stops and returns `TC_ACT_SHOT`, which drops the
--- packet, since TC has no verdict for a program error; where it returns no value, it returns its
--- default verdict. A verdict the compiler holds that is no action, and a boolean, are refused, "the
--- verdict 9 is not a TC action" and "the verdict may be a boolean here; return an action".
+-- packet, since TC has no verdict for a program error; where it returns no value, it returns the
+-- default verdict its constructor names. A verdict the compiler holds that is no action, and a
+-- boolean, are refused, "the verdict 9 is not a TC action" and "the verdict may be a boolean here;
+-- return an action".
 --
 -- The program's argument is spelled as the kernel's `skb` object: `#skb` is the packet's length,
 -- `skb:ifindex()` its device's index, `skb:hash()` its flow hash and `skb:priority()` its
@@ -38,7 +39,7 @@
 --         skb:priority(1)
 --     end
 --     return action.OK
--- end, {egress = true})
+-- end, {egress = true, default = action.OK})
 
 local programs = require("luaebpf.programs")
 local action   = require("linux.tc").action
@@ -81,17 +82,18 @@ local tc = {}
 -- Declares `fn` as a TC program.
 -- @function bpf.tc.program
 -- @tparam function fn the program; it takes the context and returns a verdict.
--- @tparam[opt] table opts `egress`, which attaches the program on the way out rather than in,
---   `default`, the verdict the program returns where its function returns no value, an action
---   (`linux.tc.action.OK`), and `name`, what the program is called in the object, cut to the
---   fifteen characters `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken.
+-- @tparam table opts `egress`, which attaches the program on the way out rather than in,
+--   `default`, required, the verdict the program returns where its function returns no value, an
+--   action, and `name`, what the program is called in the object, cut to the fifteen characters
+--   `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken.
 -- @treturn table the declared program
 -- @raise `tc.program takes a Lua function`, or `<file>:<line>: tc.program's default verdict is not
---   an integer` or `is not a TC action`, the line where `fn` is defined
+--   an integer`, which a missing `default` raises too, or `is not a TC action`, the line where `fn`
+--   is defined
 function tc.program(fn, opts)
 	opts = opts or {}
 	return programs.declare("tc.program", fn, {section = opts.egress and EGRESS or INGRESS,
-		default = opts.default or action.OK, error = action.SHOT, name = opts.name, context = context,
+		default = opts.default, error = action.SHOT, name = opts.name, context = context,
 		kfunc = KFUNC, actions = actions})
 end
 

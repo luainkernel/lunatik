@@ -11,7 +11,7 @@
 #   - one the program computes past either end, one whose low 32 bits are an action and whose high
 #     ones are not, and one a called function computes, which a callee's return is not held to,
 #     return the error verdict of their type, XDP_ABORTED and TC_ACT_SHOT, and not the default,
-#     which the XDP programs set to XDP_DROP and the TC ones leave at TC_ACT_OK
+#     which the XDP programs set to XDP_DROP and the TC ones to TC_ACT_OK
 #   - a verdict the compiler holds outside the actions, a boolean, and a value a boolean on one
 #     path, are refused with their messages and lines, and so is a default verdict outside them
 #   - with LUAEBPF_DROP=action the test is gone, the verifier still takes the object, since it
@@ -63,10 +63,12 @@ check "a TC verdict computed outside the actions, past 32 bits or by a callee re
 
 # every row is one program of the type its module declares, so only the module and the return differ
 row() {
-	local name="$1" module="$2" message="$3" body="$4" opts="${5:-}"
+	local name="$1" module="$2" message="$3" body="$4" opts="${5:-}" default=PASS
+	[ "$module" = tc ] && default=OK
+	[ -n "$opts" ] || opts=", {default = action.$default}"
 	{
 		echo "local bpf = require(\"bpf.$module\")"
-		echo ''
+		echo "local action = require(\"linux.$module\").action"
 		echo 'return bpf.program(function(ctx)'
 		echo "$body"
 		echo "end$opts)"

@@ -16,5 +16,5 @@ return xdp.program(function(_)
 		return verdict
 	end
 	return action.PASS
-end, {name = "nobtf"})
+end, {name = "nobtf", default = action.PASS})
 

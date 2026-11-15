@@ -25,7 +25,7 @@
 --         return verdict
 --     end
 --     return action.PASS
--- end)
+-- end, {default = action.PASS})
 
 local lowering = require("luaebpf.emit.runtime")
 

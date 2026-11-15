@@ -50,5 +50,5 @@ assert(require("luaebpf.probe") == "host",
 
 return xdp.program(function(_)
 	return action.PASS
-end, {name = "host"})
+end, {name = "host", default = action.PASS})
 

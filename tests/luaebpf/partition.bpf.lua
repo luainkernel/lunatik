@@ -59,7 +59,7 @@ local function classify(skb)
 	return verdict
 end
 
-tc.program(classify, {name = "partition"})
+tc.program(classify, {name = "partition", default = action.OK})
 
 for _, name in ipairs(stimuli) do
 	corpus.context(name, "__sk_buff", {}, packets[name])

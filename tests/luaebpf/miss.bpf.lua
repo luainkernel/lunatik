@@ -81,12 +81,12 @@ local function ored(_)
 	return verdict
 end
 
-xdp.program(miss, {name = "miss"})
-xdp.program(process, {name = "process"})
+xdp.program(miss, {name = "miss", default = action.PASS})
+xdp.program(process, {name = "process", default = action.PASS})
 xdp.program(returned, {name = "returned", default = action.TX})
-xdp.program(joined, {name = "joined"})
-xdp.program(negated, {name = "negated"})
-xdp.program(unequal, {name = "unequal"})
-xdp.program(equal, {name = "equal"})
-xdp.program(ored, {name = "ored"})
+xdp.program(joined, {name = "joined", default = action.PASS})
+xdp.program(negated, {name = "negated", default = action.PASS})
+xdp.program(unequal, {name = "unequal", default = action.PASS})
+xdp.program(equal, {name = "equal", default = action.PASS})
+xdp.program(ored, {name = "ored", default = action.PASS})
 

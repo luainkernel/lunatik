@@ -44,7 +44,7 @@ end
 for _, program in ipairs({{"tcfirst", tcfirst}, {"tclast", tclast}, {"tcabove", tcabove},
 		{"tcbelow", tcbelow}, {"tchigh", tchigh}, {"tccalled", tccalled}, {"tcunspec", tcunspec},
 		{"tctrap", tctrap}}) do
-	tc.program(program[2], {name = program[1]})
+	tc.program(program[2], {name = program[1], default = tcact.OK})
 end
 
 corpus.context("tcframe", "__sk_buff", {}, FRAME)

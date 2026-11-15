@@ -9,5 +9,5 @@ local action = require("linux.xdp").action
 
 return xdp.program(function(_)
 	return action.PASS
-end, {name = "alone"})
+end, {name = "alone", default = action.PASS})
 

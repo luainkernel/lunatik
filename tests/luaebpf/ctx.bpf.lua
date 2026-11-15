@@ -7,6 +7,8 @@
 local corpus  = require("tests.luaebpf.corpus")
 local vmlinux = require("luaebpf.vmlinux")
 local tc      = require("bpf.tc")
+local PASS    <const> = require("linux.xdp").action.PASS
+local OK      <const> = require("linux.tc").action.OK
 
 -- loopback, whose generic rx queue 0 has its xdp_rxq registered on every device, which is what
 -- xdp_convert_md_to_buff requires of a non-zero ingress_ifindex, and the device prog run builds
@@ -117,20 +119,20 @@ local skbcomputed = corpus.context("skbcomputed", "__sk_buff", {ifindex = IFINDE
 local skbmax = corpus.context("skbmax", "__sk_buff", {ifindex = IFINDEX, priority = PRIO}, FRAME)
 
 local rows = corpus.new()
-rows:stores("ingress", ingress, nil, xdpctx)
-rows:stores("queue", queue, nil, xdpctx)
-rows:stores("both", both, nil, xdpctx)
-rows:stores("skblen", skblen, nil, skbctx)
-rows:stores("skbifindex", skbifindex, nil, skbctx)
-rows:stores("skbhash", skbhash, nil, skbctx)
-rows:stores("skbpriority", skbpriority, nil, skbctx)
-rows:stores("skbsetprio", skbsetpriority, nil, skbwrite)
-rows:stores("skbsetlen", skbsetlength, nil, skbcomputed)
-rows:stores("skbsetmax", skbsetmax, nil, skbmax)
-rows:stores("skbsetwide", skbsetwide, nil, skbctx)
-rows:stores("skbsetneg", skbsetnegative, nil, skbctx)
+rows:stores("ingress", ingress, PASS, xdpctx)
+rows:stores("queue", queue, PASS, xdpctx)
+rows:stores("both", both, PASS, xdpctx)
+rows:stores("skblen", skblen, OK, skbctx)
+rows:stores("skbifindex", skbifindex, OK, skbctx)
+rows:stores("skbhash", skbhash, OK, skbctx)
+rows:stores("skbpriority", skbpriority, OK, skbctx)
+rows:stores("skbsetprio", skbsetpriority, OK, skbwrite)
+rows:stores("skbsetlen", skbsetlength, OK, skbcomputed)
+rows:stores("skbsetmax", skbsetmax, OK, skbmax)
+rows:stores("skbsetwide", skbsetwide, OK, skbctx)
+rows:stores("skbsetneg", skbsetnegative, OK, skbctx)
 -- the length read again on the way out, from the section libbpf reads the egress attach point off
-corpus.program(tc.program, {name = "skbegress", egress = true}, skblen)
+corpus.program(tc.program, {name = "skbegress", egress = true, default = OK}, skblen)
 rows:close()
 
 -- what the case reads ctx_out back at, from the same BTF the emitter lowered the store against

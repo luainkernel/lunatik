@@ -26,7 +26,7 @@ luaebpf_start 2
 cat > "$LUAEBPF_WORK/report.bpf.lua" <<'LUA'
 local xdp     = require("bpf.xdp")
 local lunatik = require("lunatik")
-
+local action  = require("linux.xdp").action
 local first  = lunatik.runtime("tests/luaebpf/first")
 local second = lunatik.runtime("tests/luaebpf/second")
 
@@ -51,8 +51,8 @@ local function one(_)
 	return 0
 end
 
-xdp.program(both, {name = "both"})
-xdp.program(one, {name = "one"})
+xdp.program(both, {name = "both", default = action.PASS})
+xdp.program(one, {name = "one", default = action.PASS})
 LUA
 
 summary="$LUAEBPF_WORK/report.bpf.lua:9: calls the runtime 'tests/luaebpf/first'
