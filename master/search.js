@@ -139,6 +139,8 @@ window.LUNATIK_SEARCH = [
 ["map_type","modules/linux.bpf.html#map_type","linux.bpf · BPF map types."],
 ["update","modules/linux.bpf.html#update","linux.bpf · BPF map update flags."],
 ["linux.clock","modules/linux.clock.html","Module · Linux kernel constants exposed under linux.clock."],
+["linux.crypto","modules/linux.crypto.html","Module · Linux kernel constants exposed under linux.crypto."],
+["scomp","modules/linux.crypto.html#scomp","linux.crypto · The scratch scomp bounds a request's input and output by, where the kernel declares one (6.14 and earlier)."],
 ["linux.dropreason","modules/linux.dropreason.html","Module · Linux kernel constants exposed under linux.dropreason."],
 ["linux.errno","modules/linux.errno.html","Module · Linux kernel constants exposed under linux.errno."],
 ["linux.eth","modules/linux.eth.html","Module · Linux kernel constants exposed under linux.eth."],
