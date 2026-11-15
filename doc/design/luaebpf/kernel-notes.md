@@ -685,9 +685,9 @@ pattern
 ([llvm/lib/Target/BPF/BPFInstrInfo.td#L310](https://github.com/llvm/llvm-project/blob/llvmorg-23.1.1/llvm/lib/Target/BPF/BPFInstrInfo.td#L310))
 and reaches the output only as inline assembly. Its default CPU is v3
 ([clang/lib/Basic/Targets/BPF.cpp#L51-L52](https://github.com/llvm/llvm-project/blob/llvmorg-23.1.1/clang/lib/Basic/Targets/BPF.cpp#L51-L52)).
-The design uses clang for the C runtime library the emitter links against (`plan.md`, "The
-runtime library"), built at `make` time the way `examples/filter` and `examples/sniclassify` are
-built today
+A C runtime library the emitter would link against, which waits for a need the maintainer states
+(`plan.md`, phase 5), would be built with clang at `make` time the way `examples/filter` and
+`examples/sniclassify` are built today
 ([Makefile#L134-L136](https://github.com/luainkernel/lunatik/blob/22c5afe26049b3adf4da7b05a512411ef262e29c/Makefile#L134-L136)).
 Writing a program needs no clang.
 
