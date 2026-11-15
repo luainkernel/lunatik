@@ -2400,7 +2400,9 @@ or when `bpftool`, `clang` or `taskset` is unavailable.
 
 - **scx runqueue**: a scheduler of its own, whose `select_cpu` dispatches
   nothing so that every wakeup reaches its `enqueue`, runs the callback with
-  the runqueue lock held, one step per enqueue. There `complete` and a
+  the runqueue lock held, one step per enqueue. There `print`, `warn` and a
+  collection whose finalizer raises write their lines, the last as the VM's
+  `Lua warning: error in __gc`, and the callback goes on; `complete` and a
   mailbox's `send` raise `not allowed under the runqueue lock`, the message
   left queued, which the callback records in an `rcu.table` of `_ENV`; the
   dispatch still logs an error the callback raises, a dispatch queue that is

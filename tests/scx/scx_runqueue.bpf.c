@@ -13,8 +13,8 @@ struct luascx_task_class {
 	u64 slice_ns;
 };
 
-/* runqueue.lua's three steps, then one call that logs `no callback attached`: more would rate limit a next run's */
-#define RUNQUEUE_CALLS	4
+/* runqueue.lua's four steps, then one call that logs `no callback attached`: more would rate limit a next run's */
+#define RUNQUEUE_CALLS	5
 
 static char runtime[] = "tests/scx/runqueue";
 static u32 calls;
