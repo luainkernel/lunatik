@@ -27,11 +27,12 @@ message naming `make`.
    bytecode `lunatic` compiled, in the CLI's Lua with a `data`-like proxy over the same bytes, so
    the oracle divides as the kernel does. The program file's own body is what runs it: it calls
    each function it declares and writes the answer beside the object, so no compiler feature
-   exists for the tests and the two oracles stay the host VM and the kernel's JIT. The verdicts
-   must match on every packet of a corpus. Where the interpreted side raises (an out-of-bounds
+   exists for the tests and the two oracles stay the host VM and the kernel's JIT. A program
+   keeps the value its function computes in a map the program file declares, `results`, and
+   returns its default verdict, since a verdict is an action: what the map keeps must match over
+   its 64 bits on every packet of a corpus. Where the interpreted side raises (an out-of-bounds
    read, a division by zero, a map key or value `string.pack` refuses), the compiled side must
-   return the error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`, and the test asserts that
-   pairing, not equality.
+   keep nothing and return the error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`.
 3. *The wire.* The existing `xdp` and `tc` harness: a veth pair with its peer in a namespace, a
    ping, and a verdict that either blocks it or lets it through.
 
@@ -47,10 +48,11 @@ failure paths are exercised, not only the happy one. Phase 1 reads no packet, an
 suite. The emitter exposes a test hook, `LUAEBPF_DROP`, an environment variable the CLI has no
 option for, naming one mechanism to drop: `divisor` (the test before a division), `maygoto` (the header
 a loop without a proven bound needs), `lineinfo` (the `.BTF.ext` records), `verdict` (the write to
-`R0`), `bounds` (the `data_end` test before a packet load), `loadbytes` (the test of what
-`bpf_skb_load_bytes` answers a TC read) and `ksyms` (a kfunc's entry in the `.ksyms` DATASEC). Each
-has a test that asserts the verifier rejects the program, that the log lacks the Lua line, that
-libbpf cannot resolve the kfunc, or that the arithmetic or the read's answer changes.
+`R0`), `action` (the test of a computed verdict against its type's actions), `bounds` (the
+`data_end` test before a packet load), `loadbytes` (the test of what `bpf_skb_load_bytes` answers a
+TC read) and `ksyms` (a kfunc's entry in the `.ksyms` DATASEC). Each has a test that asserts the
+verifier rejects the program, that the log lacks the Lua line, that libbpf cannot resolve the
+kfunc, or that the arithmetic, the read's answer or the verdict changes.
 
 **Pinned object cleanup.** Programs, maps and links pinned by a test outlive it. The cleanup
 removes everything under `/sys/fs/bpf/luaebpf/` and under `/sys/fs/bpf/lunatik/tests/luaebpf/`
@@ -81,6 +83,7 @@ matching and failing, not a list of features.
 | `pass.sh` | the constant-verdict program compiles, loads, and `prog run` returns the verdict |
 | `arith.sh` | every integer operator over a corpus of operand pairs, negative operands included, matches the interpreter (`//` and `%` floor semantics, shifts past 63) |
 | `divzero.sh` | a division by zero returns `XDP_ABORTED`, not the default verdict, where the interpreter raises |
+| `verdict.sh` | a verdict the program computes within its type's actions, at either end, is returned, and one outside them, past 32 bits or computed by a callee returns the error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`, not the default verdict; a known verdict outside them, a boolean, pure or joined, and a default outside them are refused with their lines; with the test dropped by the hook the verifier still loads the program and the raw values come back |
 | `branch.sh` | `if`, `and`, `or`, `not` and every comparison over signed and unsigned edges match |
 | `forconst.sh` | a `for` with constant bounds runs the right count; a zero-trip and a descending loop included |
 | `forvar.sh` | a `for` whose bound is a program value verifies with `may_goto` and terminates; skips and asserts the refusal on a kernel without it |
@@ -97,10 +100,10 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 | Test | Proves |
 |------|--------|
 | `packet.sh` | every accessor the kernel's `data` object publishes, `#`, a computed offset and a read inside a called function, over the corpus through `ctx:packet()` and `skb:data()`, match the interpreter's reads of the same bytes; a method neither proxy has is refused by name, and so is an XDP read wider than a byte on a kernel without efficient unaligned access, which the program file's body stands for by setting `luaebpf.emit.unaligned`, where a TC one compiles |
-| `bounds.sh` | an access one byte past the end of the packet, above the offset ceiling, at a negative offset or past 32 bits with its low 32 inside the packet returns `XDP_ABORTED` through `ctx:packet()` and `TC_ACT_SHOT` through `skb:data()`, whatever default the file names; the same program with the bounds check dropped by the test hook is rejected, and with the test of what `bpf_skb_load_bytes` answers dropped a TC read past the end answers 0, and so does one above the ceiling, since a TC read's offset is tested against `INT_MAX`, the helper's own bound |
+| `bounds.sh` | an access one byte past the end of the packet, above the offset ceiling, at a negative offset or past 32 bits with its low 32 inside the packet returns `XDP_ABORTED` through `ctx:packet()` and `TC_ACT_SHOT` through `skb:data()`, whatever default the file names; the same program with the bounds check dropped by the test hook is rejected, and with the test of what `bpf_skb_load_bytes` answers dropped a TC read past the end keeps 0, and so does one above the ceiling, since a TC read's offset is tested against `INT_MAX`, the helper's own bound |
 | `nonlinear.sh` | a TC program attached to a veth's egress, and then to its ingress, reads `#` and the last byte of a TCP segment whose payload sits in page fragments past the linear head, as the kernel's `skb:data()` does in a tc callback, dropping the segment of the byte it drops on and letting another through, answers its own verdict on a linear ping of the same size, and reads the last byte of a ping past 65535 bytes, above the offset ceiling an XDP read is held to |
 | `ctx.sh` | `ctx:ingress()`, `ctx:queue()`, `#skb`, `skb:ifindex()`, `skb:hash()` and `skb:priority()` read back what `prog run` supplies, a `skb:priority(v)` write comes back in `ctx_out`, one past 32 bits the program computes returns `TC_ACT_SHOT`, and one object carrying both kinds loads with no type argument; a field read or assigned on either context, the fields the proxies read and one the skb object does not carry among them, a value given a boolean or a constant out of range, `ctx.data`, the packet opened under the other context's name and `skb:data` given a layer are refused with their lines |
-| `mapget.sh` | the object's maps are created and pinned by `bpftool prog loadall ... pinmaps`, a map seeded by `bpftool map update` decides the verdict, a missing key is `nil`, a lookup spilled to the frame narrows there too, a computed key outside its spec returns `XDP_ABORTED`, and an untested use, a string key and a declaration the object cannot carry are refused at compile time; a key the compiler holds outside its spec sits in `refuse.sh` |
+| `mapget.sh` | the object's maps are created and pinned by `bpftool prog loadall ... pinmaps`, a map seeded by `bpftool map update` decides what the program keeps, a missing key is `nil`, a lookup spilled to the frame narrows there too, a computed key outside its spec stops the program, and an untested use, a string key and a declaration the object cannot carry are refused at compile time; a key the compiler holds outside its spec sits in `refuse.sh` |
 | `mapset.sh` | an update, an update under a key the program computed, a `nil` delete and a delete of a key that was never there are what `bpftool map lookup` finds afterwards; a computed value or key outside its spec returns `XDP_ABORTED` and leaves the map as it was, so does a write the map refuses, and a value that is not a number is refused; a value the compiler holds outside its spec sits in `refuse.sh` |
 | `struct.sh` | a `struct` value spec yields field access with the right offsets and widths, one field per width and signedness plus a layout read out of the kernel's own BTF; a write to a field or to the whole value, an unknown field, an index into the value, one the program computes among them, a field no eBPF load covers and a spec that is neither a format nor a codec are refused, and an untested lookup is refused as the struct value it may be, and so is a field wider than a byte on a kernel without efficient unaligned access, as in `packet.sh` |
 | `btfview.sh` | `luaebpf.vmlinux` reports a kernel struct's size and its members' byte offsets as `bpftool btf dump` does, and drops the bitfields and unions a layout cannot describe |

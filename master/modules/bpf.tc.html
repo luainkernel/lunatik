@@ -197,10 +197,12 @@
  The body of a program file runs on the host under <code>lunatik bpf</code>; the function it hands to
  <a href="../modules/bpf.tc.html#bpf.tc.program">program</a> is compiled to eBPF and runs in the kernel on each packet the device receives, or
  sends. It takes one argument, the context, and returns a verdict, a value of <a href="../modules/linux.tc.html#action">linux.tc.action</a>,
- of which the kernel reads the low 32 bits: <code>OK</code>, <code>SHOT</code> and <code>REDIRECT</code> act, and any other value
- reads as <code>UNSPEC</code>, which decides nothing. Where Lua would raise, at a read past the packet or a
- division by 0, the program stops and returns <code>TC_ACT_SHOT</code>, which drops the packet, since TC has no
- verdict for a program error; where it returns no value, it returns its default verdict.</p>
+ as a kernel script&rsquo;s tc callback does: <code>OK</code>, <code>SHOT</code> and <code>REDIRECT</code> act, and the rest decides
+ nothing. Where it computes a verdict that is no action, and where Lua would raise, at a read past
+ the packet or a division by 0, the program stops and returns <code>TC_ACT_SHOT</code>, which drops the
+ packet, since TC has no verdict for a program error; where it returns no value, it returns its
+ default verdict. A verdict the compiler holds that is no action, and a boolean, are refused, &ldquo;the
+ verdict 9 is not a TC action&rdquo; and &ldquo;the verdict may be a boolean here; return an action&rdquo;.</p>
 
 <p> The program&rsquo;s argument is spelled as the kernel&rsquo;s <a href="../modules/skb.html#">skb</a> object: <code>#skb</code> is the packet&rsquo;s length,
  <code>skb:ifindex()</code> its device&rsquo;s index, <code>skb:hash()</code> its flow hash and <code>skb:priority()</code> its
@@ -251,7 +253,7 @@ end, {egress = true})
         <li><span class="parameter">opts</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          <code>egress</code>, which attaches the program on the way out rather than in,
-   <code>default</code>, the verdict the program returns where its function returns no value
+   <code>default</code>, the verdict the program returns where its function returns no value, an action
    (<code>linux.tc.action.OK</code>), and <code>name</code>, what the program is called in the object, cut to the
    fifteen characters <code>BPF_OBJ_NAME_LEN</code> leaves and made unique against the names already taken.
          (<em>optional</em>)
@@ -267,7 +269,7 @@ end, {egress = true})
 
     <h3>Raises</h3>
     <code>tc.program takes a Lua function</code>, or <code>&lt;file&gt;:&lt;line&gt;: tc.program&apos;s default verdict is not
-   an integer</code>, the line where <code>fn</code> is defined
+   an integer</code> or <code>is not a TC action</code>, the line where <code>fn</code> is defined
 
 
 
@@ -289,7 +291,7 @@ end, {egress = true})
 <a href="../../modules/bpf.tc.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.tc.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:50:22</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:51:38</span>
 </div>
 </footer>
 </body>

@@ -286,51 +286,55 @@ sudo lunatik stop protocols
    |   return action.PASS               |     |                            |
    +-----------------+------------------+     +----------------------------+
                      |
-                     | the low 32 bits of the value it returns
+                     | the verdict, an action of its program type
                      v
-   XDP  PASS DROP TX REDIRECT ABORTED act as named; any other value
-        drops the packet, and the kernel warns once in its log
-   TC   OK SHOT REDIRECT act as named; any other value decides nothing,
-        and the packet goes on
+   XDP  PASS DROP TX REDIRECT ABORTED act as named
+   TC   OK SHOT REDIRECT act as named; the rest of linux.tc.action
+        decides nothing, and the packet goes on
 
-   where Lua would raise, at a read past the packet or x // 0, the
+   where the program computes a value that is no action, and where
+   Lua would raise, at a read past the packet or x // 0, the
    program stops: XDP_ABORTED in XDP, TC_ACT_SHOT in TC, either one
    dropping the packet; where it returns no value, its default verdict
 </code></pre>
 
 <p>A program returns its verdict, which tells the kernel what to do with the packet: a value of
-<a href="../modules/linux.xdp.html#action">linux.xdp.action</a> in an XDP program, of <a href="../modules/linux.tc.html#action">linux.tc.action</a> in a TC one. The kernel reads the low
-32 bits of the value the function returns.</p>
+<a href="../modules/linux.xdp.html#action">linux.xdp.action</a> in an XDP program, of <a href="../modules/linux.tc.html#action">linux.tc.action</a> in a TC one, the values a kernel script&rsquo;s
+callback returns on the same hook.</p>
 
 <ul>
 <li>In an XDP program, <code>PASS</code>, <code>DROP</code>, <code>TX</code>, <code>REDIRECT</code> and <code>ABORTED</code> act as the kernel defines
-them. Any other value drops the packet, and the kernel warns once, in its log, of an illegal XDP
-return value.</li>
-<li>In a TC program, <code>OK</code> lets the packet go on, <code>SHOT</code> drops it and <code>REDIRECT</code> redirects it. Any
-other value decides nothing: <code>UNSPEC</code> hands the packet to the next TC program on the device, and
-every other value, the rest of <a href="../modules/linux.tc.html#action">linux.tc.action</a> included, skips those programs; either way the
-packet then goes on, through the device&rsquo;s tc filters if it has any.</li>
-<li>A boolean is returned as 1 or 0: <code>return p:getbyte(23) == 6</code> returns <code>XDP_DROP</code> for TCP and
-<code>XDP_ABORTED</code> for any other protocol (#1945).</li>
+them.</li>
+<li>In a TC program, <code>OK</code> lets the packet go on, <code>SHOT</code> drops it and <code>REDIRECT</code> redirects it. The
+rest of <a href="../modules/linux.tc.html#action">linux.tc.action</a> decides nothing: <code>UNSPEC</code> hands the packet to the next TC program on the
+device, and every other action skips those programs; either way the packet then goes on, through
+the device&rsquo;s tc filters if it has any.</li>
+<li>A value the program computes that is none of these, <code>return v</code> where <code>v</code> is a byte past 4 in
+an XDP program, stops the program, as the kernel&rsquo;s Lua answers a callback returning it with the
+hook&rsquo;s fallback, the answer it gives a callback that raised. One the compiler knows is refused,
+&ldquo;the verdict 11 is not an XDP action&rdquo;, and so is a boolean, which no action is: <code>return
+p:getbyte(23) == 6</code> gives &ldquo;the verdict may be a boolean here; return an action&rdquo;.</li>
 </ul>
 
 
 <p>A <code>return</code> with no value, or with <code>nil</code>, returns the default verdict. A verdict that may be nil is
 refused: &ldquo;the verdict may be nil here; test it first&rdquo;. The default verdict is <code>XDP_PASS</code> or
-<code>TC_ACT_OK</code>, unless the constructor names another:</p>
+<code>TC_ACT_OK</code>, unless the constructor names another action:</p>
 
 <pre>
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(filter, {default = action.DROP})
 </pre>
 
 
-<p>A program that stops, where Lua would raise, does not return its default. An XDP program returns
-<code>XDP_ABORTED</code>, the kernel&rsquo;s verdict for a program error, which drops the packet and, in the
-generic path and in most drivers, fires the tracepoint <code>xdp:xdp_exception</code>; a TC program, whose
-type has no such verdict, returns <code>TC_ACT_SHOT</code>, which drops the packet. A packet the program
-cannot read is dropped, whatever its default: a program that must let it through tests <code>#p</code>
-before it reads. A value the program computes reaches a kernel script through a map, or as the
-argument of a <a href="#calls-into-a-kernel-lua-runtime">call into a runtime</a>, not through the verdict.</p>
+<p>A program that stops, where Lua would raise or where the verdict it computed is no action, does not
+return its default. An XDP program returns <code>XDP_ABORTED</code>, the kernel&rsquo;s verdict for a program error,
+which drops the packet and, in the generic path and in most drivers, fires the tracepoint
+<code>xdp:xdp_exception</code>; a TC program, whose type has no such verdict, returns <code>TC_ACT_SHOT</code>, which
+drops the packet. A packet the program cannot read is dropped, whatever its default: a program that
+must let it through tests <code>#p</code> before it reads. A default that is not an action is refused:
+&ldquo;xdp.program&rsquo;s default verdict is not an XDP action&rdquo;. A value the program computes reaches a kernel
+script through a map, or as the argument of a <a href="#calls-into-a-kernel-lua-runtime">call into a runtime</a>,
+not through the verdict.</p>
 
 <p><a name="When_a_program_cannot_be_compiled_or_computed"></a></p>
 
@@ -359,7 +363,7 @@ fails in one of three places.</p>
 <li><strong>Refused.</strong> <code>lunatik bpf</code> prints <code>lunatik: &lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code>, exits 1 and writes no
 object. What the subset does not compile is refused, and so is an operation the compiler can see
 is wrong because it knows the value: a <code>for</code> step of 0, a map key or value its spec cannot pack,
-a <a href="../modules/skb.html#skb:priority">skb:priority</a> outside 0 to 4294967295.</li>
+a <a href="../modules/skb.html#skb:priority">skb:priority</a> outside 0 to 4294967295, a verdict that is no action of its program type.</li>
 <li><strong>Refused at load.</strong> The kernel&rsquo;s verifier checks the object again when <code>lunatik run</code> loads it.
 A program past the verifier&rsquo;s limits, most often a loop of many passes, is refused there:
 <code>lunatik run</code> prints the verifier&rsquo;s log, which quotes the Lua lines, exits 1 and leaves nothing
@@ -371,8 +375,9 @@ whose warning names the kfunc
 XDP program&rsquo;s stops at the tracepoint <code>xdp:xdp_exception</code>. A program stops at a read past the
 packet, a division or a modulo by 0, a <code>for</code> step of 0 it computed, a map key or value its spec
 cannot pack, a map update or delete the map refuses, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside 0 to
-4294967295, and in a function it called that stops. A division by a 0 the compiler knows is not
-refused: the program stops on every packet that reaches it.</li>
+4294967295, a verdict it computed that is no action of its program type, and in a function it
+called that stops. A division by a 0 the compiler knows is not refused: the program stops on
+every packet that reaches it.</li>
 </ul>
 
 
@@ -528,9 +533,9 @@ means the program returns <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, 
 </tr>
 <tr>
 <td> <a href="../topics/09-luaebpf-by-example.md.html#the-verdict"><code>return v</code>, the verdict</a> </td>
-<td> its low 32 bits; <code>true</code> as 1, <code>false</code> as 0 </td>
-<td> never </td>
-<td> <code>v</code> may be nil </td>
+<td> <code>v</code>, an action of the program&rsquo;s type </td>
+<td> <code>v</code> is no action of it </td>
+<td> <code>v</code> may be nil or a boolean; a known <code>v</code> is no action </td>
 </tr>
 </tbody>
 </table>
@@ -849,6 +854,9 @@ other nil as 0, and the word does not say which path it came from. Tested on the
 call, the answer is a verdict or the nil every other path holds, and the paths join as any two do.</li>
 <li>A verdict that may be nil: &ldquo;the verdict may be nil here; test it first&rdquo;. The kernel would read
 nil as 0, which is an action.</li>
+<li>A verdict that may be a boolean: &ldquo;the verdict may be a boolean here; return an action&rdquo;. The
+kernel&rsquo;s Lua answers a boolean with the hook&rsquo;s fallback, and the kernel holds <code>true</code> and <code>false</code>
+as the words of 1 and 0, which are actions, so a test of the word cannot tell them apart.</li>
 <li>Arithmetic on nil or a boolean, and an ordered comparison of a value that is not a number:
 &ldquo;attempt to perform arithmetic on a nil value&rdquo;, &ldquo;attempt to compare a context with a number&rdquo;.</li>
 </ul>
@@ -1025,6 +1033,21 @@ nil as 0, which is an action.</li>
 <td> a verdict on every path </td>
 </tr>
 <tr>
+<td> the verdict may be a boolean here; return an action </td>
+<td> <code>return p:getbyte(23) == 6</code> </td>
+<td> <code>if p:getbyte(23) == 6 then return action.DROP end</code> </td>
+</tr>
+<tr>
+<td> the verdict 11 is not an XDP action </td>
+<td> <code>return 11</code>, a value no action of the program&rsquo;s type </td>
+<td> an action of <a href="../modules/linux.xdp.html#action">linux.xdp.action</a> or <a href="../modules/linux.tc.html#action">linux.tc.action</a> </td>
+</tr>
+<tr>
+<td> xdp.program&rsquo;s default verdict is not an XDP action </td>
+<td> <code>{default = 5}</code> </td>
+<td> <code>{default = action.DROP}</code> </td>
+</tr>
+<tr>
 <td> &lsquo;half&rsquo; is a float, which a compiled function cannot hold </td>
 <td> <code>local half = math.sqrt(4)</code> in the body </td>
 <td> an integer </td>
@@ -1142,7 +1165,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:50:22</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:51:38</span>
 </div>
 </footer>
 </body>
