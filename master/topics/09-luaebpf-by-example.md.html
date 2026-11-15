@@ -207,8 +207,9 @@ these sections.</p>
 <h2 id="what-the-compiler-emits">What the compiler emits</h2>
 
 <p>A construct the compiler lowers computes what the kernel&rsquo;s Lua computes, stops the program where Lua
-would raise, with <code>XDP_ABORTED</code> in XDP and <code>TC_ACT_SHOT</code> in TC, or is refused at its line. Where the
-eBPF instruction alone computes something else, the compiler emits what lies between:</p>
+would raise or where a <code>for</code> outruns the budget the kernel gives it, with <code>XDP_ABORTED</code> in XDP and
+<code>TC_ACT_SHOT</code> in TC, or is refused at its line. Where the eBPF instruction alone computes something
+else, the compiler emits what lies between:</p>
 
 <table>
 <thead>
@@ -291,6 +292,12 @@ eBPF instruction alone computes something else, the compiler emits what lies bet
 <td> raises </td>
 <td> <code>BPF_DIV</code> by zero gives a count of 0, one pass through the body </td>
 <td> a step the compiler holds refused, &ldquo;&lsquo;for&rsquo; step is zero&rdquo;, and one the program computes tested, which stops the program </td>
+</tr>
+<tr>
+<td> <code>for i = 1, n</code> past the kernel&rsquo;s budget </td>
+<td> every pass </td>
+<td> the jump <code>may_goto</code> takes once the budget runs out, which past the loop goes on with what the loop held so far </td>
+<td> the header&rsquo;s jump, which stops the program </td>
 </tr>
 <tr>
 <td> <code>goto continue</code> </td>
@@ -406,7 +413,8 @@ each jump given its target, and the Lua line each instruction came from. That li
 object&rsquo;s <code>.BTF.ext</code>, which <code>llvm-objdump</code> does not read: the verifier&rsquo;s log quotes the same lines,
 and so does <code>bpftool prog dump xlated</code> of a loaded program, after the kernel has rewritten its
 context reads. An <code>llvm-objdump</code> older than LLVM 15, LLVM 14&rsquo;s among them, prints a modulo as
-<code>&lt;unknown&gt;</code>; the listings write it <code>%=</code>.</p>
+<code>&lt;unknown&gt;</code>; the listings write it <code>%=</code>. LLVM 14 prints <code>may_goto</code> as <code>&lt;unknown&gt;</code> too, which the
+listings write <code>may_goto</code> and its target.</p>
 
 <p>The registers:</p>
 
@@ -1235,11 +1243,69 @@ no XDP action, so the program stops and returns 0, <code>XDP_ABORTED</code>; at 
 the program returns 4, <code>XDP_REDIRECT</code>. A 16-byte frame stops at the third pass, whose read of byte
 16 is past the packet, and returns 0 too.</p>
 
-<p>With a bound the program computes, <code>for i = 1, n do</code>, the count is computed when the loop starts,
-with an unsigned division as <code>forprep</code> does, and the back edge passes through <code>may_goto</code>, which
-the kernel takes from Linux 6.9: the kernel leaves the loop there once the budget it gives the
-loop runs out (#1944). Compiled for an earlier kernel, the loop is refused: &ldquo;a &lsquo;for&rsquo; the compiler
-cannot bound needs may_goto, which this kernel lacks&rdquo;.</p>
+<p>With a bound the program computes, the count is computed when the loop starts, with an unsigned
+division as <code>forprep</code> does, and each pass goes through <code>may_goto</code>, which the kernel takes from
+Linux 6.9. Compiled for 6.9 or later:</p>
+
+<pre>
+<span class="keyword">local</span> xdp = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">local</span> s = <span class="number">0</span>
+    <span class="keyword">for</span> i = <span class="number">1</span>, p:<span class="function-name">getuint32</span>(<span class="number">14</span>) <span class="keyword">do</span>
+        s = s + <span class="number">1</span>
+    <span class="keyword">end</span>
+    <span class="keyword">return</span> s
+<span class="keyword">end</span>)
+</pre>
+
+
+<pre><code>      line 5: local s = 0
+   3  r8 = 0                        s
+      line 6: for i = 1, p:getuint32(14) do
+   4  r9 = 1                        the start
+   5  to 17: the read of bytes 14 to 17, held to the bounds of the packet
+  18  *(u64 *)(r10 -40) = r1        the bound
+  19  to 20: r10 -48 is 1           the step
+  21  to 24: the start in r1, the bound in r2, the step in r3 and r5
+  25  if r3 s&lt; 0 goto 29            a step below 0 counts down
+  26  if r1 s&gt; r2 goto 53           no pass at all
+  27  r2 -= r1                      the bound less the start
+  28  goto 34
+  29  to 33: the same, counted down
+  34  if r3 == 1 goto 36
+  35  r2 /= r3                      over the step, unsigned
+  36  r9 = r2                       the count
+  37  to 38: r10 -40 is the step, r10 -48 is i
+      line 7: s = s + 1
+  39  to 42: r8 = r8 + 1            s
+      line 6: for i = 1, p:getuint32(14) do
+  43  may_goto 57                   the budget spent: stops
+  44  r1 = r9
+  45  if r1 == 0 goto 53            no pass left
+  46  r1 += -1
+  47  r9 = r1
+  48  to 51: i + the step
+  52  goto 39                       the back edge
+      line 9: return s
+  53  r0 = r8
+  54  if r0 s&lt; 0 goto 57            not an XDP action: stops
+  55  if r0 s&gt; 4 goto 57
+  56  exit
+      line 10: end)
+  57  r0 = 0                        XDP_ABORTED, where the program stops
+  58  exit
+</code></pre>
+
+<p>Bytes 14 to 17 at <code>03 00 00 00</code>, 3 in the byte order of x86 and arm64, make three passes, and the
+program returns 3, <code>XDP_TX</code>. At <code>ff ff ff ff</code> the bound is 4294967295, and Lua would make every
+pass; the kernel takes the jump of instruction 43 once the budget it gives the loop runs out, after
+8,388,608 passes where it counts them and about a quarter of a second where its JIT times them, and
+the program stops and returns 0, <code>XDP_ABORTED</code>. The kernel keeps that budget in the function&rsquo;s
+frame, set as the function starts, so each call of a function starts with all of it. Compiled for an
+earlier kernel, the loop is refused: &ldquo;a &lsquo;for&rsquo; the compiler cannot bound needs may_goto, which this
+kernel lacks&rdquo;.</p>
 
 <p><a name="Goto"></a></p>
 
@@ -1562,7 +1628,7 @@ TC program the call is the same over <code>bpf_luatc_run</code>, and <code>r3</c
 <a href="../../topics/09-luaebpf-by-example.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/09-luaebpf-by-example.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 21:39:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 22:36:36</span>
 </div>
 </footer>
 </body>

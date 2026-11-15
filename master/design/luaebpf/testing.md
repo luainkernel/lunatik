@@ -32,7 +32,9 @@ message naming `make`.
    returns its default verdict, since a verdict is an action: what the map keeps must match over
    its 64 bits on every packet of a corpus. Where the interpreted side raises (an out-of-bounds
    read, a division by zero, a map key or value `string.pack` refuses), the compiled side must
-   keep nothing and return the error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`.
+   keep nothing and return the error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`. A loop
+   past the budget the kernel gives `may_goto` stops the same way where the interpreter makes every
+   pass, so its test asserts the stop alone, with no oracle.
 3. *The wire.* The existing `xdp` and `tc` harness: a veth pair with its peer in a namespace, a
    ping, and a verdict that either blocks it or lets it through.
 
@@ -86,7 +88,7 @@ matching and failing, not a list of features.
 | `verdict.sh` | a verdict the program computes within its type's actions, at either end, is returned, and one outside them, past 32 bits or computed by a callee returns the error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`, not the default verdict; a known verdict outside them, a boolean, pure or joined, and a default outside them are refused with their lines; with the test dropped by the hook the verifier still loads the program and the raw values come back |
 | `branch.sh` | `if`, `and`, `or`, `not` and every comparison over signed and unsigned edges match |
 | `forconst.sh` | a `for` with constant bounds runs the right count; a zero-trip and a descending loop included |
-| `forvar.sh` | a `for` whose bound is a program value verifies with `may_goto` and terminates; skips and asserts the refusal on a kernel without it |
+| `forvar.sh` | a `for` whose bound is a program value verifies with `may_goto` and terminates, or returns `XDP_ABORTED` past the kernel's budget; skips and asserts the refusal on a kernel without it |
 | `call.sh` | a call to a file-declared function becomes a subprogram; the object carries one `func_info` per subprogram; a check that fails inside one returns `XDP_ABORTED` through the flag each frame raises in its caller's |
 | `refuse.sh` | each refused construct (runtime table, a table of the body written through a register or its upvalue, a global assigned, a map's field written, closure, vararg, `pcall`, unknown global, tail call, `while`, `repeat`, a float the CLI's libraries return, a float literal `lunatic` refuses to parse, a function the CLI's Lua compiled from a string) fails with its message and line, and nothing is written; recursion and the five-argument call sit in `call.sh`, beside the calls they are the edges of |
 | `lineinfo.sh` | the object's `.BTF.ext` names the `.lua` file, and a program broken by the test hook is rejected with a log that quotes the Lua line |

@@ -326,10 +326,11 @@ refused: &ldquo;the verdict may be nil here; test it first&rdquo;. The default v
 </pre>
 
 
-<p>A program that stops, where Lua would raise or where the verdict it computed is no action, does not
-return its default. An XDP program returns <code>XDP_ABORTED</code>, the kernel&rsquo;s verdict for a program error,
-which drops the packet and, in the generic path and in most drivers, fires the tracepoint
-<code>xdp:xdp_exception</code>; a TC program, whose type has no such verdict, returns <code>TC_ACT_SHOT</code>, which
+<p>A program that stops, where Lua would raise, where the verdict it computed is no action or where a
+<code>for</code> outruns the budget the kernel gives it, does not return its default. An XDP program returns
+<code>XDP_ABORTED</code>, the kernel&rsquo;s verdict for a program error, which drops the packet and, in the generic
+path and in most drivers, fires the tracepoint <code>xdp:xdp_exception</code>; a TC program, whose type has no
+such verdict, returns <code>TC_ACT_SHOT</code>, which
 drops the packet. A packet the program cannot read is dropped, whatever its default: a program that
 must let it through tests <code>#p</code> before it reads. A default that is not an action is refused:
 &ldquo;xdp.program&rsquo;s default verdict is not an XDP action&rdquo;. A value the program computes reaches a kernel
@@ -353,7 +354,9 @@ not through the verdict.</p>
    what the subset does     a program past the       where Lua would raise:
    not compile, and a       limits of the verifier,  x // 0, a read past
    value the compiler       most often a loop of     the packet, an update
-   sees is wrong            many passes              the map refuses
+   sees is wrong            many passes              the map refuses; and
+                                                     a loop past the budget
+                                                     the kernel gives it
 </code></pre>
 
 <p>Where Lua would raise an error, and where the part of Lua the compiler takes ends, a program file
@@ -373,11 +376,11 @@ whose warning names the kfunc
 <li><strong>Stops.</strong> In the kernel, on a packet, the program returns at once <code>XDP_ABORTED</code> in XDP or
 <code>TC_ACT_SHOT</code> in TC, which drop the packet, and nothing is logged (#2098); a tracer reads an
 XDP program&rsquo;s stops at the tracepoint <code>xdp:xdp_exception</code>. A program stops at a read past the
-packet, a division or a modulo by 0, a <code>for</code> step of 0 it computed, a map key or value its spec
-cannot pack, a map update or delete the map refuses, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside 0 to
-4294967295, a verdict it computed that is no action of its program type, and in a function it
-called that stops. A division by a 0 the compiler knows is not refused: the program stops on
-every packet that reaches it.</li>
+packet, a division or a modulo by 0, a <code>for</code> step of 0 it computed, a <code>for</code> whose passes outrun
+the budget the kernel gives it, a map key or value its spec cannot pack, a map update or delete
+the map refuses, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside 0 to 4294967295, a verdict it computed that
+is no action of its program type, and in a function it called that stops. A division by a 0 the
+compiler knows is not refused: the program stops on every packet that reaches it.</li>
 </ul>
 
 
@@ -456,7 +459,7 @@ means the program returns <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, 
 <tr>
 <td> <a href="../topics/09-luaebpf-by-example.md.html#loops"><code>for i = a, b, s do</code></a> </td>
 <td> the passes Lua makes </td>
-<td> <code>s</code> is 0 </td>
+<td> <code>s</code> is 0; a bound or a step is computed, and the passes outrun the kernel&rsquo;s budget (<a href="#loops">Loops</a>) </td>
 <td> <code>s</code> is a known 0; a bound or a step is computed, before Linux 6.9 (<a href="#loops">Loops</a>) </td>
 </tr>
 <tr>
@@ -815,8 +818,12 @@ refused there: <code>for i = 1, 100000 do</code> gives &ldquo;BPF program is too
 packet on each pass &ldquo;The sequence of 8193 jumps is too complex&rdquo;, at fewer passes.</li>
 <li>With a bound or a step the program computes, <code>for i = 1, n do</code>, it compiles for Linux 6.9 and
 later, through the kernel&rsquo;s <code>may_goto</code>, and is refused before 6.9: &ldquo;a &lsquo;for&rsquo; the compiler cannot
-bound needs may_goto, which this kernel lacks&rdquo;. Once the budget the kernel gives a loop runs out,
-the kernel leaves the loop and the program goes on with what the loop held (#1944).</li>
+bound needs may_goto, which this kernel lacks&rdquo;. The kernel gives these loops a budget, which the
+loops of one call of a function share and each call starts in full, and the program stops once
+it runs out, where Lua would make every pass: 8,388,608 passes, or about a quarter of a second
+where the kernel&rsquo;s JIT times the loops, x86 from 6.15 and arm64 from 6.18 among them. From 6.17
+a kernel that times them writes &ldquo;ERROR: Timeout detected for may_goto instruction&rdquo; to the
+program&rsquo;s stderr stream when it stops one.</li>
 <li>A step of 0 is refused when the compiler knows it, &ldquo;&lsquo;for&rsquo; step is zero&rdquo;, and stops the program
 when the program computes it.</li>
 </ul>
@@ -1165,7 +1172,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 21:39:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 22:36:36</span>
 </div>
 </footer>
 </body>
