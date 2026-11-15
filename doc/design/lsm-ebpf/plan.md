@@ -203,6 +203,31 @@ Sized by what fits in a reviewable pull request.
 Phase 2 is the boundary: everything before it works on an unmodified distribution kernel, everything
 after it assumes the operator opted into `lsm=bpf`.
 
+## What this epic needs from the Lua to eBPF compiler
+
+The maintainer, on 2026-11-15: "quanto a LSM, deve ser registrado no documento do LSM o que
+precisaremos". What follows are needs of this epic for the compiler `doc/design/luaebpf/` plans,
+not deliverables of that plan: none of its phases builds them.
+
+* **An LSM program type.** `BPF_PROG_TYPE_LSM` compiled from Lua on a hook the program names,
+  `lsm.program("bprm_check_security", ...)`, with the hook's arguments as struct views and a verdict
+  of `0` to allow or `-linux.errno.*` to refuse, `0` where the function returns none. It can be
+  loaded sleepable on the hooks `sleepable_lsm_hooks` lists, which the trampoline's callback never
+  is (`doc/design/luaebpf/kernel-notes.md`, "Sleeping").
+* **A cgroup socket address program type.** `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` compiled from Lua over
+  a `sock_addr` view, its verdict spelled as an LSM program's and translated by the emitter to the
+  1 or 0 the type returns, allowing where the function returns none.
+* **The compiler's loader as this plan's loader.** Phase 2's "small libbpf program that loads the
+  object, attaches it and pins the link" is `lunatik run` once it attaches these types: an LSM
+  program to the hook it names, with nothing on the command line, and a cgroup program to the
+  cgroup the command line names, `--cgroup=<path>`.
+* **The stubs as program files.** The stubs this plan writes in C become Lua program files once the
+  `lsm` and `cgroup` kfuncs and their `ctx`, which this epic owns, exist.
+
+None of this contradicts the "no DSL, no compiler" non goal, which declines a policy language: the
+Lua to eBPF compiler adds no language, a policy stays Lua and its ruleset a map written from Lua,
+and what the compiler produces is the stub this plan otherwise writes by hand in C.
+
 ## Non goals
 
 * **Writing an LSM.** Not a kernel patch, not a shim security module, not an upstream submission. If

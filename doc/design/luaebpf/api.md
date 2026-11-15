@@ -278,9 +278,8 @@ When `<script>.bpf.o` exists, `run`:
 1. opens the object with libbpf, resolves the tree's kfuncs through the module BTF, creates the
    maps and pins them under `/sys/fs/bpf/lunatik/<script>/`;
 2. starts the runtime, as today, so the kernel script finds its maps;
-3. attaches every program the object declares to the target named on the command line (`--dev=`
-   for XDP and TC, `--cgroup=` for cgroup programs, nothing for an LSM hook, which the program
-   names itself) and pins each link at `/sys/fs/bpf/lunatik/<script>/<program>-link`: bpffs
+3. attaches every program the object declares to the device named on the command line
+   (`--dev=`) and pins each link at `/sys/fs/bpf/lunatik/<script>/<program>-link`: bpffs
    refuses a dot in a name, and a map name cannot carry a hyphen.
 
 The order matters: the maps exist before the script opens them, and the program attaches after
@@ -304,9 +303,8 @@ The verifier's log is the error `run` prints when the load fails, and its `line_
 Lua file and line. `lunatik list` is unchanged.
 
 What the program declares and what the command supplies: the program type and the hook are
-properties of the program (`xdp.program`, `tc.program{egress = true}`,
-`lsm.program("bprm_check_security", ...)`); the device or cgroup is a property of the
-deployment, and goes on the command line, as it does with `bpftool net attach` today.
+properties of the program (`xdp.program`, `tc.program{egress = true}`); the device is a property
+of the deployment, and goes on the command line, as it does with `bpftool net attach` today.
 
 ## Program types
 
@@ -314,19 +312,12 @@ deployment, and goes on the command line, as it does with `bpftool net attach` t
 |--------|-------------|---------|----------|---------|
 | `bpf.xdp` | `BPF_PROG_TYPE_XDP` | `ctx` with `ctx:packet()` | `linux.xdp.action` | `PASS` |
 | `bpf.tc` | `BPF_PROG_TYPE_SCHED_CLS`, tcx ingress or egress | `skb` with `skb:data()` | `linux.tc.action` | `OK` |
-| `bpf.lsm` | `BPF_PROG_TYPE_LSM` on a named hook | the hook's arguments as struct views | `0` or `-linux.errno.*` | `0` |
-| `bpf.cgroup` | `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` | `sock_addr` view | as `lsm`, translated to 1/0 by the emitter | allow |
-
-`bpf.lsm` and `bpf.cgroup` follow the LSM epic, which owns their kfuncs and their kernel-side
-`ctx`; the compiler gives them the same shape as XDP and TC once those exist. An LSM program can
-be loaded sleepable, which the trampoline's callback never is (`kernel-notes.md`, "Sleeping").
 
 ## The compile-time environment
 
 What the body of a program file can `require`:
 
-* `bpf.xdp`, `bpf.tc`, later `bpf.lsm` and `bpf.cgroup`: the program constructors and their
-  proxies;
+* `bpf.xdp` and `bpf.tc`: the program constructors and their proxies;
 * `bpf.map`: map declarations;
 * `lunatik`: the kernel Lua runtimes a program calls, `lunatik.runtime` alone;
 * `luaebpf.*`: the compiler's own modules, which a test reads from a body;
@@ -351,7 +342,7 @@ but the CLI's libraries can still return one, as `math.sqrt` does.
 
 1. ~~Whether the deployment target belongs on the command line (`--dev=eth0`) or in the program
    file with a command-line override.~~ Settled on 2026-10-19: the target is an option of the CLI's
-   parser, `--dev=<ifname>` and `--cgroup=<path>`, beside `--context` and `-p`.
+   parser, `--dev=<ifname>`, beside `--context` and `-p`.
 2. Whether a map declared by a program file that a kernel script also declares (`map.hash(path,
    ...)`) should be checked at `run` for a matching spec, or left to the size check `bpf.map`
    already performs on open.

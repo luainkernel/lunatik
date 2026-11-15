@@ -18,9 +18,7 @@ CLI, and the tests that hold them to the verifier.
    today (`ctx:argument()`).
 5. A compiled program reads and writes eBPF maps the kernel Lua script also reads and writes,
    through the same `bpf.map` specs, with the maps created and pinned by the loader.
-6. Programs that the trampoline cannot host by construction, sleepable LSM and tracing programs
-   among them, are reachable from Lua.
-7. A test suite that proves what the compiler emits against what the verifier accepts and against
+6. A test suite that proves what the compiler emits against what the verifier accepts and against
    what the interpreter computes, and skips cleanly where the kernel or the toolchain lacks a
    feature.
 
@@ -62,7 +60,6 @@ bcc's LuaJIT frontend (2016) is the closest ancestor and is bound to LuaJIT's by
 | Errors name the Lua line | No `.BTF`/`.BTF.ext` writer for `func_info` and `line_info`. |
 | Call into the kernel runtime | The kfunc and its `arg`/`arg__sz` contract exist; nothing generates the call or the marshalling. |
 | Shared maps | Maps are created by `bpftool map create` in the suites and by `SEC(".maps")` in the stubs; no declaration a Lua program and a Lua script share. |
-| Sleepable and struct_ops contexts | Unreachable by construction of the trampoline (`kernel-notes.md`, "Sleeping"). |
 | Tests | No harness compiles a program, loads it, runs it with a packet and compares. |
 
 Supporting gaps:
@@ -86,7 +83,7 @@ change in the facts behind it can reopen it.
 | The loader is the CLI over `bpf(2)`, not the module over `kern_sys_bpf` | The module path has no verifier log, no module BTF fd for the tree's kfuncs, no pinned object by path, and a symbol namespaced against it; the CLI has all four and runs on the same host, so it compiles against the same kernel (`kernel-notes.md`, first section) | A kernel that accepts a kernel log buffer and adds `BPF_BTF_GET_FD_BY_ID` and `BPF_OBJ_GET` to the allowlist; then the loader becomes a `bpf.prog` object in `lib/luabpf.c` and the CLI keeps the fallback |
 | One loader, one back end | AGENTS.md: two mechanisms doing one job. A second loader (kernel) buys runtimes that start without a CLI process, which the pinned program already serves; a second back end (C for clang) buys LLVM's verifier-friendly shapes, which a C runtime library, once a need for one is stated, buys for the fixed algorithms without a second emitter | A verified shape the direct emitter cannot produce and such a library cannot wrap |
 | The translator runs under the CLI's Lua 5.5, which runs the body from the chunk `lunatic` writes | The bytecode decides what a compiled function means: `lunatic` compiles it with the kernel's own arithmetic, and the CLI's Lua loads that chunk, renumbered for its build, so the body computes as the kernel does and the functions it hands over are the bytecode compiled, with no second compilation to match them against. A driver hosting the translator under the kernel configuration was weighed and declined: a second host build of the kernel's Lua to keep in step with `_KERNEL`, where the renumbering takes two generated tables. So was the CLI's Lua compiling the file again from source to run the body: `10 / 4` is 2.5 there and 2 in the kernel, and each function the body hands over has to be found in `lunatic`'s chunk by its lines and its shape | An opcode the `_KERNEL` patch makes the VM run differently on integer operands; then the body needs the kernel's VM, not only its bytecode |
-| The compiler does not wait for a benchmark | Three of its four reasons are independent of speed: contexts the trampoline cannot reach, the verifier checking the user's own code, and no C on the user's side. Speed is the fourth, and the only one the number decides | Nothing; the number changes what the docs claim about speed, not whether the compiler is built |
+| The compiler does not wait for a benchmark | Two of its three reasons are independent of speed: the verifier checking the user's own code, and no C on the user's side. Speed is the third, and the only one the number decides | Nothing; the number changes what the docs claim about speed, not whether the compiler is built |
 | The number is measured in phase 0 anyway | The design claims the per-call sequence of the trampoline as a cost; a cost claim without a number is a duplication, and the escape hatch's users need to know what a call into the VM costs on their hook | Not applicable |
 | A precompiled BPF runtime library waits for a need the maintainer states | No example and no request of his uses one (D79 C, 2026-11-15). Its shape is known: fixed algorithms (string compare, bounded copies, header walks) as C compiled once by clang at `make` and linked into every program by libbpf's linker, so the emitter emits straight-line code and calls; DTrace 2.0 ships it (`kernel-notes.md`) | A need he states for a fixed algorithm the emitter cannot write in a few lines |
 | The escape hatch is explicit, never inferred | A partition the compiler chooses silently falls back per packet and hides the cost; a refused construct is an error naming the line, and the program calls the runtime where it decides to (`api.md`) | A measured case where the compiler's split beats the author's; then offer inference as an opt-in, still reported |
@@ -146,9 +143,6 @@ Naming what goes, as AGENTS.md asks:
   and `LUNATIK_EBPF_INSTALL_PATH`: compiled objects install beside their scripts;
 * the `bpftool prog load` and `bpftool net attach` steps in the README and the suites, and the
   `tc qdisc`/`tc filter` steps in `tests/tc`: `lunatik run` does them;
-* the LSM plan's phase 2 loader ("a small libbpf program that loads the object, attaches it and
-  pins the link"): this design's loader is that program, for every type. The LSM stubs become
-  program files once the `lsm` and `cgroup` kfuncs exist;
 * `make btf_install` as a requirement for every user: needed only by programs that call into the
   kernel runtime.
 
@@ -331,10 +325,6 @@ from it on, a user runs one.
   would consume this compiler.
 * **Runtime tables, strings and closures in a compiled function, `pcall`, coroutines, metatables
   beyond the translator's own proxies.** Refused with the line, by design.
-* **The LSM plan's "no DSL, no compiler" non goal is not contradicted.** That non goal declines a
-  policy language for the LSM binding. This design adds no language: a policy stays Lua, its
-  ruleset stays a map written from Lua, and what the compiler produces is the stub the LSM plan
-  writes by hand in C.
 
 ## Risks
 
