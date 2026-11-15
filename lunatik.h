@@ -445,6 +445,7 @@ static inline void lunatik_checkclass(lua_State *L, const lunatik_class_t *class
 #define lunatik_isrtnl()	(READ_ONCE(lunatik_rtnl) == current)
 
 #define lunatik_isrunqueue()	unlikely(this_cpu_read(lunatik_runqueue) != 0)
+#define lunatik_maskgfp(gfp)	(lunatik_isrunqueue() ? ((gfp) & ~__GFP_KSWAPD_RECLAIM) | __GFP_NOWARN : (gfp))
 
 #define lunatik_setrunqueue(flags)	\
 do {					\

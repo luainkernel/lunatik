@@ -84,6 +84,8 @@ typedef struct luarcu_table_s {
 
 #define luarcu_istable(value)		(lunatik_isuserdata(value) && (value)->object->class == &luarcu_class)
 #define luarcu_holdstable(entry)	((entry) != NULL && luarcu_istable(&(entry)->value))
+#define luarcu_iskeylong(keylen)	((keylen) >= LUARCU_MAXKEY)
+#define luarcu_allocentry(entry, keylen)	kmalloc(struct_size((entry), key, (keylen)), lunatik_maskgfp(GFP_ATOMIC))
 
 DEFINE_STATIC_SRCU(luarcu_srcu);
 static DEFINE_SPINLOCK(luarcu_walklock);
@@ -105,7 +107,7 @@ static luarcu_entry_t *luarcu_newentry(const char *key, size_t keylen, lunatik_v
 {
 	luarcu_entry_t *entry;
 
-	if (keylen >= LUARCU_MAXKEY || (entry = kmalloc(struct_size(entry, key, keylen), GFP_ATOMIC)) == NULL)
+	if (luarcu_iskeylong(keylen) || (entry = luarcu_allocentry(entry, keylen)) == NULL)
 		return NULL;
 
 	memcpy(entry->key, key, keylen);

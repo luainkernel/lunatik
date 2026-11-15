@@ -1567,9 +1567,9 @@ calls the kfunc fails to load.
 void *lunatik_malloc(lua_State *L, size_t size);
 ```
 Allocates `size` bytes using the Lua allocator. Returns `NULL` on failure. The allocator asks for
-the runtime's `gfp`, [`lunatik_gfp`](#lunatik_gfp), without an allocation warning; with
-`GFP_KERNEL`, a block larger than a page may come from `vmalloc`. Free it with `lunatik_free`,
-never `kfree`.
+the runtime's `gfp`, [`lunatik_gfp`](#lunatik_gfp), through [`lunatik_maskgfp`](#lunatik_maskgfp)
+and without an allocation warning; with `GFP_KERNEL`, a block larger than a page may come from
+`vmalloc`. Free it with `lunatik_free`, never `kfree`.
 
 ### lunatik\_realloc
 ```C
@@ -1612,6 +1612,24 @@ Returns the `gfp_t` `object` allocates with: `GFP_ATOMIC` for a SOFTIRQ or HARDI
 and the object's while it calls a monitored method.
 A binding that allocates outside the Lua allocator passes `lunatik_gfp(lunatik_toruntime(L))`.
 Defined as a macro.
+
+### lunatik\_maskgfp
+```C
+gfp_t lunatik_maskgfp(gfp_t gfp);
+```
+Returns `gfp` without `__GFP_KSWAPD_RECLAIM` and with `__GFP_NOWARN` where
+[`lunatik_isrunqueue`](#lunatik_isrunqueue) holds, and `gfp` itself elsewhere: an scx callback holds
+its CPU's runqueue lock, which a wakeup from there can take again, and an allocation wakes kswapd
+when memory runs low and, when it fails with a warning, a task waiting for the console. Under memory
+pressure the allocation then fails without a log line rather than wake either, as the kernel's own
+`alloc_pages_nolock` asks for a caller in any context; on 6.18 to 7.1, where the slab allocator
+takes flags with neither reclaim bit for `kmalloc_nolock`'s, it also fails where a lock of the slab
+or the page allocator is held, and a new slab draws on no reserve of `__GFP_HIGH`'s. A binding that
+allocates outside the Lua allocator, on a path an scx callback reaches, passes its flags through it.
+The slab allocator still wakes kswapd on two paths that read none of these flags: on 7.0 and later,
+a free that finds its CPU's cache of freed objects full, and on 6.13 to 6.17 booted with
+`slab_strict_numa`, an allocation's first try on the node of the task's memory policy. Defined as a
+macro.
 
 ---
 
@@ -2038,11 +2056,11 @@ for a value other than nil when its entry cannot be allocated or the key takes `
 or more; and `-ELOOP` for an `rcu.table` that is `table` or reaches it, or that reaches more than
 `LUARCU_MAXWALK` tables holding tables. It checks nothing else of `value`: the caller passes what
 [`lunatik_checkvalue`](#lunatik_value_t) reads, never a `LUNATIK_OPT_SINGLE` object. It allocates
-with `GFP_ATOMIC` and takes the table's lock, a spinlock taken with interrupts off only where they
-already are, so any context writes; but a table a probe handler writes is not written from another
-runtime with interrupts on, as the `rcu` module says. The value a store replaces or removes is
-dropped with [`lunatik_putobject`](#lunatik_putobject) once the lock is let go. `luarcu_setobject`
-stores `obj`, which is not `NULL`.
+with `GFP_ATOMIC`, through [`lunatik_maskgfp`](#lunatik_maskgfp), and takes the table's lock, a
+spinlock taken with interrupts off only where they already are, so any context writes; but a table
+a probe handler writes is not written from another runtime with interrupts on, as the `rcu` module
+says. The value a store replaces or removes is dropped with [`lunatik_putobject`](#lunatik_putobject)
+once the lock is let go. `luarcu_setobject` stores `obj`, which is not `NULL`.
 
 ---
 

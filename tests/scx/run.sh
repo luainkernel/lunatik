@@ -37,6 +37,19 @@
 # These skip when the kernel has no sched_ext, the module lacks BTF, bpftool, clang
 # or taskset is unavailable, or another sched_ext scheduler is enabled.
 #
+# The two alloc cases read the kmalloc events of the pass cases, from the script's
+# load to the scheduler's unregistration, in a tracing instance of the suite's own.
+# For each task no cell names, the callback, which runs under its CPU's runqueue
+# lock, writes an rcu.table entry and builds a table, and luarcu and the Lua
+# allocator each ask there for __GFP_HIGH without __GFP_KSWAPD_RECLAIM: the event
+# names __GFP_HIGH among the flags only then, since the pair prints as GFP_ATOMIC.
+# luarcu asks there for __GFP_NOWARN too, as it does nowhere else. The script's body
+# writes the same entry off the lock, where luarcu still asks for GFP_ATOMIC and the
+# Lua allocator for GFP_KERNEL, both with __GFP_KSWAPD_RECLAIM: the body's events are
+# read as the script loads, before the scheduler registers, being the first the
+# instance overwrites. The alloc cases skip where the cells do or tracefs has no
+# kmem:kmalloc event, and fail where every cell does before the record is read.
+#
 # The runqueue cases register a scheduler of their own, whose enqueue calls
 # bpf_luascx_run for runqueue.lua and whose select_cpu dispatches nothing, so that
 # every wakeup reaches enqueue, with the runqueue lock of its CPU held. The callback
@@ -119,14 +132,25 @@ TITLES=(
 	"scx pass: a callback that detaches still decides for its task"
 	"scx pass: once detached, the kfunc returns -1 and leaves cls as it was"
 )
+# the alloc cases, the one that reads the callback's events and the one that reads the body's
+ALLOC_TITLES=(
+	"scx alloc: the callback allocates without waking kswapd"
+	"scx alloc: off the runqueue lock an allocation may wake kswapd"
+)
 
 DIR="$(dirname "$(readlink -f "$0")")"
 TASKS=""
 
 source "$DIR/../lib.sh"
 
+INSTANCE="$TRACING/instances/lunatik_scx"
+KMALLOC="$INSTANCE/events/kmem/kmalloc"
+
+# asked <site> <flags>: an allocation made at <site> asked for <flags>, a name the event prints among its gfp_flags
+asked() { grep -F "call_site=$1" "$INSTANCE/trace" 2>/dev/null | grep -qE "gfp_flags=([^ ]*\|)?$2(\|[^ ]*)? "; }
+
 ktap_header
-ktap_plan $((4 + ${#RUNQUEUE_TITLES[@]} + ${#CELLS[@]}))
+ktap_plan $((4 + ${#RUNQUEUE_TITLES[@]} + ${#CELLS[@]} + ${#ALLOC_TITLES[@]}))
 
 skip_rest()
 {
@@ -136,6 +160,7 @@ skip_rest()
 	for title in "${RUNQUEUE_TITLES[@]}"; do ktap_skip "$title"; done
 	ktap_skip "scx reattach: a hardirq runtime attaches, re-attaches and detaches"
 	cells skip "$1"
+	allocs skip "$1"
 	ktap_totals
 	exit
 }
@@ -146,6 +171,16 @@ cells()
 	local title
 
 	for title in "${TITLES[@]}"; do
+		"ktap_$1" "$title: $2"
+	done
+}
+
+# allocs <skip|fail> <reason>: both alloc cases skip or fail with the reason
+allocs()
+{
+	local title
+
+	for title in "${ALLOC_TITLES[@]}"; do
 		"ktap_$1" "$title: $2"
 	done
 }
@@ -167,6 +202,10 @@ cleanup()
 	lunatik stop "$REATTACH" 2>/dev/null
 	lunatik stop "$PASS" 2>/dev/null
 	lunatik stop "$RESUME" 2>/dev/null
+	if [ -d "$INSTANCE" ]; then
+		echo 0 > "$KMALLOC/enable" 2>/dev/null
+		rmdir "$INSTANCE"
+	fi
 	rm -f "$PIN"
 	[ -z "$TASKS" ] || rm -rf "$TASKS"
 }
@@ -325,16 +364,42 @@ record()
 	done
 }
 
+# alloc <offlock> <traceless>: the instance's events from the callback, and, as read when the script loaded, from its body
+alloc()
+{
+	if [ -n "$2" ]; then
+		allocs skip "$2"
+		return
+	fi
+	if asked lunatik_alloc+ __GFP_HIGH && asked luarcu_ __GFP_HIGH && asked luarcu_ __GFP_NOWARN; then
+		ktap_pass "${ALLOC_TITLES[0]}"
+	else
+		ktap_fail "${ALLOC_TITLES[0]}"
+		comment "$(grep -E 'call_site=(lunatik_alloc|luarcu_)' "$INSTANCE/trace" | tail -4)"
+	fi
+	if [ "$1" -eq 0 ]; then
+		ktap_pass "${ALLOC_TITLES[1]}"
+	else
+		ktap_fail "${ALLOC_TITLES[1]}"
+		comment "$(grep -E 'call_site=(lunatik_alloc|luarcu_)' "$INSTANCE/trace" | head -4)"
+	fi
+}
+
 pass()
 {
-	local cell last state output errs
+	local cell last state output errs offlock traceless=""
 
 	if [ "$(cat /sys/kernel/sched_ext/state)" != disabled ]; then
 		cells skip "another sched_ext scheduler is enabled"
+		allocs skip "another sched_ext scheduler is enabled"
 		return
 	fi
-	run_test --context=hardirq "$PASS" || { cells fail "$PASS did not run"; return; }
-	bpftool struct_ops register "$DIR/scx_pass.bpf.o" > /dev/null || { cells fail "the scheduler did not register"; return; }
+	mkdir "$INSTANCE" 2>/dev/null && echo 1 > "$KMALLOC/enable" 2>/dev/null || traceless="no kmem:kmalloc event in tracefs"
+	run_test --context=hardirq "$PASS" || { cells fail "$PASS did not run"; allocs fail "$PASS did not run"; return; }
+	# before the scheduler registers: on a busy host its callbacks' events push the body's out of the instance's buffer
+	asked lunatik_alloc+ GFP_KERNEL && asked luarcu_ GFP_ATOMIC; offlock=$?
+	bpftool struct_ops register "$DIR/scx_pass.bpf.o" > /dev/null ||
+		{ cells fail "the scheduler did not register"; allocs fail "the scheduler did not register"; return; }
 
 	TASKS=$(mktemp -d)
 	for cell in "${CELLS[@]}"; do
@@ -351,17 +416,21 @@ pass()
 
 	state=$(cat /sys/kernel/sched_ext/state)
 	bpftool struct_ops unregister name "$OPS" > /dev/null
+	[ -n "$traceless" ] || echo 0 > "$KMALLOC/enable"
 	output=$(lunatik run "$RESUME" 2>&1) || comment "$output"
 	lunatik stop "$PASS"
 	errs=$(dmesg_since | grep -E "$KTAP_ERRORS")
 	if [ "$state" != enabled ]; then
 		comment "$(dmesg_since | grep -F sched_ext | tail -5)"
 		cells fail "the kernel disabled the scheduler"
+		allocs fail "the kernel disabled the scheduler"
 	elif [ -n "$errs" ]; then
 		comment "$errs"
 		cells fail "a Lua error or a kernel warning"
+		allocs fail "a Lua error or a kernel warning"
 	else
 		record
+		alloc "$offlock" "$traceless"
 	fi
 }
 

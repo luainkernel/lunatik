@@ -20,8 +20,10 @@
 * runqueue lock`. What the callback's Lua writes to the kernel log, through `print`, `warn` or
 * the VM's warning of an error a finalizer raises, and what the dispatch logs, an error the
 * callback raises or a decision it gets wrong, reach the console deferred, as the scheduler's
-* own lines do. An allocation the callback's Lua makes under memory pressure can still wake
-* kswapd, whose wakeup takes the same lock.
+* own lines do. What the callback's Lua allocates is asked for without waking kswapd, whose
+* wakeup takes the same lock, so under memory pressure an allocation fails and the call that
+* made it raises; the slab allocator still wakes kswapd on a free from 7.0 on, and on an
+* allocation from 6.13 to 6.17 booted with `slab_strict_numa`.
 *
 * Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT` and without `CONFIG_PREEMPT_RT`,
 * where a runtime's lock sleeps and the kfunc would take it under the runqueue lock;

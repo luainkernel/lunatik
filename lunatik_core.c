@@ -82,7 +82,7 @@ static void *lunatik_alloc(void *ud, void *optr, size_t osize, size_t nsize)
 
 	lunatik_object_t *runtime = (lunatik_object_t *)ud;
 	gfp_t gfp = lunatik_gfp(runtime);
-	gfp_t nowarn = gfp | __GFP_NOWARN; /* Lua raises on a NULL */
+	gfp_t nowarn = lunatik_maskgfp(gfp) | __GFP_NOWARN; /* Lua raises on a NULL */
 
 	if (lunatik_cankrealloc(optr, nsize, gfp))
 		return krealloc(optr, nsize, nowarn);
