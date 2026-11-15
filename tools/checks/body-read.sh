@@ -8,7 +8,7 @@
 # hands it, and answered verdict pass. Both are read from the agent's own transcript, which Claude Code
 # keeps beside the session's, <session>/subagents/workflows/<run>/agent-<id>.jsonl, with
 # agent-<id>.meta.json naming the agent's type, so no agent records a pass. pr-body-guard.sh refuses
-# the session's post of a body none passed. The checks read the form of a body, and #2527's passed them
+# any post of a body none passed. The checks read the form of a body, and #2527's passed them
 # all and reached the maintainer unreadable. A text changed after the read is one nobody read.
 # Usage: body-read.sh <body file> <session transcript>   exits 0 when a reader passed this text, 1 otherwise
 

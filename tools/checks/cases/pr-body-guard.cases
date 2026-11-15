@@ -38,9 +38,11 @@ block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F
 block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file unread.md
 block	gh pr create --title 'fifo: a megabyte buffer loads' --fill --head fifo-test --base master
 block	gh -R luainkernel/lunatik pr create --title 'fifo: a megabyte buffer loads' -f -H fifo-test -B master
+# an agent's post waits for a reader as the session's does, read from the session's transcript its call carries
 # agent: open
-pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@unread.md
-block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -f title='luaebpf: a program file names the verdict it returns where it stops' -F body=@unread.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@unread.md
+pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@named.md
+block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -f title='luaebpf: a program file names the verdict it returns where it stops' -F body=@named.md
 # agent:
 # a reader passed a body when its transcript, kept beside the session's, holds the text it wrote last and
 # answered pass on: no text a reader failed, another agent drafted or another session's reader passed
