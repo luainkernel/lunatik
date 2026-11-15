@@ -162,6 +162,7 @@
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.limits.html">linux.limits</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
@@ -310,16 +311,22 @@ computes something else, the compiler emits what lies between:</p>
 <td> the offset tested unsigned against 65535 less the width, the end against <code>data_end</code>, and the sign extended by a shift left and an arithmetic shift right, where <code>BPF_MEMSX</code> would extend it </td>
 </tr>
 <tr>
+<td> <code>p:getint16(n)</code> on TC </td>
+<td> the same, of the whole packet, past the skb&rsquo;s linear head too </td>
+<td> a load stops at <code>data_end</code>, the end of the linear head </td>
+<td> the offset tested unsigned against <code>INT_MAX</code>, the helper&rsquo;s own bound, since it takes the low 32 bits, then <code>bpf_skb_load_bytes</code> into the frame, which copies the bytes wherever the skb holds them, the default verdict where it answers non-zero, and the sign extended alike </td>
+</tr>
+<tr>
 <td> <code>#p</code> </td>
 <td> the bytes the <a href="../modules/data.html#">data</a> object views </td>
 <td> no instruction: the context holds the two bounds </td>
-<td> <code>data_end</code> less <a href="../modules/data.html#">data</a>, both read from the context </td>
+<td> <code>data_end</code> less <a href="../modules/data.html#">data</a>, both read from the context; on TC <code>len</code>, as <code>#skb</code> </td>
 </tr>
 <tr>
 <td> <code>skb:data()</code> on an skb that is not linear </td>
-<td> raises in a tc callback </td>
+<td> the whole packet, in a tc callback, read from a copy of it </td>
 <td> <code>data_end</code> ends the linear head, short of the packet </td>
-<td> <code>len</code> compared with the head&rsquo;s length, which takes the default verdict where they differ </td>
+<td> the context register, which the reads hand to <code>bpf_skb_load_bytes</code> </td>
 </tr>
 <tr>
 <td> <code>skb:priority(v)</code> </td>
@@ -390,7 +397,8 @@ context reads. An <code>llvm-objdump</code> older than LLVM 15, LLVM 14&rsquo;s 
 <li><code>r6</code> to <code>r9</code> hold Lua registers 0 to 3, the function&rsquo;s first locals, and a call leaves them
 alone. Lua registers 4 and up live in the frame, at <code>r10 - 40</code>, <code>r10 - 48</code> and on down.</li>
 <li><code>r10</code> is the frame. <code>r10 - 8</code> holds the flag a called function raises, <code>r10 - 16</code> the address of
-its caller&rsquo;s flag, and <code>r10 - 24</code> and <code>r10 - 32</code> the key and the value a map helper takes.</li>
+its caller&rsquo;s flag, and <code>r10 - 24</code> and <code>r10 - 32</code> the key and the value a map helper takes;
+<code>r10 - 32</code> also takes the bytes a TC read copies.</li>
 <li><code>r1</code> to <code>r5</code> hold what one line computes.</li>
 </ul>
 
@@ -944,44 +952,56 @@ as 4294967292.</p>
 
 
 <p>The context of a TC program is the kernel&rsquo;s <code>__sk_buff</code>, read at the offsets its BTF gives: <code>len</code>
-at 0, <code>priority</code> at 32, <a href="../modules/data.html#">data</a> at 76 and <code>data_end</code> at 80.</p>
+at 0 and <code>priority</code> at 32. The packet is the context register under another name, and a read of it
+is <code>bpf_skb_load_bytes</code>, helper 26, which copies the bytes into the frame at <code>r10 - 32</code> wherever
+the skb holds them, past its linear head too, and answers non-zero past the packet: the kernel&rsquo;s
+<code>skb:data()</code> reads the same bytes from a copy <code>skb_copy_bits</code> makes, which the helper calls for the
+bytes past the head.</p>
 
 <pre><code>      line 4: return tc.program(function(skb)
    0  r6 = r1                       skb
       line 5: local p = skb:data()
    1  r8 = r6
-   2  r1 = *(u32 *)(r8 +76)         __sk_buff.data
-   3  r2 = *(u32 *)(r8 +80)         __sk_buff.data_end
-   4  r2 -= r1                      the linear head
-   5  r1 = *(u32 *)(r8 +0)          __sk_buff.len, the whole packet
-   6  if r1 != r2 goto 37           not linear: stops
-   7  r7 = r8                       p
+   2  r7 = r8                       p
       line 6: local class = p:getint8(15)
-   8  to 21: the read of byte 15, its sign extended
-  22  r8 = r1                       class
+   3  r9 = r7
+   4  r1 = 15
+   5  *(u64 *)(r10 -40) = r1
+   6  r2 = *(u64 *)(r10 -40)        the offset, 15
+   7  r1 = r9                       the context
+   8  if r2 &gt; 2147483647 goto 32    past INT_MAX: stops
+   9  r3 = r10
+  10  r3 += -32                     the frame's value slot
+  11  r4 = 1                        the width
+  12  call 26                       bpf_skb_load_bytes
+  13  if r0 != 0 goto 32            past the end of the packet: stops
+  14  r1 = *(u8 *)(r10 -32)         byte 15
+  15  r1 &lt;&lt;= 56
+  16  r1 s&gt;&gt;= 56                    its sign extended
+  17  r8 = r1                       class
       line 7: skb:priority(class)
-  23  *(u64 *)(r10 -40) = r6
-  24  *(u64 *)(r10 -48) = r8
-  25  r2 = *(u64 *)(r10 -48)        class
-  26  r5 = r2
-  27  r5 &gt;&gt;= 32
-  28  if r5 != 0 goto 37            outside 0 to 4294967295: stops
-  29  r1 = *(u64 *)(r10 -40)
-  30  *(u32 *)(r1 +32) = r2         __sk_buff.priority
-  31  r1 = *(u64 *)(r10 -40)
-  32  r2 = *(u32 *)(r1 +32)         what skb:priority returns
-  33  r9 = r2
+  18  *(u64 *)(r10 -40) = r6
+  19  *(u64 *)(r10 -48) = r8
+  20  r2 = *(u64 *)(r10 -48)        class
+  21  r5 = r2
+  22  r5 &gt;&gt;= 32
+  23  if r5 != 0 goto 32            outside 0 to 4294967295: stops
+  24  r1 = *(u64 *)(r10 -40)
+  25  *(u32 *)(r1 +32) = r2         __sk_buff.priority
+  26  r1 = *(u64 *)(r10 -40)
+  27  r2 = *(u32 *)(r1 +32)         what skb:priority returns
+  28  r9 = r2
       line 8: return action.OK
-  34  r9 = 0                        TC_ACT_OK
-  35  r0 = r9
-  36  exit
+  29  r9 = 0                        TC_ACT_OK
+  30  r0 = r9
+  31  exit
       line 9: end)
-  37  r0 = 0                        TC_ACT_OK, the default verdict
-  38  exit
+  32  r0 = 0                        TC_ACT_OK, the default verdict
+  33  exit
 </code></pre>
 
 <p>A frame whose byte 15 is 3 leaves its priority at 3 and returns 0. One whose byte 15 is <code>ff</code>
-gives -1, which instruction 28 finds outside the range: the program stops before the store, and
+gives -1, which instruction 23 finds outside the range: the program stops before the store, and
 the priority stays where it was. The default verdict here is <code>TC_ACT_OK</code> too, so only the priority
 tells the two apart.</p>
 
@@ -1336,7 +1356,7 @@ compiled&rdquo;.</p>
 <a href="../../topics/09-luaebpf-by-example.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/09-luaebpf-by-example.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:56:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:59:37</span>
 </div>
 </footer>
 </body>

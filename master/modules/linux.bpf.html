@@ -162,6 +162,7 @@
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.limits.html">linux.limits</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
@@ -201,6 +202,10 @@
 <h2 id="Tables">Tables</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
+	<td class="name"><a href="#func">func</a></td>
+	<td class="summary">BPF helper function IDs (<code>enum bpf_func_id</code>), the number a program&rsquo;s call names.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#map_type">map_type</a></td>
 	<td class="summary">BPF map types.</td>
 	</tr>
@@ -213,6 +218,19 @@
     <h2 class="section-header" id="Tables-details"><a name="Tables"></a>Tables in detail</h2>
 
     <dl class="function">
+    <dt id="func"><a name="func"></a><strong>func</strong></dt>
+    <dd>
+    BPF helper function IDs (<code>enum bpf_func_id</code>), the number a program&rsquo;s call names.
+ Mirrors <code>BPF_FUNC_*</code> defines in <code>&lt;uapi/linux/bpf.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>BPF_FUNC_&lt;NAME&gt;</code> is <code>linux.bpf.func.&lt;NAME&gt;</code>.
+
+
+
+
+
+
+
+</dd>
     <dt id="map_type"><a name="map_type"></a><strong>map_type</strong></dt>
     <dd>
     BPF map types.
@@ -256,7 +274,7 @@
 <a href="../../modules/linux.bpf.html">5.1 docs</a> ·
 <a href="../../5.0/modules/linux.bpf.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:56:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:59:37</span>
 </div>
 </footer>
 </body>

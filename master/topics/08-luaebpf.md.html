@@ -162,6 +162,7 @@
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.limits.html">linux.limits</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
@@ -360,9 +361,9 @@ attached.</li>
 <li><strong>Stops.</strong> In the kernel, on a packet, the program returns its default verdict at once, and
 nothing is logged (#2098). A program stops at a read past the packet, a division or a modulo by
 0, a <code>for</code> step of 0 it computed, a map key or value its spec cannot pack, a map update or delete
-the map refuses, a <code>skb:data()</code> of an skb that is not linear, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside
-0 to 4294967295, and in a function it called that stops. A division by a 0 the compiler knows is
-not refused: the program stops on every packet that reaches it.</li>
+the map refuses, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside 0 to 4294967295, and in a function it called
+that stops. A division by a 0 the compiler knows is not refused: the program stops on every packet
+that reaches it.</li>
 </ul>
 
 
@@ -476,8 +477,8 @@ that line. Each construct links to its listing.</p>
 </tr>
 <tr>
 <td> <a href="../topics/09-luaebpf-by-example.md.html#the-context"><code>skb:data()</code></a> </td>
-<td> the packet </td>
-<td> the skb is not linear </td>
+<td> the whole packet, linear or not </td>
+<td> never </td>
 <td> a layer is given </td>
 </tr>
 <tr>
@@ -548,7 +549,9 @@ hook, and opens the packet:</p>
 
 <p>Any other method is refused: <code>skb:mark()</code> gives &ldquo;the context has no method &lsquo;mark&rsquo;&rdquo;. The packet
 is a read-only view of its bytes, with the reads of the kernel&rsquo;s <a href="../modules/data.html#">data</a> object. An offset counts
-from 0, the first byte of the Ethernet header.</p>
+from 0, the first byte of the Ethernet header. On TC the packet is the whole skb, the bytes past
+its linear head included, as the kernel&rsquo;s <code>skb:data()</code> reads it in a tc callback: a segment the
+host sends carries its payload there, and <code>#p</code> is <code>#skb</code>.</p>
 
 <table>
 <thead>
@@ -595,13 +598,14 @@ is 28 gives 7168. A field in network order is read a byte at a time:</p>
 </pre>
 
 
-<p>A read that passes the end of the packet, or starts past byte 65535 less its width, stops the
-program. There is no <code>getuint64</code>, since a Lua integer is signed, and no write: &ldquo;the packet has no
-method &lsquo;setbyte&rsquo;&rdquo;. The bounds of the packet are not numbers: <code>ctx.data_end - ctx.data</code> is refused,
-&ldquo;&lsquo;data_end&rsquo; is a packet bound, not a number; &lsquo;#&rsquo; on the packet is its length&rdquo;. On a kernel without
-efficient unaligned access, a read wider than a byte is refused (#2047): &ldquo;&lsquo;getuint16&rsquo; reads more
-than a byte, and this kernel lacks efficient unaligned access&rdquo;. <code>skb:data(layer)</code> is refused:
-&ldquo;&lsquo;data&rsquo; with a layer is not compiled yet&rdquo;.</p>
+<p>A read that passes the end of the packet stops the program, and so does an XDP read that starts
+past byte 65535 less its width. There is no <code>getuint64</code>, since a Lua integer is signed, and no
+write: &ldquo;the packet has no method &lsquo;setbyte&rsquo;&rdquo;. The bounds of the packet are not numbers:
+<code>ctx.data_end - ctx.data</code> is refused, &ldquo;&lsquo;data_end&rsquo; is a packet bound, not a number; &lsquo;#&rsquo; on the
+packet is its length&rdquo;. On a kernel without efficient unaligned access, an XDP read wider than a
+byte is refused (#2047): &ldquo;&lsquo;getuint16&rsquo; reads more than a byte, and this kernel lacks efficient
+unaligned access&rdquo;; a TC read is not, since it copies its bytes before it reads them.
+<code>skb:data(layer)</code> is refused: &ldquo;&lsquo;data&rsquo; with a layer is not compiled yet&rdquo;.</p>
 
 <p><a name="Maps"></a></p>
 
@@ -947,7 +951,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:56:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:59:37</span>
 </div>
 </footer>
 </body>

@@ -162,6 +162,7 @@
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.limits.html">linux.limits</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
@@ -205,9 +206,9 @@
  priority, which <code>skb:priority(v)</code> sets to a value from 0 up to <code>U32_MAX</code>, returning it. A value
  outside them is refused where the compiler holds it, and stops the program where the program
  computes it. Any other method is refused, <code>skb:mark()</code> among them. <a href="../modules/skb.html#skb:data">skb.data</a>/<code>skb.data_end</code> are
- the packet&rsquo;s bounds rather than numbers, and <code>skb:data()</code> is the packet from <code>skb-&gt;data</code>, read as
- <code>ctx:packet()</code> is in <a href="../modules/bpf.xdp.html#">bpf.xdp</a>; a layer is refused, and an skb that is not linear, where the
- kernel&rsquo;s <code>skb:data()</code> raises in a tc callback, stops the program.
+ the packet&rsquo;s bounds rather than numbers, and <code>skb:data()</code> is the whole packet from <code>skb-&gt;data</code>,
+ <code>#skb</code> bytes long, read as <code>ctx:packet()</code> is in <a href="../modules/bpf.xdp.html#">bpf.xdp</a> whether the skb is linear or not; a
+ layer is refused.
     <h2 id="usage">Usage</h2>
         <pre class="example">local tc     = require(&quot;bpf.tc&quot;)
 local action = require(&quot;linux.tc&quot;).action
@@ -283,7 +284,7 @@ end, {egress = true})
 <a href="../../modules/bpf.tc.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.tc.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:56:23</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:59:37</span>
 </div>
 </footer>
 </body>
