@@ -12,6 +12,8 @@
 #   - the body's require reads none of the host's modules: class and struct come from the kernel
 #     scripts though a Lua module on LUA_PATH_5_5 and a C one on LUA_CPATH_5_5 carry their names,
 #     and a luaebpf.* module the compiler itself does not load is reached through the host's path
+#   - neither does the compiler's own read of linux.bpf, for the kernel's stack limit, though a Lua
+#     module on LUA_PATH_5_5 carries that name
 #   - luaebpf.proto.read hands back a function's own bytecode: its numparams, maxstacksize, first
 #     opcode, first line and source are asserted in the body, and a '/' reads as IDIV
 #   - a function and the one it returns, and two functions, written on one line, each read as
@@ -40,6 +42,8 @@ shadow="$LUAEBPF_WORK/shadow"
 mkdir "$shadow"
 echo 'return function() end' > "$shadow/class.lua"
 : > "$shadow/struct.so"
+mkdir "$shadow/linux"
+echo 'return {}' > "$shadow/linux/bpf.lua"
 
 # a luaebpf.* module only the host's path carries
 mkdir "$shadow/luaebpf"

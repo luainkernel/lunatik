@@ -26,6 +26,7 @@ local EM_BPF      <const> = 247
 local ET_REL      <const> = 1
 local ELFDATA2LSB <const> = 1
 local ELFDATA2MSB <const> = 2
+local SHN_UNDEF   <const> = 0
 
 local elf = {}
 
@@ -43,7 +44,7 @@ elf.bind = {LOCAL = 0, GLOBAL = 1}
 
 --- Symbol types, as `STT_*` names them.
 -- @table luaebpf.elf.type
-elf.type = {OBJECT = 1, FUNC = 2}
+elf.type = {NOTYPE = 0, OBJECT = 1, FUNC = 2}
 
 --- Relocation types: `IMM64` is `R_BPF_64_64`, which patches the immediate of an `ld_imm64`,
 -- and `IMM32` is `R_BPF_64_32`, which patches a 32-bit one.
@@ -91,7 +92,8 @@ end
 ---
 -- Appends a symbol.
 -- @function luaebpf.elf.object:symbol
--- @tparam table symbol `{name, section, value, size, bind, type}`, `type` one of `elf.type`
+-- @tparam table symbol `{name, section, value, size, bind, type}`, `type` one of `elf.type`; a
+--   symbol with no `section` is undefined, for a relocation libbpf resolves outside the object
 -- @treturn integer the symbol's index
 -- @raise a local symbol follows a global one
 function object:symbol(symbol)
@@ -101,9 +103,9 @@ function object:symbol(symbol)
 		end
 		self.nlocals = self.nlocals + 1
 	end
+	local shndx = symbol.section == nil and SHN_UNDEF or self.indexes[symbol.section]
 	insert(self.symbols, pack(self.order .. "I4I1I1I2I8I8", self:string(symbol.name),
-		(symbol.bind << 4) | symbol.type, 0, self.indexes[symbol.section], symbol.value,
-		symbol.size))
+		(symbol.bind << 4) | symbol.type, 0, shndx, symbol.value, symbol.size))
 	return #self.symbols - 1
 end
 
