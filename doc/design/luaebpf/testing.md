@@ -63,8 +63,7 @@ does not poison the next.
 and asserts instead that the compiler refuses the loop with the documented message; a libbpf
 without `bpf_program__attach_tcx` skips the TC attach tests; a kernel that publishes no BTF for
 `luaxdp` or `luatc` skips the cases whose programs call that module's kfunc; a machine without
-`bpftool` or `clang` (needed once, for the runtime library at `make`) skips the suite with the
-reason.
+`bpftool` skips the suite with the reason.
 
 ## Test matrix
 
@@ -130,15 +129,11 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 | `report.sh` | the compiler's summary lists every call into Lua with its line |
 | `nobtf.sh` | an object whose kfunc libbpf cannot resolve, the `.ksyms` entry dropped by the test hook, fails the load and `lunatik run` naming the kfunc, and a program with no such call loads under the same hook; compiled whole, the program deploys through `lunatik run`, whose libbpf resolves the kfunc |
 
-### Phase 5: the runtime library, strings and loops
+### Phase 5: loops whose bound the program computes
 
 | Test | Proves |
 |------|--------|
-| `library.sh` | an object linked with the runtime library loads, and a library call verifies inside a subprogram |
-| `strcmp.sh` | a comparison against a string constant matches the interpreter over the corpus, including a prefix and an empty string |
-| `strkey.sh` | `getstring` into a `c64` map key finds an entry written by the kernel script |
-| `while.sh` | a `while` with a runtime bound terminates under `may_goto` and matches the interpreter |
-| `iter.sh` | the same loop lowered to the iterator kfuncs on a kernel without `may_goto` |
+| `iter.sh` | a `for` whose bound the program computes counts its passes with the iterator kfuncs and matches the interpreter, on a kernel with and without `may_goto` |
 
 ### Phase 6: examples
 
