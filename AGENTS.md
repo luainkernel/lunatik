@@ -299,6 +299,14 @@ prescribes a helper, a loop or a step two functions share is read as the spec, a
 `luaset_next` and kept it because the issue asked, where the tree spells a loop that two functions
 share as a foreach macro.
 
+Each deliverable that an epic, a phase of one or a design note plans names the maintainer's words or
+the issue that asks for it, quoted, and one that names none is a decision brought to him before it
+is a line of the plan. An issue of the plan itself, the epic or one of its phases, is not that
+issue: the design notes of the Lua to eBPF compiler made phase 6 compile the SNI parser of
+`examples/filter` whole, and phase 5 build strings for it, a goal that only #879 and #880, the
+issues of those two phases, asked for, and that the plan carried for two months, until the
+maintainer read it: "isso foi um escape grave de dimensao" (#2567).
+
 The comparison starts in the kernel. Before a mechanism is written over a kernel primitive, the
 kernel's own answer to the same problem is read, `Documentation/` for the family and the primitive's
 users under `lib/` and `kernel/`, and the commit body names the facility the shape was compared with,
