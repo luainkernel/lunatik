@@ -26,7 +26,8 @@
 # carrying a line untraced.sh fails, the bodies that repeat each, one that adds a line, and the held
 # lists review-post-guard writes, through that gh, for the session none: under ours/ for a comment on
 # this repository's #5, under placeholder/ for one on {owner}/{repo}'s #5, and under other/ for one on
-# luainkernel/lua#5; a gh on keyed/ answers as stub/'s only with the token in key.
+# luainkernel/lua#5; a gh on keyed/ answers as stub/'s only with the token in key. For a title, one
+# title.sh passes and one it names, each in a file and in the JSON gh api sends.
 #
 # Usage: bash tools/checks/cases/pr-body-guard.fixture.sh <dir>
 
@@ -104,6 +105,12 @@ done
 mkdir -p sub
 cp named.md sub/body.md
 printf 'mutation { markPullRequestReadyForReview(input: {pullRequestId: "PR_1"}) { clientMutationId } }\n' > sub/ready.graphql
+
+printf 'luaebpf: a program file must name its default verdict\n' > good.title
+printf 'luaebpf: a program file names the verdict it returns where it stops\n' > bad.title
+for title in good bad; do
+	jq -n --rawfile title $title.title '{title: ($title | rtrimstr("\n"))}' > $title-title.json
+done
 
 printf cases > key
 mkdir -p keyed

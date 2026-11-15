@@ -506,10 +506,15 @@ named, not one discovered at that consumer's build.
 * No cosmetic changes inside a feature or fix commit, not even a blank line.
 * Never remove an existing comment unless the change made it factually wrong.
 * Restoring something that was removed puts it back exactly where and how it was.
-* Subject line says what changed and why, not how. A body only when there is something the diff does
-  not say: a new API, a behaviour change, a non obvious rationale. No bullet list of every detail.
-* A pull request title and body follow the same rule: what and why, nothing the commits already say.
-  No "Test plan" section, and no em dashes.
+* A subject line is `<area>: <what changes for whoever uses it>`, one plain clause of about 60
+  characters at most, with no subordinate clause, "where", "so", "whose", "as ...": the why goes in the
+  body. #2484 reached the maintainer as `skb: data() views a copy of a tc callback's non-linear skb,
+  where it raised`, he took `skb: data() reads a non-linear skb in a tc callback` in its place, and of
+  the titles before it he said "os titulos tao ruins e incompreensiveis". `tools/checks/title.sh` holds
+  a subject or a title to the length and the clauses. A body only when there is something the diff
+  does not say: a new API, a behaviour change, a non obvious rationale. No bullet list of every detail.
+* A pull request title and body follow the same rule: the title is a subject, and the body says what
+  and why, nothing the commits already say. No "Test plan" section, and no em dashes.
 * The body explains the change to a reviewer who has not read its issue, in four short paragraphs
   at most: the failure or the need in one plain sentence, what a script can do today and what
   breaks; what the change lets a script or a user do, shown, where it reaches one, by the code they

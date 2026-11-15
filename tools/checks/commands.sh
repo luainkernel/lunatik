@@ -28,7 +28,8 @@ command_text() {
 # an eval, a substitution and a heredoc a shell reads are commands too; other quoted text is one
 # word, another heredoc data. With -v redirections=1, the files the redirections write instead; with
 # -v assignments=1, each command after the names of the variables it runs under, NAME=, its own and
-# those of the shell that reads it
+# those of the shell that reads it; with -v words=1, a space a word holds printed as the unit separator,
+# so each word of a command is a field of its line
 COMMAND_PARSER='
 	function word() {
 		if (w == "" && !quoted)
@@ -116,6 +117,9 @@ COMMAND_PARSER='
 			else
 				break
 		}
+		if (words)
+			for (c = i; c <= n; c++)
+				gsub(/[ \n]/, "\037", W[c])
 		line = join(i)
 		gsub(/\n/, " ", line) # a quoted newline is not a new command
 		if (line != "" && !redirections)
@@ -244,6 +248,11 @@ redirections() {
 # the commands the command field runs, each after the names of the variables it runs under, NAME=
 assignments() {
 	command_text "$1" | awk -v assignments=1 "$COMMAND_PARSER"
+}
+
+# the commands the command field runs, each word a field: a space a word holds is the unit separator
+words() {
+	command_text "$1" | awk -v words=1 "$COMMAND_PARSER"
 }
 
 # git past its global options, -C with its word and -c with its key=value, a value commands prints
@@ -379,13 +388,14 @@ gh_writes() {
 	}'
 }
 
-# the commands the hook input <input> runs, as commands prints them, with each file a gh command reads, a
-# body, notes, the JSON gh api sends or a field's @<file>, spelled as the path gh reads it from: under the
-# input's cwd, or the hook's directory when it names none, moved by every cd before it as git_runs moves it
+# the commands the hook input <input> runs, as commands prints them, or as <printer> does, words, with
+# each file a gh command reads, a body, notes, the JSON gh api sends or a field's @<file>, spelled as the
+# path gh reads it from: under the input's cwd, or the hook's directory when it names none, moved by every
+# cd before it as git_runs moves it
 gh_commands() {
 	local cwd
 	cwd=$(printf '%s' "$1" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
-	commands "$1" | awk -v dir="${cwd:-$PWD}" "$FOLLOW_CD"'
+	"${2:-commands}" "$1" | awk -v dir="${cwd:-$PWD}" "$FOLLOW_CD"'
 	# the file <path> names, with the quotes gh_body takes off taken off; - is stdin
 	function at(path) {
 		gsub(/^["\047\\]+|["\047\\]+$/, "", path)
@@ -587,6 +597,30 @@ gh_option() {
 				print substr($i, length(long) + 2)
 				exit
 			}
+	}'
+}
+
+# the title the gh write <post>, as words prints it, gives a pull request: the word gh pr takes as
+# --title or -t, or gh api as its title field. It is read as that one word, since among the words
+# commands prints a word of a title, --btf or -s, reads as an option, and the endpoint after as its last
+gh_title() {
+	printf '%s\n' "$1" | awk '
+	{
+		for (i = 3; i <= NF; i++) {
+			if ($2 == "api" && $i ~ /^(-f|-F|--raw-field|--field)$/ && $(i + 1) ~ /^title=/)
+				title = substr($(i + 1), 7)
+			else if ($2 == "api" && $i ~ /^(-[fF]|--raw-field=|--field=)title=/)
+				title = substr($i, index($i, "title=") + 6)
+			else if ($2 != "api" && ($i == "--title" || $i == "-t"))
+				title = $(i + 1)
+			else if ($2 != "api" && $i ~ /^(--title=|-t.)/)
+				title = substr($i, $i ~ /^--/ ? 9 : 3)
+			else
+				continue
+			gsub(/\037/, " ", title)
+			print title
+			exit
+		}
 	}'
 }
 

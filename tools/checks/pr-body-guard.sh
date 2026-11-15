@@ -23,7 +23,8 @@
 # request review-post-guard held a post on in the same session waits for the same
 # REVIEW_POST_OK, as the held post by another route. A pull request body is read against the
 # files its change carries, and one the session posts to this repository only once a reader
-# with none of the change's history passed its text (body-read.sh).
+# with none of the change's history passed its text (body-read.sh). A title a pull request of this
+# repository is given, opened or edited, is posted only when title.sh passes on it.
 
 input=$(cat)
 
@@ -303,6 +304,46 @@ reader() {
 	done <<< "$1"
 }
 
+# the title each write of <writes>, as words prints them, gives a pull request passes title.sh: given to gh pr or
+# as gh api's field, read from the file -F title=@ names, or in the JSON gh api sends; gh pr create is given one,
+# and one the guard cannot read, which the shell expands or the same command writes, is refused
+titles() {
+	local post body title findings
+	while IFS= read -r post; do
+		[ -n "$post" ] || continue
+		body=$(gh_body "$post")
+		if [ "${body%% *}" = input ]; then
+			title=$(jq -r '.title // empty' "${body#* }" 2> /dev/null)
+		else
+			title=$(gh_title "$post")
+			case $title in
+			*'$('*|*'${'*|*'$'[A-Za-z_]*)
+				echo "pr-body-guard: the title carries what the shell expands, which arrives here unexpanded: spell it out, or pass gh api the file that holds it, -F title=@<file>." >&2
+				exit 2 ;;
+			esac
+		fi
+		case $title in
+		@/*)
+			if [ ! -f "${title#@}" ]; then
+				echo "pr-body-guard: a title is read from the file -F title=@ names, and ${title#@} is not one. The guard reads the command before it runs, so a title the same command writes is not there yet: write it in a command of its own first." >&2
+				exit 2
+			fi
+			title=$(cat "${title#@}") ;;
+		"")
+			# gh pr create makes the title of a commit's subject, or of the branch's name, when it is given none, as --fill asks
+			case $(printf '%s' "$post" | awk '{ print $2, $3 }') in
+			"pr create"|"pr new")
+				echo "pr-body-guard: gh pr create with no --title opens the pull request under a commit's subject or the branch's name, which title.sh did not read here: pass --title." >&2
+				exit 2 ;;
+			esac
+			continue ;;
+		esac
+		findings=$(bash "$(dirname "$0")/title.sh" "$title") && continue
+		echo "pr-body-guard: the title $findings" >&2
+		exit 2
+	done <<< "$1"
+}
+
 # the writes of <writes> to this repository, or a fork of it: the examples, the contract and the
 # severity labels are its tree's and its tracker's, and a write to another repository answers to its own
 ours() {
@@ -321,6 +362,7 @@ case "$(command_text "$input")" in
 esac
 # a review or a comment is review-post-guard's, on an endpoint below the pull request's or the issue's
 check "$(gh_writes "$cmds" 'pr (create|new|edit)' "$repo/pulls(/[0-9]+)?\$")" pr-body.sh
+titles "$(ours "$(gh_writes "$(gh_commands "$input" words)" 'pr (create|new|edit)' "$repo/pulls(/[0-9]+)?\$")")"
 case "$(command_text "$input")" in
 	*EXAMPLES_OK=1*) ;;
 	*) examples "$(ours "$(gh_writes "$cmds" 'pr (create|new)' "$repo/pulls\$")")" ;;
