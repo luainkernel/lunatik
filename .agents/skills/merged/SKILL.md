@@ -25,8 +25,8 @@ and the report reaches him as it does for his own.
 
 A pull request the maintainer approved in his own words merges the same way, `MERGE_OK=1` on the
 merge in place of the review's status: its fixups folded, with `git rebase -i --autosquash`, into a
-head whose tree is the one he read, and the CI passed on that head. The steps below then run as
-after any merge.
+head whose tree is the one he read, waiting for no CI and running no suite. The steps below then
+run as after any merge.
 
 # 1. Read the merge
 
