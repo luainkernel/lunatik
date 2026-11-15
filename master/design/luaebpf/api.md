@@ -39,7 +39,7 @@ kernel, verified, held to the subset below.
 
     return xdp.program(function(ctx)
         return action.PASS
-    end)
+    end, {default = action.PASS})
 
 That is the whole of `tests/xdp/xdp_pass.bpf.c`, minus the call into Lua. `xdp.program` records
 the function; `lunatik bpf` reads its bytecode, types it, emits it and writes the object. The
@@ -111,9 +111,9 @@ An access that fails either does not raise (there is nothing to raise to): the p
 returns the **error verdict** of its type, `XDP_ABORTED` in XDP, the kernel's verdict for a
 program error, which drops the packet and, in the generic path and in most drivers, fires the
 `xdp:xdp_exception` tracepoint, and `TC_ACT_SHOT` in TC, which has no error verdict and drops the
-packet. The **default verdict**, `PASS` for XDP and `OK` for TC unless the constructor names
-another, is what the program returns where its function returns no value, `return` or
-`return nil`, and never where it stops:
+packet. The **default verdict**, which the program file names in the constructor, is what the
+program returns where its function returns no value, `return` or `return nil`, and never where it
+stops; a constructor that names none is refused at the line of its function:
 
     return xdp.program(function(ctx) ... end, {default = action.DROP})
 
@@ -139,8 +139,9 @@ refused, and `__sk_buff`'s `ingress_ifindex`, which it does not carry, is refuse
 refused until a compiled read reaches one. In a tc callback the kernel object reads an skb that is
 not linear, one whose `len` runs past `data_end`, whole, from a copy of the packet the callback's
 first `skb:data()` makes, so a compiled read goes through `bpf_skb_load_bytes`, which copies the
-same bytes, and `#` on the packet is `len`. `tc.program(fn, {egress = true})` puts the entry in `tcx/egress` rather
-than `tcx/ingress`, which is how libbpf reads the attach point back.
+same bytes, and `#` on the packet is `len`. `tc.program(fn, {egress = true, default = action.OK})`
+puts the entry in `tcx/egress` rather than `tcx/ingress`, which is how libbpf reads the attach
+point back.
 
 ## Maps
 
@@ -241,7 +242,7 @@ The escape hatch is a call the program writes, at the point it chooses:
         end
         flows[hash] = skb:priority()
         return verdict
-    end)
+    end, {default = action.OK})
 
 That is `examples/sniclassify/classify.c` in Lua, its cache keyed per flow by `skb->hash` as the C
 is. `lunatik.runtime(script)`, of `lunatik`, the compile-time twin of the kernel's, names a kernel
@@ -308,10 +309,12 @@ of the deployment, and goes on the command line, as it does with `bpftool net at
 
 ## Program types
 
-| Module | Program type | Context | Verdicts | Default |
-|--------|-------------|---------|----------|---------|
-| `bpf.xdp` | `BPF_PROG_TYPE_XDP` | `ctx` with `ctx:packet()` | `linux.xdp.action` | `PASS` |
-| `bpf.tc` | `BPF_PROG_TYPE_SCHED_CLS`, tcx ingress or egress | `skb` with `skb:data()` | `linux.tc.action` | `OK` |
+| Module | Program type | Context | Verdicts |
+|--------|-------------|---------|----------|
+| `bpf.xdp` | `BPF_PROG_TYPE_XDP` | `ctx` with `ctx:packet()` | `linux.xdp.action` |
+| `bpf.tc` | `BPF_PROG_TYPE_SCHED_CLS`, tcx ingress or egress | `skb` with `skb:data()` | `linux.tc.action` |
+
+No module picks a default verdict: each constructor requires the one the program file names.
 
 ## The compile-time environment
 

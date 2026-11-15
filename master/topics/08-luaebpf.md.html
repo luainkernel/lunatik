@@ -233,14 +233,14 @@ reads.</p>
         <span class="keyword">end</span>
     <span class="keyword">end</span>
     <span class="keyword">return</span> action.PASS
-<span class="keyword">end</span>)
+<span class="keyword">end</span>, {default = action.PASS})
 </pre>
 
 
 <p>The file has two parts. Its body, every line outside the function, runs once, on the host, when
-the file is compiled: it declares the map <code>counts</code> and the program. The function is the program:
-it is compiled to eBPF and runs in the kernel on each packet. It returns <code>XDP_PASS</code>, so every
-packet it can read goes on to the network stack.</p>
+the file is compiled: it declares the map <code>counts</code> and the program, with the verdict a <code>return</code>
+with no value gives. The function is the program: it is compiled to eBPF and runs in the kernel on
+each packet. It returns <code>XDP_PASS</code>, so every packet it can read goes on to the network stack.</p>
 
 <p>Compile it into place and attach it to a device:</p>
 
@@ -318,8 +318,8 @@ p:getbyte(23) == 6</code> gives &ldquo;the verdict may be a boolean here; return
 
 
 <p>A <code>return</code> with no value, or with <code>nil</code>, returns the default verdict. A verdict that may be nil is
-refused: &ldquo;the verdict may be nil here; test it first&rdquo;. The default verdict is <code>XDP_PASS</code> or
-<code>TC_ACT_OK</code>, unless the constructor names another action:</p>
+refused: &ldquo;the verdict may be nil here; test it first&rdquo;. The constructor names the default verdict,
+an action, and a constructor that names none is refused at the line of the program&rsquo;s function:</p>
 
 <pre>
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(filter, {default = action.DROP})
@@ -723,7 +723,7 @@ port 53 longer than 512 bytes:</p>
         <span class="keyword">return</span> verdict
     <span class="keyword">end</span>
     <span class="keyword">return</span> action.PASS
-<span class="keyword">end</span>)
+<span class="keyword">end</span>, {default = action.PASS})
 </pre>
 
 
@@ -996,7 +996,7 @@ as the words of 1 and 0, which are actions, so a test of the word cannot tell th
 </tr>
 <tr>
 <td> a call into the runtime passes the context, which the program&rsquo;s parameter does not hold </td>
-<td> <code>xdp.program(function() ... end)</code> calling <code>limits:run(1)</code> </td>
+<td> <code>xdp.program(function() ... end, opts)</code> calling <code>limits:run(1)</code> </td>
 <td> <code>function(ctx)</code> </td>
 </tr>
 <tr>
@@ -1055,6 +1055,11 @@ as the words of 1 and 0, which are actions, so a test of the word cannot tell th
 <td> <code>{default = action.DROP}</code> </td>
 </tr>
 <tr>
+<td> xdp.program&rsquo;s default verdict is not an integer </td>
+<td> <code>xdp.program(fn)</code>, <code>{default = &quot;drop&quot;}</code> </td>
+<td> <code>xdp.program(fn, {default = action.PASS})</code>, and <code>tc.program</code> alike </td>
+</tr>
+<tr>
 <td> &lsquo;half&rsquo; is a float, which a compiled function cannot hold </td>
 <td> <code>local half = math.sqrt(4)</code> in the body </td>
 <td> an integer </td>
@@ -1103,7 +1108,7 @@ as the words of 1 and 0, which are actions, so a test of the word cannot tell th
    +----------------------------------------------------+
    | the body       runs once, now, on the host         |
    |   map.array(counts, {...})       --&gt; a map         |
-   |   xdp.program(function ... end)  --&gt; a program     |
+   |   xdp.program(fn, {...})         --&gt; a program     |
    | the function   compiled now, run later, per packet |
    +----------------------------------------------------+
           |
@@ -1172,7 +1177,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 22:49:29</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 22:52:14</span>
 </div>
 </footer>
 </body>

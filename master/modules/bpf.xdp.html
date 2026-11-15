@@ -200,9 +200,9 @@
  script&rsquo;s xdp callback does. Where it computes a verdict that is no action, and where Lua would
  raise, at a read past the packet or a division by 0, the program stops and returns <code>XDP_ABORTED</code>,
  the kernel&rsquo;s verdict for a program error, which drops the packet; where it returns no value, it
- returns its default verdict. A verdict the compiler holds that is no action, and a boolean, are
- refused, &ldquo;the verdict 11 is not an XDP action&rdquo; and &ldquo;the verdict may be a boolean here; return an
- action&rdquo;.</p>
+ returns the default verdict its constructor names. A verdict the compiler holds that is no
+ action, and a boolean, are refused, &ldquo;the verdict 11 is not an XDP action&rdquo; and &ldquo;the verdict may be
+ a boolean here; return an action&rdquo;.</p>
 
 <p> The context has the methods of the kernel&rsquo;s XDP <code>ctx</code> object: <code>ctx:packet()</code>, the packet, read
  with <code>getbyte</code>, <code>getint16</code> and the other reads of the kernel&rsquo;s <a href="../modules/data.html#">data</a> object, in the kernel&rsquo;s
@@ -224,13 +224,13 @@ return xdp.program(function(ctx)
         return action.DROP
     end
     return action.PASS
-end)
+end, {default = action.PASS})
 </pre>
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#bpf.xdp.program">bpf.xdp.program (fn[, opts])</a></td>
+	<td class="name"><a href="#bpf.xdp.program">bpf.xdp.program (fn, opts)</a></td>
 	<td class="summary">Declares <code>fn</code> as an XDP program.</td>
 	</tr>
 </table></div>
@@ -238,7 +238,7 @@ end)
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
-    <dt id="bpf.xdp.program"><a name="bpf.xdp.program"></a><strong>bpf.xdp.program (fn[, opts])</strong></dt>
+    <dt id="bpf.xdp.program"><a name="bpf.xdp.program"></a><strong>bpf.xdp.program (fn, opts)</strong></dt>
     <dd>
     Declares <code>fn</code> as an XDP program.
 
@@ -251,11 +251,9 @@ end)
         </li>
         <li><span class="parameter">opts</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-         <code>default</code>, the verdict the program returns where its function returns no
-   value, an action (<code>linux.xdp.action.PASS</code>), and <code>name</code>, what the program is called in the
-   object, cut to the fifteen characters <code>BPF_OBJ_NAME_LEN</code> leaves and made unique against the
-   names already taken.
-         (<em>optional</em>)
+         <code>default</code>, required, the verdict the program returns where its function
+   returns no value, an action, and <code>name</code>, what the program is called in the object, cut to the
+   fifteen characters <code>BPF_OBJ_NAME_LEN</code> leaves and made unique against the names already taken.
         </li>
     </ul>
 
@@ -267,8 +265,9 @@ end)
     </ol>
 
     <h3>Raises</h3>
-    <code>xdp.program takes a Lua function</code>, or <code>&lt;file&gt;:&lt;line&gt;: xdp.program&apos;s default verdict is not
-   an integer</code> or <code>is not an XDP action</code>, the line where <code>fn</code> is defined
+     <code>xdp.program takes a Lua function</code>, or <code>&lt;file&gt;:&lt;line&gt;: xdp.program&apos;s default verdict is not
+   an integer</code>, which a missing <code>default</code> raises too, or <code>is not an XDP action</code>, the line where
+   <code>fn</code> is defined
 
 
 
@@ -290,7 +289,7 @@ end)
 <a href="../../modules/bpf.xdp.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.xdp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 22:49:29</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 22:52:14</span>
 </div>
 </footer>
 </body>
