@@ -239,6 +239,13 @@
 	<td class="summary">Closes the objects the runtimes share, then every runtime, releasing their Lua states.</td>
 	</tr>
 </table></div>
+<h2 id="Naming_a_kernel_Lua_runtime_in_a_program_file">Naming a kernel Lua runtime in a program file </h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#lunatik.runtime">lunatik.runtime (script)</a></td>
+	<td class="summary">Names the kernel Lua runtime a program calls.</td>
+	</tr>
+</table></div>
 
     <h2 class="section-header" id="lunatik-details"><a name="lunatik"></a>lunatik in detail</h2>
 
@@ -288,8 +295,8 @@
  the last reference to the set is dropped. A hook its script registers with the kernel is one
  the runtimes share, and it holds the set until <code>stop()</code>, so dropping the handle does not close a
  set whose script registered one, and <code>stop()</code> cannot be called once its last handle is gone. A
- script stops the sets it creates, as it stops a runtime: see <a href="../modules/lunatik.html#runtime">lunatik.runtime</a>. Only a process
- runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
+ script stops the sets it creates, as it stops a runtime: see <a href="../modules/lunatik.html#runtime">lunatik.runtime</a>. Only a
+ process runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
 
 
     <h3>Parameters</h3>
@@ -405,7 +412,7 @@
    &ldquo;cannot share SINGLE object&rdquo; if a value cannot cross, numbering the
    arguments on the way in and the yielded values on the way back, or the error raised on
    resumption; &ldquo;not allowed from the runtime itself&rdquo; from under the runtime&rsquo;s own lock, the
-   contexts <a href="../modules/lunatik.html#percpu:stop">stop</a> names, where the resumption would wait on it; &ldquo;EINTR&rdquo; if the stop of the
+   contexts <a href="../modules/lunatik.html#runtime:stop">stop</a> names, where the resumption would wait on it; &ldquo;EINTR&rdquo; if the stop of the
    calling kernel thread, or a fatal signal to any other task, ends its wait for the runtime&rsquo;s
    lock
 
@@ -496,6 +503,57 @@
 
 </dd>
 </dl>
+    <h2 class="section-header" id="Naming_a_kernel_Lua_runtime_in_a_program_file-details"><a name="Naming_a_kernel_Lua_runtime_in_a_program_file"></a>Naming a kernel Lua runtime in a program file  in detail</h2>
+
+          <div class="section-description">
+           <a href="../modules/lunatik.html#lunatik.runtime">lunatik.runtime</a> runs in the body of a program file, under <code>lunatik bpf</code>, and names a runtime
+ by the script it runs, which <code>lunatik run</code> starts; a program&rsquo;s own function calls the runtime&rsquo;s
+ <code>run</code> method, and the call lowers to the kfunc of the program&rsquo;s type, <code>bpf_luaxdp_run</code> in an XDP
+ program and <code>bpf_luatc_run</code> in a TC one. The call answers the verdict the runtime&rsquo;s callback
+ returns, or nil, and the program tests the answer before it reads it. A kernel script the body
+ requires that itself requires <a href="../modules/lunatik.html#">lunatik</a> gets this twin, which holds <a href="../modules/lunatik.html#runtime">runtime</a> alone.
+          </div>
+    <dl class="function">
+    <dt id="lunatik.runtime"><a name="lunatik.runtime"></a><strong>lunatik.runtime (script)</strong></dt>
+    <dd>
+    Names the kernel Lua runtime a program calls.</p>
+
+<p> Inside a program&rsquo;s own function the runtime&rsquo;s <code>run</code> method is called with numbers,
+ <code>limits:run(a, b)</code>, and the call runs the callback the runtime registered with the attach of the
+ program&rsquo;s type, <a href="../modules/xdp.html#attach">xdp.attach</a> or <a href="../modules/tc.html#attach">tc.attach</a>, handing it the program&rsquo;s context and each argument as
+ a 64-bit integer, in order, which the callback reads as <code>ctx:argument():getint64(0)</code>, <code>getint64(8)</code>
+ and on. The call answers the verdict the callback returns, or <code>nil</code> where the kfunc returns <code>-1</code>:
+ no softirq runtime of that name with a callback attached, a callback that raises, returns <code>nil</code> or
+ a value outside <a href="../modules/linux.xdp.html#action">linux.xdp.action</a> or <a href="../modules/linux.tc.html#action">linux.tc.action</a>, or one that returns
+ <code>linux.tc.action.UNSPEC</code>, which is <code>-1</code>. The program tests the answer before it reads it, with
+ <code>if v then</code>, <code>if not v then</code>, <code>v == nil</code> or <code>v ~= nil</code>; every other use is refused at its line, and
+ so are a call of the runtime itself, <code>limits(a)</code>, and any other method.
+ An object with such a call loads where the module publishes its BTF (<code>make btf_install</code>).
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">script</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         the script the runtime runs, as <code>lunatik run</code> takes it, its path below
+   <code>/lib/modules/lua/</code> without <code>.lua</code>
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        the runtime, whose <code>run</code> a program calls
+    </ol>
+
+    <h3>Raises</h3>
+    <code>&lt;file&gt;:&lt;line&gt;: lunatik.runtime takes a script</code>, the line that called it
+
+
+
+</dd>
+</dl>
 
 
 </main>
@@ -512,7 +570,7 @@
 <a href="../../modules/lunatik.html">5.1 docs</a> ·
 <a href="../../5.0/modules/lunatik.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:37:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:50:22</span>
 </div>
 </footer>
 </body>

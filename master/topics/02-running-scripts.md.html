@@ -393,6 +393,11 @@ lunatik bpf filter.bpf.lua
 </pre>
 
 
+<p>A program that <a href="../topics/08-luaebpf.md.html#calls-into-a-kernel-lua-runtime">calls a kernel Lua runtime</a>, named
+by <a href="../modules/lunatik.html#runtime">lunatik.runtime</a>, runs the interpreter on the packet path at each call, so <code>lunatik bpf</code> prints
+on stdout a line per call it compiled, <code>&lt;file&gt;:&lt;line&gt;: calls the runtime &apos;&lt;name&gt;&apos;</code>, and nothing for
+a file with none.</p>
+
 <p><code>lunatik run</code> is what loads and attaches the object: see <a href="#compiled-programs">Compiled programs</a>.</p>
 
 <p>The object is compiled for the kernel <code>lunatik.config</code> describes, which <code>make</code> writes from the tree
@@ -400,9 +405,10 @@ it builds the modules against: that kernel&rsquo;s version and whether it reads 
 decide what a program may emit, and its byte order is the object&rsquo;s. The types a program reads, its
 context&rsquo;s struct and any layout <a href="../modules/luaebpf.vmlinux.html#">luaebpf.vmlinux</a> answers, come from that kernel&rsquo;s BTF:
 <code>/sys/kernel/btf/vmlinux</code> unless <code>--btf</code> names a raw BTF file, the bytes that path serves. The
-kernel scripts the body requires, its <code>linux.*</code> tables among them, come from <code>/lib/modules/lua/</code>
-unless <code>--scripts</code> names another directory laid out as that one; a module that directory lacks is
-not found, and is not read from <code>/lib/modules/lua/</code>.</p>
+kernel scripts the body requires, its <code>linux.*</code> tables among them, and the <a href="../modules/linux.bpf.html#">linux.bpf</a> the compiler
+reads the stack limit from, come from <code>/lib/modules/lua/</code> unless <code>--scripts</code> names another directory
+laid out as that one; a module that directory lacks is not found, and is not read from
+<code>/lib/modules/lua/</code>.</p>
 
 <p>A build host compiles for the kernel an image ships in three steps:</p>
 
@@ -429,14 +435,14 @@ objcopy <span class="comment">--dump-section .BTF=vmlinux.btf vmlinux /dev/null
 <p>A BTF of the other byte order than the object&rsquo;s is refused, naming both, since it describes another
 kernel: the build host&rsquo;s own, read by default, in a compile for a kernel of the other order.</p>
 
-<p><a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> in the body finds the compile-time modules first, <a href="../modules/bpf.xdp.html#">bpf.xdp</a>, <a href="../modules/bpf.tc.html#">bpf.tc</a> and <a href="../modules/bpf.map.html#">bpf.map</a>,
-which declares a map rather than opening the kernel&rsquo;s, then the compiler&rsquo;s own <a href="../modules/luaebpf.html#">luaebpf</a> modules,
-then the kernel scripts, under <code>/lib/modules/lua/</code> or the directory <code>--scripts</code> names, whose modules
-<code>lunatic</code> compiles as it does the program file, installed as source or, with <code>BYTECODE=1</code>, as
-chunks. It finds nothing else the CLI&rsquo;s Lua would, so a Lua or C module the host installs never
-stands in for a kernel script. <code>10 / 4</code> is <code>2</code> in the body as in the kernel; the CLI&rsquo;s libraries can
-still return a float, as <a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.sqrt">math.sqrt</a> does, and one reaching a compiled function is refused at the
-line that reaches it.</p>
+<p><a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> in the body finds the compile-time modules first, <a href="../modules/bpf.xdp.html#">bpf.xdp</a>, <a href="../modules/bpf.tc.html#">bpf.tc</a>, <a href="../modules/bpf.map.html#">bpf.map</a>, which
+declares a map rather than opening the kernel&rsquo;s, and <a href="../modules/lunatik.html#">lunatik</a>, which names a runtime rather than
+starting one, then the compiler&rsquo;s own <a href="../modules/luaebpf.html#">luaebpf</a> modules, then the kernel scripts, under
+<code>/lib/modules/lua/</code> or the directory <code>--scripts</code> names, whose modules <code>lunatic</code> compiles as it does
+the program file, installed as source or, with <code>BYTECODE=1</code>, as chunks. It finds nothing else the
+CLI&rsquo;s Lua would, so a Lua or C module the host installs never stands in for a kernel script.
+<code>10 / 4</code> is <code>2</code> in the body as in the kernel; the CLI&rsquo;s libraries can still return a float, as
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-math.sqrt">math.sqrt</a> does, and one reaching a compiled function is refused at the line that reaches it.</p>
 
 <p><a name="Compiled_programs"></a></p>
 
@@ -538,7 +544,7 @@ the kernel publishes the BTF the compiler reads. The program file itself stays o
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:37:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:50:22</span>
 </div>
 </footer>
 </body>

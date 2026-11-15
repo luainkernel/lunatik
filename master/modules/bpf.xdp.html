@@ -207,7 +207,11 @@
  byte order; <code>ctx:ingress()</code>, the index of the device the packet arrived on; and <code>ctx:queue()</code>,
  the receive queue it arrived in, neither writable. Any other method is refused, &ldquo;the context has
  no method &lsquo;<name>&rsquo;&rdquo;.
- <code>ctx.data</code> and <code>ctx.data_end</code> are the bounds of the packet, not numbers; <code>#p</code> is its length.
+ <code>ctx.data</code> and <code>ctx.data_end</code> are the bounds of the packet, not numbers; <code>#p</code> is its length.</p>
+
+<p> A call into a kernel Lua runtime <a href="../modules/lunatik.html#runtime">lunatik.runtime</a> names, <code>r:run(a, b)</code>, lowers to
+ <code>bpf_luaxdp_run</code>: it answers the verdict the callback <a href="../modules/xdp.html#attach">xdp.attach</a> registered returns, or nil, and
+ the program tests the answer before it reads it.
     <h2 id="usage">Usage</h2>
         <pre class="example">local xdp    = require(&quot;bpf.xdp&quot;)
 local action = require(&quot;linux.xdp&quot;).action
@@ -283,7 +287,7 @@ end)
 <a href="../../modules/bpf.xdp.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.xdp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:37:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:50:22</span>
 </div>
 </footer>
 </body>

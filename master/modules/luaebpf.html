@@ -257,9 +257,13 @@ local image = luaebpf.compile(&quot;filter.bpf.lua&quot;, &quot;build/vmlinux.bt
 
     <h3>Returns</h3>
     <ol>
-
+        <li>
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-        the BPF ELF object
+        the BPF ELF object</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
+        a line per call into the kernel Lua runtime the compiler met, in that order,
+   <code>&lt;file&gt;:&lt;line&gt;: calls the runtime &apos;&lt;name&gt;&apos;</code></li>
     </ol>
 
     <h3>Raises</h3>
@@ -290,7 +294,7 @@ local image = luaebpf.compile(&quot;filter.bpf.lua&quot;, &quot;build/vmlinux.bt
 <a href="../../modules/luaebpf.html">5.1 docs</a> ·
 <a href="../../5.0/modules/luaebpf.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:37:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:50:22</span>
 </div>
 </footer>
 </body>

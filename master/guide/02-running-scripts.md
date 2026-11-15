@@ -153,6 +153,11 @@ written.
 lunatik bpf filter.bpf.lua
 ```
 
+A program that [calls a kernel Lua runtime](08-luaebpf.md#calls-into-a-kernel-lua-runtime), named
+by `lunatik.runtime`, runs the interpreter on the packet path at each call, so `lunatik bpf` prints
+on stdout a line per call it compiled, `<file>:<line>: calls the runtime '<name>'`, and nothing for
+a file with none.
+
 `lunatik run` is what loads and attaches the object: see [Compiled programs](#compiled-programs).
 
 The object is compiled for the kernel `lunatik.config` describes, which `make` writes from the tree
@@ -160,9 +165,10 @@ it builds the modules against: that kernel's version and whether it reads a word
 decide what a program may emit, and its byte order is the object's. The types a program reads, its
 context's struct and any layout `luaebpf.vmlinux` answers, come from that kernel's BTF:
 `/sys/kernel/btf/vmlinux` unless `--btf` names a raw BTF file, the bytes that path serves. The
-kernel scripts the body requires, its `linux.*` tables among them, come from `/lib/modules/lua/`
-unless `--scripts` names another directory laid out as that one; a module that directory lacks is
-not found, and is not read from `/lib/modules/lua/`.
+kernel scripts the body requires, its `linux.*` tables among them, and the `linux.bpf` the compiler
+reads the stack limit from, come from `/lib/modules/lua/` unless `--scripts` names another directory
+laid out as that one; a module that directory lacks is not found, and is not read from
+`/lib/modules/lua/`.
 
 A build host compiles for the kernel an image ships in three steps:
 
@@ -185,14 +191,14 @@ The image then only loads the object.
 A BTF of the other byte order than the object's is refused, naming both, since it describes another
 kernel: the build host's own, read by default, in a compile for a kernel of the other order.
 
-`require` in the body finds the compile-time modules first, `bpf.xdp`, `bpf.tc` and `bpf.map`,
-which declares a map rather than opening the kernel's, then the compiler's own `luaebpf` modules,
-then the kernel scripts, under `/lib/modules/lua/` or the directory `--scripts` names, whose modules
-`lunatic` compiles as it does the program file, installed as source or, with `BYTECODE=1`, as
-chunks. It finds nothing else the CLI's Lua would, so a Lua or C module the host installs never
-stands in for a kernel script. `10 / 4` is `2` in the body as in the kernel; the CLI's libraries can
-still return a float, as `math.sqrt` does, and one reaching a compiled function is refused at the
-line that reaches it.
+`require` in the body finds the compile-time modules first, `bpf.xdp`, `bpf.tc`, `bpf.map`, which
+declares a map rather than opening the kernel's, and `lunatik`, which names a runtime rather than
+starting one, then the compiler's own `luaebpf` modules, then the kernel scripts, under
+`/lib/modules/lua/` or the directory `--scripts` names, whose modules `lunatic` compiles as it does
+the program file, installed as source or, with `BYTECODE=1`, as chunks. It finds nothing else the
+CLI's Lua would, so a Lua or C module the host installs never stands in for a kernel script.
+`10 / 4` is `2` in the body as in the kernel; the CLI's libraries can still return a float, as
+`math.sqrt` does, and one reaching a compiled function is refused at the line that reaches it.
 
 ## Compiled programs
 

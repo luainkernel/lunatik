@@ -341,6 +341,18 @@ eBPF instruction alone computes something else, the compiler emits what lies bet
 <td> the helper, and a value typed &ldquo;value or nil&rdquo; until <code>if v then</code> reads it, on the branch that found it </td>
 </tr>
 <tr>
+<td> <code>limits:run(a, b)</code> </td>
+<td> the callback&rsquo;s verdict, or nil </td>
+<td> the kfunc&rsquo;s <code>int</code> in the low 32 bits of R0, the only ones the verifier marks defined, and <code>-1</code> for nil </td>
+<td> the name and the arguments in the frame, the context in R3, R0 sign-extended from 32 bits, and an answer typed &ldquo;runtime answer&rdquo; until a test reads it </td>
+</tr>
+<tr>
+<td> <code>if v then</code>, <code>v == nil</code> on an answer </td>
+<td> false and true where the call answered nil </td>
+<td> a test of zero reads <code>-1</code> as true </td>
+<td> a comparison with <code>-1</code>, the branch that finds it storing the zero word nil is everywhere else </td>
+</tr>
+<tr>
 <td> <code>m[k] = v</code>, <code>m[k] = nil</code> </td>
 <td> the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a> raises when the map refuses the update, or refuses the delete for any reason but an absent key </td>
 <td> the helper&rsquo;s return code </td>
@@ -1335,6 +1347,143 @@ returns -4, and so does the program.</p>
 <p>The call returns to the program, which reads the flag before it goes on. <code>return half(a, b)</code> would
 be a tail call, which Lua runs without coming back, and is refused: &ldquo;a tail call cannot be
 compiled&rdquo;.</p>
+
+<p><a name="Calls_into_a_kernel_Lua_runtime"></a></p>
+
+<h2 id="calls-into-a-kernel-lua-runtime">Calls into a kernel Lua runtime</h2>
+
+<pre>
+<span class="keyword">local</span> xdp     = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+<span class="keyword">local</span> lunatik = <span class="global">require</span>(<span class="string">"lunatik"</span>)
+<span class="keyword">local</span> action  = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+
+<span class="keyword">local</span> limits = lunatik.<span class="function-name">runtime</span>(<span class="string">"limits"</span>)
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">local</span> port = p:<span class="function-name">getbyte</span>(<span class="number">36</span>) &lt;&lt; <span class="number">8</span> | p:<span class="function-name">getbyte</span>(<span class="number">37</span>)
+    <span class="keyword">local</span> verdict = limits:<span class="function-name">run</span>(port, #p)
+    <span class="keyword">if</span> verdict <span class="keyword">then</span>
+        <span class="keyword">return</span> verdict
+    <span class="keyword">end</span>
+    <span class="keyword">return</span> action.TX
+<span class="keyword">end</span>)
+</pre>
+
+
+<p><code>limits</code> is the runtime the body named: the kernel script <code>limits</code> of
+<a href="../topics/08-luaebpf.md.html#calls-into-a-kernel-lua-runtime">Calls into a kernel Lua runtime</a>, whose callback
+drops a frame to port 53 longer than 512 bytes and returns nothing for any other. <code>limits:run</code>
+reads the runtime&rsquo;s one method, which emits nothing: the runtime is a value of the body, and its
+register holds no word. The call lowers to the kfunc of an XDP program, <code>bpf_luaxdp_run</code>: <code>r1</code> the
+address of the name, <code>r2</code> its length with the NUL, <code>r3</code> the context, <code>r4</code> the address of the
+arguments and <code>r5</code> their size. The name and the arguments go below the frame&rsquo;s deepest word,
+<code>r10 - 56</code> here, where nothing outlives the call. <code>TX</code> on the nil branch tells that branch from the
+callback&rsquo;s verdict and from the <code>XDP_ABORTED</code> a stop returns. Instructions 0 to 45 take <code>ctx</code> and
+<code>p</code> and read bytes 36 and 37 into <code>port</code>, in <code>r8</code>.</p>
+
+<pre><code>      line 10: local verdict = limits:run(port, #p)
+  46  *(u64 *)(r10 -48) = r8        port, in Lua register 5, past the method and limits
+  47  r1 = *(u32 *)(r7 +0)          xdp_md.data
+  48  r2 = *(u32 *)(r7 +4)          xdp_md.data_end
+  49  r2 -= r1                      #p
+  50  *(u64 *)(r10 -56) = r2        #p, in Lua register 6
+  51  r1 = 126943822178668 ll       the name: two slots, decoded below
+  53  *(u64 *)(r10 -80) = r1        the name, below the frame
+  54  to 57: port at r10 -72 and #p at r10 -64, the arguments in order
+  58  r1 = r10
+  59  r1 += -80                     r1: the name, by address
+  60  r2 = 7                        r2: "limits" and its NUL
+  61  r3 = r6                       r3: the context
+  62  r4 = r10
+  63  r4 += -72                     r4: the arguments, by address
+  64  r5 = 16                       r5: their size, two words
+  65  call -1                       bpf_luaxdp_run: decoded below
+  66  r0 &lt;&lt;= 32                     the int's 32 bits, the only ones defined
+  67  r0 s&gt;&gt;= 32                    sign-extended, so -1 stays -1
+  68  r9 = r0                       verdict
+      line 11: if verdict then
+  69  if r9 == -1 goto 71           the kfunc's -1: nil
+  70  goto 73                       a verdict: the number branch
+  71  r9 = 0                        nil, the zero word it is everywhere else
+  72  goto 75                       the nil branch
+      line 12: return verdict
+  73  r0 = r9
+  74  exit
+      line 14: return action.TX
+  75  r1 = 3                        XDP_TX, read from linux.xdp
+  76  to 79: r0 is 3, and the exit
+      line 15: end)
+  80  r0 = 0                        XDP_ABORTED, where Lua would raise
+  81  exit
+</code></pre>
+
+<p><code>llvm-objdump</code> prints two of these instructions by what their bytes hold before libbpf has read
+the object. Instruction 51 is <code>18 01 00 00 6c 69 6d 69 00 00 00 00 74 73 00 00</code>, an <code>LD_IMM64</code>
+whose two immediates are the bytes <code>6c 69 6d 69</code> and <code>74 73 00 00</code>: <code>limits</code> and its NUL, padded to
+a word, in the kernel&rsquo;s byte order, which LLVM prints as the integer they make. Instruction 65 is
+<code>85 00 00 00 ff ff ff ff</code>, a call whose source register is 0 and whose immediate is -1, on which
+<code>llvm-objdump -r</code> prints the relocation <code>R_BPF_64_32 bpf_luaxdp_run</code>: libbpf, as it loads the
+object, writes there the source register 2, <code>BPF_PSEUDO_KFUNC_CALL</code>, the kfunc&rsquo;s id in <code>luaxdp</code>&rsquo;s
+BTF as the immediate, and which BTF that is as the offset. <code>bpftool prog dump xlated</code> of the loaded
+program prints it <code>call bpf_luaxdp_run</code>.</p>
+
+<p>A frame of 600 bytes whose bytes 36 and 37 are <code>00 35</code>, with the runtime <code>limits</code> running:</p>
+
+<table>
+<thead>
+<tr>
+<th> Instructions </th>
+<th> What they compute </th>
+<th> Value </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 3 to 45 </td>
+<td> bytes 36 and 37, <code>00 35</code>, joined </td>
+<td> <code>port</code> is 53 </td>
+</tr>
+<tr>
+<td> 47 to 49 </td>
+<td> <code>data_end</code> less <a href="../modules/data.html#">data</a> </td>
+<td> <code>#p</code> is 600 </td>
+</tr>
+<tr>
+<td> 51 to 64 </td>
+<td> the name, 53 and 600 below the frame, and their addresses and sizes </td>
+<td> </td>
+</tr>
+<tr>
+<td> 65 </td>
+<td> the callback reads 53 with <code>getint64(0)</code> and 600 with <code>getint64(8)</code>: 600 is over 512 </td>
+<td> <code>r0</code> is 1, <code>XDP_DROP</code> </td>
+</tr>
+<tr>
+<td> 66 to 68 </td>
+<td> 1, sign-extended </td>
+<td> <code>verdict</code> is 1 </td>
+</tr>
+<tr>
+<td> 69, 70 </td>
+<td> 1 is not -1 </td>
+<td> jump to 73 </td>
+</tr>
+<tr>
+<td> 73, 74 </td>
+<td> <code>r0</code> is 1 </td>
+<td> the program returns 1, <code>XDP_DROP</code> </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>A frame of 100 bytes to port 53, or one of 600 to port 80, makes the callback return nothing: the
+kfunc answers -1, instruction 69 jumps to 71, and the program returns 3, <code>XDP_TX</code>, as it does for
+every frame that reaches the call while no runtime <code>limits</code> runs. A frame of 30 bytes stops at the
+read of byte 36 and returns 0, <code>XDP_ABORTED</code>. <code>bpftool prog run</code> returned these for the object
+loaded on Linux 6.8, arm64, with the runtime started by <code>lunatik run --context=softirq limits</code>. In a
+TC program the call is the same over <code>bpf_luatc_run</code>, and <code>r3</code> holds the <code>__sk_buff</code>.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/08-luaebpf.md.html"><span>Previous</span>Compiling Lua to eBPF</a>
     <a class="next" href="../topics/capi.md.html"><span>Next</span>Lunatik C API</a>
@@ -1355,7 +1504,7 @@ compiled&rdquo;.</p>
 <a href="../../topics/09-luaebpf-by-example.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/09-luaebpf-by-example.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:37:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:50:22</span>
 </div>
 </footer>
 </body>

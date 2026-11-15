@@ -210,6 +210,10 @@
 	<td class="summary">BPF map types.</td>
 	</tr>
 	<tr>
+	<td class="name"><a href="#max">max</a></td>
+	<td class="summary">BPF program limits: the bytes of stack a program may use.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#update">update</a></td>
 	<td class="summary">BPF map update flags.</td>
 	</tr>
@@ -236,6 +240,19 @@
     BPF map types.
  Mirrors <code>BPF_MAP_TYPE_*</code> defines in <code>&lt;uapi/linux/bpf.h&gt;</code>.
  Keys are the kernel names with the prefix stripped: <code>BPF_MAP_TYPE_&lt;NAME&gt;</code> is <code>linux.bpf.map_type.&lt;NAME&gt;</code>.
+
+
+
+
+
+
+
+</dd>
+    <dt id="max"><a name="max"></a><strong>max</strong></dt>
+    <dd>
+    BPF program limits: the bytes of stack a program may use.
+ Mirrors <code>MAX_BPF_*</code> defines in <code>&lt;linux/filter.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>MAX_BPF_&lt;NAME&gt;</code> is <code>linux.bpf.max.&lt;NAME&gt;</code>.
 
 
 
@@ -274,7 +291,7 @@
 <a href="../../modules/linux.bpf.html">5.1 docs</a> ·
 <a href="../../5.0/modules/linux.bpf.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:37:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 17:50:22</span>
 </div>
 </footer>
 </body>
