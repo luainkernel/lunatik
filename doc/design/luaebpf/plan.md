@@ -7,7 +7,7 @@ CLI, and the tests that hold them to the verifier.
 
 1. A Lua function becomes an eBPF program: the verifier checks it, the JIT runs it, and no
    interpreter runs per packet. The XDP and TC programs the tree ships as C stubs today can be
-   written in Lua, including the SNI filter in `examples/filter`, whole.
+   written in Lua, the stubs of `examples/filter` and `examples/sniclassify` among them.
 2. `lunatik run <script>` loads, attaches and pins the compiled programs that belong to a script
    and `lunatik stop <script>` undoes it. No `clang`, no `bpftool prog load`, no `tc filter add`
    on the user's side; no `.bpf.c` beside the `.lua`.
@@ -176,7 +176,7 @@ Not displaced: the trampoline and `lib/luakfunc.h` (the escape hatch's kernel si
 * **XDPLua** (Netdev 0x14, 2020): the same SNI filter in 200 lines of C "and much effort spent to
   circumvent the in-kernel verifier" against 37 lines of Lua; the pure-eBPF version could match
   one host name because the 2020 verifier had no loops. Both dropped 1.5 Mpps at 0.1 % CPU with a
-  generator that could push no more. That 37-line program, compiled, is the target of phase 6.
+  generator that could push no more.
 * **`secmodel_sandbox`** (NetBSD, BSDCan 2017): a ruleset in C at roughly 70 ns per decision
   against roughly 4.5 µs when the interpreter ran (`doc/design/lsm-ebpf/plan.md`). The number that
   justifies keeping the hot path out of the VM.
@@ -295,11 +295,12 @@ and a `c64`-keyed map lookup agree with the interpreter; a loop with a runtime b
 
 ### Phase 6: examples and documentation
 
-`examples/filter` rewritten with the SNI parser compiled whole (`examples/common/sni.lua` as the
-source, shared with the interpreted path), `examples/sniclassify` with its map and its call into
-Lua, the README module and usage sections, the LDoc for the compile-time modules, and the API
-cleanup the examples expose. The benchmark's XDP event, run on the compiled filter, produces the
-numbers these documents then quote.
+`examples/filter` and `examples/sniclassify` rewritten as program files that do what their C stubs
+do today: the filter tests the IPv4, TCP, port 443 and PSH bits and hands the payload's offset to
+its kernel script, which extracts the SNI and decides; the classifier keeps its flow map and calls
+into Lua on a flow the map lacks. The SNI is parsed in Lua alone, since a ClientHello's fields of
+varying length make its parser a poor fit for the verifier. Then the README module and usage
+sections and the LDoc for the compile-time modules.
 
 ## Sizing
 

@@ -144,9 +144,8 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 
 | Test | Proves |
 |------|--------|
-| `example_filter.sh` | the SNI filter compiled whole blocks the listed host on the veth pair and passes another |
+| `example_filter.sh` | the compiled filter hands HTTPS segments to its kernel script, which blocks the listed host on the veth pair and passes another |
 | `example_sniclassify.sh` | the classifier sets the priority from the map on a cached flow and from Lua on a new one |
-| `example_speed.sh` | the benchmark's XDP event runs against the compiled filter; informational, not a gate |
 
 ## Conventions to follow
 
