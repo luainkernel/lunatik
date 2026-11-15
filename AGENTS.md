@@ -560,6 +560,10 @@ named, not one discovered at that consumer's build.
   or the settings that wire the guards, waits for him, and so does one that relaxes a rule, a check
   or a guard, which reverses what he decided. `tools/checks/merge-guard.sh` refuses any other merge
   the session runs; `MERGE_OK=1` merges one he ordered merged in his own words.
+* A mechanism of the harness that rests on a command an agent runs, a guard's record among them, is
+  exercised under the auto mode the sessions run in before it merges: the classifier can refuse such
+  a command, as it refused the reader's `body-read.sh --pass` on #2541's corrected body, and the guard
+  then refused the session's post of a body its reader had passed.
 * A pull request the maintainer approves in his own words, `2214 aprovado`, is the session's to
   take to master: its fixups fold into the commits they correct, the tree the one he read and the
   messages re-read against it, and once the CI passed on the folded head it merges by rebase, the
