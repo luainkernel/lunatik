@@ -38,13 +38,13 @@ return xdp.program(function(ctx)
 		end
 	end
 	return action.PASS
-end)
+end, {default = action.PASS})
 ```
 
 The file has two parts. Its body, every line outside the function, runs once, on the host, when
-the file is compiled: it declares the map `counts` and the program. The function is the program:
-it is compiled to eBPF and runs in the kernel on each packet. It returns `XDP_PASS`, so every
-packet it can read goes on to the network stack.
+the file is compiled: it declares the map `counts` and the program, with the verdict a `return`
+with no value gives. The function is the program: it is compiled to eBPF and runs in the kernel on
+each packet. It returns `XDP_PASS`, so every packet it can read goes on to the network stack.
 
 Compile it into place and attach it to a device:
 
@@ -115,8 +115,8 @@ callback returns on the same hook.
   p:getbyte(23) == 6` gives "the verdict may be a boolean here; return an action".
 
 A `return` with no value, or with `nil`, returns the default verdict. A verdict that may be nil is
-refused: "the verdict may be nil here; test it first". The default verdict is `XDP_PASS` or
-`TC_ACT_OK`, unless the constructor names another action:
+refused: "the verdict may be nil here; test it first". The constructor names the default verdict,
+an action, and a constructor that names none is refused at the line of the program's function:
 
 ```Lua
 return xdp.program(filter, {default = action.DROP})
@@ -330,7 +330,7 @@ return xdp.program(function(ctx)
 		return verdict
 	end
 	return action.PASS
-end)
+end, {default = action.PASS})
 ```
 
 `limits.lua`, the kernel script:
@@ -485,7 +485,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | attempt to compare a runtime answer with a number | `limits:run(1) < 5` | `if v then`, then `v < 5` |
 | a runtime answer joined another value here, whose nil is 0 and not -1; test it before the paths join | `if v then`, `v` the answer on one path and nil on another | `if v then` on the path of the call |
 | 'limits' can only be called from the program's own function | a call into a runtime in a function the program calls | the call in the program's function |
-| a call into the runtime passes the context, which the program's parameter does not hold | `xdp.program(function() ... end)` calling `limits:run(1)` | `function(ctx)` |
+| a call into the runtime passes the context, which the program's parameter does not hold | `xdp.program(function() ... end, opts)` calling `limits:run(1)` | `function(ctx)` |
 | argument #1 is a boolean, and a call into the runtime passes numbers | `limits:run(true)`, `limits:run(p)` | a number |
 | lunatik.runtime takes a script | `lunatik.runtime()` | `lunatik.runtime("limits")` |
 | a runtime is called through its method; write 'limits:run(...)' | `limits(1)` | `limits:run(1)` |
@@ -497,6 +497,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | the verdict may be a boolean here; return an action | `return p:getbyte(23) == 6` | `if p:getbyte(23) == 6 then return action.DROP end` |
 | the verdict 11 is not an XDP action | `return 11`, a value no action of the program's type | an action of `linux.xdp.action` or `linux.tc.action` |
 | xdp.program's default verdict is not an XDP action | `{default = 5}` | `{default = action.DROP}` |
+| xdp.program's default verdict is not an integer | `xdp.program(fn)`, `{default = "drop"}` | `xdp.program(fn, {default = action.PASS})`, and `tc.program` alike |
 | 'half' is a float, which a compiled function cannot hold | `local half = math.sqrt(4)` in the body | an integer |
 | malformed number near '.5', which `lunatic` prints before `lunatic could not compile it` | `2.5` | an integer: the kernel's Lua has no float |
 | 'while', 'repeat' and a 'goto' backwards are not compiled yet | `while`, `repeat`, a `goto` backwards | a numeric `for` |
@@ -514,7 +515,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
   +----------------------------------------------------+
   | the body       runs once, now, on the host         |
   |   map.array(counts, {...})       --> a map         |
-  |   xdp.program(function ... end)  --> a program     |
+  |   xdp.program(fn, {...})         --> a program     |
   | the function   compiled now, run later, per packet |
   +----------------------------------------------------+
          |

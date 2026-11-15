@@ -20,5 +20,5 @@ local ok, message = pcall(vmlinux.layout, "a_struct_no_kernel_publishes")
 out:write("missing\t", tostring(ok), "\t", message, "\n")
 out:close()
 
-return xdp.program(function(_) return action.PASS end)
+return xdp.program(function(_) return action.PASS end, {default = action.PASS})
 

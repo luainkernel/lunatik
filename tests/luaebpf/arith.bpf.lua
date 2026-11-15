@@ -5,6 +5,7 @@
 -- Program file of the arith case (see arith.sh).
 
 local corpus = require("tests.luaebpf.corpus")
+local action = require("linux.xdp").action
 
 local MIN <const> = math.mininteger
 local MAX <const> = math.maxinteger
@@ -41,5 +42,5 @@ local operands = {
 	{1, 64}, {1, 65}, {1, -1}, {255, 0}, {-1, MIN}, {MAX, 2}, {MIN, MAX}, {7, MIN}, {MIN, MIN},
 }
 
-corpus.declare(makers, order, operands)
+corpus.declare(makers, order, operands, action.PASS)
 

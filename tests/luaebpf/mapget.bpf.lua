@@ -7,6 +7,7 @@
 local corpus = require("tests.luaebpf.corpus")
 local map    = require("bpf.map")
 local xdp    = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local pack, bytes = string.pack, corpus.bytes
 
@@ -199,7 +200,7 @@ local programs = {{"present", present}, {"absent", absent}, {"computed", compute
 	{"negkey", negkey}, {"narrowkey", narrowkey}, {"onepath", onepath}, {"skipped", skipped},
 	{"lru", lru}}
 for _, program in ipairs(programs) do
-	corpus.program(xdp.program, {name = program[1]}, program[2])
+	corpus.program(xdp.program, {name = program[1], default = action.PASS}, program[2])
 end
 corpus.close()
 

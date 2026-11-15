@@ -46,8 +46,8 @@ local function pair(_)
 	return action.TX
 end
 
-xdp.program(answer, {name = "answer"})
-xdp.program(noargs, {name = "noargs"})
-xdp.program(wrong, {name = "wrong"})
-xdp.program(pair, {name = "pair"})
+xdp.program(answer, {name = "answer", default = action.PASS})
+xdp.program(noargs, {name = "noargs", default = action.PASS})
+xdp.program(wrong, {name = "wrong", default = action.PASS})
+xdp.program(pair, {name = "pair", default = action.PASS})
 

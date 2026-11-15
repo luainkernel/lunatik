@@ -21,5 +21,5 @@ return xdp.program(function(ctx)
 	end
 	counts[SEEN] = #packet
 	return action.PASS
-end, {name = "loader"})
+end, {name = "loader", default = action.PASS})
 

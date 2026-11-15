@@ -12,9 +12,9 @@
 -- script's xdp callback does. Where it computes a verdict that is no action, and where Lua would
 -- raise, at a read past the packet or a division by 0, the program stops and returns `XDP_ABORTED`,
 -- the kernel's verdict for a program error, which drops the packet; where it returns no value, it
--- returns its default verdict. A verdict the compiler holds that is no action, and a boolean, are
--- refused, "the verdict 11 is not an XDP action" and "the verdict may be a boolean here; return an
--- action".
+-- returns the default verdict its constructor names. A verdict the compiler holds that is no
+-- action, and a boolean, are refused, "the verdict 11 is not an XDP action" and "the verdict may be
+-- a boolean here; return an action".
 --
 -- The context has the methods of the kernel's XDP `ctx` object: `ctx:packet()`, the packet, read
 -- with `getbyte`, `getint16` and the other reads of the kernel's `data` object, in the kernel's
@@ -37,7 +37,7 @@
 --         return action.DROP
 --     end
 --     return action.PASS
--- end)
+-- end, {default = action.PASS})
 
 local programs = require("luaebpf.programs")
 local action   = require("linux.xdp").action
@@ -68,16 +68,16 @@ local xdp = {}
 -- Declares `fn` as an XDP program.
 -- @function bpf.xdp.program
 -- @tparam function fn the program; it takes the context and returns a verdict.
--- @tparam[opt] table opts `default`, the verdict the program returns where its function returns no
---   value, an action (`linux.xdp.action.PASS`), and `name`, what the program is called in the
---   object, cut to the fifteen characters `BPF_OBJ_NAME_LEN` leaves and made unique against the
---   names already taken.
+-- @tparam table opts `default`, required, the verdict the program returns where its function
+--   returns no value, an action, and `name`, what the program is called in the object, cut to the
+--   fifteen characters `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken.
 -- @treturn table the declared program
 -- @raise `xdp.program takes a Lua function`, or `<file>:<line>: xdp.program's default verdict is not
---   an integer` or `is not an XDP action`, the line where `fn` is defined
+--   an integer`, which a missing `default` raises too, or `is not an XDP action`, the line where
+--   `fn` is defined
 function xdp.program(fn, opts)
 	opts = opts or {}
-	return programs.declare("xdp.program", fn, {section = SECTION, default = opts.default or action.PASS,
+	return programs.declare("xdp.program", fn, {section = SECTION, default = opts.default,
 		error = action.ABORTED, name = opts.name, context = context, kfunc = KFUNC, actions = actions})
 end
 

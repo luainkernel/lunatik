@@ -53,7 +53,7 @@ row() {
 	{
 		echo 'local xdp     = require("bpf.xdp")'
 		echo 'local lunatik = require("lunatik")'
-		echo ''
+		echo 'local action  = require("linux.xdp").action'
 		echo "local words = lunatik.runtime($runtime)"
 		echo ''
 		echo 'local function helper(n)'
@@ -62,7 +62,7 @@ row() {
 		echo ''
 		echo "return xdp.program(function($params)"
 		echo "$body"
-		echo 'end)'
+		echo 'end, {default = action.PASS})'
 	} > "$LUAEBPF_WORK/$name.bpf.lua"
 	luaebpf_refused "$name" "$name.bpf.lua:$line: $message"
 }
@@ -151,6 +151,8 @@ cat > "$LUAEBPF_WORK/shared.bpf.lua" <<LUA
 local xdp     = require("bpf.xdp")
 local tc      = require("bpf.tc")
 local lunatik = require("lunatik")
+local action  = require("linux.xdp").action
+local tcact   = require("linux.tc").action
 
 local words = lunatik.runtime("$SCRIPT")
 
@@ -170,8 +172,8 @@ local function classify(_)
 	return 0
 end
 
-xdp.program(ingress, {name = "ingress"})
-tc.program(classify, {name = "classify"})
+xdp.program(ingress, {name = "ingress", default = action.PASS})
+tc.program(classify, {name = "classify", default = tcact.OK})
 LUA
 output=$(luaebpf_written shared 2>&1) || { comment "$output"; fail "luaebpf: shared.bpf.lua did not compile"; }
 dump=$(bpftool btf dump file "$LUAEBPF_WORK/shared.bpf.o" format raw 2>&1)
@@ -186,6 +188,7 @@ ktap_pass "luaebpf: a runtime called from both program types lowers to each prog
 cat > "$LUAEBPF_WORK/samename.bpf.lua" <<LUA
 local xdp     = require("bpf.xdp")
 local lunatik = require("lunatik")
+local action  = require("linux.xdp").action
 
 local words = lunatik.runtime("$SCRIPT")
 
@@ -201,7 +204,7 @@ return xdp.program(function(ctx)
 		return verdict
 	end
 	return 2
-end, {name = "samename"})
+end, {name = "samename", default = action.PASS})
 LUA
 output=$(luaebpf_written samename 2>&1) || { comment "$output"; fail "luaebpf: samename.bpf.lua did not compile"; }
 dump=$(bpftool btf dump file "$LUAEBPF_WORK/samename.bpf.o" format raw 2>&1)

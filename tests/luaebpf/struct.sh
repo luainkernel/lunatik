@@ -70,6 +70,7 @@ row() {
 		echo 'local map = require("bpf.map")'
 		echo 'local struct = require("struct")'
 		echo 'local xdp = require("bpf.xdp")'
+		echo 'local action = require("linux.xdp").action'
 		echo "$preamble"
 		echo 'local codec = struct{size = 8, fields = {{name = "n", offset = 0, size = 4, signed = false},' \
 			'{name = "b", offset = 4, size = 1, signed = false}}}'
@@ -77,7 +78,7 @@ row() {
 		echo ''
 		echo 'return xdp.program(function(ctx)'
 		echo "$body"
-		echo 'end)'
+		echo 'end, {default = action.PASS})'
 	} > "$LUAEBPF_WORK/$name.bpf.lua"
 	local output
 	output=$(luaebpf_refuses "$name" "$name.bpf.lua:$line: $message")
@@ -89,35 +90,36 @@ row() {
 	fi
 }
 
-row fieldwrite 11 "a struct map value is read-only in a compiled function" \
+row fieldwrite 12 "a struct map value is read-only in a compiled function" \
 	$'\tlocal v = records[1]\n\tif v then\n\t\tv.n = 1\n\tend\n\treturn 0'
-row valuewrite 9 "a struct map value is read-only in a compiled function" \
+row valuewrite 10 "a struct map value is read-only in a compiled function" \
 	$'\trecords[1] = 5\n\treturn 0'
-row nofield 11 "a map value has no field 'missing'" \
+row nofield 12 "a map value has no field 'missing'" \
 	$'\tlocal v = records[1]\n\tif v then\n\t\treturn v.missing\n\tend\n\treturn 0'
-row index 11 "a struct map value is read by field name, not by index" \
+row index 12 "a struct map value is read by field name, not by index" \
 	$'\tlocal v = records[1]\n\tif v then\n\t\treturn v[1]\n\tend\n\treturn 0'
-row indexlocal 12 "a struct map value is read by field name, not by index" \
+row indexlocal 13 "a struct map value is read by field name, not by index" \
 	$'\tlocal i = 1\n\tlocal v = records[i]\n\tif v then\n\t\treturn v[i]\n\tend\n\treturn 0'
-row indexcomputed 11 "a struct map value is read by field name, not by index" \
+row indexcomputed 12 "a struct map value is read by field name, not by index" \
 	$'\tlocal v = records[1]\n\tif v then\n\t\treturn v[ctx:queue()]\n\tend\n\treturn 0'
-row untestedfield 10 "'records' may be nil here; test it first" $'\tlocal v = records[1]\n\treturn v.n'
-row untestedindex 10 "a struct map value is read by field name, not by index" \
+row untestedfield 11 "'records' may be nil here; test it first" $'\tlocal v = records[1]\n\treturn v.n'
+row untestedindex 11 "a struct map value is read by field name, not by index" \
 	$'\tlocal v = records[1]\n\treturn v[1]'
-row untestedwrite 10 "a struct map value is read-only in a compiled function" \
+row untestedwrite 11 "a struct map value is read-only in a compiled function" \
 	$'\tlocal v = records[1]\n\tv.n = 1\n\treturn 0'
 
 cat > "$LUAEBPF_WORK/oddfield.bpf.lua" <<'LUA'
 local map = require("bpf.map")
 local struct = require("struct")
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local codec = struct{size = 4, fields = {{name = "n", offset = 0, size = 3, signed = false}}}
 local records = map.hash("records", {key = "I4", value = codec, entries = 8})
 
 return xdp.program(function(ctx)
 	return 0
-end)
+end, {default = action.PASS})
 LUA
 output=$(luaebpf_refuses oddfield "a map reads 1, 2, 4 or 8 bytes at a time, not 3") \
 	|| { comment "$output"; fail "luaebpf: a field no eBPF load covers is not refused"; }
@@ -126,12 +128,13 @@ ktap_pass "luaebpf: a struct field no eBPF load covers is refused"
 cat > "$LUAEBPF_WORK/badvalue.bpf.lua" <<'LUA'
 local map = require("bpf.map")
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local records = map.hash("records", {key = "I4", value = {}, entries = 8})
 
 return xdp.program(function(ctx)
 	return 0
-end)
+end, {default = action.PASS})
 LUA
 output=$(luaebpf_refuses badvalue "a map value spec packs one value or is a struct codec") \
 	|| { comment "$output"; fail "luaebpf: a value spec that is neither a format nor a codec is not refused"; }
@@ -143,6 +146,7 @@ cat > "$LUAEBPF_WORK/twocodecs.bpf.lua" <<'LUA'
 local map = require("bpf.map")
 local struct = require("struct")
 local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
 
 local first = struct{size = 4, fields = {{name = "n", offset = 0, size = 4, signed = false}}}
 local second = struct{size = 4, fields = {{name = "m", offset = 0, size = 4, signed = false}}}
@@ -160,15 +164,15 @@ return xdp.program(function(ctx)
 		if b then v = b else return 0 end
 	end
 	return v.n
-end)
+end, {default = action.PASS})
 LUA
-output=$(luaebpf_refuses twocodecs "twocodecs.bpf.lua:20: a map value here comes from more than one map") \
+output=$(luaebpf_refuses twocodecs "twocodecs.bpf.lua:21: a map value here comes from more than one map") \
 	|| { comment "$output"; fail "luaebpf: a field of a value two struct maps merge into is not refused"; }
 ktap_pass "luaebpf: a field read through a value two struct maps merge into is refused with its line"
 
-# the byte field on line 11 compiles; the four-byte one on line 12 is refused, aligned as it is
+# the byte field on line 12 compiles; the four-byte one on line 13 is refused, aligned as it is
 wide=$'\tlocal v = records[1]\n\tif v then\n\t\tlocal b = v.b\n\t\tlocal n = v.n\n\t\treturn b + n\n\tend\n\treturn 0'
-row unaligned 12 "field 'n' reads more than a byte, and this kernel lacks efficient unaligned access" \
+row unaligned 13 "field 'n' reads more than a byte, and this kernel lacks efficient unaligned access" \
 	"$wide" 'require("luaebpf.emit").unaligned = false'
 
 check_dmesg
