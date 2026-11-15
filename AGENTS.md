@@ -560,11 +560,9 @@ named, not one discovered at that consumer's build.
 * A harness pull request the session opened, one whose every file `harness-mixed.sh` reads as the
   harness, merges without waiting for the maintainer once `review.js` ran over its head at `high`
   and returned it ready and its CI passed: what a correction teaches binds the next session that
-  day, and the maintainer reads it on master, in the report the merged skill hands him. One that
-  removes a file or changes what the gate reads, the guard, the list of what the harness is, the CI
-  or the settings that wire the guards, waits for him, and so does one that relaxes a rule, a check
-  or a guard, which reverses what he decided. `tools/checks/merge-guard.sh` refuses any other merge
-  the session runs; `MERGE_OK=1` merges one he ordered merged in his own words.
+  day, and the maintainer reads it on master, in the report the merged skill hands him.
+  `tools/checks/merge-guard.sh` refuses any other merge the session runs; `MERGE_OK=1` merges one he
+  ordered merged in his own words.
 * A mechanism of the harness that rests on a command an agent runs, a guard's record among them, is
   exercised under the auto mode the sessions run in before it merges: the classifier can refuse such
   a command, as it refused the reader's `body-read.sh --pass` on #2541's corrected body, and the guard
