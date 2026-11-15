@@ -23,7 +23,7 @@ Optional tools, without which the suites that need them skip:
 - `nsenter`: netlink, notifier, socket, tc
 - `nft`: skb, socket
 - `setarch`: probe, rcu, signal
-- `taskset`: netfilter, probe, xdp
+- `taskset`: netfilter, probe, scx, xdp
 - `lunatic`: luac
 
 The scx, tc and xdp suites also need the modules built with the kernel's
@@ -2389,7 +2389,7 @@ Regression tests for `luascx`: the attach guards, and the dispatch path
 through a struct_ops scheduler whose `enqueue` calls `bpf_luascx_run`.
 The unsupported case runs only on a kernel without sched_ext
 (`/sys/kernel/sched_ext`); the others skip there, when the module lacks BTF,
-or when `bpftool` or `clang` is unavailable.
+or when `bpftool`, `clang` or `taskset` is unavailable.
 
 - **scx unsupported**: on a kernel without sched_ext, `scx.attach()` raises
   `EOPNOTSUPP` and `scx.detach()` returns nothing.
@@ -2400,10 +2400,19 @@ or when `bpftool` or `clang` is unavailable.
 - **scx reattach**: a hardirq runtime attaches, re-attaches (replacing the
   callback) and detaches without a Lua error.
 
-- **scx pass**: registering the scheduler routes every enqueue on the host
-  through the Lua callback, which returns the dispatch queue and slice and
-  reports once; the report in `dmesg`, with no Lua error, is the proof. The
-  scheduler is unregistered before its runtime stops.
+- **scx pass**: a struct_ops scheduler whose `enqueue` calls `bpf_luascx_run`
+  records in a pinned map what the kfunc returned and left in `cls` for each
+  task the suite starts, which the callback tells apart by
+  `ctx:task():comm()`. One case per decision the callback can make: nothing
+  and a raise return -1 and leave `cls` as it was, a nil dispatch queue or
+  slice takes `SCX_DSQ_GLOBAL` or `SCX_SLICE_DFL`, a dispatch queue as a
+  string or a slice that is not a number is refused the same way,
+  `linux.scx.dsq` `LOCAL`, `GLOBAL` and `LOCAL_ON` ORed with the task's CPU
+  reach `cls` with `slice.INF` or a slice of the callback's own, a callback
+  that detaches still decides for its task, and the next task finds -1. The
+  records are compared with the values `linux/sched/ext.h` gives once the
+  scheduler is unregistered and its runtime stopped; the cases skip while
+  another sched_ext scheduler is enabled.
 
 ### signal
 

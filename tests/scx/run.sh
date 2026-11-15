@@ -9,12 +9,25 @@
 # offers attach and detach, and the unsupported case checks that attach raises
 # EOPNOTSUPP and that detach returns nothing; it skips on a kernel with sched_ext. Two guard cases need no scheduler: a
 # sleepable runtime is refused, and a hardirq runtime attaches, re-attaches and
-# detaches. The pass case registers a struct_ops scheduler whose enqueue calls
-# bpf_luascx_run, so every enqueue on the host reaches the Lua callback while it
-# is registered; the callback reports once, and that line in dmesg with no Lua
-# error is the proof. The scheduler is unregistered before its runtime stops.
-# These three skip when the kernel has no sched_ext, the module lacks BTF, or
-# bpftool or clang is unavailable.
+# detaches.
+#
+# The pass cases register a struct_ops scheduler whose enqueue calls bpf_luascx_run
+# with cls filled with a value no decision writes, and records in a pinned map what
+# the kfunc returned and left in cls at the first enqueue of each task named scx_*.
+# Its select_cpu dispatches nothing, so every wakeup reaches enqueue. The suite starts
+# one task per cell, a sleep run under the cell's name that wakes once, and the
+# callback of pass.lua reads that name through ctx:task() and answers with the
+# cell's decision: nothing, a raise, a nil dispatch queue or slice, a dispatch queue
+# as a string, a slice that is not a number, linux.scx's LOCAL, GLOBAL and LOCAL_ON
+# with slice INF or a slice of its own, and a detach from the callback; the last
+# task runs after it. The task of the LOCAL_ON cell is pinned to the last online
+# CPU and answered with that CPU, so a decision that lost the CPU shows on a host of
+# two CPUs or more. Every other task takes the default dispatch queue. Once the
+# scheduler is unregistered and its runtime stopped, record.lua compares each record
+# with the values linux/sched/ext.h gives and reports what it read; a kernel that
+# disabled the scheduler, or a Lua error or kernel warning in dmesg, fails every cell.
+# These skip when the kernel has no sched_ext, the module lacks BTF, bpftool, clang
+# or taskset is unavailable, or another sched_ext scheduler is enabled.
 #
 # Usage: sudo bash tests/scx/run.sh
 
@@ -23,24 +36,54 @@ UNSUPPORTED="tests/scx/unsupported"
 SLEEPABLE="tests/scx/attach_sleepable"
 REATTACH="tests/scx/reattach"
 PASS="tests/scx/pass"
+RECORD="tests/scx/record"
 OPS="luascx_ops"
-SETTLE=1
+PIN="/sys/fs/bpf/scx_record"
+NAP=0.05
+
+# the cells: the comm each task takes, which pass.lua answers and record.lua reads, and its title
+CELLS=(scx_none scx_raise scx_nil_dsq scx_nil_slice scx_str_dsq scx_bool_slice scx_local scx_global scx_local_on
+	scx_detach scx_after)
+TITLES=(
+	"scx pass: a callback that returns nothing leaves cls as it was"
+	"scx pass: a callback that raises leaves cls as it was"
+	"scx pass: a nil dispatch queue takes SCX_DSQ_GLOBAL"
+	"scx pass: a nil slice takes SCX_SLICE_DFL"
+	"scx pass: a dispatch queue as a string is refused and leaves cls as it was"
+	"scx pass: a slice that is not a number is refused and leaves cls as it was"
+	"scx pass: linux.scx.dsq.LOCAL and slice.INF reach cls"
+	"scx pass: linux.scx.dsq.GLOBAL and a slice of the callback's reach cls"
+	"scx pass: linux.scx.dsq.LOCAL_ON ORed with the task's CPU reaches cls"
+	"scx pass: a callback that detaches still decides for its task"
+	"scx pass: once detached, the kfunc returns -1 and leaves cls as it was"
+)
 
 DIR="$(dirname "$(readlink -f "$0")")"
+TASKS=""
 
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 4
+ktap_plan $((3 + ${#CELLS[@]}))
 
 skip_rest()
 {
 	echo "# SKIP: $1"
 	ktap_skip "scx attach: refuses a sleepable runtime"
 	ktap_skip "scx reattach: a hardirq runtime attaches, re-attaches and detaches"
-	ktap_skip "scx pass: the callback runs from the scheduler's enqueue"
+	cells skip "$1"
 	ktap_totals
 	exit
+}
+
+# cells <skip|fail> <reason>: every cell skips or fails with the reason
+cells()
+{
+	local title
+
+	for title in "${TITLES[@]}"; do
+		"ktap_$1" "$title: $2"
+	done
 }
 
 if ! cat /sys/module/$MODULE/refcnt > /dev/null 2>&1; then
@@ -55,6 +98,8 @@ cleanup()
 	lunatik stop "$SLEEPABLE" 2>/dev/null
 	lunatik stop "$REATTACH" 2>/dev/null
 	lunatik stop "$PASS" 2>/dev/null
+	rm -f "$PIN"
+	[ -z "$TASKS" ] || rm -rf "$TASKS"
 }
 trap cleanup EXIT
 cleanup
@@ -72,6 +117,7 @@ fi
 [ -f /sys/kernel/btf/$MODULE ] || skip_rest "$MODULE built without BTF (make btf_install, rebuild)"
 command -v bpftool > /dev/null 2>&1 || skip_rest "bpftool not available"
 command -v clang > /dev/null 2>&1 || skip_rest "clang not available"
+command -v taskset > /dev/null 2>&1 || skip_rest "taskset not available"
 
 make -C "$DIR" || { ktap_fail "failed to build the sched_ext program"; ktap_totals; exit 1; }
 
@@ -87,19 +133,75 @@ else
 	ktap_fail "scx reattach: a hardirq runtime attaches, re-attaches and detaches"
 fi
 
-# the callback fires on the host's own enqueues; a moment of registration is enough for one
-if run_test --context=hardirq "$PASS" && bpftool struct_ops register "$DIR/scx_pass.bpf.o" > /dev/null; then
-	sleep $SETTLE
-	bpftool struct_ops unregister name "$OPS"
-	if dmesg_since | grep -q "scx pass test pass" && ! dmesg_since | grep -qE "\.lua:[0-9]+:"; then
-		ktap_pass "scx pass: the callback runs from the scheduler's enqueue"
-	else
-		ktap_fail "scx pass: the callback runs from the scheduler's enqueue"
-		comment "$(dmesg_since | tail -5)"
+# nap <comm> [<cpu>]: a task named <comm>, pinned to <cpu> where one is given, sleeps once, whose
+# wakeup reaches the scheduler's enqueue; argv[0] stays sleep for a sleep that reads its name from it
+nap()
+{
+	(
+		[ -z "$2" ] || taskset -pc "$2" $BASHPID > /dev/null
+		exec -a sleep "$TASKS/$1" "$NAP"
+	)
+}
+
+# the record of each cell, read once its scheduler and runtime are gone
+record()
+{
+	local output i
+
+	output=$(lunatik run "$RECORD" 2>&1)
+	rm -f "$PIN"
+	[ -z "$output" ] || { comment "$output"; cells fail "$RECORD did not run"; return; }
+	for i in "${!CELLS[@]}"; do
+		if passed "${CELLS[$i]}"; then
+			ktap_pass "${TITLES[$i]}"
+			comment "$(dmesg_since | grep -F "scx record: ${CELLS[$i]} ")"
+		else
+			ktap_fail "${TITLES[$i]}"
+			comment "$(dmesg_since | grep -E "${CELLS[$i]}[[:space:]]")"
+		fi
+	done
+}
+
+pass()
+{
+	local cell last state errs
+
+	if [ "$(cat /sys/kernel/sched_ext/state)" != disabled ]; then
+		cells skip "another sched_ext scheduler is enabled"
+		return
 	fi
-else
-	ktap_fail "scx pass: the callback runs from the scheduler's enqueue"
-fi
+	run_test --context=hardirq "$PASS" || { cells fail "$PASS did not run"; return; }
+	bpftool struct_ops register "$DIR/scx_pass.bpf.o" > /dev/null || { cells fail "the scheduler did not register"; return; }
+
+	TASKS=$(mktemp -d)
+	for cell in "${CELLS[@]}"; do
+		ln -sf "$(command -v sleep)" "$TASKS/$cell"
+	done
+	last=$(sed 's/.*[-,]//' /sys/devices/system/cpu/online)
+	for cell in "${CELLS[@]}"; do
+		if [ "$cell" = scx_local_on ]; then
+			nap "$cell" "$last"
+		else
+			nap "$cell"
+		fi
+	done
+
+	state=$(cat /sys/kernel/sched_ext/state)
+	bpftool struct_ops unregister name "$OPS" > /dev/null
+	lunatik stop "$PASS"
+	errs=$(dmesg_since | grep -E "$KTAP_ERRORS")
+	if [ "$state" != enabled ]; then
+		comment "$(dmesg_since | grep -F sched_ext | tail -5)"
+		cells fail "the kernel disabled the scheduler"
+	elif [ -n "$errs" ]; then
+		comment "$errs"
+		cells fail "a Lua error or a kernel warning"
+	else
+		record
+	fi
+}
+
+pass
 
 ktap_totals
 
