@@ -399,6 +399,29 @@ write itself.
 introduced against the merge base with `origin/master`, what `luals.sh` reads as a slip; what the branch
 inherited is not the push's to fix. `LUALS_OK=1` pushes a name that is the code's on purpose.
 
+`memory-guard.sh`, wired before a shell call and before Write and Edit, refuses a call that leaves in
+Claude Code's memory, a file under `.claude/projects/<project>/memory/`, a memory of type `feedback`
+when what the call adds names no path of the repository where its lesson lives, `AGENTS.md` or a path
+under `.agents/`, `tools/` or `doc/`. A session wrote a lesson there and not into the tree, and the
+maintainer asked "pq para a memoria e nao para o repo?", then for a guard "para nao repetir esse erro de
+deixar em memoria local apenas": the lesson goes into the tree first, through a pull request, and each
+write to the memory names where. A `#N` is no such path: the append that prompted the guard named #2541,
+to a memory that named `AGENTS.md` already, and the lesson it carried was in no file of the tree. A
+lesson that belongs to no place of the public tree, the language of the conversation, the tone, a
+private consumer, is a memory of type `user`, and naming `CLAUDE.local.md` does not pass it as a
+`feedback` one. The other types pass, and so does the index, `MEMORY.md`, which carries none. What a call
+adds is what Write writes, the `new_string` of an Edit and the whole command of a shell write, a
+redirection, a `tee` or a `sed -i` into a memory read through `commands.sh`, its path spelled whole,
+through a variable the command assigns or under a directory it changes to, as
+`cd <memory> && cat >> <file>` spells it, a relative path read under every directory the command
+changes to: a path the command names anywhere passes it, and a write a script makes, `python3` over a
+heredoc, is not read. The type is read in the memory as the call leaves it, for a shell write the file
+as it stands with the command beside it, so an Edit that makes a memory a `feedback` one is held too,
+and one that makes it a `user` one passes where a `sed -i` of the same line is refused.
+Every later write to such a memory, a typo fixed included, names a path in its own text, and a Write of
+a whole memory that names one passes whatever else it adds. Its cases give Write and Edit their whole
+input as JSON, beside a fixture that holds the memories an edit and an append read.
+
 `question.sh` reads a message the maintainer sends for a question, a question mark or an opening
 interrogative, and `.claude/hooks/on-prompt.sh`, run as the message arrives (`UserPromptSubmit`), tells
 the turn that it answers and changes nothing, and reads no background task's notification, which reaches

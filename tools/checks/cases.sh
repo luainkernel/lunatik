@@ -7,8 +7,8 @@
 # or to commands.sh beneath them, is read against them again: tools/checks/cases/<guard>.cases holds
 # one case a line, `block` or `pass`, a tab and the tool input the guard reads, a command, where `\n`
 # is a newline, unless a `# tool: Agent` or `# tool: Workflow` line names the subagent type or the
-# script instead, and a second tab the description the call carries beside it, which a guard reads
-# for no verdict; a
+# script instead, or a `# tool: Write` or `# tool: Edit` line the whole input, as JSON, and a second
+# tab the description the call carries beside it, which a guard reads for no verdict; a
 # `# agent: <id>` line gives the cases after it the agent_id of a subagent's call, and `# agent:` takes
 # it away; a `# env: <name>=<value>` line sets that variable for the guard in the cases after it, as a
 # session's settings set LUNATIK_CONSUMERS, a relative path in it read from the fixture's directory; a
@@ -50,14 +50,16 @@ for cases in "$@"; do
 			"# env: "*) envs+=("${want#\# env: }"); continue ;;
 			""|"#"*) continue ;;
 		esac
-		value=${value//\\n/$'\n'}
 		case "$tool" in
 			Agent) field=subagent_type ;;
 			Workflow) field=script ;;
+			Write|Edit) field= ;;
 			*) field=command ;;
 		esac
+		[ -z "$field" ] || value=${value//\\n/$'\n'}
 		jq -nc --arg tool "$tool" --arg field "$field" --arg value "$value" --arg description "$description" --arg agent "$agent" --arg transcript "$transcript" --arg cwd "$cwd" \
-			'{tool_name: $tool, tool_input: ({($field): $value} + if $description == "" then {} else {description: $description} end)}
+			'{tool_name: $tool, tool_input: ((if $field == "" then $value | fromjson else {($field): $value} end)
+			+ if $description == "" then {} else {description: $description} end)}
 			+ if $agent == "" then {} else {agent_id: $agent} end
 			+ if $transcript == "" then {} else {transcript_path: $transcript} end + if $cwd == "" then {} else {cwd: $cwd} end' |
 			(cd "${cwd:-.}" && env "${envs[@]}" bash "$guard") > /dev/null 2>&1

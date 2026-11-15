@@ -75,6 +75,19 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/leak-guard.sh\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/memory-guard.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/memory-guard.sh\""
           }
         ]
       },

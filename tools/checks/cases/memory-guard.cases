@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
+# SPDX-License-Identifier: MIT OR GPL-2.0-only
+# run in the directory memory-guard.fixture.sh builds, whose user directory holds a project's memories
+# env: HOME=user
+block	cat >> ~/.claude/projects/p/memory/feedback_bare.md <<'EOF'\n- also after a reboot\nEOF
+block	echo '- also after a reboot' >> "$HOME/.claude/projects/p/memory/feedback_bare.md"
+block	cd /srv && echo more >> ${HOME}/.claude/projects/p/memory/feedback_bare.md 2> /dev/null
+block	sed -i 's/twice/three times/' ~/.claude/projects/p/memory/feedback_bare.md
+block	sudo sed -Ei -e 's/twice/three times/' user/.claude/projects/p/memory/feedback_bare.md
+block	echo more | tee -a ~/.claude/projects/p/memory/feedback_bare.md > /dev/null
+block	bash -c "echo more >> ~/.claude/projects/p/memory/feedback_bare.md"
+block	cat > ~/.claude/projects/p/memory/feedback_new.md <<'EOF'\n---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first.\nEOF
+block	cd ~/.claude/projects/p/memory && cat >> feedback_bare.md <<'EOF'\n- also after a reboot\nEOF
+block	cd "$HOME/.claude/projects/p/memory/" && cat > feedback_new.md <<'EOF'\n---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first.\nEOF
+block	M=~/.claude/projects/p/memory; cat >> $M/feedback_bare.md <<'EOF'\n- also after a reboot\nEOF
+block	M="$HOME/.claude/projects/p/memory"; cd /srv && echo more | tee -a "${M}/feedback_bare.md"
+block	F=user/.claude/projects/p/memory/feedback_bare.md; sed -i 's/twice/three times/' $F; sed -n 1,5p $F
+block	cat >> ~/.claude/projects/p/memory/feedback_bare.md <<'EOF'\n- also after a reboot (#2155)\nEOF
+block	echo more >> ~/.claude/projects/p/memory/feedback_placed.md
+block	M=~/.claude/projects/p/memory; cat >> $M/feedback_placed.md <<'EOF'\n\n**2026-11-15:** the reader's `body-read.sh --pass` is refused by the auto mode classifier, so with #2541 the guard blocked every body post. Lesson: a harness mechanism that depends on a command an agent runs is exercised in auto mode before it merges.\nEOF
+block	cat >> ~/.claude/projects/p/memory/feedback_bare.md <<'EOF'\n- answer in the maintainer's language, as CLAUDE.local.md says\nEOF
+block	sed -i 's/type: feedback/type: user/' ~/.claude/projects/p/memory/feedback_bare.md
+pass	cat >> ~/.claude/projects/p/memory/feedback_bare.md <<'EOF'\n- also after a reboot, in AGENTS.md\nEOF
+pass	cat > ~/.claude/projects/p/memory/feedback_new.md <<'EOF'\n---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first: tools/journal.sh.\nEOF
+pass	echo more >> ~/.claude/projects/p/memory/project_batch.md
+pass	echo '- [New](feedback_new.md) - read the journal first' >> ~/.claude/projects/p/memory/MEMORY.md
+pass	cd ~/.claude/projects/p/memory && cat >> feedback_bare.md <<'EOF'\n- also after a reboot, in AGENTS.md\nEOF
+pass	echo '- also after a reboot, in AGENTS.md' | tee -a ~/.claude/projects/p/memory/feedback_bare.md > /dev/null
+pass	sed -i 's/twice/twice, as AGENTS.md says/' ~/.claude/projects/p/memory/feedback_bare.md
+pass	M=~/.claude/projects/p/memory; echo '- also after a reboot: tools/journal.sh' >> $M/feedback_bare.md
+pass	cd ~/.claude/projects/p/memory && cat >> project_batch.md <<'EOF'\nA fourth run.\nEOF
+pass	cd ~/.claude/projects/p/memory && cat feedback_bare.md > /srv/feedback_bare.md
+pass	M=/srv/notes; echo more >> $M/feedback_bare.md
+pass	F=~/.claude/projects/p/memory/feedback_bare.md; grep -c twice $F
+pass	cat ~/.claude/projects/p/memory/feedback_bare.md
+pass	sed 's/twice/three times/' ~/.claude/projects/p/memory/feedback_bare.md
+pass	grep -c twice ~/.claude/projects/p/memory/feedback_bare.md > /dev/null
+pass	echo more >> scratch/memory/feedback_bare.md
+pass	cat > scratch/memory/feedback_new.md <<'EOF'\n---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first.\nEOF
+# tool: Write
+block	{"file_path": "user/.claude/projects/p/memory/feedback_new.md", "content": "---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first.\n"}
+block	{"file_path": "user/.claude/projects/p/memory/feedback_new.md", "content": "---\nname: feedback-new\ntype: feedback\n---\n\nRead the journal first.\n"}
+block	{"file_path": "user/.claude/projects/p/memory/feedback_new.md", "content": "---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first (#2155).\n"}
+pass	{"file_path": "user/.claude/projects/p/memory/feedback_new.md", "content": "---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first: tools/journal.sh.\n"}
+pass	{"file_path": "user/.claude/projects/p/memory/feedback_new.md", "content": "---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first, as AGENTS.md says.\n"}
+pass	{"file_path": "user/.claude/projects/p/memory/feedback_new.md", "content": "---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first, as .agents/rules/checks.md says.\n"}
+pass	{"file_path": "user/.claude/projects/p/memory/feedback_new.md", "content": "---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first, as doc/guide/03-percpu.md says.\n"}
+pass	{"file_path": "user/.claude/projects/p/memory/project_new.md", "content": "---\nname: project-new\nmetadata:\n  type: project\n---\n\nTwo runs in flight.\n"}
+pass	{"file_path": "user/.claude/projects/p/memory/user_new.md", "content": "---\nname: user-new\nmetadata:\n  type: user\n---\n\nReads Portuguese.\n"}
+pass	{"file_path": "user/.claude/projects/p/memory/feedback_bare.md", "content": "---\nname: feedback-bare\ndescription: \"Run the suite twice\"\nmetadata:\n  type: user\n---\n\nRun the suite twice before reporting.\n"}
+pass	{"file_path": "user/.claude/projects/p/memory/MEMORY.md", "content": "- [New](feedback_new.md) - read the journal first\n"}
+pass	{"file_path": "scratch/notes/feedback_new.md", "content": "---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first.\n"}
+# tool: Edit
+block	{"file_path": "user/.claude/projects/p/memory/feedback_bare.md", "old_string": "before reporting.", "new_string": "before reporting, and after a reboot.", "replace_all": false}
+block	{"file_path": "user/.claude/projects/p/memory/feedback_bare.md", "old_string": "before reporting.", "new_string": "before reporting (#2155).", "replace_all": false}
+block	{"file_path": "user/.claude/projects/p/memory/feedback_placed.md", "old_string": "Install before testing.", "new_string": "Install before testing, always.", "replace_all": false}
+block	{"file_path": "user/.claude/projects/p/memory/feedback_placed.md", "old_string": "Lives in .agents/skills/lunatik-cycle/SKILL.md.\n", "new_string": "", "replace_all": false}
+block	{"file_path": "user/.claude/projects/p/memory/project_batch.md", "old_string": "type: project", "new_string": "type: feedback", "replace_all": false}
+block	{"file_path": "user/.claude/projects/p/memory/feedback_new.md", "old_string": "", "new_string": "---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first.\n", "replace_all": false}
+pass	{"file_path": "user/.claude/projects/p/memory/feedback_bare.md", "old_string": "before reporting.", "new_string": "before reporting, as AGENTS.md says.", "replace_all": false}
+pass	{"file_path": "user/.claude/projects/p/memory/feedback_bare.md", "old_string": "type: feedback", "new_string": "type: user", "replace_all": false}
+pass	{"file_path": "user/.claude/projects/p/memory/project_batch.md", "old_string": "Three runs", "new_string": "Four runs", "replace_all": false}
+pass	{"file_path": "user/.claude/projects/p/memory/feedback_new.md", "old_string": "", "new_string": "---\nname: feedback-new\nmetadata:\n  type: feedback\n---\n\nRead the journal first: tools/journal.sh.\n", "replace_all": false}
+pass	{"file_path": "user/.claude/projects/p/memory/MEMORY.md", "old_string": " - run the suite twice", "new_string": " - run the suite three times", "replace_all": false}
