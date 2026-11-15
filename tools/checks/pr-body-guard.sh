@@ -270,10 +270,12 @@ held() {
 }
 
 # a body the session posts to a pull request was passed first by a reader with none of the change's history
-# (body-read.sh); a subagent's post is implement-issue's opening, whose body review.js's reader passed
+# in one of the session's workflow runs (body-read.sh); a subagent's post is implement-issue's opening,
+# whose body review.js's reader passed
 reader() {
-	local post body file
+	local post body file transcript
 	[ -n "$(printf '%s' "$input" | jq -r '.agent_id // empty' 2> /dev/null)" ] && return
+	transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2> /dev/null)
 	while IFS= read -r post; do
 		[ -n "$post" ] || continue
 		body=$(gh_body "$post")
@@ -295,8 +297,8 @@ reader() {
 			jq -r .body "$file" > "$tmp/read"
 			file=$tmp/read
 		fi
-		bash "$(dirname "$0")/body-read.sh" "$file" 2> /dev/null && continue
-		echo "pr-body-guard: no reader passed this body. Run the reader over it as the pr-prep skill says, review.js with reviewer and build false, which reads it with none of the change's history and records the text it passed, and post the file it leaves; a text changed after the read is read again." >&2
+		bash "$(dirname "$0")/body-read.sh" "$file" "$transcript" 2> /dev/null && continue
+		echo "pr-body-guard: no reader of this session's workflow runs passed this body. Run the reader over it as the pr-prep skill says, review.js with reviewer and build false, which reads it with none of the change's history, and post the file it leaves; a text changed after the read is read again." >&2
 		exit 2
 	done <<< "$1"
 }
