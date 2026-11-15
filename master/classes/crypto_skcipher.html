@@ -196,6 +196,7 @@
 <p class="lead">Lua interface to symmetric-key ciphers (SKCIPHER).</p>
  Every method raises &ldquo;not allowed with IRQs disabled&rdquo; where the CPU runs with them off, in every
  callback of a hardirq runtime among them.
+ Not built where the kernel builds no user of its skcipher API, <code>CONFIG_CRYPTO_SKCIPHER2</code>.
 
 <h2 id="Methods">Methods</h2>
 <div class="tbl"><table class="function_list">
@@ -403,7 +404,7 @@
 <a href="../../classes/crypto_skcipher.html">5.1 docs</a> ·
 <a href="../../5.0/classes/crypto_skcipher.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 14:58:58</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 15:01:38</span>
 </div>
 </footer>
 </body>

@@ -720,6 +720,7 @@ window.LUNATIK_SEARCH = [
 ["luacrypto_newbuffer","topics/capi.md.html#luacrypto_newbuffer","Guide · Lunatik C API"],
 ["luacrypto_pushbuffer","topics/capi.md.html#luacrypto_pushbuffer","Guide · Lunatik C API"],
 ["LUACRYPTO_DECLARE","topics/capi.md.html#luacrypto_declare","Guide · Lunatik C API"],
+["LUACRYPTO_UNSUPPORTED","topics/capi.md.html#luacrypto_unsupported","Guide · Lunatik C API"],
 ["luadata","topics/capi.md.html#luadata","Guide · Lunatik C API"],
 ["LUADATA_OPT_NONE","topics/capi.md.html#luadata_opt_none","Guide · Lunatik C API"],
 ["luadata_new","topics/capi.md.html#luadata_new","Guide · Lunatik C API"],

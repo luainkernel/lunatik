@@ -197,7 +197,10 @@
  This module provides functionality to decrypt and load or execute Lua scripts
  encrypted with AES-256 in GCM mode. Scripts are decrypted in-kernel
  and loaded immediately, with the decrypted plaintext never written
- to persistent storage.
+ to persistent storage.</p>
+
+<p> Needs the kernel&rsquo;s AEAD API, <code>CONFIG_CRYPTO_AEAD2</code>, which <code>CONFIG_CRYPTO_GCM</code> selects; without
+ it the module loads and <a href="../modules/darken.html#load">load</a> and <a href="../modules/darken.html#run">run</a> raise <code>EOPNOTSUPP</code>.
 
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
@@ -250,7 +253,8 @@
     </ol>
 
     <h3>Raises</h3>
-     &ldquo;IV must be 12 bytes&rdquo;, &ldquo;key must be 32 bytes&rdquo;, &ldquo;not allowed once the runtime is armed&rdquo; from
+     &ldquo;EOPNOTSUPP&rdquo; on a kernel without <code>CONFIG_CRYPTO_AEAD2</code>, &ldquo;IV must be 12 bytes&rdquo;,
+   &ldquo;key must be 32 bytes&rdquo;, &ldquo;not allowed once the runtime is armed&rdquo; from
    an interrupt-context runtime past its body, &ldquo;EBADMSG&rdquo; when the tag does not match (a wrong key
    or IV, or a ciphertext altered or shorter than the tag), the errno name of a failed transform
    allocation, key setting or decryption, &ldquo;not enough memory&rdquo;, or the load error of the decrypted
@@ -309,7 +313,7 @@
 <a href="../../modules/darken.html">5.1 docs</a> ·
 <a href="../../5.0/modules/darken.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 14:58:58</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 15:01:38</span>
 </div>
 </footer>
 </body>
