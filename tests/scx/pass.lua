@@ -2,7 +2,7 @@
 -- SPDX-FileCopyrightText: (c) 2026 Ashwani Kumar Kamal <ashwanikamal.im421@gmail.com>
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
--- Kernel-side script for the scx pass test (see run.sh).
+-- Kernel-side script for the scx pass and alloc tests (see run.sh).
 
 local scx = require("scx")
 local rcu = require("rcu")
@@ -13,6 +13,9 @@ local DSQ_DEFAULT <const> = 0
 local SLICE       <const> = 5000000 -- apart from the slices linux.scx names
 local UNSET       <const> = "ctx is not set"
 local CLOSED      <const> = "closed object"
+
+local calls = 0
+local last = rcu.table()
 
 -- the answer to each task run.sh starts, by the comm it names it with
 local cells = {}
@@ -69,9 +72,13 @@ local function workload(ctx)
 	if cell then
 		return cell(task, ctx)
 	end
-	return DSQ_DEFAULT, ext.slice.DFL
+	calls = calls + 1
+	last.calls = calls
+	local class = {DSQ_DEFAULT, ext.slice.DFL}
+	return class[1], class[2]
 end
 
+last.calls = calls
 scx.attach(workload)
 
 -- resume.lua resumes the runtime once the scheduler is gone, outside any callback

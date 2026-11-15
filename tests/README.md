@@ -2493,6 +2493,18 @@ or when `bpftool`, `clang` or `taskset` is unavailable.
   scheduler is unregistered and its runtime stopped; the cases skip while
   another sched_ext scheduler is enabled.
 
+- **scx alloc**: during the pass cases' registration the callback, for each
+  task no cell names and under its CPU's runqueue lock, writes an `rcu.table`
+  entry and builds a table; the `kmem:kmalloc` events of a tracing instance
+  of the suite's own show that `luarcu` and the Lua allocator asked there for
+  `__GFP_HIGH` without `__GFP_KSWAPD_RECLAIM`, and `luarcu` for
+  `__GFP_NOWARN`, so an allocation under memory pressure fails, with no
+  warning logged, rather than wake kswapd, whose wakeup takes that lock. A
+  second case reads, as the script loads, the events of its body, which
+  writes the entry off the lock: there `luarcu` asks for `GFP_ATOMIC` and the
+  Lua allocator for `GFP_KERNEL`, both with the flag. Both skip where the pass
+  cases do or tracefs has no `kmem:kmalloc` event.
+
 ### signal
 
 Covers the `signal` module (`luasignal`): the bounds on a signal number and a
