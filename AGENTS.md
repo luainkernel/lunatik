@@ -398,8 +398,10 @@ named, not one discovered at that consumer's build.
   a later kernel adds, the binding refuses the operation where the facility is missing and uses it
   where it exists, behind a version guard, and does not reimplement it: a copy of the kernel's answer
   written here is a mechanism every later change serves, and it outlives the releases it was written
-  for. `print` under the runqueue lock is refused, not buffered and flushed from a worker, since no
-  release through 6.17 exports `printk_deferred` to modules.
+  for. A facility is looked up by what it calls as well as by its name: #1718 first refused `print`
+  under the runqueue lock, reading that no release exports `printk_deferred`, where its callee,
+  `vprintk_emit` at `LOGLEVEL_SCHED`, is exported in every release of the range, and the maintainer
+  then took that call in place of the refusal and of a buffer flushed from a worker.
 * A guard keys on a property that is true by construction where it is enforced, never on a proxy that
   merely correlates. That a registration is global is such a property. A netfilter hook number is not:
   the same hook runs in softirq or in process context depending on the path the packet took.
