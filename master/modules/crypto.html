@@ -344,8 +344,9 @@
 
     <h3>Raises</h3>
      &ldquo;ENOENT&rdquo; for an unknown algorithm, &ldquo;EINVAL&rdquo; for the name of another key agreement, such as
-   <code>ffdhe2048(dh)</code>, and for a key of another length than the curve&rsquo;s or out of its range, &ldquo;ENOMEM&rdquo;
-   or &ldquo;not enough memory&rdquo; on allocation failure
+   <code>ffdhe2048(dh)</code>, and for a key of another length than the curve&rsquo;s or out of its range, &ldquo;EIO&rdquo; for
+   a key the engine refuses with a status that is not an errno, &ldquo;ENOMEM&rdquo; or &ldquo;not enough memory&rdquo; on
+   allocation failure
 
 
     <h3>Usage</h3>
@@ -528,7 +529,7 @@ v:<span class="function-name">setpubkey</span>(point)
 <a href="../../modules/crypto.html">5.1 docs</a> ·
 <a href="../../5.0/modules/crypto.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 14:58:33</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 14:58:58</span>
 </div>
 </footer>
 </body>
