@@ -94,8 +94,11 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
   examples and the host did not show, an example only loaded, a mode or a query not run, what the build
   said: each build reads that body against what it ran and answers each such claim as `unmet`. The body
   is drafted before either reads the branch, and #1948 and #1958 opened claiming what the review and the
-  build had found untrue, #2255 a `--percpu` run its build had not made. A run that did not pass returns its
-  branch and its last build for the session to read.
+  build had found untrue, #2255 a `--percpu` run its build had not made. What the build adds goes into the
+  body before the reader reads it again, `review.js` with neither phase, and the agent that opens the pull
+  request posts the file the reader left, as it stands: `pr-body-guard.sh` holds an agent's post to a
+  reader's pass as it holds the session's (#2543). A run that did not pass returns its branch and its last
+  build for the session to read.
 - `machine` says how this machine gets root and authenticates gh, copied by the session from its
   CLAUDE.local.md: the host's and GitHub's agents load no CLAUDE.md, which keeps the instructions they
   start with to what their job reads, so the prompt is where they learn it.

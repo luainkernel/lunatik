@@ -202,14 +202,10 @@ What you find past the failure and do not fix, in the change or beside it,
 ${LEAVE}
 `
 
-const OPEN = (impl, head, unrelated, body, loaded, skipped, unmet, unproved, kernel) => `
-${MACHINE}Open a pull request on luainkernel/lunatik from the branch \`${impl.branch}\` against \`${base}\`, whose head is
-\`${head}\`; push the branch first if GitHub's tip of it is not that SHA.${DRAFT} Title: ${JSON.stringify(impl.title)}
-A pull request GitHub already has for the branch is that one, read with
-\`gh api "repos/luainkernel/lunatik/pulls?head=luainkernel:${impl.branch}&state=open"\`, and is not opened twice.
-
-Body, as it stands${unrelated.length ? `, with one sentence added to its last paragraph naming the failure a host
-run showed and the change does not cause, and the issue that reports it, from this record:
+// what a host run adds to the body, from its records: empty when they hold nothing, and the review's read stands
+const ADDED = (impl, unrelated, loaded, skipped, unmet, unproved, kernel) => `${unrelated.length ? `, with one
+sentence added to its last paragraph naming the failure a host run showed and the change does not cause, and the
+issue that reports it, from this record:
 ${JSON.stringify(unrelated)}` : ''}${loaded.length ? `, and with its sentence on the examples saying of each
 example of this record that the host only loaded it, or could not run it, and why, in the record's words:
 ${JSON.stringify(loaded)}` : ''}${unmet.length ? `, and with its sentence on the examples saying of each
@@ -218,15 +214,30 @@ ${JSON.stringify(unmet)}` : ''}${skipped && (impl.examples || []).length ? `, an
 saying that the host ran none of them, since tools/checks/functional.sh names no file of the change it reads` : ''}${unproved.length ? `,
 and with a sentence in its last paragraph naming each case of the change the host skipped, and why, from this
 record of what the suite printed on ${kernel}:
-${JSON.stringify(unproved)}` : ''}:
+${JSON.stringify(unproved)}` : ''}`
+
+const COMPOSE = (impl, head, body, added) => `
+The pull request of issue #${a.issue} opens with the body below${added}:
 ${JSON.stringify(body)}
 
-Write the body with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it and the files
-\`git diff --name-only ${impl.base}...${head}\` lists, and pass that path spelled out in the command that
-opens the pull request (\`-F body=@${bodyFile}\`): the guards before a shell
-call read the file the command names, and refuse a path a shell variable holds. Label nothing: the session
-labels it, with the label \`bash tools/complexity.sh <number>\` prints, which your answer carries as
-complexity. Your answer is the pull request's number; a write refused goes in notes, word for word.
+Write the result with your Write tool to exactly ${bodyFile}, run tools/checks/pr-body.sh over it and the files
+\`git diff --name-only ${impl.base}...${head}\` lists, and rewrite what it names in the sentences you added. Write
+nothing to GitHub: a reader with none of the change's history reads the text before another agent posts it.
+Your answer's body is the text the file holds.
+`
+
+const OPEN = (impl, head, file) => `
+${MACHINE}Open a pull request on luainkernel/lunatik from the branch \`${impl.branch}\` against \`${base}\`, whose head is
+\`${head}\`; push the branch first if GitHub's tip of it is not that SHA.${DRAFT} Title: ${JSON.stringify(impl.title)}
+A pull request GitHub already has for the branch is that one, read with
+\`gh api "repos/luainkernel/lunatik/pulls?head=luainkernel:${impl.branch}&state=open"\`, and is not opened twice.
+
+Its body is the file ${file}, which a reader with none of the change's history passed: change nothing in it, since
+pr-body-guard.sh refuses a text no reader passed, and pass that path spelled out in the command that opens the pull
+request (\`-F body=@${file}\`): the guards before a shell call read the file the command names, and refuse a path
+a shell variable holds. Label nothing: the session labels it, with the label \`bash tools/complexity.sh <number>\`
+prints, which your answer carries as complexity. Your answer is the pull request's number; a write refused goes in
+notes, word for word.
 `
 
 const FILE = (entries, source, findings, fixes) => `
@@ -323,6 +334,10 @@ const FIXED = { type: 'object', properties: {
   findings_left: LEFT,
   notes: { type: 'string' },
 }, required: ['head', 'caused', 'findings_left', 'notes'] }
+
+const COMPOSED = { type: 'object', properties: {
+  body: { type: 'string', description: 'the text the file holds' },
+}, required: ['body'] }
 
 const OPENED = { type: 'object', properties: {
   pr: { type: 'integer' }, complexity: { type: 'string', enum: ['complexity: small', 'complexity: medium', 'complexity: large'] },
@@ -423,12 +438,23 @@ if (implemented?.branch && a.push !== false) {
     phase('Open')
     const unrelated = fixes.filter(f => f && !f.caused).map(f => f.notes)
     const title = review?.reviewer?.title || implemented.title
-    const opened = await agent(OPEN({ ...implemented, title }, head, unrelated, body, build?.loaded || [], build?.skipped, build?.unmet || [],
-      unproved(build), build?.kernel), {
-      label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
-    })
-    pr = opened?.pr || 0
-    complexity = opened?.complexity || null
+    const added = ADDED(implemented, unrelated, build?.loaded || [], build?.skipped, build?.unmet || [], unproved(build), build?.kernel)
+    let read = review.read
+    if (added) {
+      const composed = await agent(COMPOSE(implemented, head, body, added), {
+        label: `compose:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: COMPOSED, ...githubber,
+      })
+      read = composed && (await workflow({ scriptPath: REVIEW },
+        reviewArgs(implemented, { head, reviewer: false, build: false, body: composed.body, title })))?.read
+    }
+    if (read?.passed) {
+      const opened = await agent(OPEN({ ...implemented, title }, head, read.file), {
+        label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
+      })
+      pr = opened?.pr || 0
+      complexity = opened?.complexity || null
+    } else
+      log(`no pull request for #${a.issue}: no reader passed the body with what the host run added; the session reads the result`)
   } else {
     const why = !passed(build) ? 'the host run did not pass' : missing.length ? `the host run left ${missing.join(', ')} unrun`
       : unsourced.length ? `the review kept ${unsourced.map(b => b.mechanism).join('; ')} without a source`
