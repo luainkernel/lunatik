@@ -77,7 +77,7 @@ local ok, err = pcall(luaebpf.compile, program, nil, broken)
 assert(not ok and err:find("module 'class' not found", 1, true),
 	"the compile of a directory lacking class gave: " .. tostring(err))
 local file = assert(io.open(object, "wb"))
-assert(file:write(luaebpf.compile(program, nil, scripts)))
+assert(file:write((luaebpf.compile(program, nil, scripts))))
 assert(file:close())
 LUA
 ) || { comment "$output"; fail "luaebpf: scripts.bpf.lua did not compile again in one process"; }
