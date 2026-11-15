@@ -312,7 +312,10 @@ under it too; it is installed as `pre-commit` is:
 
 git runs it on a commit, an amend and a merge, and not on the picks of a rebase or a cherry-pick, so a
 branch written before the rule restacks. `advisory.sh` runs the check over a change's subjects, which the
-`Checks` workflow annotates and a review's packet carries.
+`Checks` workflow annotates and a review's packet carries; the implement-issue workflow's implementer
+runs it over its title and its subjects, `review.js`'s reviewer over the title it is handed, which it
+returns corrected, and the `lunatik-reader` agent restates the title from the title alone before it
+reads the body.
 
 `rewrite-guard.sh`, wired before a shell call, refuses a forced push of a branch other branches are
 based on, naming them: they keep the commits the push drops, and those surface later as a duplicate

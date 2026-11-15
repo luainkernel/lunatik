@@ -60,11 +60,12 @@ On top of it:
         Workflow({scriptPath: '<checkout>/.agents/skills/review-pr/review.js',
               args: {pr: <N, or 0 before it opens>, branch: '<branch>', head: '<sha>', base: '<sha>',
                      scratch: '<absolute dir>', repo: '<checkout>', body: '<the text>',
-                     reviewer: false, build: false}})
+                     title: '<the title>', reviewer: false, build: false}})
 
-  It restates in two lines what the pull request does and why, from the body alone, and names each
-  place it cannot follow, quoting the words and the rule. What goes out is `read.file`, once
-  `read.passed`, and the hand-back carries the restatement. `pr-body-guard.sh` refuses the session's
+  It restates in one line what the title says changes, from the title alone, and in two lines what
+  the pull request does and why, from the title and the body, and names each place it cannot follow,
+  quoting the words and the rule. What goes out is `read.file`, once `read.passed`, under the title
+  `read.title` holds, and the hand-back carries both restatements. `pr-body-guard.sh` refuses the session's
   post of a body no reader of its workflow runs passed, read from the reader's own transcript, the text
   as it stands, so a body edited after the read is read again; one `review.js` returned ready was read
   already.
