@@ -164,8 +164,9 @@ you take it, what you read, decided, committed and measured, and your answer bef
    the examples run once, after the review, in an agent of their own, and a failure comes back to a fix.
    Run no install, reload, suite or example yourself. List the examples tools/checks/examples-touched.sh
    names over the changed files.
-6. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/pr-body.sh
-   passes the body over the changed files, and the body carries \`Closes #${a.issue}\` on a line of its
+6. Draft the pull request's title and body as pr-prep says, into your answer; tools/checks/title.sh
+   passes the title and the subjects of your commits, tools/checks/pr-body.sh passes the body over the
+   changed files, and the body carries \`Closes #${a.issue}\` on a line of its
    own, or \`#${a.issue}, which it does not close\` where it is the binding of a change split in two, and
    names each example as run:
    the pull request opens only on a head the host run passed, and says of an example the host only loaded,
@@ -307,7 +308,7 @@ const IMPLEMENTED = {
     cases: { type: 'array', items: { type: 'object', properties: {
       suite: { type: 'string' }, case: { type: 'string', description: 'as the test prints it' },
     }, required: ['suite', 'case'] } },
-    title: { type: 'string' },
+    title: { type: 'string', description: 'the pull request title, which title.sh passes' },
     body: { type: 'string', description: 'the pull request body, which pr-body.sh passes' },
     smallest: SMALLEST,
     findings_left: LEFT,
@@ -352,7 +353,7 @@ const PREPARED = { type: 'object', properties: {
 
 const reviewArgs = (impl, extra) => ({
   pr: 0, branch: impl.branch, base: impl.base, scratch: a.scratch, validated: null, examples: impl.examples, defects: impl.defects,
-  focus: a.focus || a.notes, smallest: impl.smallest, body: impl.body, effort: reviewer.effort, model: reviewer.model, push: a.push,
+  focus: a.focus || a.notes, smallest: impl.smallest, body: impl.body, title: impl.title, effort: reviewer.effort, model: reviewer.model, push: a.push,
   issue: a.issue, update: groomed?.update || '', cases: impl.cases,
   agents: { build: (a.agents || {}).build }, build: a.build, repo: a.repo, machine: a.machine, gh: a.gh, ...extra,
 })
@@ -421,7 +422,8 @@ if (implemented?.branch && a.push !== false) {
   if (passed(build) && !missing.length && !unsourced.length && !unread && a.gh !== false) {
     phase('Open')
     const unrelated = fixes.filter(f => f && !f.caused).map(f => f.notes)
-    const opened = await agent(OPEN(implemented, head, unrelated, body, build?.loaded || [], build?.skipped, build?.unmet || [],
+    const title = review?.reviewer?.title || implemented.title
+    const opened = await agent(OPEN({ ...implemented, title }, head, unrelated, body, build?.loaded || [], build?.skipped, build?.unmet || [],
       unproved(build), build?.kernel), {
       label: `open:${a.issue}`, phase: 'Open', agentType: 'lunatik-github', schema: OPENED, ...githubber,
     })

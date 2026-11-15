@@ -8,7 +8,7 @@
 // machine gathers for it, and a build that runs the host only when tools/checks/functional.sh names a
 // file it reads past the validated head, or past the base where none was, or an example the change
 // touches was not run on the validated head. Between them a reader with none of the change's history,
-// the lunatik-reader agent, reads the body the run returns.
+// the lunatik-reader agent, reads the title and the body the run returns.
 //
 // Every phase appends what it finds to a checkpoint file the moment it finds it, so a phase that
 // dies leaves its findings on disk and its successor continues from them instead of reading the
@@ -40,6 +40,8 @@
 //   body        the body a branch with no pull request yet opens with, which the reviewer answers
 //               corrected against the final diff, a reader with none of its history reads, and the
 //               build reads for what it claims of the examples
+//   title       the title it opens with, which the reviewer answers corrected as the body, and the
+//               reader reads in its prompt, before the body
 //   reviewer    false to run the build phase alone, as implement-issue does after a fix, and with build
 //               false too the reader of body alone, as the pr-prep skill runs it on a body the session posts
 //   effort      the reviewer's reasoning effort, default "high"
@@ -61,7 +63,7 @@
 //
 // It returns each phase's answer and findings_left, every finding a phase leaves as an issue,
 // with a title and a body that can be filed as they stand, and read, the reader's answer, with the
-// file that holds the body it read and whether it passed.
+// file that holds the body it read, the title it read and whether it passed.
 
 export const meta = {
   name: 'review-pr',
@@ -146,7 +148,8 @@ open a file beyond it only for what it does not show: a caller, a sibling, the k
 files you read load with them, from .agents/rules/.${a.pr ? `
 Read the pull request's threads too (\`${api(`repos/${github}/pulls/${a.pr}/comments`)}\` and
 \`${api(`repos/${github}/issues/${a.pr}/comments`)}\`), which record what the maintainer cares about,
-and run tools/checks/pr-body.sh over its body and the files the change carries.` : ''}${asked ? `
+and run tools/checks/pr-body.sh over its body and the files the change carries, and tools/checks/title.sh over its
+title.` : ''}${asked ? `
 The change answers ${asked}: read it and its comments${a.update ? `, and the Update the run appends to it, which
 binds as the issue does: ${JSON.stringify(a.update)}` : ''}. Your answer's requirements holds the final diff to
 each requirement it states and each point an Update: settles, quoted: how the diff meets it, and the case that
@@ -170,7 +173,9 @@ answered removed.${a.smallest ? `
 The implementer's own reading, which yours is not bound by: ${JSON.stringify(a.smallest)}` : ''}${a.body && !a.pr ? `
 The pull request opens with this body once the build passes; read it with the commit bodies, and your answer's
 body is this text with what the final diff, your fixups included, makes untrue corrected, the rest as it stands:
-${JSON.stringify(a.body)}` : ''}
+${JSON.stringify(a.body)}` : ''}${a.title && !a.pr ? `
+It opens with the title ${JSON.stringify(a.title)}, and your answer's title is that one with what the final diff
+makes untrue, or tools/checks/title.sh names, rewritten.` : ''}
 For every mechanism the diff builds over a kernel primitive, name the kernel's own answer to the problem it
 solves, from Documentation/ and the primitive's users in the kernel tree, and say why the diff's shape and not
 that one. For every field the diff adds beside an embedded kernel object, say what the object already records.
@@ -253,19 +258,21 @@ Remove your worktree when you are done (\`rm -rf <tree> && git -C ${repo} worktr
 under ${a.scratch}/, which holds every phase's checkpoints and defect patches.
 `
 
-const READ = (text) => `
+const READ = (title, text) => `
 The body of ${a.pr ? `pull request #${a.pr}` : `the pull request the branch \`${a.branch}\` opens`} on ${github} is
-the file ${bodyFile}, which you write first with your Write tool, exactly as this text: ${JSON.stringify(text)}.
+the file ${bodyFile}, which you write first with your Write tool, exactly as this text: ${JSON.stringify(text)}.${title ? `
+Its title is ${JSON.stringify(title)}.` : ''}
 The checkout is at \`${repo}\`.
 `
 
 const READ_OUT = { type: 'object', properties: {
-  restated: { type: 'string', description: 'what the pull request does and why, in two lines, from the body alone' },
+  title: { type: 'string', description: 'what the title says changes and for whom, in one line, from the title alone; empty when none was handed' },
+  restated: { type: 'string', description: 'what the pull request does and why, in two lines, from the title and the body alone' },
   problems: { type: 'array', items: { type: 'object', properties: {
     quote: { type: 'string' }, rule: { type: 'string' }, why: { type: 'string' },
   }, required: ['quote', 'rule', 'why'] } },
   verdict: { type: 'string', enum: ['pass', 'fail'] },
-}, required: ['restated', 'problems', 'verdict'] }
+}, required: ['title', 'restated', 'problems', 'verdict'] }
 
 const LEFT = { type: 'array', items: { type: 'object', properties: {
   title: { type: 'string' }, body: { type: 'string' }, severity: { type: 'string', enum: ['high', 'medium', 'low'] },
@@ -302,6 +309,7 @@ const FINDINGS = {
     }, required: ['requirement', 'how', 'case', 'verdict'] }, description: 'empty when the change answers no issue' },
     smallest: SMALLEST,
     body: { type: 'string', description: 'the body the pull request opens with, when one was handed to correct' },
+    title: { type: 'string', description: 'the title the pull request opens with, when one was handed to correct' },
     findings_left: LEFT,
     notes: { type: 'string' },
   },
@@ -340,16 +348,17 @@ if (a.reviewer !== false) {
   reviewer = await agent(REVIEW, { label: `review:${a.pr || a.branch}`, phase: 'Review', effort, schema: FINDINGS, ...model })
 }
 
-// the body the run returns, the one the reviewer corrected or, in a run of neither phase, the one handed, is read
-// by a reader with none of the change's history
+// the title and the body the run returns, the ones the reviewer corrected or, in a run of neither phase, the ones
+// handed, are read by a reader with none of the change's history
 const handed = a.reviewer !== false ? !a.pr && (reviewer?.body || a.body) : a.build === false && a.body
+const titled = a.reviewer !== false ? !a.pr && (reviewer?.title || a.title) : a.build === false && a.title
 let read = null
 if (handed) {
   phase('Read')
-  const answer = await agent(READ(handed), {
+  const answer = await agent(READ(titled, handed), {
     label: `read:${a.pr || a.branch}`, phase: 'Read', agentType: 'lunatik-reader', effort: 'high', schema: READ_OUT,
   })
-  read = { passed: answer?.verdict === 'pass', file: bodyFile, answer }
+  read = { passed: answer?.verdict === 'pass', file: bodyFile, title: titled || '', answer }
   if (!read.passed) {
     if (reviewer)
       reviewer.ready = false

@@ -88,9 +88,9 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
 - The pull request opens, in the `lunatik-github` agent, only on a head that passed with every example
   the change touches run, or loaded where the host cannot drive it, or none where the build ran nothing,
   and on a review that kept no mechanism
-  past the smallest shape without its source, and takes the `workflow-reviewed` label from the session. Its body is the
-  implementer's as the reviewer corrected it against the final diff and a reader with none of the
-  change's history passed it, saying of what it claims of the
+  past the smallest shape without its source, and takes the `workflow-reviewed` label from the session. Its title and
+  its body are the implementer's as the reviewer corrected them against the final diff and a reader with none of the
+  change's history passed them, the body saying of what it claims of the
   examples and the host did not show, an example only loaded, a mode or a query not run, what the build
   said: each build reads that body against what it ran and answers each such claim as `unmet`. The body
   is drafted before either reads the branch, and #1948 and #1958 opened claiming what the review and the
