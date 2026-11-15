@@ -184,9 +184,15 @@ local function reserve(names, declared)
 	end
 end
 
+local function report(calls, frame)
+	for _, call in ipairs(frame.calls) do
+		table.insert(calls, string.format("%s:%d: calls the runtime '%s'", frame.chunk, call.line, call.key))
+	end
+end
+
 -- the kfunc a program's functions call the runtime through, listed once however many of them do
 local function extern(externs, called, program, frame)
-	if not called[program.kfunc] and #frame.code:relocations("kfunc") > 0 then
+	if #frame.calls > 0 and not called[program.kfunc] then
 		called[program.kfunc] = true
 		table.insert(externs, {name = program.kfunc, context = program.context.struct})
 	end
@@ -198,12 +204,14 @@ end
 -- @tparam table declared the programs `luaebpf.programs` holds, in declaration order, each named
 -- @tparam[opt] string hook the mechanism `LUAEBPF_DROP` names, which the object is written without
 -- @treturn string the BPF ELF object
+-- @treturn table a line per call into the kernel Lua runtime the compiler met, in that order,
+--   `<file>:<line>: calls the runtime '<name>'`
 -- @raise `<file>:<line>: <reason>` for every construct the subset refuses
 function writer.write(declared, hook)
 	local object, types, cache = elf.new(emit.bigendian), btf.new(emit.bigendian), {}
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
-	local names, subprograms, order, externs, called = {}, {}, {}, {}, {}
+	local names, subprograms, order, externs, called, calls = {}, {}, {}, {}, {}, {}
 	-- maps and kfuncs take their names before any function does, so a relocation names one symbol
 	for _, map in ipairs(maps.declared()) do
 		names[map.name] = true
@@ -216,6 +224,7 @@ function writer.write(declared, hook)
 		for i, frame in ipairs(emit.program(program)) do
 			local unit = i == 1 and entries or text
 			local at = place(types, unit, frame, cache, subprograms)
+			report(calls, frame)
 			extern(externs, called, program, frame)
 			if i == 1 then
 				insert(order, {name = frame.name, section = program.section, value = at,
@@ -265,7 +274,7 @@ function writer.write(declared, hook)
 	local ext = types:ext(described) -- it interns the section names in .BTF's strings, so before pack
 	btfsection(object, ".BTF", types:pack())
 	btfsection(object, ".BTF.ext", ext)
-	return object:pack()
+	return object:pack(), calls
 end
 
 return writer

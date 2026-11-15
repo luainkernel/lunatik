@@ -167,6 +167,7 @@ local function lower(f)
 	f.bounded = {}
 	for _ = 1, ROUNDS do
 		f.changed = false
+		f.calls = {}
 		walk(f)
 		if not f.changed then
 			return
