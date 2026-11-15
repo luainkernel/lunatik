@@ -240,7 +240,7 @@ reads.</p>
 <p>The file has two parts. Its body, every line outside the function, runs once, on the host, when
 the file is compiled: it declares the map <code>counts</code> and the program. The function is the program:
 it is compiled to eBPF and runs in the kernel on each packet. It returns <code>XDP_PASS</code>, so every
-packet goes on to the network stack.</p>
+packet it can read goes on to the network stack.</p>
 
 <p>Compile it into place and attach it to a device:</p>
 
@@ -262,8 +262,9 @@ return counts[6], counts[17]'</span>
 
 
 <p>A frame that says IPv4 but is shorter than 24 bytes has no byte 23: its read stops the program,
-which returns its default verdict, <code>XDP_PASS</code>, and counts nothing. The lookup and the update are
-two steps, so two CPUs that count the same protocol at once can lose one of the increments.</p>
+which returns <code>XDP_ABORTED</code>, so the frame is dropped and nothing is counted. The lookup and the
+update are two steps, so two CPUs that count the same protocol at once can lose one of the
+increments.</p>
 
 <pre>
 sudo lunatik stop protocols
@@ -293,7 +294,8 @@ sudo lunatik stop protocols
         and the packet goes on
 
    where Lua would raise, at a read past the packet or x // 0, the
-   program stops and returns its default verdict
+   program stops: XDP_ABORTED in XDP, TC_ACT_SHOT in TC, either one
+   dropping the packet; where it returns no value, its default verdict
 </code></pre>
 
 <p>A program returns its verdict, which tells the kernel what to do with the packet: a value of
@@ -313,18 +315,22 @@ packet then goes on, through the device&rsquo;s tc filters if it has any.</li>
 </ul>
 
 
-<p>A <code>return</code> with no value, or with <code>nil</code>, returns the default verdict, and so does a program that
-stops. A verdict that may be nil is refused: &ldquo;the verdict may be nil here; test it first&rdquo;. The
-default verdict is <code>XDP_PASS</code> or <code>TC_ACT_OK</code>, unless the constructor names another:</p>
+<p>A <code>return</code> with no value, or with <code>nil</code>, returns the default verdict. A verdict that may be nil is
+refused: &ldquo;the verdict may be nil here; test it first&rdquo;. The default verdict is <code>XDP_PASS</code> or
+<code>TC_ACT_OK</code>, unless the constructor names another:</p>
 
 <pre>
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(filter, {default = action.DROP})
 </pre>
 
 
-<p>With the default, a packet the program cannot read goes through; a filter that must drop what it
-cannot check names <code>DROP</code>. A value the program computes reaches a kernel script through a map,
-not through the verdict.</p>
+<p>A program that stops, where Lua would raise, does not return its default. An XDP program returns
+<code>XDP_ABORTED</code>, the kernel&rsquo;s verdict for a program error, which drops the packet and, in the
+generic path and in most drivers, fires the tracepoint <code>xdp:xdp_exception</code>; a TC program, whose
+type has no such verdict, returns <code>TC_ACT_SHOT</code>, which drops the packet. A packet the program
+cannot read is dropped, whatever its default: a program that must let it through tests <code>#p</code>
+before it reads. A value the program computes reaches a kernel script through a map, not through
+the verdict.</p>
 
 <p><a name="When_a_program_cannot_be_compiled_or_computed"></a></p>
 
@@ -335,10 +341,10 @@ not through the verdict.</p>
          | lunatik bpf            | lunatik run --dev      | on the device
          v                        v                        v
    REFUSED                  REFUSED AT LOAD          STOPS
-   lunatik: file:line:      the verifier log,        the default verdict
-   reason; exit 1, no       which quotes the Lua     for that packet;
-   object written           line; exit 1, nothing    nothing logged
-                            attached
+   lunatik: file:line:      the verifier log,        XDP_ABORTED or
+   reason; exit 1, no       which quotes the Lua     TC_ACT_SHOT: the packet
+   object written           line; exit 1, nothing    is dropped; nothing
+                            attached                 logged
 
    what the subset does     a program past the       where Lua would raise:
    not compile, and a       limits of the verifier,  x // 0, a read past
@@ -358,12 +364,13 @@ a <a href="../modules/skb.html#skb:priority">skb:priority</a> outside 0 to 42949
 A program past the verifier&rsquo;s limits, most often a loop of many passes, is refused there:
 <code>lunatik run</code> prints the verifier&rsquo;s log, which quotes the Lua lines, exits 1 and leaves nothing
 attached.</li>
-<li><strong>Stops.</strong> In the kernel, on a packet, the program returns its default verdict at once, and
-nothing is logged (#2098). A program stops at a read past the packet, a division or a modulo by
-0, a <code>for</code> step of 0 it computed, a map key or value its spec cannot pack, a map update or delete
-the map refuses, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside 0 to 4294967295, and in a function it called
-that stops. A division by a 0 the compiler knows is not refused: the program stops on every packet
-that reaches it.</li>
+<li><strong>Stops.</strong> In the kernel, on a packet, the program returns at once <code>XDP_ABORTED</code> in XDP or
+<code>TC_ACT_SHOT</code> in TC, which drop the packet, and nothing is logged (#2098); a tracer reads an
+XDP program&rsquo;s stops at the tracepoint <code>xdp:xdp_exception</code>. A program stops at a read past the
+packet, a division or a modulo by 0, a <code>for</code> step of 0 it computed, a map key or value its spec
+cannot pack, a map update or delete the map refuses, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside 0 to
+4294967295, and in a function it called that stops. A division by a 0 the compiler knows is not
+refused: the program stops on every packet that reaches it.</li>
 </ul>
 
 
@@ -372,8 +379,8 @@ that reaches it.</li>
 <h2 id="the-lua-a-program-may-use">The Lua a program may use</h2>
 
 <p>A compiled function computes what the kernel&rsquo;s Lua computes, or stops, or is refused. &ldquo;Stops&rdquo;
-means the program returns its default verdict; &ldquo;refused&rdquo; means <code>lunatik bpf</code> refuses the file at
-that line. Each construct links to its listing.</p>
+means the program returns <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, which drop the packet; &ldquo;refused&rdquo; means
+<code>lunatik bpf</code> refuses the file at that line. Each construct links to its listing.</p>
 
 <table>
 <thead>
@@ -951,7 +958,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 15:01:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 16:30:56</span>
 </div>
 </footer>
 </body>

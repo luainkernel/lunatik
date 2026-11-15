@@ -206,9 +206,9 @@ these sections.</p>
 
 <h2 id="what-the-compiler-emits">What the compiler emits</h2>
 
-<p>A construct the compiler lowers computes what the kernel&rsquo;s Lua computes, stops the program with its
-default verdict where Lua would raise, or is refused at its line. Where the eBPF instruction alone
-computes something else, the compiler emits what lies between:</p>
+<p>A construct the compiler lowers computes what the kernel&rsquo;s Lua computes, stops the program where Lua
+would raise, with <code>XDP_ABORTED</code> in XDP and <code>TC_ACT_SHOT</code> in TC, or is refused at its line. Where the
+eBPF instruction alone computes something else, the compiler emits what lies between:</p>
 
 <table>
 <thead>
@@ -242,7 +242,7 @@ computes something else, the compiler emits what lies between:</p>
 <td> <code>x // 0</code>, <code>x % 0</code> </td>
 <td> raises </td>
 <td> <code>0</code> and <code>x</code> </td>
-<td> a test of the divisor, which takes the default verdict </td>
+<td> a test of the divisor, which stops the program </td>
 </tr>
 <tr>
 <td> <code>1 &lt;&lt; 64</code> </td>
@@ -290,7 +290,7 @@ computes something else, the compiler emits what lies between:</p>
 <td> <code>for</code> with a step of <code>0</code> </td>
 <td> raises </td>
 <td> <code>BPF_DIV</code> by zero gives a count of 0, one pass through the body </td>
-<td> a step the compiler holds refused, &ldquo;&lsquo;for&rsquo; step is zero&rdquo;, and one the program computes tested, which takes the default verdict </td>
+<td> a step the compiler holds refused, &ldquo;&lsquo;for&rsquo; step is zero&rdquo;, and one the program computes tested, which stops the program </td>
 </tr>
 <tr>
 <td> <code>goto continue</code> </td>
@@ -314,7 +314,7 @@ computes something else, the compiler emits what lies between:</p>
 <td> <code>p:getint16(n)</code> on TC </td>
 <td> the same, of the whole packet, past the skb&rsquo;s linear head too </td>
 <td> a load stops at <code>data_end</code>, the end of the linear head </td>
-<td> the offset tested unsigned against <code>INT_MAX</code>, the helper&rsquo;s own bound, since it takes the low 32 bits, then <code>bpf_skb_load_bytes</code> into the frame, which copies the bytes wherever the skb holds them, the default verdict where it answers non-zero, and the sign extended alike </td>
+<td> the offset tested unsigned against <code>INT_MAX</code>, the helper&rsquo;s own bound, since it takes the low 32 bits, then <code>bpf_skb_load_bytes</code> into the frame, which copies the bytes wherever the skb holds them, a stop where it answers non-zero, and the sign extended alike </td>
 </tr>
 <tr>
 <td> <code>#p</code> </td>
@@ -332,7 +332,7 @@ computes something else, the compiler emits what lies between:</p>
 <td> <code>skb:priority(v)</code> </td>
 <td> raises outside 0 to <code>U32_MAX</code> </td>
 <td> a four-byte store keeps the low 32 bits </td>
-<td> a value the compiler holds checked against the field&rsquo;s width, and one the program computes tested, which takes the default verdict </td>
+<td> a value the compiler holds checked against the field&rsquo;s width, and one the program computes tested, which stops the program </td>
 </tr>
 <tr>
 <td> <code>m[k]</code> </td>
@@ -344,13 +344,13 @@ computes something else, the compiler emits what lies between:</p>
 <td> <code>m[k] = v</code>, <code>m[k] = nil</code> </td>
 <td> the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a> raises when the map refuses the update, or refuses the delete for any reason but an absent key </td>
 <td> the helper&rsquo;s return code </td>
-<td> the helper, and the default verdict on any code but zero, or <code>-ENOENT</code> from a delete </td>
+<td> the helper, and a stop on any code but zero, or <code>-ENOENT</code> from a delete </td>
 </tr>
 <tr>
 <td> <code>m[k]</code> with <code>k</code> outside the key&rsquo;s spec </td>
 <td> <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> raises </td>
 <td> a store that keeps the low bytes </td>
-<td> a key the compiler holds packed when the function is compiled, and one the program computes tested, which takes the default verdict; a value alike </td>
+<td> a key the compiler holds packed when the function is compiled, and one the program computes tested, which stops the program; a value alike </td>
 </tr>
 <tr>
 <td> <code>v.field</code> of a struct value </td>
@@ -403,8 +403,8 @@ its caller&rsquo;s flag, and <code>r10 - 24</code> and <code>r10 - 32</code> the
 </ul>
 
 
-<p>Every listing ends with the instructions where the function stops: the default verdict, and the
-exit.</p>
+<p>Every listing ends with the instructions where the function stops: <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>,
+and the exit.</p>
 
 <p><a name="The_packet"></a></p>
 
@@ -449,7 +449,7 @@ in network order.</p>
   16  r0 = r8
   17  exit
       line 7: end)
-  18  r0 = 2                        XDP_PASS, the default verdict
+  18  r0 = 0                        XDP_ABORTED, where Lua would raise
   19  exit
 </code></pre>
 
@@ -480,7 +480,7 @@ instructions 15 and 16 of <a href="#floor-division-and-modulo">Floor division an
 <td> 14 bytes, an Ethernet header alone </td>
 <td> 13 </td>
 <td> 18 is past 14 </td>
-<td> 2, <code>XDP_PASS</code> </td>
+<td> 0, <code>XDP_ABORTED</code> </td>
 </tr>
 </tbody>
 </table>
@@ -562,7 +562,7 @@ the kernel&rsquo;s Lua <code>a / b</code> is <code>a // b</code>, and it compile
   52  r0 = r0
   53  exit
       line 8: end)
-  54  r0 = 2                        XDP_PASS, the default verdict
+  54  r0 = 0                        XDP_ABORTED, where Lua would raise
   55  exit
 </code></pre>
 
@@ -645,7 +645,7 @@ signs differ. Bytes 14 and 15 at <code>f9 02</code>, so <code>a</code> is -7 and
 
 <p>Lua computes <code>-7 // 2</code> as -4. As a verdict, -4 is read as its low 32 bits, 4294967292, which is no
 XDP action: attached to a device, this program would drop the packet (<a href="#the-verdict">The verdict</a>).
-With <code>b</code> at 0, instruction 36 jumps to 54, and the program returns 2, <code>XDP_PASS</code>.</p>
+With <code>b</code> at 0, instruction 36 jumps to 54, and the program returns 0, <code>XDP_ABORTED</code>.</p>
 
 <p><code>a % b</code> is the same program with <code>return a % b</code>; instructions 0 to 33 read <code>a</code> and <code>b</code> as above:</p>
 
@@ -671,7 +671,7 @@ With <code>b</code> at 0, instruction 36 jumps to 54, and the program returns 2,
   52  r0 = r0
   53  exit
       line 8: end)
-  54  r0 = 2                        XDP_PASS, the default verdict
+  54  r0 = 0                        XDP_ABORTED, where Lua would raise
   55  exit
 </code></pre>
 
@@ -702,7 +702,7 @@ as Lua computes <code>-7 % 2</code>.</p>
   47  r0 = r0
   48  exit
       line 8: end)
-  49  r0 = 2                        XDP_PASS, the default verdict
+  49  r0 = 0                        XDP_ABORTED, where Lua would raise
   50  exit
 </code></pre>
 
@@ -798,7 +798,7 @@ tests <code>small</code> alone. Instructions 0 to 17 read <code>a</code> into <c
   46  r1 = 2                        XDP_PASS
   47  to 50: r0 is 2, and the exit
       line 13: end)
-  51  r0 = 2                        XDP_PASS, the default verdict
+  51  r0 = 0                        XDP_ABORTED, where Lua would raise
   52  exit
 </code></pre>
 
@@ -890,14 +890,14 @@ the program holds 17, the value the body left there. Instructions 0 to 15 read b
   23  r0 = r9
   24  exit
       line 13: end)
-  25  r0 = 2                        XDP_PASS, the default verdict
+  25  r0 = 0                        XDP_ABORTED, where Lua would raise
   26  exit
 </code></pre>
 
 <p>An IPv4 frame whose byte 23 is 17, UDP, returns 1, <code>XDP_DROP</code>; one whose byte 23 is 6, TCP, returns
-2, and a 14-byte frame stops at the read and returns 2 too. An index the program computes,
-<code>protocols[name]</code> with <code>name</code> read from the packet, has no value the compiler can read, and is
-refused; so are <code>#protocols</code> and a write to the table.</p>
+2, and a 14-byte frame stops at the read and returns 0, <code>XDP_ABORTED</code>. An index the program
+computes, <code>protocols[name]</code> with <code>name</code> read from the packet, has no value the compiler can read,
+and is refused; so are <code>#protocols</code> and a write to the table.</p>
 
 <p><a name="The_verdict"></a></p>
 
@@ -925,7 +925,7 @@ refused; so are <code>#protocols</code> and a write to the table.</p>
   22  r0 = r8                       the verdict: 1 or 0
   23  exit
       line 6: end)
-  24  r0 = 2                        XDP_PASS, the default verdict
+  24  r0 = 0                        XDP_ABORTED, where Lua would raise
   25  exit
 </code></pre>
 
@@ -996,14 +996,13 @@ bytes past the head.</p>
   30  r0 = r9
   31  exit
       line 9: end)
-  32  r0 = 0                        TC_ACT_OK, the default verdict
+  32  r0 = 2                        TC_ACT_SHOT, where Lua would raise
   33  exit
 </code></pre>
 
-<p>A frame whose byte 15 is 3 leaves its priority at 3 and returns 0. One whose byte 15 is <code>ff</code>
-gives -1, which instruction 23 finds outside the range: the program stops before the store, and
-the priority stays where it was. The default verdict here is <code>TC_ACT_OK</code> too, so only the priority
-tells the two apart.</p>
+<p>A frame whose byte 15 is 3 leaves its priority at 3 and returns 0, <code>TC_ACT_OK</code>. One whose byte 15
+is <code>ff</code> gives -1, which instruction 23 finds outside the range: the program stops before the store
+and returns 2, <code>TC_ACT_SHOT</code>, so the packet is dropped and its priority stays where it was.</p>
 
 <p><a name="Maps"></a></p>
 
@@ -1066,7 +1065,7 @@ prints the map as a relocation, which libbpf fills in when it loads the object. 
       line 16: return action.PASS
   71  to 75: r0 is 2, and the exit
       line 17: end)
-  76  r0 = 2                        XDP_PASS, the default verdict
+  76  r0 = 0                        XDP_ABORTED, where Lua would raise
   77  exit
 </code></pre>
 
@@ -1112,9 +1111,9 @@ frames, one after the other, over a map that starts empty:</p>
 </table>
 
 
-<p>Each run returns 2. A kernel script reads the same map with the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a>, as
-<code>map.hash(&quot;/sys/fs/bpf/lunatik/&lt;script&gt;/seen&quot;, &quot;I4&quot;, &quot;I8&quot;)</code>. A <a href="../modules/struct.html#">struct</a> value is read a field at
-a time, by a load at the field&rsquo;s offset and width.</p>
+<p>Each run returns 2 but the last, which stops and returns 0, <code>XDP_ABORTED</code>. A kernel script reads
+the same map with the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a>, as <code>map.hash("/sys/fs/bpf/lunatik/&lt;script&gt;/seen", "I4",
+"I8")&lt;code&gt;. A &lt;/code&gt;struct</code> value is read a field at a time, by a load at the field&rsquo;s offset and width.</p>
 
 <p><a name="Loops"></a></p>
 
@@ -1163,13 +1162,13 @@ count, the step and <code>i</code>: here <code>r9</code>, <code>r10 - 40</code> 
   41  r0 = r8
   42  exit
       line 10: end)
-  43  r0 = 2                        XDP_PASS, the default verdict
+  43  r0 = 0                        XDP_ABORTED, where Lua would raise
   44  exit
 </code></pre>
 
 <p>Bytes 14 to 17 at <code>01 02 03 04</code> make four passes, i at 14, 15, 16 and 17, and the program returns
 10. A 16-byte frame stops at the third pass, whose read of byte 16 is past the packet, and returns
-2, <code>XDP_PASS</code>.</p>
+0, <code>XDP_ABORTED</code>.</p>
 
 <p>With a bound the program computes, <code>for i = 1, n do</code>, the count is computed when the loop starts,
 with an unsigned division as <code>forprep</code> does, and the back edge passes through <code>may_goto</code>, which
@@ -1222,7 +1221,7 @@ count in <code>r9</code>, the step in <code>r10 - 40</code> and <code>i</code> i
   45  r0 = r8
   46  exit
       line 12: end)
-  47  r0 = 2                        XDP_PASS, the default verdict
+  47  r0 = 0                        XDP_ABORTED, where Lua would raise
   48  exit
 </code></pre>
 
@@ -1267,7 +1266,7 @@ count in <code>r9</code>, the step in <code>r10 - 40</code> and <code>i</code> i
 
 
 <p>At 37 no pass is left, and the program returns 3, <code>XDP_TX</code>. A 16-byte frame stops at the third
-pass, whose read of byte 16 is past the packet, and returns 2. A <code>goto</code> out of the loop is the
+pass, whose read of byte 16 is past the packet, and returns 0. A <code>goto</code> out of the loop is the
 same <code>JA</code>, to the instructions after the loop. A <code>goto</code> to a label above it makes a loop the
 compiler counts no pass of, and is refused: &ldquo;&lsquo;while&rsquo;, &lsquo;repeat&rsquo; and a &lsquo;goto&rsquo; backwards are not
 compiled yet&rdquo;.</p>
@@ -1310,7 +1309,7 @@ and <code>r2</code>, and the address of the caller&rsquo;s flag in the register 
       line 12: return v
   45  to 47: r0 is v, and the exit
       line 13: end)
-  48  r0 = 2                        XDP_PASS, the default verdict
+  48  r0 = 0                        XDP_ABORTED, where Lua would raise
   49  exit
 
    half, in the section .text
@@ -1329,8 +1328,8 @@ and <code>r2</code>, and the address of the caller&rsquo;s flag in the register 
 </code></pre>
 
 <p>Bytes 14 and 15 at <code>07 00</code>: <code>a</code> is 7 and <code>b</code> is 0. In <code>half</code> the zero test jumps to 22, which
-raises the flag and returns; at 43 the program reads the flag and jumps to 48, so it returns 2,
-<code>XDP_PASS</code>, as if the division had been in the program&rsquo;s own function. With -7 and 2, <code>half</code>
+raises the flag and returns; at 43 the program reads the flag and jumps to 48, so it returns 0,
+<code>XDP_ABORTED</code>, as if the division had been in the program&rsquo;s own function. With -7 and 2, <code>half</code>
 returns -4, and so does the program.</p>
 
 <p>The call returns to the program, which reads the flag before it goes on. <code>return half(a, b)</code> would
@@ -1356,7 +1355,7 @@ compiled&rdquo;.</p>
 <a href="../../topics/09-luaebpf-by-example.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/09-luaebpf-by-example.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 15:01:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 16:30:56</span>
 </div>
 </footer>
 </body>

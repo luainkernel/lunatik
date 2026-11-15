@@ -490,7 +490,7 @@ sudo lunatik stop filter
 failure at any step undoes the steps before it and exits 1 with that step&rsquo;s message, the verifier&rsquo;s
 own log when the kernel rejects a program, which quotes the Lua line; libbpf&rsquo;s own warnings, which
 name what failed where the kernel logs nothing, print on stderr before it. Once attached, a program
-logs nothing: a packet it cannot compute gets its default verdict, as
+logs nothing: a packet it cannot compute is dropped, with <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, as
 <a href="../topics/08-luaebpf.md.html#what-a-program-returns">What a program returns</a> says. <code>lunatik stop &lt;script&gt;</code>
 runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each
 directory above it the root leaves empty. A root holds pins and nothing else, so a stop of a name
@@ -538,7 +538,7 @@ the kernel publishes the BTF the compiler reads. The program file itself stays o
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 15:01:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 16:30:56</span>
 </div>
 </footer>
 </body>

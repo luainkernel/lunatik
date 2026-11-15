@@ -198,8 +198,9 @@
  <a href="../modules/bpf.xdp.html#bpf.xdp.program">program</a> is compiled to eBPF and runs in the kernel on each packet the device receives. It takes
  one argument, the context, and returns a verdict, a value of <a href="../modules/linux.xdp.html#action">linux.xdp.action</a>, of which the
  kernel reads the low 32 bits: any value that is not an action drops the packet. Where Lua would
- raise, at a read past the packet or a division by 0, the program stops and returns its default
- verdict.</p>
+ raise, at a read past the packet or a division by 0, the program stops and returns <code>XDP_ABORTED</code>,
+ the kernel&rsquo;s verdict for a program error, which drops the packet; where it returns no value, it
+ returns its default verdict.</p>
 
 <p> The context has the methods of the kernel&rsquo;s XDP <code>ctx</code> object: <code>ctx:packet()</code>, the packet, read
  with <code>getbyte</code>, <code>getint16</code> and the other reads of the kernel&rsquo;s <a href="../modules/data.html#">data</a> object, in the kernel&rsquo;s
@@ -244,10 +245,9 @@ end)
         </li>
         <li><span class="parameter">opts</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-         <code>default</code>, the verdict the program returns where it stops, where Lua
-   would raise (<code>linux.xdp.action.PASS</code>), and <code>name</code>, what the program is called in the object,
-   cut to the fifteen characters <code>BPF_OBJ_NAME_LEN</code> leaves and made unique against the names
-   already taken.
+         <code>default</code>, the verdict the program returns where its function returns no
+   value (<code>linux.xdp.action.PASS</code>), and <code>name</code>, what the program is called in the object, cut to the
+   fifteen characters <code>BPF_OBJ_NAME_LEN</code> leaves and made unique against the names already taken.
          (<em>optional</em>)
         </li>
     </ul>
@@ -283,7 +283,7 @@ end)
 <a href="../../modules/bpf.xdp.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.xdp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 15:01:38</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 16:30:56</span>
 </div>
 </footer>
 </body>
