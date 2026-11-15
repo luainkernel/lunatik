@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 # run in the repository pr-body-guard.fixture.sh builds
-# env: LUNATIK_GUARD_DIR=guards
+# transcript: session.jsonl
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -F body=@silent.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@named.md
@@ -41,6 +41,19 @@ block	gh -R luainkernel/lunatik pr create -f -H fifo-test -B master
 # agent: open
 pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@unread.md
 # agent:
+# a reader passed a body when its transcript, kept beside the session's, holds the text it wrote last and
+# answered pass on: no text a reader failed, another agent drafted or another session's reader passed
+block	gh pr create --head fifo-test --base master --body-file read/failed.md
+block	gh pr create --head fifo-test --base master --body-file read/drafted.md
+block	gh pr create --head fifo-test --base master --body-file read/draft.md
+pass	gh pr create --head fifo-test --base master --body-file read/redraft.md
+block	gh pr create --head fifo-test --base master --body-file read/elsewhere.md
+# transcript: elsewhere.jsonl
+pass	gh pr create --head fifo-test --base master --body-file read/elsewhere.md
+block	gh pr create --head fifo-test --base master --body-file named.md
+# transcript:
+block	gh pr create --head fifo-test --base master --body-file named.md
+# transcript: session.jsonl
 # an issue edit is read against the body its issue has in the repository the write targets, which the
 # gh on stub/ answers, with no post held
 # env: PATH=stub:/usr/local/bin:/usr/bin:/bin
@@ -79,6 +92,8 @@ block	gh api -X PATCH repos/luainkernel/lunatik/pulls/5 -F body=@unread.md
 block	gh pr edit 5 --body-file unread.md
 pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/5 -F body=@named.md
 pass	gh pr edit 5 --body-file named.md
+pass	gh pr edit 5 --body-file review5/body.md
+block	gh pr edit 5 --body-file review5/edited.md
 block	gh api -X PATCH repos/luainkernel/lunatik/pulls/5 -F body=@backstage.md
 pass	gh pr edit 5 --title fifo
 pass	gh api -X PATCH repos/luainkernel/lua/pulls/6 -F body=@unread.md

@@ -64,8 +64,9 @@ no "Test plan" section, no em dashes. On top of it:
   It restates in two lines what the pull request does and why, from the body alone, and names each
   place it cannot follow, quoting the words and the rule. What goes out is `read.file`, once
   `read.passed`, and the hand-back carries the restatement. `pr-body-guard.sh` refuses the session's
-  post of a body no reader passed, the text as it stands, so a body edited after the read is read
-  again; one `review.js` returned ready was read already.
+  post of a body no reader of its workflow runs passed, read from the reader's own transcript, the text
+  as it stands, so a body edited after the read is read again; one `review.js` returned ready was read
+  already.
 - A pull request that finishes a phase of an epic carries `Closes #<phase issue>` on a line of its
   own, and one that finishes none says `#<epic>, which it does not close`: a body that only says it
   is part of the epic, or answers an issue, closes nothing when it merges, and `pr-body.sh` fails it.

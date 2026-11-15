@@ -16,7 +16,10 @@
 # endpoint's, and the JSON gh api sends for each base, each saying why no script is shown; beside
 # them, naming the example, one that shows no code and says nothing of it, one that shows it in a fenced
 # block, one whose first sentence runs past a plain one, one that carries a cell, and one no reader
-# passed, where every other a reader passed, as body-read.sh records under guards/ and other/; under
+# passed, where a reader of the session in session.jsonl passed every other, its transcript where Claude
+# Code keeps it; under read/, one such a reader failed, one another agent drafted, one a reader wrote
+# before the one it left, which it passed, and one a reader of the session in elsewhere.jsonl passed;
+# under review5/, the body a reader of #5 passed and a copy edited after it; under
 # sub/, read only after a cd into it, the body that names the example and a GraphQL mutation that
 # carries no text. For an issue edit, a gh on
 # stub/ that answers the body GitHub has for luainkernel/lunatik#5 and for luainkernel/lua#5, each
@@ -111,10 +114,41 @@ exit 1
 STUB
 chmod +x keyed/gh
 
-# a reader passed every body but unread.md, in each directory the cases that open a pull request read
-for dir in guards other; do
-	for body in *.md sub/body.md; do
-		[ "$body" = unread.md ] || LUNATIK_GUARD_DIR=$dir bash "$(dirname "$guard")/body-read.sh" --pass "$body"
-	done
+# the transcripts Claude Code keeps of the workflow agents of the session in <session>.jsonl, beside it:
+# agent <id>, of type <type>, wrote each <body> with its Write tool and answered <verdict>
+agent() {
+	local run=${1%.jsonl}/subagents/workflows/wf_cases body
+	mkdir -p "$run"
+	printf '{"agentType":"%s","description":"read:5"}\n' "$3" > "$run/agent-$2.meta.json"
+	{
+		jq -nc '{type: "user", message: {role: "user", content: "The body is the file you write first with your Write tool."}}'
+		for body in "${@:5}"; do
+			jq -nc --arg path "$PWD/$body" --rawfile content "$body" '
+				{type: "assistant", message: {role: "assistant", content: [{type: "tool_use", id: "toolu_w",
+					name: "Write", input: {file_path: $path, content: $content}}]}},
+				{type: "user", message: {role: "user", content: [{type: "tool_result", tool_use_id: "toolu_w",
+					content: "File created successfully at: \($path)"}]}}'
+		done
+		jq -nc --arg verdict "$4" '{type: "assistant", message: {role: "assistant", content: [{type: "tool_use",
+			id: "toolu_s", name: "StructuredOutput", input: {restated: "A fifo.", problems: [], verdict: $verdict}}]}}'
+	} > "$run/agent-$2.jsonl"
+}
+
+# a reader of the session in session.jsonl passed every body but unread.md and those under read/ and review5/
+i=0
+for body in *.md sub/body.md; do
+	[ "$body" = unread.md ] || agent session.jsonl "r$((i += 1))" lunatik-reader pass "$body"
 done
+mkdir -p read review5
+for body in failed drafted draft redraft elsewhere; do
+	printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nexamples/spyglass ran. Nothing a script calls changes, in the %s body.\n' "$body" > "read/$body.md"
+done
+agent session.jsonl failed lunatik-reader fail read/failed.md
+agent session.jsonl drafted workflow-subagent pass read/drafted.md
+agent session.jsonl redraft lunatik-reader pass read/draft.md read/redraft.md
+agent elsewhere.jsonl elsewhere lunatik-reader pass read/elsewhere.md
+# the body review.js hands a reader of #5, which passed it, and a copy edited after the read
+printf 'A fifo of a megabyte fails to load on a fragmented host.\n\nNothing a script calls changes.\n' > review5/body.md
+sed 's/fragmented/busy/' review5/body.md > review5/edited.md
+agent session.jsonl review5 lunatik-reader pass review5/body.md
 
