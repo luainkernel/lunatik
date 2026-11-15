@@ -186,7 +186,7 @@ under `sudo`.
 | subprograms | 256 | [bpf_verifier.h#L782](https://github.com/torvalds/linux/blob/v7.2/include/linux/bpf_verifier.h#L782); "too many subprograms" at [verifier.c#L2364](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L2364) |
 | register arguments per call | 5 | [bpf.h#L1209](https://github.com/torvalds/linux/blob/v7.2/include/linux/bpf.h#L1209) |
 | tail calls | 33 | [bpf.h#L2387](https://github.com/torvalds/linux/blob/v7.2/include/linux/bpf.h#L2387) |
-| `may_goto` and iterator bound per invocation | 8,388,608 | `BPF_MAX_LOOPS`, [bpf.h#L2393](https://github.com/torvalds/linux/blob/v7.2/include/linux/bpf.h#L2393) |
+| `may_goto` passes per call of a function, where the kernel counts them, and passes of one `bpf_iter_num` | 8,388,608 | `BPF_MAX_LOOPS`, [bpf.h#L2393](https://github.com/torvalds/linux/blob/v7.2/include/linux/bpf.h#L2393) |
 
 ### Rules that shape the subset
 
