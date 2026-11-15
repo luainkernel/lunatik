@@ -415,17 +415,19 @@ sum the device took on receipt.</li>
  does, and returns a view from where <code>layer</code> starts to the end of the packet: &ldquo;net&rdquo; at the
  network header and &ldquo;mac&rdquo; at the MAC header, or, with no <code>layer</code>, at <code>skb-&gt;data</code>, where the
  packet starts as the hook sees it: the network header in an IPv4 or IPv6 netfilter hook and the
- MAC header in a tc callback.  In a tc callback the skb is neither linearized nor unshared: a
- non-linear one raises, and one whose head a clone shares returns a read only view, whose setters
- raise &ldquo;read only&rdquo;.</p>
+ MAC header in a tc callback.  In a tc callback the skb is neither linearized nor unshared: one
+ whose head a clone shares returns a read only view, whose setters raise &ldquo;read only&rdquo;, and so does a
+ non-linear one, over a copy of the packet the callback&rsquo;s first <a href="../modules/data.html#">data</a> makes (<code>skb_copy_bits</code>)
+ into a buffer the skb keeps. The buffer grows to the largest packet the runtime has seen, with the
+ headroom before it, and keeps that size.</p>
 
 <p> The skb keeps one view per start: the view with no layer and the &ldquo;net&rdquo; and &ldquo;mac&rdquo;
  views are three objects, and a second call returns the same view, ending at the
- tail as it is then: a <a href="../modules/skb.html#skb:resize">resize</a> alone does not move a view&rsquo;s end. The skb stays
- linear once a view is taken, and in a netfilter hook its head its own, so no later call moves
- the bytes a view reads. A view is valid until the callback that received the skb returns, or, for a
- copy, until the copy is collected: afterwards its length is 0 and every access raises &ldquo;out of
- bounds&rdquo;.
+ end of the packet as it is then: a <a href="../modules/skb.html#skb:resize">resize</a> alone does not move a view&rsquo;s end. The skb stays
+ linear once a view is taken, and in a netfilter hook its head its own, while a non-linear one in a
+ tc callback is never resized, so no later call moves the bytes a view reads. A view is valid until
+ the callback that received the skb returns, or, for a copy, until the copy is collected: afterwards
+ its length is 0 and every access raises &ldquo;out of bounds&rdquo;.
 
 
     <h3>Parameters</h3>
@@ -445,8 +447,10 @@ sum the device took on receipt.</li>
     </ol>
 
     <h3>Raises</h3>
-    if the skb is not linear, in a tc callback or after a failed linearization, if it is not
- writable after a failed unshare, or if layer is invalid
+     if the skb is not linear after a failed linearization, if it is not writable after a failed
+ unshare, if layer is invalid, or, in a tc callback, &ldquo;not enough memory&rdquo; when the buffer cannot grow
+ to hold a non-linear skb and <code>EFAULT</code> when its copy fails, as it does on 6.12 and later for a
+ fragment in memory the kernel does not read
 
 
 
@@ -647,7 +651,7 @@ sum the device took on receipt.</li>
 <a href="../../modules/skb.html">5.1 docs</a> ·
 <a href="../../5.0/modules/skb.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:31:11</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:44:38</span>
 </div>
 </footer>
 </body>

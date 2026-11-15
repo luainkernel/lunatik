@@ -2704,6 +2704,9 @@ while the callback runs, as <a href="../modules/netfilter.html#">netfilter</a> a
     lunatik_object_t *hook;
     u64 gen;
     <span class="keyword">bool</span> kfunc;
+    <span class="keyword">bool</span> copied;
+    <span class="keyword">unsigned</span> <span class="keyword">char</span> *bytes;
+    size_t size;
 } luaskb_t;
 </pre>
 
@@ -2712,10 +2715,13 @@ while the callback runs, as <a href="../modules/netfilter.html#">netfilter</a> a
 returns for each start, at the network header, at the MAC header and at <code>skb-&gt;data</code>; for a copy,
 the hook&rsquo;s skb object it was copied from, which it holds and reads its device from, <code>NULL</code> for that
 object; the callbacks the object was cleared after, which a copy takes from the skb it is copied
-from, so it reads its hook&rsquo;s device only while that callback runs; and whether the packet comes
-through a kfunc, where <code>skb:data()</code>, <code>resize</code>, <code>checksum</code> and <code>copy</code> refuse a non-linear skb rather than
-linearize it, and a head a clone shares is not unshared: <code>skb:data()</code> returns a read only view of it,
-and <code>resize</code> and <code>checksum</code> refuse it. Its release frees <a href="../modules/skb.html#">skb</a> and drops <code>hook</code>, so a binding clears the packet it does not
+from, so it reads its hook&rsquo;s device only while that callback runs; whether the packet comes
+through a kfunc, where <code>resize</code>, <code>checksum</code> and <code>copy</code> refuse a non-linear skb rather than linearize it
+and <code>skb:data()</code> views a copy of one, and a head a clone shares is not unshared: <code>skb:data()</code> returns a
+read only view of it, and <code>resize</code> and <code>checksum</code> refuse it; whether <code>bytes</code> holds the callback&rsquo;s
+packet; and the buffer <code>skb:data()</code> copies a kfunc&rsquo;s non-linear packet into, from its head, and its
+size, the largest such packet the object has seen with its headroom. Its release frees <a href="../modules/skb.html#">skb</a> and
+<code>bytes</code> and drops <code>hook</code>, so a binding clears the packet it does not
 own before the last reference goes, with <a href="#luaskb_reset"><code>luaskb_clear</code></a> or <code>luaskb_close</code>.</p>
 
 <h3 id="luaskb_foreachlayer">luaskb_foreachlayer</h3>
@@ -2754,8 +2760,9 @@ their anchors. Raises <code>not enough memory</code>. A binding attaches it once
 
 <p><code>luaskb_reset</code> points the skb object at <a href="../modules/skb.html#">skb</a> for the callback about to run, taking no reference and
 no lock, and is a macro; a view reads the packet once <code>skb:data()</code> points it there. <code>luaskb_clear</code>
-clears each view, so one kept past the callback reads nothing, and the packet, so every method
-raises <code>skb is not set</code>, and counts the callback in <code>gen</code>, so a copy made while it ran reads no
+clears each view, so one kept past the callback reads nothing, the packet, so every method
+raises <code>skb is not set</code>, and <code>copied</code>, so the next callback&rsquo;s <code>skb:data()</code> copies its own packet, and
+counts the callback in <code>gen</code>, so a copy made while it ran reads no
 device past it: a binding calls it once the callback returns, before it releases the runtime&rsquo;s lock.
 <code>luaskb_close</code> clears the
 object and drops a reference the caller holds, as a binding&rsquo;s <code>release</code> does. None sleeps, so a
@@ -2817,7 +2824,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:31:11</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-15 13:44:38</span>
 </div>
 </footer>
 </body>
