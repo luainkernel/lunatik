@@ -42,9 +42,8 @@ kernel, verified, held to the subset below.
     end)
 
 That is the whole of `tests/xdp/xdp_pass.bpf.c`, minus the call into Lua. `xdp.program` records
-the function; `lunatik bpf` reads its bytecode, types it, emits it, links the runtime library and
-writes the object. The program returns an XDP verdict from `linux.xdp.action`, the same table the
-kernel scripts use.
+the function; `lunatik bpf` reads its bytecode, types it, emits it and writes the object. The
+program returns an XDP verdict from `linux.xdp.action`, the same table the kernel scripts use.
 
 The split mirrors the runtime model AGENTS.md describes: a kernel script's body runs once, in
 process context, and its hooks run later under stricter rules. Here the body runs once at compile
@@ -60,7 +59,7 @@ A compiled function is Lua where every value has a type the translator can prove
 | `+ - * // % & \| ~ << >>`, unary `-` and `~`, comparisons | `ALU64` ops with Lua's floor semantics; a division tests its divisor |
 | `if`, `and`, `or`, `not` | fused compare-and-jump |
 | numeric `for` | a bounded loop when the bounds are constants, a `may_goto` header otherwise |
-| `while`, `repeat` | `may_goto` headers (phase 5) |
+| `while`, `repeat` | refused at their line; no phase plans them |
 | calls to functions the program file declares | BPF-to-BPF calls; no recursion, four register arguments |
 | the context, the packet, a map, a struct view | proxies (next sections) |
 | `return` | the program's verdict |
@@ -85,7 +84,7 @@ fields `ingress_ifindex` and `rx_queue_index`, neither writable, at the offsets 
 kernel's own BTF reports, and `ctx:packet()` is the packet as a proxy
 with the method names of the `data` object a kernel script sees: `getbyte`, `getuint8`,
 `getint8`, `getuint16`, `getint16`, `getuint32`, `getint32`, `getint64` and `#`
-(`getstring` arrives with the strings, in phase 5). There is no `getuint64`, because the kernel
+(`getstring` is not among them, and no phase plans it). There is no `getuint64`, because the kernel
 object has none: a Lua integer is 64-bit signed and an unsigned 64-bit value has no distinct
 representation, so a program that asks for it is refused with the method's name. The object has
 methods and no fields, so a field read or assigned is refused by name too, and `ctx.data` and
@@ -356,9 +355,10 @@ but the CLI's libraries can still return one, as `math.sqrt` does.
 2. Whether a map declared by a program file that a kernel script also declares (`map.hash(path,
    ...)`) should be checked at `run` for a matching spec, or left to the size check `bpf.map`
    already performs on open.
-3. Whether `getstring` into a fixed buffer should be spelled as today (`packet:getstring(at,
+3. ~~Whether `getstring` into a fixed buffer should be spelled as today (`packet:getstring(at,
    len)`, with `len` bounded by the buffer) or as a new method that names the bound. The proposal
-   keeps the name so `examples/common/sni.lua` compiles unchanged.
+   keeps the name so `examples/common/sni.lua` compiles unchanged.~~ Settled: no phase plans
+   `getstring` (D79 C, 2026-11-15).
 4. ~~Whether the per-argument marshalling of the runtime call (native 64-bit integers, in order)
    should instead take a `string.pack` format, so the kernel side can keep `getuint32(0)` where it
    has it.~~ Settled in phase 4 as the proposal: native 64-bit integers, which `getint64` reads.

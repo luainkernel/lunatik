@@ -7,7 +7,7 @@ CLI, and the tests that hold them to the verifier.
 
 1. A Lua function becomes an eBPF program: the verifier checks it, the JIT runs it, and no
    interpreter runs per packet. The XDP and TC programs the tree ships as C stubs today can be
-   written in Lua, including the SNI filter in `examples/filter`, whole.
+   written in Lua, the stubs of `examples/filter` and `examples/sniclassify` among them.
 2. `lunatik run <script>` loads, attaches and pins the compiled programs that belong to a script
    and `lunatik stop <script>` undoes it. No `clang`, no `bpftool prog load`, no `tc filter add`
    on the user's side; no `.bpf.c` beside the `.lua`.
@@ -84,11 +84,11 @@ change in the facts behind it can reopen it.
 | Decision | Reason | What would reverse it |
 |----------|--------|----------------------|
 | The loader is the CLI over `bpf(2)`, not the module over `kern_sys_bpf` | The module path has no verifier log, no module BTF fd for the tree's kfuncs, no pinned object by path, and a symbol namespaced against it; the CLI has all four and runs on the same host, so it compiles against the same kernel (`kernel-notes.md`, first section) | A kernel that accepts a kernel log buffer and adds `BPF_BTF_GET_FD_BY_ID` and `BPF_OBJ_GET` to the allowlist; then the loader becomes a `bpf.prog` object in `lib/luabpf.c` and the CLI keeps the fallback |
-| One loader, one back end | AGENTS.md: two mechanisms doing one job. A second loader (kernel) buys runtimes that start without a CLI process, which the pinned program already serves; a second back end (C for clang) buys LLVM's verifier-friendly shapes, which the runtime library buys for the fixed algorithms without a second emitter | A verified shape the direct emitter cannot produce and the library cannot wrap |
+| One loader, one back end | AGENTS.md: two mechanisms doing one job. A second loader (kernel) buys runtimes that start without a CLI process, which the pinned program already serves; a second back end (C for clang) buys LLVM's verifier-friendly shapes, which a C runtime library, once a need for one is stated, buys for the fixed algorithms without a second emitter | A verified shape the direct emitter cannot produce and such a library cannot wrap |
 | The translator runs under the CLI's Lua 5.5, which runs the body from the chunk `lunatic` writes | The bytecode decides what a compiled function means: `lunatic` compiles it with the kernel's own arithmetic, and the CLI's Lua loads that chunk, renumbered for its build, so the body computes as the kernel does and the functions it hands over are the bytecode compiled, with no second compilation to match them against. A driver hosting the translator under the kernel configuration was weighed and declined: a second host build of the kernel's Lua to keep in step with `_KERNEL`, where the renumbering takes two generated tables. So was the CLI's Lua compiling the file again from source to run the body: `10 / 4` is 2.5 there and 2 in the kernel, and each function the body hands over has to be found in `lunatic`'s chunk by its lines and its shape | An opcode the `_KERNEL` patch makes the VM run differently on integer operands; then the body needs the kernel's VM, not only its bytecode |
 | The compiler does not wait for a benchmark | Three of its four reasons are independent of speed: contexts the trampoline cannot reach, the verifier checking the user's own code, and no C on the user's side. Speed is the fourth, and the only one the number decides | Nothing; the number changes what the docs claim about speed, not whether the compiler is built |
 | The number is measured in phase 0 anyway | The design claims the per-call sequence of the trampoline as a cost; a cost claim without a number is a duplication, and the escape hatch's users need to know what a call into the VM costs on their hook | Not applicable |
-| A precompiled BPF runtime library is in | Fixed algorithms (string compare, bounded copies, header walks) are C compiled once by clang at `make` and linked into every program by libbpf's linker, so the emitter emits straight-line code and calls; DTrace 2.0 ships this shape (`kernel-notes.md`) | The library growing past what the emitter could have done in a few lines each: then move those into the emitter and shrink it |
+| A precompiled BPF runtime library waits for a need the maintainer states | No example and no request of his uses one (D79 C, 2026-11-15). Its shape is known: fixed algorithms (string compare, bounded copies, header walks) as C compiled once by clang at `make` and linked into every program by libbpf's linker, so the emitter emits straight-line code and calls; DTrace 2.0 ships it (`kernel-notes.md`) | A need he states for a fixed algorithm the emitter cannot write in a few lines |
 | The escape hatch is explicit, never inferred | A partition the compiler chooses silently falls back per packet and hides the cost; a refused construct is an error naming the line, and the program calls the runtime where it decides to (`api.md`) | A measured case where the compiler's split beats the author's; then offer inference as an opt-in, still reported |
 | The interpreter-as-a-BPF-program is out | The objective is that the verifier checks the user's program. An interpreter verified once and fed bytecode as data gives the verifier's guarantee about the interpreter, not about the program, and its speed is by construction an interpreter's. It is a different project | A measured verification budget and a per-packet number for such an interpreter; neither exists |
 | Lua-callable verified functions through a Lunatik `struct_ops` are a separate design | It needs Lunatik to define a program type of its own, with its own verifier ops and context; that is a kernel-side design this compiler would then feed, not part of it | Not applicable; it is deferred, not refused |
@@ -96,7 +96,7 @@ change in the facts behind it can reopen it.
 
 ## Shape of the work
 
-Four artefacts, none of them a kernel module:
+Three artefacts, none of them a kernel module:
 
 * **the translator**, a Lua library, `bin/luaebpf/`, beside the CLI, that the CLI's
   Lua runs through `lunatik bpf`: it has `lunatic` compile the program file, runs the body from
@@ -104,8 +104,6 @@ Four artefacts, none of them a kernel module:
   `.BTF`, `.BTF.ext` and the map definitions into a BPF ELF object. The chunk reader and rewriter,
   the BTF reader and the ELF writer are Lua inside the library; the tables they take, the opcodes,
   the metamethod events and the format, are generated from `lua/` at `make`;
-* **the runtime library**, C under `bin/luaebpf/rt/`, compiled by clang at `make`, shipped as one
-  BPF object and linked into each program by libbpf's static linker as a step `make` runs;
 * **the loader**, a libbpf C extension for the CLI's Lua: open, load, pin maps by name under a
   root, attach, pin the link, and the reverse;
 * **the tests**, `tests/luaebpf/`, plus the existing `xdp` and `tc` suites gaining compiled
@@ -167,7 +165,8 @@ Not displaced: the trampoline and `lib/luakfunc.h` (the escape hatch's kernel si
 * **ply** (Tobias Waldekranz): a direct emitter in C with a real IR and virtual registers, no
   LLVM, no loops, no BTF. The same point on the same curve.
 * **DTrace 2.0 for Linux** (Oracle): a hand-written BPF code generator plus a library of BPF
-  functions compiled once by `gcc-bpf` and linked at load. The runtime library here is that shape.
+  functions compiled once by `gcc-bpf` and linked at load. The runtime library phase 5 defers
+  would be that shape.
 * **bpftrace**: an LLVM frontend, 7.7k lines of C++ against an API that moves every major. The
   cost this design declines to pay.
 * **SystemTap's `stapbpf`**: a production direct emitter with loops only outside the kernel
@@ -176,7 +175,7 @@ Not displaced: the trampoline and `lib/luakfunc.h` (the escape hatch's kernel si
 * **XDPLua** (Netdev 0x14, 2020): the same SNI filter in 200 lines of C "and much effort spent to
   circumvent the in-kernel verifier" against 37 lines of Lua; the pure-eBPF version could match
   one host name because the 2020 verifier had no loops. Both dropped 1.5 Mpps at 0.1 % CPU with a
-  generator that could push no more. That 37-line program, compiled, is the target of phase 6.
+  generator that could push no more.
 * **`secmodel_sandbox`** (NetBSD, BSDCan 2017): a ruleset in C at roughly 70 ns per decision
   against roughly 4.5 µs when the interpreter ran (`doc/design/lsm-ebpf/plan.md`). The number that
   justifies keeping the hot path out of the VM.
@@ -283,23 +282,25 @@ Tests: a compiled program that defers to Lua on a miss sees the callback's verdi
 receives the packed arguments; a program whose runtime is not loaded takes its nil branch; a
 program in the classifier's shape calls Lua once per flow under `BPF_PROG_TEST_RUN`.
 
-### Phase 5: the runtime library, strings and loops beyond `for`
+### Phase 5: loops whose bound the program computes
 
-The C library (bounded copy, compare, byte-order helpers, the header walks the examples repeat),
-linked by libbpf's linker at compile time; string constants and `getstring` into fixed buffers, so
-a host name can be a map key; `while` and `repeat` under `may_goto`; open-coded iterators where
-a kernel lacks `may_goto`.
+A numeric `for` whose bound the program computes counts its passes with the `bpf_iter_num`
+iterator, on a kernel with or without `may_goto`, and keeps `may_goto` in its body for the time
+bound where the kernel has one (#2547). The runtime library in C, string constants and `getstring`
+into fixed buffers, and `while` and `repeat` wait for a need the maintainer states: no example and
+no request of his uses them.
 
-Tests: the linked object loads and its library calls verify; a string compare against a constant
-and a `c64`-keyed map lookup agree with the interpreter; a loop with a runtime bound terminates.
+Tests: a loop with a runtime bound makes the passes Lua makes, on a kernel with and without
+`may_goto`.
 
 ### Phase 6: examples and documentation
 
-`examples/filter` rewritten with the SNI parser compiled whole (`examples/common/sni.lua` as the
-source, shared with the interpreted path), `examples/sniclassify` with its map and its call into
-Lua, the README module and usage sections, the LDoc for the compile-time modules, and the API
-cleanup the examples expose. The benchmark's XDP event, run on the compiled filter, produces the
-numbers these documents then quote.
+`examples/filter` and `examples/sniclassify` rewritten as program files that do what their C stubs
+do today: the filter tests the IPv4, TCP, port 443 and PSH bits and hands the payload's offset to
+its kernel script, which extracts the SNI and decides; the classifier keeps its flow map and calls
+into Lua on a flow the map lacks. The SNI is parsed in Lua alone, since a ClientHello's fields of
+varying length make its parser a poor fit for the verifier. Then the README module and usage
+sections and the LDoc for the compile-time modules.
 
 ## Sizing
 
@@ -308,7 +309,7 @@ Sized by what fits in a reviewable pull request.
 | Scope | Phases |
 |-------|--------|
 | Minimum useful | 0 to 3. A verdict program in Lua, loaded and attached by `lunatik run`, with the verifier's log as the error. |
-| Complete | 0 to 6. Maps, the call into Lua, strings, the examples compiled. |
+| Complete | 0 to 6. Maps, the call into Lua, the examples compiled. |
 
 Phase 3 is the boundary: before it, a compiled program is a test artefact loaded by `bpftool`;
 from it on, a user runs one.
@@ -319,8 +320,7 @@ from it on, a user runs one.
   check; there is no syntax of its own and no annotation beyond the program constructor.
 * **A kernel-side loader.** `kern_sys_bpf` is namespaced against this use and returns no log
   (`kernel-notes.md`). Revisited only if that changes upstream.
-* **A C or LLVM back end.** The runtime library is the only C, compiled once. A second emitter is
-  two mechanisms doing one job.
+* **A C or LLVM back end.** A second emitter is two mechanisms doing one job.
 * **CO-RE, through phase 6.** An object is compiled for one kernel, the running one or the one a
   build host is handed for an image (#2103); an object for a range of kernels (#2106) comes after
   it.
@@ -351,7 +351,7 @@ from it on, a user runs one.
 
 ## Definition of done, per phase
 
-1. `make` builds `lunatic`, the generated tables and the runtime library clean, no new warnings;
+1. `make` builds `lunatic` and the generated tables clean, no new warnings;
 2. LDoc comments on every new compile-time module, listed in `config.ld` in alphabetical order;
 3. a row in the README module table for the compile-time modules, and the XDP usage section
    updated when the loader lands;
