@@ -5,7 +5,8 @@
 #
 # Writes, in the empty directory <dir>, what merge-guard.cases reads: a gh on stub/ that answers, only
 # with the token in key, that #7 is a pull request the guard merges, opened on master by the posting
-# account, changing one check, its head carrying the agent-review status and passing its one check run.
+# account, changing one check and the settings that wire the guards, its head carrying the
+# agent-review status and passing its one check run.
 #
 # Usage: bash tools/checks/cases/merge-guard.fixture.sh <dir>
 
@@ -18,7 +19,7 @@ cat > stub/gh <<'STUB'
 case "$*" in
 	*/pulls/7\ *) printf 'open\tmaster\tcases\t0123456789abcdef0123456789abcdef01234567\n' ;;
 	api\ user\ *) echo cases ;;
-	*/pulls/7/files*) printf 'modified\ttools/checks/cases.sh\t\n' ;;
+	*/pulls/7/files*) printf 'tools/checks/cases.sh\n.claude/settings.json\n' ;;
 	*/status\ *|*/check-runs*) echo success ;;
 	*) exit 1 ;;
 esac
