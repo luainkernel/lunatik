@@ -285,8 +285,9 @@ over the body it returns and, with neither phase, over one the session posts (th
 session's, the hook input's `transcript_path`: the text its Write tool left last and the verdict its
 answer carries. No agent records a pass: the auto mode classifier refused the reader of #2541's body
 the command that recorded one, as "Undermining Oversight", and the guard then refused the body that
-reader had passed. A subagent's post, whose hook input carries the `agent_id` a main thread's never
-does, is implement-issue's opening, of the body its review's reader passed.
+reader had passed. A subagent's post waits for the same pass: its hook input carries the session's
+`transcript_path` beside its own `agent_id`, so the guard reads the same runs, and implement-issue's
+opening posts the file its last reader left, the sentences its build adds read with the rest (#2543).
 
 `title.sh` holds a pull request title or a commit subject to the shape AGENTS.md, *Patches and
 commits*, gives a subject, `<area>: <what changes for whoever uses it>` in one plain clause, which the

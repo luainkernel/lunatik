@@ -22,7 +22,7 @@
 # current one cannot be. An edit that adds text other than a task to an issue or pull
 # request review-post-guard held a post on in the same session waits for the same
 # REVIEW_POST_OK, as the held post by another route. A pull request body is read against the
-# files its change carries, and one the session posts to this repository only once a reader
+# files its change carries, and one the session or its agents post to this repository only once a reader
 # with none of the change's history passed its text (body-read.sh). A title a pull request of this
 # repository is given, opened or edited, is posted only when title.sh passes on it.
 
@@ -270,12 +270,10 @@ held() {
 	done <<< "$1"
 }
 
-# a body the session posts to a pull request was passed first by a reader with none of the change's history
-# in one of the session's workflow runs (body-read.sh); a subagent's post is implement-issue's opening,
-# whose body review.js's reader passed
+# a body the session or its agents post to a pull request was passed first by a reader with none of the change's
+# history in one of the session's workflow runs (body-read.sh)
 reader() {
 	local post body file transcript
-	[ -n "$(printf '%s' "$input" | jq -r '.agent_id // empty' 2> /dev/null)" ] && return
 	transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2> /dev/null)
 	while IFS= read -r post; do
 		[ -n "$post" ] || continue
