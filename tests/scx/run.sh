@@ -36,23 +36,25 @@
 # The runqueue cases register a scheduler of their own, whose enqueue calls
 # bpf_luascx_run for runqueue.lua and whose select_cpu dispatches nothing, so that
 # every wakeup reaches enqueue, with the runqueue lock of its CPU held. The callback
-# takes one step per enqueue: it calls complete and a mailbox's send, records in an
-# rcu.table of _ENV that each raised "not allowed under the runqueue lock" and that
-# send left its message queued, and lets complete's raise reach the dispatch; it then
-# returns a dispatch queue that is not a number, and then detaches. The scheduler
-# calls the kfunc for its first four enqueues, so the fourth finds no callback, and
-# for no more: each one past it would log that line again, and ten of them rate limit
-# the line of a run that follows within five seconds. Three naps of a sleep enqueue
-# more tasks than the four.
+# takes one step per enqueue: it prints, warns and collects a table whose finalizer
+# raises, and records in an rcu.table of _ENV that it went on; it then calls complete
+# and a mailbox's send, records that each raised "not allowed under the runqueue lock"
+# and that send left its message queued, and lets complete's raise reach the dispatch;
+# it then returns a dispatch queue that is not a number, and then detaches. The
+# scheduler calls the kfunc for its first five enqueues, so the fifth finds no
+# callback, and for no more: each one past it would log that line again, and ten of
+# them rate limit the line of a run that follows within five seconds. Three naps of a
+# sleep enqueue more tasks than the five.
 # Once the scheduler is unregistered and its runtime stopped, runqueue_check.lua
-# reads the record, and the dispatch must have logged the raise, the refused
-# decision and a missing callback, while any other Lua error or a kernel warning
-# fails every case. A kprobe on vprintk_emit reads the level and the format of every
-# write while the scheduler is registered: the dispatch's formats carry the module's
-# name, and each must be written at LOGLEVEL_SCHED, the level that leaves the console
-# to an irq_work; that case skips where the kprobe cannot be placed. The runqueue
-# cases skip where the pass cases do, and while another sched_ext scheduler is
-# enabled.
+# reads the record, and the log must hold the printed line, the warning and the VM's
+# warning of the finalizer's error, and the dispatch must have logged the raise, the
+# refused decision and a missing callback, while any other Lua error or a kernel
+# warning fails every case. A kprobe on vprintk_emit reads the level and the format
+# of every write while the scheduler is registered: the dispatch's formats carry the
+# module's name, and each must be written at LOGLEVEL_SCHED, the level that leaves
+# the console to an irq_work; that case skips where the kprobe cannot be placed. The
+# runqueue cases skip where the pass cases do, and while another sched_ext
+# scheduler is enabled.
 #
 # Usage: sudo bash tests/scx/run.sh
 
@@ -66,11 +68,20 @@ RUNQUEUE_CHECK="tests/scx/runqueue_check"
 RUNQUEUE_OPS="runqueue_ops"
 # the dispatch's line for complete's raise, a Lua error on purpose
 RUNQUEUE_RAISED="$MODULE: .*: not allowed under the runqueue lock"
-# the runqueue cases, as runqueue_check.lua names them, the lines each reads the dispatch logged, one per line, and its title;
+# the callback's warning and the VM's for its finalizer's error, on purpose
+RUNQUEUE_WARNED="Lua warning: scx runqueue warned"
+RUNQUEUE_GCERROR="Lua warning: error in __gc \(scx runqueue collected\)"
+# the runqueue cases, as runqueue_check.lua names them, the lines each reads in the log, one per line, and its title;
 # the last title is the case runqueue_deferred reads alone
-RUNQUEUE_CASES=(refused raised detached)
-RUNQUEUE_LOGGED=("" "$RUNQUEUE_RAISED"$'\n'"$MODULE: invalid task class" "$MODULE: no callback attached")
+RUNQUEUE_CASES=(written refused raised detached)
+RUNQUEUE_LOGGED=(
+	"scx runqueue printed"$'\n'"$RUNQUEUE_WARNED"$'\n'"$RUNQUEUE_GCERROR"
+	""
+	"$RUNQUEUE_RAISED"$'\n'"$MODULE: invalid task class"
+	"$MODULE: no callback attached"
+)
 RUNQUEUE_TITLES=(
+	"scx runqueue: print, warn and an error a finalizer raises write their lines from the callback"
 	"scx runqueue: complete and a mailbox's send raise \"not allowed under the runqueue lock\" in the callback"
 	"scx runqueue: the dispatch logs an error the callback raises and a decision it refuses"
 	"scx runqueue: a dispatch that finds no callback logs \"no callback attached\""
@@ -257,7 +268,7 @@ runqueue()
 	log=$(dmesg_since)
 	levels=$(runqueue_levels | sort -u)
 	kprobe_remove "$RUNQUEUE_WRITES"
-	errs=$(grep -E "$KTAP_ERRORS" <<< "$log" | grep -vE "$RUNQUEUE_RAISED")
+	errs=$(grep -E "$KTAP_ERRORS" <<< "$log" | grep -vE "$RUNQUEUE_RAISED|$RUNQUEUE_WARNED|$RUNQUEUE_GCERROR")
 	if [ -n "$errs" ]; then
 		comment "$errs"
 		runqueue_cases fail "a Lua error or a kernel warning"

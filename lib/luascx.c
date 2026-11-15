@@ -17,10 +17,11 @@
 * runs with the runqueue lock of its CPU held: a wakeup from there takes that lock again on a
 * CPU that already holds it. So in the callback, whichever operation calls the kfunc, a
 * completion's `complete`, and a mailbox's `send` through it, raise `not allowed under the
-* runqueue lock`, and what the dispatch logs, an error the callback raises or a decision it
-* gets wrong, reaches the console deferred, as the scheduler's own lines do.
-* A callback must still not call `print`, whose console wakeup is the same hazard, and an
-* allocation its Lua makes under memory pressure can wake kswapd the same way.
+* runqueue lock`. What the callback's Lua writes to the kernel log, through `print`, `warn` or
+* the VM's warning of an error a finalizer raises, and what the dispatch logs, an error the
+* callback raises or a decision it gets wrong, reach the console deferred, as the scheduler's
+* own lines do. An allocation the callback's Lua makes under memory pressure can still wake
+* kswapd, whose wakeup takes the same lock.
 *
 * Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT`; without it the module loads
 * and offers `attach`, which raises `EOPNOTSUPP`, and `detach`, which does nothing.

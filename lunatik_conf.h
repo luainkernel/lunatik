@@ -21,9 +21,9 @@
 
 __printf(1, 2) void lunatik_printk(const char *fmt, ...);
 
-#define lua_writestring(s,l)		printk(KERN_CONT "%s",(s))
-#define lua_writeline()			pr_cont("\n")
-#define lua_writestringerror(...)	printk(KERN_ERR KERN_CONT __VA_ARGS__)
+#define lua_writestring(s,l)		lunatik_printk(KERN_CONT "%s",(s))
+#define lua_writeline()			lunatik_printk(KERN_CONT "\n")
+#define lua_writestringerror(...)	lunatik_printk(KERN_ERR KERN_CONT __VA_ARGS__)
 
 /* see https://www.gnu.org/software/libc/manual/html_node/Atomic-Types.html */
 #define l_signalT	int

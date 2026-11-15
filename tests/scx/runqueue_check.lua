@@ -20,6 +20,10 @@ local function reached(step)
 	return value
 end
 
+test("written", function()
+	reached("written")
+end)
+
 test("refused", function()
 	assert(reached("complete"), "complete was not refused")
 	assert(reached("send"), "send was not refused")
