@@ -1134,7 +1134,12 @@ bump of `lua/` that drops a kernel guard fails here instead of compiling, the
   is armed`, a `require` of a binding or of a Lua library the body did not
   load, `package.loadlib` and `package.searchpath`, since opening a file
   sleeps and loading a binding takes a module reference an atomic allocation
-  can leak; the body allows them. The body empties `package.path`, so a build
+  can leak; the body allows them, and called by `pcall` with no argument they
+  raise `bad argument #1 to 'package.searchpath'` and `'package.loadlib'`, the
+  names a process runtime gives them, and `package.searchpath()` in the body
+  raises `bad argument #1 to 'searchpath'` after the body's file and line,
+  where a build that calls them through `lua_call` names them `'?'` and gives
+  no line. The body empties `package.path`, so a build
   without the refusal opens no file from the callback and answers `not found`.
   The callback's `loadfile` returns the armed refusal and its `dofile` raises
   it; both are called without a name, which the body answers with `cannot

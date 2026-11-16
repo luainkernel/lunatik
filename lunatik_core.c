@@ -293,6 +293,12 @@ static int lunatik_callsleepable(lua_State *L)
 	return lua_gettop(L);
 }
 
+static int lunatik_wrapcfunction(lua_State *L)
+{
+	lunatik_checkarmed(L); /* the wrapped function opens a file or loads a binding, which sleeps */
+	return lua_tocfunction(L, lua_upvalueindex(1))(L); /* in this frame, which luaL_argerror names */
+}
+
 #define LUNATIK_SEARCHER_C	2
 #define LUNATIK_SEARCHER_LUA	3
 
@@ -325,7 +331,7 @@ static void lunatik_guardpackage(lua_State *L)
 	lua_getglobal(L, LUA_LOADLIBNAME);
 	for (field = fields; *field != NULL; field++) {
 		lua_getfield(L, -1, *field);
-		lua_pushcclosure(L, lunatik_callsleepable, 1);
+		lua_pushcclosure(L, lunatik_wrapcfunction, 1);
 		lua_setfield(L, -2, *field);
 	}
 
