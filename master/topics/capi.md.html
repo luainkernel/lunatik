@@ -820,6 +820,26 @@ own task holds: <code>lunatik_checkarmed</code> refuses every call that may slee
 task only, which is what a softirq runtime leaves to see: nothing that holds its lock sleeps, so no
 second task waits for RTNL under it. Defined as macros.</p>
 
+<h3 id="lunatik_isrunqueue">lunatik_isrunqueue</h3>
+
+<pre>
+<span class="keyword">bool</span> <span class="function-name">lunatik_isrunqueue</span>(<span class="keyword">void</span>);
+<span class="keyword">void</span> <span class="function-name">lunatik_setrunqueue</span>(<span class="keyword">unsigned</span> <span class="keyword">long</span> flags);
+<span class="keyword">void</span> <span class="function-name">lunatik_unsetrunqueue</span>(<span class="keyword">unsigned</span> <span class="keyword">long</span> flags);
+<span class="function-name">DECLARE_PER_CPU</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span>, lunatik_runqueue);
+</pre>
+
+
+<p><code>lunatik_isrunqueue</code> returns <code>true</code> while the calling CPU dispatches an scx callback, which
+<code>ops.enqueue</code> runs with that CPU&rsquo;s runqueue lock held. The scx dispatch marks itself with
+<code>lunatik_setrunqueue(flags)</code>, which turns IRQs off, saving their state in <code>flags</code>, and counts one,
+and ends with <code>lunatik_unsetrunqueue(flags)</code>, which counts it back and restores them: nothing but the
+dispatch runs on the CPU while the marker is up, a sleepable operation included, and a nested
+dispatch keeps the outer one&rsquo;s, as the kernel&rsquo;s own <code>printk_context</code> does. Unlike
+<a href="#lunatik_isrtnl"><code>lunatik_isrtnl</code></a>, the marker is a per-CPU counter and not one task pointer: the
+runqueue lock is per-CPU, so several CPUs run a callback at once, each under its own, and no single
+pointer can hold them all. Defined as macros.</p>
+
 <h3 id="lunatik_iskthread">lunatik_iskthread</h3>
 
 <pre>
@@ -935,6 +955,18 @@ again: use it in an entry point that registers one without
 a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs.
 <a href="#lunatik_checkarmed"><code>lunatik_checkarmed</code></a> calls it, so every entry point that may sleep refuses there.</p>
 
+<h3 id="lunatik_checkrunqueue">lunatik_checkrunqueue</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_checkrunqueue</span>(lua_State *L);
+</pre>
+
+
+<p>Raises a Lua error, <code>&quot;not allowed under the runqueue lock&quot;</code>, when
+<a href="#lunatik_isrunqueue"><code>lunatik_isrunqueue</code></a> holds: from an scx callback, whose wakeup of a task
+would take the runqueue lock the CPU already holds. <a href="../modules/completion.html#completion:complete">completion:complete</a> uses it, since it wakes a
+waiter; a mailbox&rsquo;s <code>send</code> wakes its own through that method, and raises there too.</p>
+
 <h3 id="lunatik_checkowner">lunatik_checkowner</h3>
 
 <pre>
@@ -975,6 +1007,19 @@ context, which says how its lock is taken and not the state of the CPU it runs o
 constructor whose object no callback of such a runtime can use calls it, as <a href="../modules/netlink.channel.html#new">netlink.channel.new</a>
 does, whose send re-enables bottom halves where an nlmon tap is up. It reads the runtime&rsquo;s context
 rather than the CPU&rsquo;s state, so the refusal comes from the script body, which runs with interrupts on.</p>
+
+<h3 id="lunatik_printk">lunatik_printk</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">lunatik_printk</span>(<span class="keyword">const</span> <span class="keyword">char</span> *fmt, ...);
+</pre>
+
+
+<p>Writes to the kernel log as <code>printk</code> does, at the level a <code>KERN_*</code> prefix of <code>fmt</code> names, from any
+context. While <a href="#lunatik_isrunqueue"><code>lunatik_isrunqueue</code></a> holds, it writes as the scheduler&rsquo;s
+<code>printk_deferred</code> does, which no module can call: through <code>vprintk_emit</code> at <code>LOGLEVEL_SCHED</code>, which
+stores the line at once and leaves the console to an irq_work, since flushing it there would wake a
+task waiting on the console, whose wakeup takes the runqueue lock the CPU holds.</p>
 
 <h3 id="lunatik_percpudata">lunatik_percpudata</h3>
 
@@ -1670,6 +1715,7 @@ handler, a <code>BUG()</code>. After a protected call or a resume fails, the err
 #define LUNATIK_ERR_IRQS    "not allowed with IRQs disabled"
 #define LUNATIK_ERR_HARDIRQ "not allowed in a hardirq runtime"
 #define LUNATIK_ERR_REPLAY  "not allowed inside a replay"
+#define LUNATIK_ERR_RUNQUEUE    "not allowed under the runqueue lock"
 #define LUNATIK_ERR_PERCPU  "not allowed in a percpu runtime"
 </pre>
 
@@ -2473,6 +2519,17 @@ own, its two variables included. The kfunc runs where the program runs, in softi
 <a href="../modules/tc.html#">tc</a> and inside the scheduler for <a href="../modules/scx.html#">scx</a>, so it dispatches only to a softirq or hardirq runtime and
 nothing on its path sleeps.</p>
 
+<h3 id="luakfunc_err">luakfunc_err</h3>
+
+<pre>
+<span class="keyword">void</span> <span class="function-name">luakfunc_err</span>(<span class="keyword">const</span> <span class="keyword">char</span> *fmt, ...);
+</pre>
+
+
+<p>Logs as <code>pr_err_ratelimited</code> does, through <a href="#lunatik_printk"><code>lunatik_printk</code></a>, so an <a href="../modules/scx.html#">scx</a>
+dispatch, which holds its CPU&rsquo;s runqueue lock, writes its line deferred. Every log an <a href="../modules/scx.html#">scx</a> dispatch
+reaches goes through it. Defined as a macro.</p>
+
 <h3 id="luakfunc_getruntimes">luakfunc_getruntimes</h3>
 
 <pre>
@@ -2501,7 +2558,7 @@ passes it, <code>key_sz</code> bytes with the terminator, holding a reference th
 <code>key</code> is writable. Returns <code>NULL</code> for a <code>key_sz</code> of <code>0</code>, which the verifier allows; for a missing
 <code>_ENV.runtimes</code>, logging <code>couldn&apos;t find _ENV.runtimes</code>; for a key no runtime is stored under; and
 for a process-context runtime, whose lock is a mutex, logging
-<code>&apos;&lt;key&gt;&apos; is a process-context runtime, not dispatched</code>. It logs rate limited.</p>
+<code>&apos;&lt;key&gt;&apos; is a process-context runtime, not dispatched</code>, both through <a href="#luakfunc_err"><code>luakfunc_err</code></a>.</p>
 
 <h3 id="luakfunc_findctx">luakfunc_findctx</h3>
 
@@ -2519,7 +2576,7 @@ runtime keep a context each. They leave the object&rsquo;s userdata on the stack
 <a href="#luakfunc_invoke"><code>luakfunc_invoke</code></a> passes a copy of it to the callback and <code>detach</code>&rsquo;s
 <a href="#luakfunc_bind"><code>luakfunc_unbind</code></a> pops it. With no callback attached they leave the stack as
 they found it and return <code>NULL</code>, and <code>luakfunc_getctx</code>, the handler&rsquo;s, logs
-<code>no callback attached (cpu &lt;n&gt;)</code>, rate limited.</p>
+<code>no callback attached (cpu &lt;n&gt;)</code> through <a href="#luakfunc_err"><code>luakfunc_err</code></a>.</p>
 
 <h3 id="luakfunc_invoke">luakfunc_invoke</h3>
 
@@ -2531,10 +2588,10 @@ they found it and return <code>NULL</code>, and <code>luakfunc_getctx</code>, th
 
 <p><code>luakfunc_invoke</code> calls the callback <code>luakfunc_bind</code> referenced at <code>cb</code>, with a copy of the value on
 top of the stack, the context <code>luakfunc_getctx</code> left there, as its argument, and returns <code>0</code> with
-<code>nresults</code> results on the stack; when the callback raises, it logs the error through
-<a href="#lunatik_errmsg"><code>lunatik_errmsg</code></a>, rate limited, pops it and returns <code>-1</code>. The context stays below
-the call, so the collector keeps it, its private included, until
-<a href="#lunatik_handle"><code>lunatik_handle</code></a> restores the stack after the handler, whatever the callback did
+<code>nresults</code> results on the stack; when the callback raises, it logs the error
+<a href="#lunatik_errmsg"><code>lunatik_errmsg</code></a> reads through <a href="#luakfunc_err"><code>luakfunc_err</code></a>, pops it and
+returns <code>-1</code>. The context stays below the call, so the collector keeps it, its private included,
+until <a href="#lunatik_handle"><code>lunatik_handle</code></a> restores the stack after the handler, whatever the callback did
 with its argument or with <code>detach</code>. The call is protected and nothing before it raises, so a handler
 calls it outside a protected call of its own.
 <code>luakfunc_action</code> invokes the callback for one result, a verdict, and returns it when it is an
@@ -2866,7 +2923,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 16:56:22</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 17:07:26</span>
 </div>
 </footer>
 </body>

@@ -204,8 +204,8 @@
 
 <p> The receiver creates the inbox and hands its <code>queue</code> and <code>event</code> to the other runtime, as
  through <code>runtime:resume</code>, where the sender builds <code>mailbox.outbox(queue, event)</code>: a mailbox
- built on an existing fifo needs its completion too. <a href="../modules/mailbox.html#MailBox:send">send</a> works in any context; <a href="../modules/mailbox.html#MailBox:receive">receive</a>
- sleeps, and a softirq or hardirq runtime refuses it.
+ built on an existing fifo needs its completion too. <a href="../modules/mailbox.html#MailBox:send">send</a> works in any context but an scx
+ callback, where it raises; <a href="../modules/mailbox.html#MailBox:receive">receive</a> sleeps, and a softirq or hardirq runtime refuses it.
     <h3>See also</h3>
     <ul>
          <li><a href="../modules/fifo.html#">fifo</a></li>
@@ -319,8 +319,9 @@ return send
     </ol>
 
     <h3>Raises</h3>
-    &ldquo;receive-only mailbox&rdquo; on an inbox; &ldquo;out of bounds&rdquo; for a message whose length plus a
-   <code>size_t</code> exceeds the queue&rsquo;s capacity.
+     &ldquo;receive-only mailbox&rdquo; on an inbox; &ldquo;out of bounds&rdquo; for a message whose length plus a
+   <code>size_t</code> exceeds the queue&rsquo;s capacity; &ldquo;not allowed under the runqueue lock&rdquo; from an scx
+   callback, with the message already queued.
 
 
 
@@ -406,7 +407,7 @@ return send
 <a href="../../modules/mailbox.html">5.1 docs</a> ·
 <a href="../../5.0/modules/mailbox.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 16:56:22</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 17:07:26</span>
 </div>
 </footer>
 </body>
