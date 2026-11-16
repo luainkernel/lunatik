@@ -107,6 +107,11 @@ AGENTS.md is the authority; `implement.js` beside this card is the workflow that
 - Where gh is absent (`gh: false`), the agents read GitHub through curl and write nothing to it, since no
   guard reads a write through curl: the implementer opens no pull request, and the filing stage leaves
   every entry `unfiled` for the session.
+- Before the filing, an agent of the review's model and effort reads the premise of each entry of
+  `findings_left` in the tree the run leaves, as the kernel builds it, the `_KERNEL` arms of `lua/` and
+  `lunatik_conf.h` for what the kernel's Lua does: one the tree shows false is filed nowhere and comes
+  back as `refuted`, with the line that refutes it, which the hand-back carries. #2556 was filed on how
+  upstream Lua converts a float, a value the kernel's Lua cannot hold, and its run closed it unbuilt.
 - The last stage prepares `findings_left`, what the implementer, the review, each fix and each build run
   again after one leave, as issues: an entry
   opens an issue with its `severity:` label, or goes under an `Update:` line into the open issue it

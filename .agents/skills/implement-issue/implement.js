@@ -39,13 +39,14 @@
 //
 // It returns the implementer's answer, the review's, the last host run's build, the pull request, the
 // writes the session posts to GitHub in order, the labels, the groomer's Update and each entry of
-// findings_left the filing prepared, and any entry left unfiled.
-// findings_left holds what the implementer, the review, each fix and each build run again after one left.
+// findings_left the filing prepared, any entry left unfiled, and each one the tree refuted, with its trace.
+// findings_left holds what the implementer, the review, each fix and each build run again after one left,
+// but for what the tree refuted: the indexes of prepared count in it.
 
 export const meta = {
   name: 'implement-issue',
   description: 'Implement an issue, review it, run it once on the host, and open its pull request',
-  phases: [{ title: 'Groom' }, { title: 'Implement' }, { title: 'Fix' }, { title: 'Open' }, { title: 'File' }],
+  phases: [{ title: 'Groom' }, { title: 'Implement' }, { title: 'Fix' }, { title: 'Open' }, { title: 'Verify' }, { title: 'File' }],
 }
 
 const a = args || {}
@@ -284,6 +285,26 @@ ENTRIES:
 ${JSON.stringify(entries.map((entry, index) => ({ index, ...entry })), null, 2)}
 `
 
+const VERIFY = (entries, ref, since) => `
+Each entry below is a finding an agent of the run on issue #${a.issue} left, to be filed as an issue of
+luainkernel/lunatik. Before it is filed, read its premise in the tree at \`${ref}\` (\`git -C ${a.repo} show
+${ref}:<path>\`, and in lua/, a submodule, \`git -C ${a.repo}/lua show $(git -C ${a.repo} rev-parse ${ref}:lua):<path>\`),
+along the path its body traces, as the kernel builds it: a claim on how the Lua the kernel runs
+behaves is read in the \`_KERNEL\` arms of lua/ and in lunatik_conf.h, never in upstream Lua's defaults, and a
+claim on a kernel API in its source across the supported range (AGENTS.md, "Verify, do not assume"). You write
+nothing and run nothing on the host.
+
+An entry is refuted when the tree shows its premise false: its stimulus cannot be written, the code takes
+another path than the one it traces, or the value it names cannot reach the line it names. Answer the line that
+shows it, as file:line with what it says. An entry the tree confirms holds, and so does one that asks for a run
+the tree cannot answer, a race or a measurement, whose body says what it did not run. So does one whose premise
+a commit of the branch, \`git -C ${a.repo} log ${since}..${ref}\`, made false after it was written: the filing
+skips it with that commit, or cuts it to the part the commit leaves.
+
+ENTRIES:
+${JSON.stringify(entries.map((entry, index) => ({ index, ...entry })), null, 2)}
+`
+
 const LEFT = { type: 'array', items: { type: 'object', properties: {
   title: { type: 'string' }, body: { type: 'string' }, severity: { type: 'string', enum: ['high', 'medium', 'low'] },
   contract: { type: 'string', description: 'what the documentation promises for the stimulus, quoted with its file, or "undocumented"; the severity is read against it' },
@@ -366,6 +387,13 @@ const PREPARED = { type: 'object', properties: {
   notes: { type: 'string' },
 }, required: ['writes'] }
 
+const VERIFIED = { type: 'object', properties: {
+  verdicts: { type: 'array', items: { type: 'object', properties: {
+    index: { type: 'integer' }, verdict: { type: 'string', enum: ['holds', 'refuted'] },
+    trace: { type: 'string', description: 'the file:line read, and what it says' },
+  }, required: ['index', 'verdict', 'trace'] } },
+}, required: ['verdicts'] }
+
 const reviewArgs = (impl, extra) => ({
   pr: 0, branch: impl.branch, base: impl.base, scratch: a.scratch, validated: null, examples: impl.examples, defects: impl.defects,
   focus: a.focus || a.notes, smallest: impl.smallest, body: impl.body, title: impl.title, effort: reviewer.effort, model: reviewer.model, push: a.push,
@@ -405,7 +433,7 @@ const implemented = await agent(IMPLEMENT + (groomed ? GROOMING(groomed) : ''), 
   label: `implement:${a.issue}`, phase: 'Implement', schema: IMPLEMENTED, ...implementer,
 })
 
-let review = null, build = null, pr = 0, complexity = null
+let review = null, build = null, pr = 0, complexity = null, head = implemented?.head || implemented?.base
 const fixes = [], reruns = []
 if (implemented?.branch && a.push !== false) {
   try {
@@ -416,7 +444,7 @@ if (implemented?.branch && a.push !== false) {
   build = review?.build
   // a rerun runs no reviewer, so its build is handed the body the reviewer corrected
   const body = review?.reviewer?.body || implemented.body
-  let head = build?.head || review?.reviewer?.tip || implemented.head
+  head = build?.head || review?.reviewer?.tip || implemented.head
   while (review && !passed(build) && fixes.length < FIXES) {
     phase('Fix')
     const fix = await agent(FIX({ totals: build?.totals, clean: build?.clean, notes: build?.notes }, head), {
@@ -469,7 +497,20 @@ if (implemented?.branch && a.push !== false) {
 const differs = (review?.reviewer?.requirements || []).filter(r => r.verdict === 'differs')
 if (differs.length)
   log(`#${a.issue}: the change meets ${differs.length} of its requirements otherwise than the issue says; the session brings each back as a decision`)
-const findings_left = [implemented, review, ...reruns, ...fixes].flatMap(r => r?.findings_left || [])
+let findings_left = [implemented, review, ...reruns, ...fixes].flatMap(r => r?.findings_left || [])
+// a finding's trace can run through code the kernel does not build, upstream Lua's floats among them
+let refuted = []
+if (findings_left.length) {
+  phase('Verify')
+  const verified = await agent(VERIFY(findings_left, head, implemented.base), {
+    label: `verify:${a.issue}`, phase: 'Verify', schema: VERIFIED, ...reviewer,
+  })
+  const refutation = index => (verified?.verdicts || []).find(v => v.index === index && v.verdict === 'refuted')
+  refuted = findings_left.flatMap((f, index) => refutation(index) ? [{ ...f, trace: refutation(index).trace }] : [])
+  if (!verified)
+    log('the verifier died: every entry goes to the filing unverified')
+  findings_left = findings_left.filter((_, index) => !refutation(index))
+}
 let filing = null
 if (a.gh === false && findings_left.length)
   log('gh is absent: the session files what the agents left')
@@ -493,5 +534,5 @@ const writes = [
   ...(groomed?.update ? [{ action: 'append', issue: a.issue, text: /^Update:/.test(groomed.update) ? groomed.update : `Update: ${groomed.update}` }] : []),
   ...prepared.filter(w => w.action !== 'skip'),
 ]
-return { issue: a.issue, groomed, pr, implemented, review, build, fixes, findings_left, writes, prepared, unfiled }
+return { issue: a.issue, groomed, pr, implemented, review, build, fixes, findings_left, refuted, writes, prepared, unfiled }
 
