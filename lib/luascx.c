@@ -20,8 +20,10 @@
 * under memory pressure, which can wake kswapd, and the log of an error the callback raises
 * can wake a task the same way.
 *
-* Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT`; without it the module loads
-* and offers `attach`, which raises `EOPNOTSUPP`, and `detach`, which does nothing.
+* Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT` and without `CONFIG_PREEMPT_RT`,
+* where a runtime's lock sleeps and the kfunc would take it under the runqueue lock;
+* otherwise the module loads without the kfunc and offers `attach`, which raises
+* `EOPNOTSUPP`, and `detach`, which does nothing.
 * The kfunc needs the module's BTF: run `sudo make btf_install` before `make`, or the kernel logs
 * `missing module BTF, cannot register kfuncs` and an eBPF program that calls
 * `bpf_luascx_run` does not load. The eBPF side is a sched_ext `struct_ops`
@@ -39,7 +41,7 @@
 #include "luarcu.h"
 #include "luatask.h"
 
-#ifdef CONFIG_SCHED_CLASS_EXT
+#if defined(CONFIG_SCHED_CLASS_EXT) && !defined(CONFIG_PREEMPT_RT)
 #include <linux/btf.h>
 #include <linux/btf_ids.h>
 #include <linux/sched.h>
@@ -230,9 +232,9 @@ static int luascx_detach(lua_State *L)
 *   and the decision is left to the eBPF program; a value that is not a number is logged
 *   as `invalid task class` and answered the same way.
 * @treturn nil
-* @raise `EOPNOTSUPP` on a kernel without sched_ext; `runtime context mismatch` unless the
-*   runtime is hardirq; `not allowed while the runtime closes` from a finalizer that runs at its
-*   close; or on allocation failure.
+* @raise `EOPNOTSUPP` on a kernel without sched_ext or built with `CONFIG_PREEMPT_RT`;
+*   `runtime context mismatch` unless the runtime is hardirq; `not allowed while the runtime
+*   closes` from a finalizer that runs at its close; or on allocation failure.
 * @usage
 *   -- sched/policy.lua, run with `lunatik run -c hardirq sched/policy`
 *   local scx = require("scx")
