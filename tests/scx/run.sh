@@ -11,6 +11,10 @@
 # sleepable runtime is refused, and a hardirq runtime attaches, re-attaches and
 # detaches.
 #
+# The defaults case compares linux.scx's dsq.GLOBAL and slice.DFL with the values
+# linux/sched/ext.h gives, in a script body: they are what a nil dispatch queue and
+# a nil slice take, so a pass cell cannot tell either from a nil.
+#
 # The pass cases register a struct_ops scheduler whose enqueue calls bpf_luascx_run
 # with cls filled with a value no decision writes, and records in a pinned map what
 # the kfunc returned and left in cls at the first enqueue of each task named scx_*.
@@ -55,6 +59,7 @@
 MODULE="luascx"
 UNSUPPORTED="tests/scx/unsupported"
 SLEEPABLE="tests/scx/attach_sleepable"
+DEFAULTS="tests/scx/defaults"
 REATTACH="tests/scx/reattach"
 RUNQUEUE="tests/scx/runqueue"
 RUNQUEUE_CHECK="tests/scx/runqueue_check"
@@ -104,12 +109,13 @@ TASKS=""
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan $((3 + ${#RUNQUEUE_TITLES[@]} + ${#CELLS[@]}))
+ktap_plan $((4 + ${#RUNQUEUE_TITLES[@]} + ${#CELLS[@]}))
 
 skip_rest()
 {
 	echo "# SKIP: $1"
 	ktap_skip "scx attach: refuses a sleepable runtime"
+	ktap_skip "scx defaults: linux.scx.dsq.GLOBAL and slice.DFL hold linux/sched/ext.h's values"
 	for title in "${RUNQUEUE_TITLES[@]}"; do ktap_skip "$title"; done
 	ktap_skip "scx reattach: a hardirq runtime attaches, re-attaches and detaches"
 	cells skip "$1"
@@ -138,6 +144,7 @@ cleanup()
 	bpftool struct_ops unregister name "$RUNQUEUE_OPS" 2>/dev/null
 	lunatik stop "$UNSUPPORTED" 2>/dev/null
 	lunatik stop "$SLEEPABLE" 2>/dev/null
+	lunatik stop "$DEFAULTS" 2>/dev/null
 	lunatik stop "$RUNQUEUE" 2>/dev/null
 	kprobe_remove "$RUNQUEUE_WRITES"
 	lunatik stop "$REATTACH" 2>/dev/null
@@ -169,6 +176,12 @@ if run_test "$SLEEPABLE"; then
 	ktap_pass "scx attach: refuses a sleepable runtime"
 else
 	ktap_fail "scx attach: refuses a sleepable runtime"
+fi
+
+if run_test "$DEFAULTS"; then
+	ktap_pass "scx defaults: linux.scx.dsq.GLOBAL and slice.DFL hold linux/sched/ext.h's values"
+else
+	ktap_fail "scx defaults: linux.scx.dsq.GLOBAL and slice.DFL hold linux/sched/ext.h's values"
 fi
 
 # runqueue_cases <skip|fail> <reason>: every runqueue case skips or fails with the reason
