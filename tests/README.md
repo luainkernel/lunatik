@@ -2133,6 +2133,21 @@ from a pid namespace other than the initial one, whose pids are not the ones
   window where a build that takes the reference before the pcall leaves it
   held and pins `luadata`.
 
+- **srcu_init**: a write's first free allocates nothing for SRCU. `luarcu` hands
+  each entry a write replaces or removes to `call_srcu`, which an scx callback
+  makes under its CPU's runqueue lock, and a `srcu_struct` initialised there
+  allocates its node tree with `GFP_ATOMIC`, whose kswapd wakeup takes a
+  runqueue lock, where the kernel sizes the tree at init (128 CPUs, or
+  `srcutree.convert_to_big=1`). The CLI frees an entry before it runs a
+  script, so the case unloads the modules and a `kmem:kmalloc` tracepoint, in
+  an instance of the test's own filtered to the tasks named `lunatik`, is on
+  before `lunatik run` loads them again: every free the CLI's task makes since
+  `luarcu` loaded, the runner's and the one the script makes by replacing an
+  entry, falls inside the trace, which records the entries' allocations and
+  none from SRCU. Skips where `/sys/module/srcutree/parameters/convert_to_big`
+  says the kernel sizes a tree only once contended. 7.0 and later defer the
+  tree where the caller cannot sleep, so the case cannot fail on them.
+
 ### runtime
 
 Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
