@@ -2291,9 +2291,13 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   runtime's lock, and once from a handler on the personality syscall. The
   function tracer, filtered to `vfree`, reads no free on a task with interrupts
   off, a kprobe on `vfree` none inside the handler, which the kernel counts as
-  a miss, and `/proc/vmallocinfo` reads every block back. A build that frees
-  in place fails those reads on arm64; the test skips unless the loaded core
-  exports `lunatik_free`, since a core without it frees in place in the
+  a miss, and `/proc/vmallocinfo` reads every block back. Each block the
+  handler frees takes a reference on the core, which the `module_get` event
+  records, and the core's `refcnt` reads them dropped once the blocks went
+  back: unloading the core drains its workqueue, not an irq_work still
+  pending. A build that frees in place fails those reads on arm64, and one
+  that takes no reference fails the count; the test skips unless the loaded
+  core exports `lunatik_free`, since a core without it frees in place in the
   handler, where `vfree` may sleep.
 
 - **self_stop**: a runtime cannot be stopped, resumed, threaded or dispatched

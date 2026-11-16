@@ -51,6 +51,7 @@ static inline void lunatik_setversion(lua_State *L)
 static void lunatik_vfreedeferred(struct work_struct *work)
 {
 	vfree(lunatik_syncdefer(work));
+	module_put(THIS_MODULE);
 }
 
 void lunatik_free(const void *ptr)
@@ -58,6 +59,7 @@ void lunatik_free(const void *ptr)
 	if (is_vmalloc_addr(ptr) && lunatik_isatomic()) { /* vfree may sleep, and BUGs in NMI */
 		lunatik_defer_t *defer = (lunatik_defer_t *)ptr; /* the item fits: a vmalloc'd block is past a page */
 
+		__module_get(THIS_MODULE); /* lunatik_exit drains lunatik_wq, not a pending defer->irq */
 		lunatik_initdefer(defer, lunatik_vfreedeferred);
 		lunatik_defer(defer);
 	}
