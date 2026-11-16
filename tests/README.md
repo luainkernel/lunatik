@@ -1045,7 +1045,11 @@ each case runs `depmod -b` over a tree of the suite's own.
   `asm-generic/unistd.h` defines as their `__NR3264_` numbers, `mmap` among
   them, are in `linux.syscall.numbers`. One whose `#define` is a cast is
   carried where its spec lists it: `INT_MAX`, `((int)(~0U >> 1))` in
-  `vdso/limits.h`, is `linux.limits.int.MAX`.
+  `vdso/limits.h`, is `linux.limits.int.MAX`. `linux.eth` carries the
+  Ethernet lengths (`ETH_HLEN`, `ETH_ALEN`) at its top, beside the `proto`
+  table that holds `ETH_P_IP`, and no `ETH_P_` name there;
+  `linux.tls.record` carries the record types of `<net/tls_prot.h>`
+  (`TLS_RECORD_TYPE_HANDSHAKE`).
 - **schedule**: `linux.schedule` sleeps and returns the time left in a process runtime, refuses a
   timeout outside 0 to 2^31 - 1 with `out of bounds` and takes 0, and sleeps in
   the body of a `softirq` or `hardirq` runtime, which runs in process context; resumed past the
