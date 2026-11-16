@@ -177,6 +177,7 @@
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.tls.html">linux.tls</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
@@ -195,6 +196,9 @@
 <h1>linux.eth<span class="kind">Module</span></h1>
 <p class="lead">Linux kernel constants exposed under <a href="../modules/linux.eth.html#">linux.eth</a>.</p>
  Values are populated at build time from the kernel headers.
+ Ethernet lengths and MTU bounds (<code>ETH_HLEN</code>, <code>ETH_ALEN</code>, &hellip;), beside the protocol IDs in <a href="../modules/linux.eth.html#proto">proto</a>.
+ Mirrors <code>ETH_*</code> defines in <code>&lt;uapi/linux/if_ether.h&gt;</code>.
+ Keys are the kernel names with the prefix stripped: <code>ETH_&lt;NAME&gt;</code> is <code>linux.eth.&lt;NAME&gt;</code>.
     <h2 id="usage">Usage</h2>
         <pre class="example">local eth = require(&quot;linux.eth&quot;)
 </pre>
@@ -240,7 +244,7 @@
 <a href="../../modules/linux.eth.html">5.1 docs</a> ·
 <a href="../../5.0/modules/linux.eth.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 01:25:29</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 11:55:42</span>
 </div>
 </footer>
 </body>

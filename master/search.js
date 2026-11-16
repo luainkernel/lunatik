@@ -228,6 +228,8 @@ window.LUNATIK_SEARCH = [
 ["linux.tc","modules/linux.tc.html","Module · Linux kernel constants exposed under linux.tc."],
 ["action","modules/linux.tc.html#action","linux.tc · TC verdicts, what a tc callback returns."],
 ["h","modules/linux.tc.html#h","linux.tc · TC handles."],
+["linux.tls","modules/linux.tls.html","Module · Linux kernel constants exposed under linux.tls."],
+["record","modules/linux.tls.html#record","linux.tls · TLS record types, the content type a record header's first byte carries."],
 ["linux.vt","modules/linux.vt.html","Module · Linux kernel constants exposed under linux.vt."],
 ["event","modules/linux.vt.html#event","linux.vt · Virtual terminal notifier event types."],
 ["linux.xdp","modules/linux.xdp.html","Module · Linux kernel constants exposed under linux.xdp."],

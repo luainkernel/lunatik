@@ -177,6 +177,7 @@
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.tls.html">linux.tls</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
@@ -904,12 +905,12 @@ refused.</p>
 <span class="keyword">local</span> xdp    = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
 <span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
 
-<span class="keyword">local</span> protocols = {tcp = <span class="number">6</span>, udp = <span class="number">17</span>}
+<span class="keyword">local</span> protocols = <span class="global">require</span>(<span class="string">"linux.socket"</span>).ipproto
 
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
     <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
     <span class="keyword">local</span> protocol = p:<span class="function-name">getbyte</span>(<span class="number">23</span>)
-    <span class="keyword">if</span> protocol == protocols.udp <span class="keyword">then</span>
+    <span class="keyword">if</span> protocol == protocols.UDP <span class="keyword">then</span>
         <span class="keyword">return</span> action.DROP
     <span class="keyword">end</span>
     <span class="keyword">return</span> action.PASS
@@ -917,11 +918,12 @@ refused.</p>
 </pre>
 
 
-<p><code>protocols</code> is a table the body built. The function reads <code>protocols.udp</code> when it is compiled, and
-the program holds 17, the value the body left there. Instructions 0 to 15 read byte 23 into <code>r8</code>.</p>
+<p><code>protocols</code> is a table the body required, <a href="../modules/linux.socket.html#ipproto">linux.socket.ipproto</a>, which autogen generates from the
+kernel&rsquo;s <code>IPPROTO_</code> names. The function reads <code>protocols.UDP</code> when it is compiled, and the program
+holds its value, 17. Instructions 0 to 15 read byte 23 into <code>r8</code>.</p>
 
-<pre><code>      line 9: if protocol == protocols.udp then
-  16  r9 = 17                       protocols.udp, read at compile time
+<pre><code>      line 9: if protocol == protocols.UDP then
+  16  r9 = 17                       protocols.UDP, read at compile time
   17  r1 = r8                       protocol
   18  if r1 != r9 goto 22
       line 10: return action.DROP
@@ -1636,7 +1638,7 @@ TC program the call is the same over <code>bpf_luatc_run</code>, and <code>r3</c
 <a href="../../topics/09-luaebpf-by-example.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/09-luaebpf-by-example.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 01:25:29</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 11:55:42</span>
 </div>
 </footer>
 </body>

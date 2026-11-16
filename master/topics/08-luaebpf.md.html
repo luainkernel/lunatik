@@ -177,6 +177,7 @@
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.tls.html">linux.tls</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
@@ -217,15 +218,16 @@ reads.</p>
 <span class="keyword">local</span> map    = <span class="global">require</span>(<span class="string">"bpf.map"</span>)
 <span class="keyword">local</span> xdp    = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
 <span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+<span class="keyword">local</span> eth    = <span class="global">require</span>(<span class="string">"linux.eth"</span>).proto
 
-<span class="keyword">local</span> ETHERTYPE &lt;const&gt; = <span class="number">12</span> <span class="comment">-- 0x0800 for IPv4, in network order
+<span class="keyword">local</span> ETHERTYPE &lt;const&gt; = <span class="number">12</span> <span class="comment">-- the ethertype, in network order
 </span><span class="keyword">local</span> PROTOCOL  &lt;const&gt; = <span class="number">23</span> <span class="comment">-- the protocol byte of the IPv4 header
 </span>
 <span class="keyword">local</span> counts = map.<span class="function-name">array</span>(<span class="string">"counts"</span>, {key = <span class="string">"I4"</span>, value = <span class="string">"I8"</span>, entries = <span class="number">256</span>})
 
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
     <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
-    <span class="keyword">if</span> p:<span class="function-name">getbyte</span>(ETHERTYPE) == <span class="number">0x08</span> <span class="keyword">and</span> p:<span class="function-name">getbyte</span>(ETHERTYPE + <span class="number">1</span>) == <span class="number">0x00</span> <span class="keyword">then</span>
+    <span class="keyword">if</span> p:<span class="function-name">getbyte</span>(ETHERTYPE) &lt;&lt; <span class="number">8</span> | p:<span class="function-name">getbyte</span>(ETHERTYPE + <span class="number">1</span>) == eth.IP <span class="keyword">then</span>
         <span class="keyword">local</span> protocol = p:<span class="function-name">getbyte</span>(PROTOCOL)
         <span class="keyword">local</span> n = counts[protocol]
         <span class="keyword">if</span> n <span class="keyword">then</span>
@@ -256,8 +258,9 @@ the TCP and the UDP packets counted so far:</p>
 
 <pre>
 sudo lunatik -<span class="function-name">e</span> <span class="string">'local map = require("bpf.map")
+local ipproto = require("linux.socket").ipproto
 local counts &lt;close&gt; = map.array("/sys/fs/bpf/lunatik/protocols/counts", "I4", "I8")
-return counts[6], counts[17]'</span>
+return counts[ipproto.TCP], counts[ipproto.UDP]'</span>
 </pre>
 
 
@@ -313,7 +316,7 @@ the device&rsquo;s tc filters if it has any.</li>
 an XDP program, stops the program, as the kernel&rsquo;s Lua answers a callback returning it with the
 hook&rsquo;s fallback, the answer it gives a callback that raised. One the compiler knows is refused,
 &ldquo;the verdict 11 is not an XDP action&rdquo;, and so is a boolean, which no action is: <code>return
-p:getbyte(23) == 6</code> gives &ldquo;the verdict may be a boolean here; return an action&rdquo;.</li>
+p:getbyte(23) == ipproto.TCP</code> gives &ldquo;the verdict may be a boolean here; return an action&rdquo;.</li>
 </ul>
 
 
@@ -704,17 +707,18 @@ port 53 longer than 512 bytes:</p>
 <span class="keyword">local</span> xdp     = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
 <span class="keyword">local</span> lunatik = <span class="global">require</span>(<span class="string">"lunatik"</span>)
 <span class="keyword">local</span> action  = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+<span class="keyword">local</span> eth     = <span class="global">require</span>(<span class="string">"linux.eth"</span>).proto
+<span class="keyword">local</span> ipproto = <span class="global">require</span>(<span class="string">"linux.socket"</span>).ipproto
 
-<span class="keyword">local</span> ETHERTYPE &lt;const&gt; = <span class="number">12</span> <span class="comment">-- 0x0800 for IPv4, in network order
+<span class="keyword">local</span> ETHERTYPE &lt;const&gt; = <span class="number">12</span> <span class="comment">-- the ethertype, in network order
 </span><span class="keyword">local</span> PROTOCOL  &lt;const&gt; = <span class="number">23</span> <span class="comment">-- the protocol byte of the IPv4 header
 </span><span class="keyword">local</span> PORT      &lt;const&gt; = <span class="number">36</span> <span class="comment">-- the UDP destination port, past an IPv4 header with no options
-</span><span class="keyword">local</span> UDP       &lt;const&gt; = <span class="number">17</span>
-
+</span>
 <span class="keyword">local</span> limits = lunatik.<span class="function-name">runtime</span>(<span class="string">"limits"</span>)
 
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
     <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
-    <span class="keyword">if</span> p:<span class="function-name">getbyte</span>(ETHERTYPE) ~= <span class="number">0x08</span> <span class="keyword">or</span> p:<span class="function-name">getbyte</span>(ETHERTYPE + <span class="number">1</span>) ~= <span class="number">0x00</span> <span class="keyword">or</span> p:<span class="function-name">getbyte</span>(PROTOCOL) ~= UDP <span class="keyword">then</span>
+    <span class="keyword">if</span> p:<span class="function-name">getbyte</span>(ETHERTYPE) &lt;&lt; <span class="number">8</span> | p:<span class="function-name">getbyte</span>(ETHERTYPE + <span class="number">1</span>) ~= eth.IP <span class="keyword">or</span> p:<span class="function-name">getbyte</span>(PROTOCOL) ~= ipproto.UDP <span class="keyword">then</span>
         <span class="keyword">return</span> action.PASS
     <span class="keyword">end</span>
     <span class="keyword">local</span> port = p:<span class="function-name">getbyte</span>(PORT) &lt;&lt; <span class="number">8</span> | p:<span class="function-name">getbyte</span>(PORT + <span class="number">1</span>)
@@ -797,7 +801,7 @@ bytes of stack, over the 512 eBPF allows&rdquo;, one with a name of 480 bytes am
 packet that reaches it: a program decides what it can by itself, a map in front, and calls Lua
 for the rest. <code>lunatik bpf</code> prints on stdout a line for each call it compiled,
 <code>&lt;file&gt;:&lt;line&gt;: calls the runtime &apos;&lt;name&gt;&apos;</code>, in the order it met them, and nothing for a file
-with none; for the file above, <code>ports.bpf.lua:18: calls the runtime &apos;limits&apos;</code>.</li>
+with none; for the file above, <code>ports.bpf.lua:19: calls the runtime &apos;limits&apos;</code>.</li>
 <li>The object loads where the module of its call, <code>luaxdp</code> or <code>luatc</code>, carries BTF, which a module
 built after <code>sudo make btf_install</code> does. Where it carries none, <code>lunatik run</code> prints libbpf&rsquo;s
 &ldquo;extern (func ksym) &lsquo;bpf_luaxdp_run&rsquo;: not found in kernel or module BTFs&rdquo;, exits 1 and leaves
@@ -1041,8 +1045,8 @@ as the words of 1 and 0, which are actions, so a test of the word cannot tell th
 </tr>
 <tr>
 <td> the verdict may be a boolean here; return an action </td>
-<td> <code>return p:getbyte(23) == 6</code> </td>
-<td> <code>if p:getbyte(23) == 6 then return action.DROP end</code> </td>
+<td> <code>return p:getbyte(23) == ipproto.TCP</code> </td>
+<td> <code>if p:getbyte(23) == ipproto.TCP then return action.DROP end</code> </td>
 </tr>
 <tr>
 <td> the verdict 11 is not an XDP action </td>
@@ -1177,7 +1181,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 01:25:29</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 11:55:42</span>
 </div>
 </footer>
 </body>
