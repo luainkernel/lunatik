@@ -201,6 +201,8 @@ sets the _reference counter_ to `1` and then returns `0`.
 The script's first return value stays on the state's stack, at index `1`, below what a handler
 pushes.
 Otherwise, it returns `-ENOMEM`, if insufficient memory is available;
+`-EOPNOTSUPP`, if `opt` is `LUNATIK_OPT_HARDIRQ` on a kernel built with `CONFIG_PREEMPT_RT`,
+where that spinlock sleeps, before the script runs;
 or `-ENOEXEC`, if it fails to load or run the `script`, and logs the error with `pr_err`.
 
 #### Example: lunatik\_runtime

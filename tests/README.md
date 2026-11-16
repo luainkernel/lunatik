@@ -2225,6 +2225,13 @@ Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
   script that creates a socket is refused in a `softirq` runtime, leaving
   nothing registered, and runs in a `process` one, in either spelling.
 
+- **hardirq**: a hardirq runtime is created by each route to one, the CLI's
+  `run -c hardirq`, `lunatik.runtime` and `lunatik.percpu`, and its script's
+  body runs; on a kernel built with `CONFIG_PREEMPT_RT`, which `uname -v`
+  names, each is refused with `hardirq runtime not allowed on PREEMPT_RT, where
+  a spinlock sleeps` before the body runs, leaving nothing registered, and the
+  CLI exits 1 with that message after `lunatik:`.
+
 - **spawn_suffix**: a script spawned with its `.lua` suffix registers its
   thread under the trimmed name `runner.stop` looks up, so the stop reaches
   the thread before it closes the runtime, whose lock the body holds while

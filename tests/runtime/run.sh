@@ -30,6 +30,7 @@ TESTS=(
 	percpu_refuse.sh
 	spawn_refuse.sh
 	run_context.sh
+	hardirq.sh
 	spawn_suffix.sh
 	spawn_name.sh
 	percpu_netfilter.sh

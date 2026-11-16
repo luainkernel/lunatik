@@ -399,6 +399,11 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 	lunatik_object_t *runtime;
 	lua_State *L;
 
+	if (IS_ENABLED(CONFIG_PREEMPT_RT) && lunatik_ishardirq(opt)) {
+		lunatik_runerror(Lfrom, "hardirq runtime not allowed on PREEMPT_RT, where a spinlock sleeps");
+		return -EOPNOTSUPP; /* a raw_spinlock_t would not do: the allocations Lua makes under it sleep there too */
+	}
+
 	if ((L = luaL_newstate()) == NULL) {
 		lunatik_runerror(Lfrom, "failed to allocate Lua state");
 		return -ENOMEM;
@@ -473,9 +478,12 @@ EXPORT_SYMBOL(lunatik_runtime);
 *   Use `"softirq"` for hooks that fire in softirq context (netfilter, XDP).
 *   Use `"hardirq"` for hooks that can fire inside an interrupt handler or with interrupts off
 *   (kprobes), since only a lock that turns interrupts off cannot be taken again by an
-*   interrupt on the CPU that holds it.
+*   interrupt on the CPU that holds it. A kernel built with `CONFIG_PREEMPT_RT` creates no
+*   `"hardirq"` runtime: its spinlock neither turns interrupts off nor spins there.
 * @treturn runtime
-* @raise if allocation fails or the script errors on load
+* @raise if allocation fails or the script errors on load; `hardirq runtime not allowed on
+*   PREEMPT_RT, where a spinlock sleeps` for a `"hardirq"` runtime on a kernel built with
+*   `CONFIG_PREEMPT_RT`, before the script runs
 * @within lunatik
 */
 static int lunatik_lruntime(lua_State *L)
