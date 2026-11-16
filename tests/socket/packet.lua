@@ -10,18 +10,18 @@ local linux     = require("linux")
 local struct    = require("struct")
 local byteorder = require("byteorder")
 local sk        = require("linux.socket")
-local eth       = require("linux.eth").proto
+local eth       = require("linux.eth")
 local attempt   = require("tests.socket.attempt")
 
 local timeval = struct(sk.layout.timeval)
 
-local PROTO      <const> = eth["802_EX1"]
+local PROTO      <const> = eth.proto["802_EX1"]
 local PROTO_MAX  <const> = 0xFFFF
 local PROTO_NET  <const> = byteorder.hton16(PROTO)
 local IFNAME     <const> = "lo"
 local PAYLOAD    <const> = "lunatikpacket"
-local ETH_HLEN   <const> = 14
-local ETH_ALEN   <const> = 6
+local ETH_HLEN   <const> = eth.HLEN
+local ETH_ALEN   <const> = eth.ALEN
 local MTU        <const> = 1500
 local TIMEOUT_MS <const> = 500
 

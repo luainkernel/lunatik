@@ -7,9 +7,10 @@
 local filter    = require("tests.skb.filter")
 local nf        = require("linux.nf")
 local ipproto   = require("linux.socket").ipproto
+local eth       = require("linux.eth")
 
 local IP_PROTO   <const> = 9
-local ETH_HLEN   <const> = 14 -- the Ethernet header of a frame lo received
+local ETH_HLEN   <const> = eth.HLEN -- the Ethernet header of a frame lo received
 local OUTER_HLEN <const> = 20 -- the outer IPv4 header, which the MAC header sits past
 local TRUNCATED  <const> = 10 -- shorter than the outer IPv4 header
 local MARK       <const> = 1278 -- MARK in data.sh

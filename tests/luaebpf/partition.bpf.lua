@@ -11,13 +11,15 @@ local tc      = require("bpf.tc")
 local map     = require("bpf.map")
 local lunatik = require("lunatik")
 local action  = require("linux.tc").action
+local eth     = require("linux.eth")
+local ipproto = require("linux.socket").ipproto
 
 local KEY     <const> = "I4"
 local VALUE   <const> = "I4"
 local ENTRIES <const> = 8
-local ETHER   <const> = 14 -- the ethernet header the IPv4 one follows
+local ETHER   <const> = eth.HLEN -- the ethernet header the IPv4 one follows
 local PROTO   <const> = 23 -- iphdr.protocol, from the frame
-local TCP     <const> = 6
+local TCP     <const> = ipproto.TCP
 local HTTPS   <const> = 443
 local PSH     <const> = 0x08
 local WORDS   <const> = 4  -- what an IPv4 or TCP header length counts in

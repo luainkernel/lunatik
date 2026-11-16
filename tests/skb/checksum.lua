@@ -8,6 +8,7 @@ local filter    = require("tests.skb.filter")
 local csum      = require("tests.skb.csum")
 local byteorder = require("byteorder")
 local nf        = require("linux.nf")
+local ipproto   = require("linux.socket").ipproto
 
 local PRIORITY <const> = 0x12370000
 local PAYLOAD  <const> = 256
@@ -26,8 +27,8 @@ local IP6_HDRLEN   <const> = 40
 local TCP_CHECK <const> = 16
 local UDP_CHECK <const> = 6
 local UDP_HDRLEN <const> = 8
-local TCP <const> = 6
-local UDP <const> = 17
+local TCP <const> = ipproto.TCP
+local UDP <const> = ipproto.UDP
 
 local pending = {
 	[PRIORITY + 1] = "fits4",

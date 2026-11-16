@@ -8,9 +8,10 @@ local corpus  = require("tests.luaebpf.corpus")
 local packets = require("tests.luaebpf.packets")
 local action  = require("linux.xdp").action
 local tc      = require("linux.tc").action
+local eth     = require("linux.eth")
 
 local AT      <const> = 6  -- the source address, whose first byte has its high bit set
-local IHL     <const> = 14 -- the IPv4 header's first byte, where its length in words lives
+local IHL     <const> = eth.HLEN -- the IPv4 header's first byte, where its length in words lives
 local FILLED  <const> = 11 -- the answer a row owes when the second result of a call is nil
 
 -- examples/common/sni.lua's helper, unchanged: the proxy passes to a subprogram in one argument

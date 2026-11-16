@@ -22,15 +22,16 @@ reads.
 local map    = require("bpf.map")
 local xdp    = require("bpf.xdp")
 local action = require("linux.xdp").action
+local eth    = require("linux.eth").proto
 
-local ETHERTYPE <const> = 12 -- 0x0800 for IPv4, in network order
+local ETHERTYPE <const> = 12 -- the ethertype, in network order
 local PROTOCOL  <const> = 23 -- the protocol byte of the IPv4 header
 
 local counts = map.array("counts", {key = "I4", value = "I8", entries = 256})
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
-	if p:getbyte(ETHERTYPE) == 0x08 and p:getbyte(ETHERTYPE + 1) == 0x00 then
+	if p:getbyte(ETHERTYPE) << 8 | p:getbyte(ETHERTYPE + 1) == eth.IP then
 		local protocol = p:getbyte(PROTOCOL)
 		local n = counts[protocol]
 		if n then
@@ -59,8 +60,9 @@ the TCP and the UDP packets counted so far:
 
 ```Shell
 sudo lunatik -e 'local map = require("bpf.map")
+local ipproto = require("linux.socket").ipproto
 local counts <close> = map.array("/sys/fs/bpf/lunatik/protocols/counts", "I4", "I8")
-return counts[6], counts[17]'
+return counts[ipproto.TCP], counts[ipproto.UDP]'
 ```
 
 A frame that says IPv4 but is shorter than 24 bytes has no byte 23: its read stops the program,
@@ -112,7 +114,7 @@ callback returns on the same hook.
   an XDP program, stops the program, as the kernel's Lua answers a callback returning it with the
   hook's fallback, the answer it gives a callback that raised. One the compiler knows is refused,
   "the verdict 11 is not an XDP action", and so is a boolean, which no action is: `return
-  p:getbyte(23) == 6` gives "the verdict may be a boolean here; return an action".
+  p:getbyte(23) == ipproto.TCP` gives "the verdict may be a boolean here; return an action".
 
 A `return` with no value, or with `nil`, returns the default verdict. A verdict that may be nil is
 refused: "the verdict may be nil here; test it first". The constructor names the default verdict,
@@ -311,17 +313,18 @@ port 53 longer than 512 bytes:
 local xdp     = require("bpf.xdp")
 local lunatik = require("lunatik")
 local action  = require("linux.xdp").action
+local eth     = require("linux.eth").proto
+local ipproto = require("linux.socket").ipproto
 
-local ETHERTYPE <const> = 12 -- 0x0800 for IPv4, in network order
+local ETHERTYPE <const> = 12 -- the ethertype, in network order
 local PROTOCOL  <const> = 23 -- the protocol byte of the IPv4 header
 local PORT      <const> = 36 -- the UDP destination port, past an IPv4 header with no options
-local UDP       <const> = 17
 
 local limits = lunatik.runtime("limits")
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
-	if p:getbyte(ETHERTYPE) ~= 0x08 or p:getbyte(ETHERTYPE + 1) ~= 0x00 or p:getbyte(PROTOCOL) ~= UDP then
+	if p:getbyte(ETHERTYPE) << 8 | p:getbyte(ETHERTYPE + 1) ~= eth.IP or p:getbyte(PROTOCOL) ~= ipproto.UDP then
 		return action.PASS
 	end
 	local port = p:getbyte(PORT) << 8 | p:getbyte(PORT + 1)
@@ -398,7 +401,7 @@ answers nil there, and the program passes the frame.
   packet that reaches it: a program decides what it can by itself, a map in front, and calls Lua
   for the rest. `lunatik bpf` prints on stdout a line for each call it compiled,
   `<file>:<line>: calls the runtime '<name>'`, in the order it met them, and nothing for a file
-  with none; for the file above, `ports.bpf.lua:18: calls the runtime 'limits'`.
+  with none; for the file above, `ports.bpf.lua:19: calls the runtime 'limits'`.
 * The object loads where the module of its call, `luaxdp` or `luatc`, carries BTF, which a module
   built after `sudo make btf_install` does. Where it carries none, `lunatik run` prints libbpf's
   "extern (func ksym) 'bpf_luaxdp_run': not found in kernel or module BTFs", exits 1 and leaves
@@ -494,7 +497,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | a number that may be nil cannot be compared with a number here | `==` on a variable nil on one path | `local v = 0` |
 | a number that may be nil has no truth value in a compiled function | `if v then`, `v` nil on one path | `local v = 0`, then `if v ~= 0 then` |
 | the verdict may be nil here; test it first | `return v`, `v` nil on one path | a verdict on every path |
-| the verdict may be a boolean here; return an action | `return p:getbyte(23) == 6` | `if p:getbyte(23) == 6 then return action.DROP end` |
+| the verdict may be a boolean here; return an action | `return p:getbyte(23) == ipproto.TCP` | `if p:getbyte(23) == ipproto.TCP then return action.DROP end` |
 | the verdict 11 is not an XDP action | `return 11`, a value no action of the program's type | an action of `linux.xdp.action` or `linux.tc.action` |
 | xdp.program's default verdict is not an XDP action | `{default = 5}` | `{default = action.DROP}` |
 | xdp.program's default verdict is not an integer | `xdp.program(fn)`, `{default = "drop"}` | `xdp.program(fn, {default = action.PASS})`, and `tc.program` alike |

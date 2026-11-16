@@ -12,7 +12,7 @@ local struct = require("struct")
 local net    = require("net")
 local sk     = require("linux.socket")
 local nl     = require("linux.netlink")
-local eth    = require("linux.eth").proto
+local eth    = require("linux.eth")
 local arphrd = require("linux.arphrd")
 local pkttype = require("linux.packet").type
 local attempt = require("tests.socket.attempt")
@@ -23,14 +23,14 @@ local timeval = struct(sk.layout.timeval)
 
 local LOOPBACK   <const> = net.aton("127.0.0.1")
 local IFNAME     <const> = "lo"
-local PROTO      <const> = eth["802_EX1"]
+local PROTO      <const> = eth.proto["802_EX1"]
 local PAYLOAD    <const> = "lunatikaddress"
 local BUFSIZE    <const> = 64
 local MTU        <const> = 1500
 local BACKLOG    <const> = 1
 local TIMEOUT_MS <const> = 500
 -- the ETH_ALEN zeros of the loopback device's address
-local HWADDR     <const> = string.rep("\0", 6)
+local HWADDR     <const> = string.rep("\0", eth.ALEN)
 -- struct sockaddr_in6 past the family: port, flow info, address, scope id
 local INET6_LEN    <const> = 26
 local IN6_LOOPBACK <const> = string.rep("\0", 15) .. "\1"
@@ -143,11 +143,11 @@ else
 	say("inet6 unsupported")
 end
 
-if attempt.new(socket.new, sk.af.PACKET, sk.sock.RAW, eth.ALL) then
-	local unbound = {eth.ALL, 0, 0, 0, ""}
+if attempt.new(socket.new, sk.af.PACKET, sk.sock.RAW, eth.proto.ALL) then
+	local unbound = {eth.proto.ALL, 0, 0, 0, ""}
 	local loopback = {PROTO, ifindex, pkttype.HOST, arphrd.LOOPBACK, HWADDR}
 
-	local packet = socket.new(sk.af.PACKET, sk.sock.RAW, eth.ALL)
+	local packet = socket.new(sk.af.PACKET, sk.sock.RAW, eth.proto.ALL)
 	expectaddress("an unbound packet getsockname", unbound, packet:getsockname())
 	say("packet getsockname unbound ok")
 

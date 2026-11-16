@@ -4,8 +4,9 @@
 --
 -- Kernel-side script for the tc checksum test (see test_tc.sh).
 
-local tc   = require("tc")
-local csum = require("tests.skb.csum")
+local tc      = require("tc")
+local csum    = require("tests.skb.csum")
+local ipproto = require("linux.socket").ipproto
 
 local PRIORITY <const> = 0x17020000 -- CSUM_PRIORITY in test_tc.sh
 
@@ -13,7 +14,7 @@ local IP_CHECK    <const> = 10
 local IP_ADDRS    <const> = 12
 local IP_ADDRSLEN <const> = 8
 local UDP_CHECK   <const> = 6
-local UDP         <const> = 17
+local UDP         <const> = ipproto.UDP
 
 local function test_checksum(ctx)
 	local skb = ctx:skb()

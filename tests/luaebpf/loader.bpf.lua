@@ -7,9 +7,10 @@
 local map    = require("bpf.map")
 local xdp    = require("bpf.xdp")
 local action = require("linux.xdp").action
+local eth    = require("linux.eth")
 
 local ENTRIES  <const> = 4
-local ETH_HLEN <const> = 14
+local ETH_HLEN <const> = eth.HLEN
 local SEEN     <const> = 0
 
 local counts = map.array("counts", {key = "I4", value = "I8", entries = ENTRIES})

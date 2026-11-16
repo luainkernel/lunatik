@@ -7,6 +7,7 @@
 local netfilter = require("netfilter")
 local nf        = require("linux.nf")
 local linux     = require("linux")
+local ipproto   = require("linux.socket").ipproto
 
 local insert = table.insert
 local format = string.format
@@ -16,7 +17,7 @@ local STEP_MARK  <const> = 1310 -- STEP_MARK in copy_device.sh
 local COPY_MARK  <const> = 1311
 local INNER_MARK <const> = 1312
 local IP_PROTO   <const> = 9
-local ICMP       <const> = 1
+local ICMP       <const> = ipproto.ICMP
 local ICMP_TYPE  <const> = 20 -- past an IPv4 header without options, as ping sends it
 local ECHO       <const> = 8
 local REFUSAL    <const> = "skb has no device"
