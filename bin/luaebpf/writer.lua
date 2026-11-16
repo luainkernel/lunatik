@@ -10,8 +10,8 @@
 -- Each program is lowered by `luaebpf.emit` and laid out with `luaebpf.elf` and `luaebpf.btf`, in
 -- the byte order `luaebpf.emit.bigendian` says: its entry in the section its kind names, every
 -- subprogram in `.text`, the maps `luaebpf.maps` holds in `.maps`, the kfunc a call into the kernel Lua
--- runtime names in `.ksyms`, the license, each function's BTF, and the line info that quotes the Lua line
--- each instruction came from.
+-- runtime names and those of the iterator a loop calls in `.ksyms`, the license, each function's BTF,
+-- and the line info that quotes the Lua line each instruction came from.
 -- @module luaebpf.writer
 
 local maps = require("luaebpf.maps")
@@ -163,12 +163,41 @@ local function prototype(types, context)
 		types:pointer((types:struct(context, {}))), types:pointer(0), types.long}}
 end
 
+-- the iterator's kfuncs take it by address, which libbpf compares as a pointer to a struct of any
+-- layout (kernel/bpf/bpf_iter.c)
+local function iterator(types)
+	return types:pointer((types:struct("bpf_iter_num", {})))
+end
+
+local function iternew(types)
+	return {result = types.int, params = {iterator(types), types.int, types.int}}
+end
+
+local function iternext(types)
+	return {result = types:pointer(types.int), params = {iterator(types)}}
+end
+
+local function iterdestroy(types)
+	return {result = 0, params = {iterator(types)}}
+end
+
+local iterators = {[emit.iterator.new] = iternew, [emit.iterator.next] = iternext,
+	[emit.iterator.destroy] = iterdestroy}
+
+local function signature(types, extern)
+	local kfunc = iterators[extern.name]
+	if kfunc ~= nil then
+		return kfunc(types)
+	end
+	return prototype(types, extern.context)
+end
+
 -- each kfunc a call names: a FUNC of extern linkage listed in a DATASEC named ".ksyms", whose bytes
 -- libbpf never looks for in the ELF, and the undefined symbol the call's relocation names
 local function ksyms(object, types, externs, hook, indexes)
 	local entries = {}
 	for _, extern in ipairs(externs) do
-		local func = types:func(extern.name, btf.linkage.EXTERN, prototype(types, extern.context))
+		local func = types:func(extern.name, btf.linkage.EXTERN, signature(types, extern))
 		table.insert(entries, {type = func, offset = 0, size = 0})
 		indexes[extern.name] = object:symbol{name = extern.name, value = 0, size = 0, bind = elf.bind.GLOBAL,
 			type = elf.type.NOTYPE}
@@ -190,11 +219,14 @@ local function report(calls, frame)
 	end
 end
 
--- the kfunc a program's functions call the runtime through, listed once however many of them do
+-- each kfunc a program's functions call, listed once however many of them do: the runtime's, which
+-- takes the context of the program's type, and the iterator's
 local function extern(externs, called, program, frame)
-	if #frame.calls > 0 and not called[program.kfunc] then
-		called[program.kfunc] = true
-		table.insert(externs, {name = program.kfunc, context = program.context.struct})
+	for _, use in ipairs(frame.code:relocations("kfunc")) do
+		if not called[use.name] then
+			called[use.name] = true
+			table.insert(externs, {name = use.name, context = program.context.struct})
+		end
 	end
 end
 

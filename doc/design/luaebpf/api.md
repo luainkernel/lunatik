@@ -58,7 +58,7 @@ A compiled function is Lua where every value has a type the translator can prove
 | integers, booleans, `nil` as an absent value | registers, `ALU64` |
 | `+ - * // % & \| ~ << >>`, unary `-` and `~`, comparisons | `ALU64` ops with Lua's floor semantics; a division tests its divisor |
 | `if`, `and`, `or`, `not` | fused compare-and-jump |
-| numeric `for` | a bounded loop when the bounds are constants, a `may_goto` header otherwise |
+| numeric `for` | a bounded loop when the bounds are constants, the kernel's `bpf_iter_num` iterator otherwise, with a `may_goto` header where the kernel has it |
 | `while`, `repeat` | refused at their line; no phase plans them |
 | calls to functions the program file declares | BPF-to-BPF calls; no recursion, four register arguments |
 | the context, the packet, a map, a struct view | proxies (next sections) |

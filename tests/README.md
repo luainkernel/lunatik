@@ -1298,13 +1298,19 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   zero-trip, descending, a step above one, a negative start, a nested pair
   and a `goto` forwards, to the end of the body and out of the loop, none of
   them taking a `may_goto`.
-- **forvar**: a numeric `for` whose bounds the program computes: it takes a
-  `may_goto` header, verifies and terminates; without the header the verifier
-  rejects it; a step that is zero at run time, in the program and in a function
-  it calls, returns `XDP_ABORTED`, and so does a loop whose passes outrun the
-  budget the kernel gives `may_goto`, counted or timed, in either, keeping
-  nothing; a step that is zero at compile time is refused. On a kernel below
-  v6.9 the case asserts the compiler's refusal instead.
+- **forvar**: a numeric `for` whose bounds the program computes: the kernel's
+  iterator counts its passes on every kernel, it takes a `may_goto` header on
+  one that has it, verifies and terminates with the interpreter's answer; a
+  break, a return, a stop and a goto out of two loops, alone and from an inner
+  loop, and a stop in a function called inside one, each destroying the
+  iterators it leaves; a step that is zero at run time, in the program and in a
+  function it calls, returns `XDP_ABORTED`, and so does a loop of more passes
+  than the iterator counts, or of a count past the int it takes, in either,
+  keeping nothing; a step that is zero at compile time is refused. On a kernel
+  that has `may_goto`, two loops the iterator counts whole, one in the other,
+  whose passes outrun the budget the kernel gives the `may_goto` of one call,
+  counted or timed, return `XDP_ABORTED` and keep nothing; the case skips on a
+  kernel without it.
 - **call**: calls to file-declared functions as BPF-to-BPF subprograms: one
   call, two levels, four arguments, a shared helper, the deepest chain
   `MAX_CALL_FRAMES` takes with every level able to abort, a helper returning
@@ -1463,9 +1469,8 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   and with none, at the line of the program's function, among them.
 - **budget**: the "processed N insns" figure the verifier prints for the
   worst program of each corpus, reported as a comment and asserted under a
-  ceiling; the loops under a `may_goto` header are counted on a kernel that
-  has it, and the calls into the kernel Lua runtime where the kernel publishes
-  `luaxdp`'s BTF.
+  ceiling; the calls into the kernel Lua runtime are counted where the kernel
+  publishes `luaxdp`'s BTF.
 
 The loader cases run `lunatik run --dev=` and `lunatik stop` over a program
 file the case compiles and puts beside the installed script, since
@@ -1526,11 +1531,12 @@ runtime with bpftool, run them with `bpftool prog run` and start the runtime
 they call with `lunatik run --context=softirq`; each skips where the kernel
 publishes no BTF for the module whose kfunc its programs call.
 
-- **callback**: four XDP programs call one runtime, whose callback answers
+- **callback**: five XDP programs call one runtime, whose callback answers
   each by the argument it was handed: the name the program spelled reaches it
   with all eight bytes of a 64-bit argument, a call with no argument hands it
-  an empty one, another argument reaches its rejection, and two arguments
-  arrive as two words in order. The answer read before a test, as a number,
+  an empty one, another argument reaches its rejection, two arguments arrive
+  as two words in order, and calls in a loop whose bound the program computes
+  reach it, their arguments written under the loop's iterator. The answer read before a test, as a number,
   compared by `==` with a number and by `<`, returned, negated, copied by `or`
   and tested where a join met it with another value, an argument that is not a
   number, a call from a function the program calls, a call from a program

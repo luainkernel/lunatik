@@ -287,6 +287,14 @@ no request of his uses them.
 Tests: a loop with a runtime bound makes the passes Lua makes, on a kernel with and without
 `may_goto`.
 
+`i` is read from the pass the iterator answers, as libbpf's `bpf_for` reads it, rather than carried
+from the pass before: on 6.8, whose verifier compares the states of an iterator's loop exactly, a
+loop that reads the packet at a carried `i` was refused, "The sequence of 8193 jumps is too complex"
+after 311,173 processed instructions, and verifies in 196 with `i` read so. The rows of
+`forvar.bpf.lua` verify in 916 processed instructions at most on 6.8, two nested loops dividing,
+and the program of `callback.bpf.lua` that calls the runtime inside such a loop in 184, as
+`budget.sh` records them.
+
 ### Phase 6: examples and documentation
 
 `examples/filter` and `examples/sniclassify` rewritten as program files that do what their C stubs

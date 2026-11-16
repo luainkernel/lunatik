@@ -78,6 +78,7 @@ local function returnvalue(f, pc, state, i)
 end
 
 local function returns(f, pc, state, i)
+	frame.leave(f)
 	if i == nil or state[i].t == NIL then -- the hook reads 'return' and 'return nil' alike
 		f.rettype = f.rettype | NIL
 		if f.drop ~= "verdict" then

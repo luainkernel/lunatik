@@ -100,10 +100,10 @@ the byte order of the kernel `lunatik.config` describes:
   program's result an `int` and a subprogram's a `long`, a program global and a subprogram static;
 * `.BTF.ext`, each function's `func_info`, and the `line_info` that quotes the Lua line each
   instruction came from, which is how the verifier's log quotes the program file;
-* `.ksyms`, a `DATASEC` listing a `FUNC` of extern linkage for each kfunc a call names, whose
-  prototype libbpf compares with the module's kind by kind, and an undefined symbol of no type,
-  which the call's relocation names: libbpf resolves the kfunc in the module's BTF and writes the
-  call's source register, immediate and offset;
+* `.ksyms`, a `DATASEC` listing a `FUNC` of extern linkage for each kfunc a call names, the
+  runtime's and the iterator's, whose prototype libbpf compares with the kernel's kind by kind, and
+  an undefined symbol of no type, which the call's relocation names: libbpf resolves the kfunc in
+  the kernel's BTF or the module's and writes the call's source register, immediate and offset;
 * `.symtab`, `.strtab`, and a relocation section for each section that calls a subprogram or a
   kfunc or names a map.
 
@@ -113,8 +113,8 @@ the byte order of the kernel `lunatik.config` describes:
 `/sys/kernel/btf/vmlinux`, for the offset and the width of each context field a program reads, so
 no offset is copied from a header; it reads the file in the byte order its magic says and refuses
 one whose order is not the object's. Three facts come from `lunatik.config`, which `make` writes
-from the kernel tree Lunatik is built against: the kernel's version, which says whether a loop can
-take `may_goto`, 6.9 and later, whether the kernel has efficient unaligned access, which says
+from the kernel tree Lunatik is built against: the kernel's version, which says whether a loop
+carries `may_goto`, 6.9 and later, whether the kernel has efficient unaligned access, which says
 whether a read wider than a byte is compiled, and whether it is big-endian, which says the object's
 byte order. A build host compiles for the kernel of the image it builds this way, with that tree's
 config and that kernel's BTF. A kernel that publishes no BTF gets no object: `make install` leaves
@@ -242,7 +242,12 @@ what `frame.lua` holds:
 * `branch.lua`: the comparisons, `TEST`, `TESTSET` and `JMP`. A test the types decide is the jump
   or nothing; any other is a conditional jump. See [Branches](#branches).
 * `forloop.lua`: `FORPREP` and `FORLOOP`, the numeric `for`, whose iterations are counted up front
-  as `forprep` in `lua/lvm.c` counts them.
+  as `forprep` in `lua/lvm.c` counts them: by the loop itself where the compiler holds its three
+  values, which the verifier walks, and by the kernel's iterator otherwise, `bpf_iter_num_new`,
+  `bpf_iter_num_next` and `bpf_iter_num_destroy` on a word of the frame, `i` read from the pass
+  the iterator answers. Every jump out of such a loop, a return in it and a stop in it go through
+  the destroy of its iterator, which `frame.lua` routes, since the verifier refuses a program that
+  ends holding one.
 * `call.lua`: `CALL`, the returns, and the invocation of a subprogram. A `return` with no value, or
   with nil, in a program returns its default verdict, as a hook reads both alike. A program's
   verdict is one of its type's actions: a boolean, or a value the compiler holds outside them, is
@@ -261,8 +266,8 @@ An opcode none of them lowers is refused with the reason `emit/init.lua` keeps f
 constructor's: "a table constructor cannot run in the kernel; build it in the file body".
 
 `LUAEBPF_DROP`, an environment variable the CLI has no option for, names one mechanism the
-compiler then leaves out, `divisor`, `bounds`, `loadbytes`, `maygoto`, `verdict`, `action`,
-`lineinfo` or `ksyms`, so the suite shows each one is what a case rests on ([testing.md](testing.md)).
+compiler then leaves out, `divisor`, `bounds`, `loadbytes`, `verdict`, `action`, `lineinfo` or
+`ksyms`, so the suite shows each one is what a case rests on ([testing.md](testing.md)).
 
 ## Limits
 
@@ -313,8 +318,6 @@ heap.
 * A wide read the verifier would prove aligned, on a kernel without efficient unaligned access,
   where every XDP read wider than a byte is refused (#2047): "'getuint16' reads more than a byte,
   and this kernel lacks efficient unaligned access".
-* A `for` the compiler cannot bound, on a kernel before 6.9, which has no `may_goto`: "a 'for' the
-  compiler cannot bound needs may_goto, which this kernel lacks".
 
 The compiler does not price the verifier's own limits, the instructions it walks, the stack of a
 chain of calls and the chain's depth ([Limits](kernel-notes.md#limits) in
