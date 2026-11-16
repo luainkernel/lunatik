@@ -490,6 +490,10 @@ LUNATIK_NEWLIB(rcu, luarcu_lib, luarcu_classes);
 
 static int __init luarcu_init(void)
 {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(7, 0, 0))
+	/* set SRCU up at load, so no call_srcu allocates under an scx callback's runqueue lock */
+	srcu_barrier(&luarcu_srcu);
+#endif
 	return 0;
 }
 

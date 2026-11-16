@@ -86,5 +86,7 @@ echo ""
 bash "$DIR/cycle_release.sh" || RESULT=1
 echo ""
 bash "$DIR/foreach_overflow.sh" || RESULT=1
+echo ""
+bash "$DIR/srcu_init.sh" || RESULT=1
 exit $RESULT
 
