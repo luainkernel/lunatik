@@ -23,7 +23,13 @@
 #              of a Lua library the body did not load, package.loadlib and
 #              package.searchpath, since opening a file sleeps and loading a
 #              binding takes a module reference an atomic allocation can
-#              leak; the body allows them. The body empties package.path, so a
+#              leak; the body allows them, and called by pcall with no
+#              argument they raise "bad argument #1 to 'package.searchpath'"
+#              and "'package.loadlib'", the names a process runtime gives
+#              them, and package.searchpath() in the body raises "bad
+#              argument #1 to 'searchpath'" after the body's file and line,
+#              where a build that calls them through lua_call names them '?'
+#              and gives no line. The body empties package.path, so a
 #              build without the refusal opens no file from the callback and
 #              answers "not found" there, as the body's own require does. The
 #              body and the callback are refused require("io") with "'io':
