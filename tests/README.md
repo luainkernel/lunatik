@@ -1472,7 +1472,8 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   `luaxdp`'s BTF.
 
 The loader cases run `lunatik run --dev=` and `lunatik stop` over a program
-file the case compiles and puts beside the installed script, since
+file the case compiles and puts at the script's path under
+`/usr/local/lib/bpf/luaebpf`, where `lunatik run` looks for it, since
 `make install` compiles none of this suite's, and attach to a veth pair of the
 suite's own; each tears down before it reads its verdict.
 

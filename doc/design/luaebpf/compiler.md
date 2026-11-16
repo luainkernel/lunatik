@@ -135,8 +135,10 @@ latter from libbpf 1.3.0, and pins each link; `detach` opens a pinned link and d
 `make` builds `bin/lunatic`, the two bytecode tables and `bin/luaebpf/loader.so`. `make install`
 puts `lunatic` beside `lunatik`, the compiler under the host's Lua path as `luaebpf/`, and the
 loader under its C path, and then runs `lunatik bpf` over the program files of `examples/` and
-`tests/`, but the `luaebpf` suite's, leaving each object beside its script, where `lunatik run`
-looks for it ([Compiled programs](../../guide/02-running-scripts.md#compiled-programs)).
+`tests/`, but the `luaebpf` suite's, leaving each object at its script's path under
+`/usr/local/lib/bpf/luaebpf/`, `LUAEBPF_OBJECTS_INSTALL_PATH`, where `lunatik run` looks for it
+([Compiled programs](../../guide/02-running-scripts.md#compiled-programs)), once it has removed
+what its previous run left under `examples/` and `tests/` there.
 
 ## The translator
 

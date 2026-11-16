@@ -50,7 +50,7 @@ each packet. It returns `XDP_PASS`, so every packet it can read goes on to the n
 Compile it into place and attach it to a device:
 
 ```Shell
-sudo lunatik bpf -o /lib/modules/lua/protocols.bpf.o protocols.bpf.lua
+sudo lunatik bpf -o /usr/local/lib/bpf/luaebpf/protocols.bpf.o protocols.bpf.lua
 sudo lunatik run --dev=eth0 protocols
 ```
 
@@ -360,7 +360,7 @@ xdp.attach(callback)
 
 ```Shell
 sudo install -m 0644 limits.lua /lib/modules/lua/limits.lua
-sudo lunatik bpf -o /lib/modules/lua/ports.bpf.o ports.bpf.lua
+sudo lunatik bpf -o /usr/local/lib/bpf/luaebpf/ports.bpf.o ports.bpf.lua
 sudo lunatik run --context=softirq limits
 sudo lunatik run --dev=eth0 ports
 ```
@@ -543,7 +543,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
          | 4. the object is written for the kernel lunatik.config names,
          |    with the offsets of the context fields read from its BTF
          v
-  filter.bpf.o          installed as /lib/modules/lua/filter.bpf.o
+  filter.bpf.o          installed as /usr/local/lib/bpf/luaebpf/filter.bpf.o
 ```
 
 A program file, `<name>.bpf.lua`, may declare several programs. Each is named by the `name` its

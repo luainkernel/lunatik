@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Tests what `lunatik run` leaves behind for a script whose compiled program sits beside it.
+# Tests what `lunatik run` leaves behind for a script that has a compiled program.
 #   - the map the program file declares is pinned under the script's root, the runtime is
 #     registered, the link is pinned, and the program the device carries is the one the pinned
 #     link holds. The kernel script opens the map by its pin path, which it can only do if the

@@ -14,6 +14,7 @@
 # the program files install beside the cases, out of the tree the kernel's require reads
 LUAEBPF_SRC=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 LUAEBPF_SCRIPTS=/lib/modules/lua/tests/luaebpf
+LUAEBPF_OBJECTS=/usr/local/lib/bpf/luaebpf/tests/luaebpf
 LUAEBPF_PINS=/sys/fs/bpf/luaebpf
 LUAEBPF_KERNELCHUNK=$LUAEBPF_SCRIPTS/kernelchunk.lua
 LUAEBPF_MAPS=/sys/fs/bpf/luaebpf/maps
@@ -29,8 +30,8 @@ cleanup() {
 	for name in $LUAEBPF_RUNS; do
 		lunatik stop "tests/luaebpf/$name" > /dev/null 2>&1
 	done
-	rm -rf "$LUAEBPF_PINS" "$LUAEBPF_ROOT"
-	rm -f "$LUAEBPF_KERNELCHUNK" "$LUAEBPF_SCRIPTS"/*.bpf.o
+	rm -rf "$LUAEBPF_PINS" "$LUAEBPF_ROOT" "$LUAEBPF_OBJECTS"
+	rm -f "$LUAEBPF_KERNELCHUNK"
 	ip link del "$LUAEBPF_DEV" 2>/dev/null
 	[ -n "$LUAEBPF_WORK" ] && rm -rf "$LUAEBPF_WORK"
 	return 0
@@ -271,9 +272,9 @@ LUA
 }
 
 # `make install` compiles no program file of this suite, so a loader case puts its own object
-# where `lunatik run` looks for it, beside the installed script
+# where `lunatik run` looks for it, at the script's path under /usr/local/lib/bpf/luaebpf
 luaebpf_stage() {
-	luaebpf_compile "$@" && cp "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_SCRIPTS/"
+	luaebpf_compile "$@" && mkdir -p "$LUAEBPF_OBJECTS" && cp "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_OBJECTS/"
 }
 
 # a veth pair of the suite's own, so a loader case never races tests/xdp on lunatik0

@@ -115,7 +115,7 @@ jobs:
     - name: Verify install
       run: |
         dest="$RUNNER_TEMP/install"
-        prefix=(INSTALL=install MODULES_INSTALL_PATH="$dest/kernel" SCRIPTS_INSTALL_PATH="$dest/lua" LUA_PATH="$dest/share" LUA_CPATH="$dest/lib" LUNATIK_INSTALL_PATH="$dest/bin")
+        prefix=(INSTALL=install MODULES_INSTALL_PATH="$dest/kernel" SCRIPTS_INSTALL_PATH="$dest/lua" LUA_PATH="$dest/share" LUA_CPATH="$dest/lib" LUNATIK_INSTALL_PATH="$dest/bin" LUAEBPF_OBJECTS_INSTALL_PATH="$dest/bpf")
         # what an earlier build and install leave: a module the tree dropped and a file in each directory it owns
         mkdir -p "$dest/kernel/lunatik"
         touch "$dest/kernel/lunatik/stale.ko" lib/stale.ko
@@ -131,6 +131,8 @@ jobs:
         done
         left=$(find "$dest" -name 'stale.*')
         test -z "$left" || { echo "make install left $left"; exit 1; }
+        # where a program file compiled by hand goes, on an install that compiled none
+        test -d "$dest/bpf" || { echo "make install made no directory for compiled objects"; exit 1; }
         # an install from a tree autogen has not run stops before it clears the CLI's library
         rm autogen/linux/*.lua autogen/lunatik/*.lua
         if make scripts_install "${prefix[@]}"; then echo "make install did not stop without autogen's output"; exit 1; fi

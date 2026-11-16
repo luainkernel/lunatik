@@ -22,6 +22,7 @@ LUAEBPF_INSTALL_PATH = ${LUA_PATH}/luaebpf
 
 LUNATIK_INSTALL_PATH = /usr/local/sbin
 LUNATIK_EBPF_INSTALL_PATH = /usr/local/lib/bpf/lunatik
+LUAEBPF_OBJECTS_INSTALL_PATH = /usr/local/lib/bpf/luaebpf
 LUNATIK_TESTS_INSTALL_PATH = /usr/local/share/lunatik/tests
 MOONTASTIK_RELEASE ?= v2.0.0
 LUA_API = lua/lua.h lua/lauxlib.h lua/lualib.h
@@ -49,12 +50,12 @@ LUAEBPF_TABLES_SRCS := bin/luaebpf/bytecode.c lua/lopcodes.c
 LOADER := bin/luaebpf/loader.so
 LOADER_CFLAGS := -std=gnu99 -O2 -Wall -fPIC -shared -DLUA_USE_LINUX -Ilua
 
-# a program file's object goes beside the script it belongs to, where `lunatik run <script>` looks for it;
+# a program file's object goes under LUAEBPF_OBJECTS_INSTALL_PATH at its script's path, where `lunatik run <script>` looks for it;
 # the compiler reads the context's layout from the running kernel's BTF, so a kernel that publishes none, or an
 # install for another release, gets no object
 define INSTALL_BPF
 	[ ! -r /sys/kernel/btf/vmlinux ] || [ "${KERNEL_RELEASE}" != "$$(uname -r)" ] || for f in $(1); do case "$$f" in \
-		*.bpf.lua) ${LUNATIK_INSTALL_PATH}/lunatik bpf -o $(2)/$$(basename $$f .lua).o $$f || exit 1;; \
+		*.bpf.lua) ${MKDIR} $(2) && ${LUNATIK_INSTALL_PATH}/lunatik bpf -o $(2)/$$(basename $$f .lua).o $$f || exit 1;; \
 	esac; done
 endef
 
@@ -181,6 +182,7 @@ scripts_install:
 	${INSTALL} -D -m 0755 bin/lunatik ${LUNATIK_INSTALL_PATH}/lunatik
 	${INSTALL} -D -m 0755 ${LUNATIC} ${LUNATIK_INSTALL_PATH}/lunatic
 	${INSTALL} -D -m 0755 ${LOADER} ${LUA_CPATH}/luaebpf/loader.so
+	${MKDIR} ${LUAEBPF_OBJECTS_INSTALL_PATH} # lunatik bpf -o writes here by hand, and INSTALL_BPF makes it only where it compiles
 	${RM} -r ${LUAEBPF_INSTALL_PATH}
 	${MKDIR} ${LUAEBPF_INSTALL_PATH}/bytecode ${LUAEBPF_INSTALL_PATH}/emit ${LUAEBPF_INSTALL_PATH}/lib/bpf
 	${INSTALL} -m 0644 bin/luaebpf/*.lua ${LUAEBPF_INSTALL_PATH}
@@ -231,17 +233,18 @@ ebpf_uninstall:
 EXAMPLE_DIRS := $(patsubst examples/%/,%,$(wildcard examples/*/))
 
 examples_install:
-	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples ${LUAEBPF_OBJECTS_INSTALL_PATH}/examples
 	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples
 	for d in $(EXAMPLE_DIRS); do \
 		${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/$$d; \
 		lua=$(call LUA_SCRIPTS,examples/$$d); \
 		$(call INSTALL_LUA,$$lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
-		$(call INSTALL_BPF,examples/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
+		$(call INSTALL_BPF,examples/$$d/*.lua,${LUAEBPF_OBJECTS_INSTALL_PATH}/examples/$$d); \
 	done
 
 examples_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples
+	${RM} -r ${LUAEBPF_OBJECTS_INSTALL_PATH}/examples
 
 # Flat test subdirs follow the pattern `.sh -> TESTS/<x>, .lua -> SCRIPTS/tests/<x>`.
 # `socket/` is nested (unix/ underneath) and handled separately below.
@@ -249,7 +252,7 @@ TEST_DIRS := $(filter-out socket,$(patsubst tests/%/,%,$(wildcard tests/*/)))
 TEST_PEERS := $(filter-out %.bpf.c,$(wildcard tests/*/*.c tests/*/*/*.c))
 
 tests_install:
-	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests ${LUNATIK_TESTS_INSTALL_PATH}
+	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests ${LUNATIK_TESTS_INSTALL_PATH} ${LUAEBPF_OBJECTS_INSTALL_PATH}/tests
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}
 	${INSTALL} -m 0755 tests/run.sh ${LUNATIK_TESTS_INSTALL_PATH}
 	${INSTALL} -m 0644 tests/lib.sh tests/netns.sh ${LUNATIK_TESTS_INSTALL_PATH}
@@ -275,12 +278,13 @@ tests_install:
 	for f in $(TEST_PEERS); do ${INSTALL} -m 0644 $$f ${LUNATIK_TESTS_INSTALL_PATH}/$${f#tests/}; done
 	# a luaebpf case compiles its own program files: the corpora write their oracle where they compile
 	for d in $(filter-out luaebpf,$(TEST_DIRS)); do \
-		$(call INSTALL_BPF,tests/$$d/*.lua,${SCRIPTS_INSTALL_PATH}/tests/$$d); \
+		$(call INSTALL_BPF,tests/$$d/*.lua,${LUAEBPF_OBJECTS_INSTALL_PATH}/tests/$$d); \
 	done
 
 tests_uninstall:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/tests
 	${RM} -r ${LUNATIK_TESTS_INSTALL_PATH}
+	${RM} -r ${LUAEBPF_OBJECTS_INSTALL_PATH}/tests
 
 modules_install:
 	${RM} -r ${MODULES_INSTALL_PATH}/lunatik
