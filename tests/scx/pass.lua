@@ -5,13 +5,19 @@
 -- Kernel-side script for the scx pass test (see run.sh).
 
 local scx = require("scx")
+local rcu = require("rcu")
 local ext = require("linux.scx")
+local lib = require("tests.lib")
 
 local DSQ_DEFAULT <const> = 0
 local SLICE       <const> = 5000000 -- apart from the slices linux.scx names
+local UNSET       <const> = "ctx is not set"
+local CLOSED      <const> = "closed object"
 
 -- the answer to each task run.sh starts, by the comm it names it with
 local cells = {}
+
+local kept = {} -- the ctx and the task of scx_keep's callback, read once it returned
 
 function cells.scx_none()
 end
@@ -48,6 +54,10 @@ function cells.scx_local_on(task)
 	return ext.dsq.LOCAL_ON | task:cpu(), ext.slice.INF
 end
 
+function cells.scx_keep(task, ctx)
+	kept.ctx, kept.task = ctx, task
+end
+
 function cells.scx_detach()
 	scx.detach()
 	return ext.dsq.GLOBAL, SLICE
@@ -57,10 +67,20 @@ local function workload(ctx)
 	local task = ctx:task()
 	local cell = cells[task:comm()]
 	if cell then
-		return cell(task)
+		return cell(task, ctx)
 	end
 	return DSQ_DEFAULT, ext.slice.DFL
 end
 
 scx.attach(workload)
+
+-- resume.lua resumes the runtime once the scheduler is gone, outside any callback
+local function readkept()
+	local record = rcu.table()
+	record.ctx = pcall(lib.raises, UNSET, kept.ctx.task, kept.ctx)
+	record.task = pcall(lib.raises, CLOSED, kept.task.comm, kept.task)
+	return record
+end
+
+return readkept
 

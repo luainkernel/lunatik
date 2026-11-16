@@ -2451,7 +2451,10 @@ or when `bpftool`, `clang` or `taskset` is unavailable.
   string or a slice that is not a number is refused the same way,
   `linux.scx.dsq` `LOCAL`, `GLOBAL` and `LOCAL_ON` ORed with the task's CPU
   reach `cls` with `slice.INF` or a slice of the callback's own, a callback
-  that detaches still decides for its task, and the next task finds -1. The
+  that detaches still decides for its task, and the next task finds -1. One
+  callback keeps its ctx and task object: once the scheduler is unregistered,
+  the runtime is resumed outside its callbacks, where the kept ctx must raise
+  `ctx is not set` and the kept task object `closed object`. The
   records are compared with the values `linux/sched/ext.h` gives once the
   scheduler is unregistered and its runtime stopped; the cases skip while
   another sched_ext scheduler is enabled.
