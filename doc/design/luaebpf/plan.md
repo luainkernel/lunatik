@@ -116,7 +116,8 @@ Two constraints shape everything. The first is which kernel the compiler compile
 > `/sys/kernel/btf/vmlinux` on the machine that runs the program, or from the file `--btf` names on
 > a build host compiling for the one kernel an image ships (#2103). There is no CO-RE and no "which
 > kernels is this for": the object is built for that kernel and loads into it alone. `make install`
-> compiles the program files beside the scripts they belong to.
+> compiles the program files under `/usr/local/lib/bpf/luaebpf/`, at the paths of the scripts they
+> belong to.
 
 It holds through phase 6. One phase after it lifts it: one object for a range of kernels through
 CO-RE (#2106).
@@ -140,7 +141,7 @@ Naming what goes, as AGENTS.md asks:
   that exercise the kfunc against a hostile caller (`xdp_zerokey`, `tc_zerokey`) stay C: a compiler
   that never emits the hostile call cannot write them;
 * the per-suite Makefiles and their `clang -target bpf` lines, `make ebpf`, `make ebpf_install`
-  and `LUNATIK_EBPF_INSTALL_PATH`: compiled objects install beside their scripts;
+  and `LUNATIK_EBPF_INSTALL_PATH`: compiled objects install under `LUAEBPF_OBJECTS_INSTALL_PATH`;
 * the `bpftool prog load` and `bpftool net attach` steps in the README and the suites, and the
   `tc qdisc`/`tc filter` steps in `tests/tc`: `lunatik run` does them;
 * `make btf_install` as a requirement for every user: needed only by programs that call into the
@@ -247,7 +248,8 @@ seeded by `bpftool map update` decides the verdict.
 The CLI loads `<script>.bpf.o` when it exists: creates and pins the maps under
 `/sys/fs/bpf/lunatik/<script>/`, starts the runtime, attaches with the target given on the
 command line as `--dev=`, pins the link; `stop` reverses it. `make install` compiles program files
-with `lunatik bpf`, beside the scripts they belong to. The `xdp` and `tc` suites gain compiled
+with `lunatik bpf`, under `/usr/local/lib/bpf/luaebpf/` at the paths of the scripts they belong to.
+The `xdp` and `tc` suites gain compiled
 programs beside the C stubs that must stay; the guide's `lunatik bpf` block loses its
 `bpftool prog load` line. `make ebpf`, `make ebpf_install` and `LUNATIK_EBPF_INSTALL_PATH` stay:
 they build and install the C stubs of `examples/filter` and `examples/sniclassify`, and go in

@@ -11,6 +11,7 @@ local COPYRIGHT <const>    = "Copyright (C) 2023-2026 Ring Zero Desenvolvimento 
 local PINS_PATH <const>    = "/sys/fs/bpf/lunatik/"
 local TESTS_PATH <const>   = "/usr/local/share/lunatik/tests"
 local SCRIPTS_PATH <const> = "/lib/modules/lua/"
+local OBJECTS_PATH <const> = "/usr/local/lib/bpf/luaebpf/"
 local USAGE <const> = [=[
 usage: lunatik [-h | -V]
        lunatik [-i] [-e <chunk>]
@@ -497,7 +498,7 @@ function runners.run(parsed, script, ...)
 	if script == nil then misuse("run takes a script") end
 	if select("#", ...) > 0 then misuse("run takes nothing after the script") end
 	local name = trim(script)
-	local object = SCRIPTS_PATH .. name .. ".bpf.o"
+	local object = OBJECTS_PATH .. name .. ".bpf.o"
 	if exists(object) then
 		return deploy(parsed, name, object)
 	end

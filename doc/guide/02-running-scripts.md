@@ -45,7 +45,7 @@ usage: lunatik [-h | -V]
 * `bpf [--btf=<file>] [--scripts=<dir>] [-o <object>] <program>`: compile a program file into a
   BPF object (see [Program files](#program-files))
 * `list`: show which runtime environments are currently running, one script a line, in order of name
-* `run [-c softirq | hardirq] [-p] [--dev=<ifname>] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md). Where `/lib/modules/lua/<script>.bpf.o` exists, `run` also loads and attaches that program: see [Compiled programs](#compiled-programs)
+* `run [-c softirq | hardirq] [-p] [--dev=<ifname>] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md). Where `/usr/local/lib/bpf/luaebpf/<script>.bpf.o` exists, `run` also loads and attaches that program: see [Compiled programs](#compiled-programs)
 * `spawn <script>`: create a new runtime environment for the script `/lib/modules/lua/<script>.lua`,
   always in process context, and run the function it returns in a kernel thread; it takes no
   context and no percpu, and the function follows the rules of *Kernel threads* below
@@ -202,8 +202,8 @@ CLI's Lua would, so a Lua or C module the host installs never stands in for a ke
 
 ## Compiled programs
 
-When `/lib/modules/lua/<script>.bpf.o` exists, the object compiled from `<script>.bpf.lua`,
-`lunatik run --dev=<ifname> <script>`:
+When `/usr/local/lib/bpf/luaebpf/<script>.bpf.o` exists, the object compiled from
+`<script>.bpf.lua`, `lunatik run --dev=<ifname> <script>`:
 
 1. takes down what a previous run of the script left under `/sys/fs/bpf/lunatik/<script>/`, then
    creates the maps the program file declares and pins each there under its name;
@@ -218,7 +218,7 @@ When `/lib/modules/lua/<script>.bpf.o` exists, the object compiled from `<script
 ```
   sudo lunatik run --dev=eth0 filter
 
-  /lib/modules/lua/filter.bpf.o            /lib/modules/lua/filter.lua
+  /usr/local/lib/bpf/luaebpf/filter.bpf.o  /lib/modules/lua/filter.lua
              |                             the kernel script, if any
              | 1. open the object                       |
              | 2. remove what a previous run pinned     |
@@ -266,13 +266,16 @@ is refused, and its stop reaches no root. A TC program needs a libbpf
 of 1.3.0 or later, where tcx begins; below it `run` refuses with `tcx needs libbpf 1.3.0`.
 
 ```Shell
-sudo lunatik bpf -o /lib/modules/lua/filter.bpf.o filter.bpf.lua
+sudo lunatik bpf -o /usr/local/lib/bpf/luaebpf/filter.bpf.o filter.bpf.lua
 sudo lunatik run --dev=eth0 filter
 sudo lunatik stop filter
 ```
 
 `sudo make install` compiles every program file of `examples/` and `tests/`, but the `luaebpf`
-suite's, whose cases compile their own, and puts the object beside the script it belongs to, where
-the kernel publishes the BTF the compiler reads. The program file itself stays out of
-`/lib/modules/lua/`: its body runs on the host, and the kernel's `require` never loads it.
+suite's, whose cases compile their own, where the kernel publishes the BTF the compiler reads, and
+puts the object at the path of the script it belongs to under `/usr/local/lib/bpf/luaebpf/`,
+`LUAEBPF_OBJECTS_INSTALL_PATH` in the `Makefile`; it first removes what its previous run put under
+`examples/` and `tests/` there, so an object it does not compile again does not stay. Neither the
+program file nor the object goes under `/lib/modules/lua/`: the body runs on the host, `lunatik run`
+loads the object, and the kernel's `require` reads neither.
 
