@@ -7,6 +7,7 @@
 local map  = require("bpf.map")
 local cpu  = require("cpu")
 local test = require("tests.lib").test
+local env  = require("lunatik")._ENV
 
 -- the values linux/sched/ext.h gives, apart from linux.scx, which pass.lua answers with
 local GLOBAL    <const> = 0x8000000000000001
@@ -17,6 +18,7 @@ local SLICE_INF <const> = 0xffffffffffffffff
 local SLICE     <const> = 5000000            -- pass.lua's SLICE
 local UNSET     <const> = 0x5c5c5c5c5c5c5c5c -- scx_pass.bpf.c's CLS_UNSET
 local KEPT      <const> = {-1, UNSET, UNSET}
+local RESUMED   <const> = "scx resumed"      -- resume.lua's KEY
 
 local last -- the CPU run.sh pins scx_local_on to
 for id in cpu.online() do
@@ -40,6 +42,16 @@ local expected = {
 local function show(r)
 	return ("%d, cls {%#x, %#x}"):format(r[1], r[2], r[3])
 end
+
+local resumed = env[RESUMED]
+env[RESUMED] = nil
+
+test("scx_keep", function()
+	assert(resumed ~= nil, "resume.lua left no record")
+	print(("scx record: scx_keep raised for its ctx %s, for its task %s"):format(resumed.ctx, resumed.task))
+	assert(resumed.ctx, "the kept ctx did not raise ctx is not set")
+	assert(resumed.task, "the kept task did not raise closed object")
+end)
 
 local record <close> = map.hash("/sys/fs/bpf/scx_record", "c16", "i8i8i8")
 

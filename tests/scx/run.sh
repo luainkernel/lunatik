@@ -19,12 +19,16 @@
 # callback of pass.lua reads that name through ctx:task() and answers with the
 # cell's decision: nothing, a raise, a nil dispatch queue or slice, a dispatch queue
 # as a string, a slice that is not a number, linux.scx's LOCAL, GLOBAL and LOCAL_ON
-# with slice INF or a slice of its own, and a detach from the callback; the last
-# task runs after it. The task of the LOCAL_ON cell is pinned to the last online
-# CPU and answered with that CPU, so a decision that lost the CPU shows on a host of
-# two CPUs or more. Every other task takes the default dispatch queue. Once the
-# scheduler is unregistered and its runtime stopped, record.lua compares each record
-# with the values linux/sched/ext.h gives and reports what it read; a kernel that
+# with slice INF or a slice of its own, nothing from a callback that keeps its ctx and
+# task object, and a detach from the callback; the last task runs after it. The task
+# of the LOCAL_ON cell is pinned to the last online CPU and answered with that CPU, so
+# a decision that lost the CPU shows on a host of two CPUs or more. Every other task
+# takes the default dispatch queue. Once the scheduler is unregistered, resume.lua
+# resumes the runtime past its callbacks, outside any of them, where the function
+# pass.lua returns reads the kept ctx, which must raise "ctx is not set", and the kept
+# task object, which must raise "closed object". Once the runtime is stopped,
+# record.lua compares each record with the values linux/sched/ext.h gives, and the
+# keeping cell with those two reads, and reports what it read; a kernel that
 # disabled the scheduler, or a Lua error or kernel warning in dmesg, fails every cell.
 # These skip when the kernel has no sched_ext, the module lacks BTF, bpftool, clang
 # or taskset is unavailable, or another sched_ext scheduler is enabled.
@@ -76,6 +80,7 @@ RUNQUEUE_WRITES="scx_runqueue/write"
 RUNQUEUE_WRITE='vprintk_emit level=$arg2:s32 fmt=+0($arg4):string'
 RUNQUEUE_SCHED="level=-2"
 PASS="tests/scx/pass"
+RESUME="tests/scx/resume"
 RECORD="tests/scx/record"
 OPS="luascx_ops"
 PIN="/sys/fs/bpf/scx_record"
@@ -83,7 +88,7 @@ NAP=0.05
 
 # the cells: the comm each task takes, which pass.lua answers and record.lua reads, and its title
 CELLS=(scx_none scx_raise scx_nil_dsq scx_nil_slice scx_str_dsq scx_bool_slice scx_local scx_global scx_local_on
-	scx_detach scx_after)
+	scx_keep scx_detach scx_after)
 TITLES=(
 	"scx pass: a callback that returns nothing leaves cls as it was"
 	"scx pass: a callback that raises leaves cls as it was"
@@ -94,6 +99,7 @@ TITLES=(
 	"scx pass: linux.scx.dsq.LOCAL and slice.INF reach cls"
 	"scx pass: linux.scx.dsq.GLOBAL and a slice of the callback's reach cls"
 	"scx pass: linux.scx.dsq.LOCAL_ON ORed with the task's CPU reaches cls"
+	"scx pass: a ctx and its task object kept past the callback raise once it returned"
 	"scx pass: a callback that detaches still decides for its task"
 	"scx pass: once detached, the kfunc returns -1 and leaves cls as it was"
 )
@@ -142,6 +148,7 @@ cleanup()
 	kprobe_remove "$RUNQUEUE_WRITES"
 	lunatik stop "$REATTACH" 2>/dev/null
 	lunatik stop "$PASS" 2>/dev/null
+	lunatik stop "$RESUME" 2>/dev/null
 	rm -f "$PIN"
 	[ -z "$TASKS" ] || rm -rf "$TASKS"
 }
@@ -296,7 +303,7 @@ record()
 
 pass()
 {
-	local cell last state errs
+	local cell last state output errs
 
 	if [ "$(cat /sys/kernel/sched_ext/state)" != disabled ]; then
 		cells skip "another sched_ext scheduler is enabled"
@@ -320,6 +327,7 @@ pass()
 
 	state=$(cat /sys/kernel/sched_ext/state)
 	bpftool struct_ops unregister name "$OPS" > /dev/null
+	output=$(lunatik run "$RESUME" 2>&1) || comment "$output"
 	lunatik stop "$PASS"
 	errs=$(dmesg_since | grep -E "$KTAP_ERRORS")
 	if [ "$state" != enabled ]; then
