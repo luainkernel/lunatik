@@ -247,7 +247,7 @@ each packet. It returns <code>XDP_PASS</code>, so every packet it can read goes 
 <p>Compile it into place and attach it to a device:</p>
 
 <pre>
-sudo lunatik bpf -o /lib/modules/lua/protocols.bpf.o protocols.bpf.lua
+sudo lunatik bpf -o /usr/<span class="keyword">local</span>/lib/bpf/luaebpf/protocols.bpf.o protocols.bpf.lua
 sudo lunatik run <span class="comment">--dev=eth0 protocols</span>
 </pre>
 
@@ -758,7 +758,7 @@ xdp.<span class="function-name">attach</span>(callback)
 
 <pre>
 sudo install -m <span class="number">0644</span> limits.lua /lib/modules/lua/limits.lua
-sudo lunatik bpf -o /lib/modules/lua/ports.bpf.o ports.bpf.lua
+sudo lunatik bpf -o /usr/<span class="keyword">local</span>/lib/bpf/luaebpf/ports.bpf.o ports.bpf.lua
 sudo lunatik run <span class="comment">--context=softirq limits
 </span>sudo lunatik run <span class="comment">--dev=eth0 ports</span>
 </pre>
@@ -1137,7 +1137,7 @@ as the words of 1 and 0, which are actions, so a test of the word cannot tell th
           | 4. the object is written for the kernel lunatik.config names,
           |    with the offsets of the context fields read from its BTF
           v
-   filter.bpf.o          installed as /lib/modules/lua/filter.bpf.o
+   filter.bpf.o          installed as /usr/local/lib/bpf/luaebpf/filter.bpf.o
 </code></pre>
 
 <p>A program file, <code>&lt;name&gt;.bpf.lua</code>, may declare several programs. Each is named by the <code>name</code> its
@@ -1181,7 +1181,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 15:57:43</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 16:56:22</span>
 </div>
 </footer>
 </body>

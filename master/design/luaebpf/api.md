@@ -16,10 +16,12 @@ beside it:
 `bpftool prog load` accepts like any other. The CLI is the only part that touches a file:
 `luaebpf.compile(path)` returns the object as a string and raises on a refusal, so a program that
 does not compile leaves no object behind by construction rather than by a cleanup path. `make
-install` compiles every program file and puts the object beside the script, under
-`/lib/modules/lua/`, so `lunatik run examples/filter/sni` finds
-`/lib/modules/lua/examples/filter/sni.bpf.o` the way the kernel finds `sni.lua`. The program file
-itself stays out of that tree: its body runs on the host, and the kernel's `require` never loads it.
+install` compiles every program file and puts the object at its script's path under
+`/usr/local/lib/bpf/luaebpf/`, so `lunatik run examples/filter/sni` finds
+`/usr/local/lib/bpf/luaebpf/examples/filter/sni.bpf.o` as the kernel finds
+`/lib/modules/lua/examples/filter/sni.lua`. Neither the program file nor the object goes under
+`/lib/modules/lua/`: the body runs on the host, the CLI loads the object, and the kernel's `require`
+reads neither.
 
 A program file may exist without a kernel script (a program that never calls into Lua), and a
 kernel script may exist without a program file (everything the tree runs today).

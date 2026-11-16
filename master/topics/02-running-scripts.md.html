@@ -242,7 +242,7 @@ is not the installed build</li>
 <li><code>bpf [--btf=&lt;file&gt;] [--scripts=&lt;dir&gt;] [-o &lt;object&gt;] &lt;program&gt;</code>: compile a program file into a
 BPF object (see <a href="#program-files">Program files</a>)</li>
 <li><code>list</code>: show which runtime environments are currently running, one script a line, in order of name</li>
-<li><code>run [-c softirq | hardirq] [-p] [--dev=&lt;ifname&gt;] &lt;script&gt;</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>--context=softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>--context=hardirq</code> for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass <code>--percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a>. Where <code>/lib/modules/lua/&lt;script&gt;.bpf.o</code> exists, <code>run</code> also loads and attaches that program: see <a href="#compiled-programs">Compiled programs</a></li>
+<li><code>run [-c softirq | hardirq] [-p] [--dev=&lt;ifname&gt;] &lt;script&gt;</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>--context=softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>--context=hardirq</code> for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass <code>--percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a>. Where <code>/usr/local/lib/bpf/luaebpf/&lt;script&gt;.bpf.o</code> exists, <code>run</code> also loads and attaches that program: see <a href="#compiled-programs">Compiled programs</a></li>
 <li><code>spawn &lt;script&gt;</code>: create a new runtime environment for the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>,
 always in process context, and run the function it returns in a kernel thread; it takes no
 context and no percpu, and the function follows the rules of <em>Kernel threads</em> below</li>
@@ -449,8 +449,8 @@ CLI&rsquo;s Lua would, so a Lua or C module the host installs never stands in fo
 
 <h2 id="compiled-programs">Compiled programs</h2>
 
-<p>When <code>/lib/modules/lua/&lt;script&gt;.bpf.o</code> exists, the object compiled from <code>&lt;script&gt;.bpf.lua</code>,
-<code>lunatik run --dev=&lt;ifname&gt; &lt;script&gt;</code>:</p>
+<p>When <code>/usr/local/lib/bpf/luaebpf/&lt;script&gt;.bpf.o</code> exists, the object compiled from
+<code>&lt;script&gt;.bpf.lua</code>, <code>lunatik run --dev=&lt;ifname&gt; &lt;script&gt;</code>:</p>
 
 <ol>
 <li>takes down what a previous run of the script left under <code>/sys/fs/bpf/lunatik/&lt;script&gt;/</code>, then
@@ -465,7 +465,7 @@ carries.</p>
 
 <pre><code>sudo lunatik run --dev=eth0 filter
 
-/lib/modules/lua/filter.bpf.o            /lib/modules/lua/filter.lua
+/usr/local/lib/bpf/luaebpf/filter.bpf.o  /lib/modules/lua/filter.lua
            |                             the kernel script, if any
            | 1. open the object                       |
            | 2. remove what a previous run pinned     |
@@ -515,16 +515,19 @@ is refused, and its stop reaches no root. A TC program needs a libbpf
 of 1.3.0 or later, where tcx begins; below it <code>run</code> refuses with <code>tcx needs libbpf 1.3.0</code>.</p>
 
 <pre>
-sudo lunatik bpf -o /lib/modules/lua/filter.bpf.o filter.bpf.lua
+sudo lunatik bpf -o /usr/<span class="keyword">local</span>/lib/bpf/luaebpf/filter.bpf.o filter.bpf.lua
 sudo lunatik run <span class="comment">--dev=eth0 filter
 </span>sudo lunatik stop filter
 </pre>
 
 
 <p><code>sudo make install</code> compiles every program file of <code>examples/</code> and <code>tests/</code>, but the <a href="../modules/luaebpf.html#">luaebpf</a>
-suite&rsquo;s, whose cases compile their own, and puts the object beside the script it belongs to, where
-the kernel publishes the BTF the compiler reads. The program file itself stays out of
-<code>/lib/modules/lua/</code>: its body runs on the host, and the kernel&rsquo;s <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> never loads it.</p>
+suite&rsquo;s, whose cases compile their own, where the kernel publishes the BTF the compiler reads, and
+puts the object at the path of the script it belongs to under <code>/usr/local/lib/bpf/luaebpf/</code>,
+<code>LUAEBPF_OBJECTS_INSTALL_PATH</code> in the <code>Makefile</code>; it first removes what its previous run put under
+<code>examples/</code> and <code>tests/</code> there, so an object it does not compile again does not stay. Neither the
+program file nor the object goes under <code>/lib/modules/lua/</code>: the body runs on the host, <code>lunatik run</code>
+loads the object, and the kernel&rsquo;s <a href="https://www.lua.org/manual/5.5/manual.html#pdf-require">require</a> reads neither.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/01-getting-started.md.html"><span>Previous</span>Getting started</a>
     <a class="next" href="../topics/03-percpu.md.html"><span>Next</span>Per-CPU scripts</a>
@@ -545,7 +548,7 @@ the kernel publishes the BTF the compiler reads. The program file itself stays o
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 15:57:43</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-16 16:56:22</span>
 </div>
 </footer>
 </body>
