@@ -27,6 +27,12 @@
 # core exports lunatik_free, which a core whose lunatik_free is kvfree lacks: that core frees in
 # place in the handler, where vfree may sleep.
 #
+# The instance's module_get event, filtered to the core, records the reference lunatik_free takes on
+# it for each block a handler hands the worker, the only one the handler takes, and the core's refcnt
+# reads every one dropped once the blocks went back: an unload of the core drains its workqueue, not
+# an irq_work still pending, which that reference holds off until the block is freed. A build that
+# takes none fails the count.
+#
 # Usage: sudo bash tests/runtime/vfree.sh
 
 SCRIPT="tests/runtime/vfree"
@@ -56,6 +62,10 @@ misses() { awk -v event="${EVENT#*/}" '$1 == event { print $3 }' "$TRACING/kprob
 # the blocks of the test's size the runtimes' allocator holds from vmalloc
 held() { awk -v size="$kmalloc" '$3 ~ /^lunatik_alloc\+/ && $2 > size' /proc/vmallocinfo | wc -l; }
 freed() { [ "$(held)" -eq 0 ]; }
+# the references taken on the core, the one module the module_get event's filter names, and its count
+holds() { awk '$5 == "module_get:"' "$INSTANCE/trace" | wc -l; }
+refcnt() { cat /sys/module/lunatik/refcnt; }
+released() { [ "$(refcnt)" -eq "$refs" ]; }
 
 trap cleanup EXIT
 cleanup
@@ -65,13 +75,16 @@ command -v setarch > /dev/null 2>&1 || skip_script "setarch not available"
 kprobe_place "$EVENT" vfree || skip_script "couldn't place a kprobe on vfree"
 { echo vfree > "$INSTANCE/set_ftrace_filter" && echo function > "$INSTANCE/current_tracer"; } 2>/dev/null ||
 	skip_script "couldn't trace vfree with the function tracer"
+{ echo 'name == "lunatik"' > "$INSTANCE/events/module/module_get/filter" &&
+	echo 1 > "$INSTANCE/events/module/module_get/enable"; } 2>/dev/null ||
+	skip_script "couldn't trace module_get"
 
 page=$(getconf PAGESIZE)
 kmalloc=$(kmalloc_max)
 printf 'return {vmalloc = %d}\n' "$((kmalloc + page))" > "$SIZES"
 
 ktap_header
-ktap_plan 5
+ktap_plan 6
 
 mark_dmesg
 run_script "$SCRIPT"
@@ -94,10 +107,15 @@ built=$(held)
 ktap_pass "a hardirq runtime's body takes a block past KMALLOC_MAX_SIZE from vmalloc"
 
 before=$(misses)
+gets=$(holds)
+refs=$(refcnt)
 setarch "$(uname -m)" -R true > /dev/null 2>&1
 awaited freed
 left=$(held)
 inside=$(($(misses) - before))
+taken=$(($(holds) - gets))
+awaited released
+kept=$(($(refcnt) - refs))
 lunatik stop "$PROBE" > /dev/null 2>&1
 
 if [ "$left" -eq 0 ]; then
@@ -110,6 +128,14 @@ if [ "$inside" -eq 0 ]; then
 	ktap_pass "a probe handler frees no block in place"
 else
 	ktap_fail "$inside vfree calls ran inside a probe handler"
+fi
+
+if [ "$taken" -lt "$BLOCKS" ]; then
+	ktap_fail "$BLOCKS blocks a probe handler freed took $taken references on the core"
+elif [ "$kept" -ne 0 ]; then
+	ktap_fail "the core keeps $kept references the blocks a probe handler freed took"
+else
+	ktap_pass "a block a probe handler frees holds a reference on the core, dropped once it goes back"
 fi
 
 check_dmesg && ktap_pass "no Lua errors in kernel"
