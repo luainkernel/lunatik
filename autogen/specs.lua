@@ -23,6 +23,9 @@
 return {
 	{ header = "uapi/linux/if_ether.h", prefix = "ETH_P_", module = "eth.proto",
 		desc = "Ethernet protocol IDs." },
+	{ header = "uapi/linux/if_ether.h", prefix = "ETH_", module = "eth",
+		desc = "Ethernet lengths and MTU bounds (`ETH_HLEN`, `ETH_ALEN`, ...), beside the protocol IDs in `proto`.",
+		exclude = "ETH_P_" },
 	{ header = "uapi/linux/if_arp.h", prefix = "ARPHRD_", module = "arphrd",
 		desc = "Network device hardware types (ARPHRD_*)." },
 	{ header = "uapi/linux/if_packet.h", prefix = "PACKET_", module = "packet.type",
@@ -123,6 +126,8 @@ return {
 		desc = "Socket option payload layouts.",
 		as = "timeval",
 		fields = { "tv_sec", "tv_usec" } },
+	{ header = "net/tls_prot.h", prefix = "TLS_RECORD_TYPE_", module = "tls.record",
+		desc = "TLS record types, the content type a record header's first byte carries." },
 	{ header = "uapi/linux/netfilter.h", prefix = "NFPROTO_", module = "nf.proto",
 		desc = "Netfilter protocol families." },
 	{ header = "uapi/linux/netfilter.h", prefix = "NF_INET_", module = "nf.inet",

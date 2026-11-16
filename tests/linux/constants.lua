@@ -7,11 +7,13 @@
 
 local linux     = require("linux")
 local errno     = require("linux.errno")
+local eth       = require("linux.eth")
 local limits    = require("linux.limits")
 local nf        = require("linux.nf")
 local rtnetlink = require("linux.rtnetlink")
 local syscall   = require("linux.syscall")
 local tc        = require("linux.tc")
+local tls       = require("linux.tls")
 local test      = require("tests.lib").test
 local check     = require("tests.linux.check")
 
@@ -55,5 +57,15 @@ test("linux.errno holds each errno positive, keyed by the name linux.errname giv
 		local name = linux.errname(value)
 		assert(value > 0 and errno[name] == value, ("linux.errno.%s: %d is %s"):format(key, value, name))
 	end
+end)
+
+test("linux.eth carries the Ethernet lengths beside its proto table, and no protocol ID", function()
+	check.carries("eth", eth, { HLEN = 14, ALEN = 6 })
+	check.carries("eth.proto", eth.proto, { IP = 0x0800 })
+	assert(eth.P_IP == nil, "linux.eth.P_IP: " .. tostring(eth.P_IP))
+end)
+
+test("linux.tls.record carries the TLS record types", function()
+	check.carries("tls.record", tls.record, { HANDSHAKE = 22 })
 end)
 
