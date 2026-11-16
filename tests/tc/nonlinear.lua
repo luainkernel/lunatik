@@ -7,11 +7,12 @@
 local tc     = require("tc")
 local data   = require("data")
 local action = require("linux.tc").action
+local eth    = require("linux.eth")
 
 local PRIORITY <const> = 0x13690000 -- PRIORITY in test_tc.sh
 local PAYLOAD  <const> = 1024 -- PAYLOAD in test_tc.sh
 local FILL     <const> = 0x58 -- FILL in test_tc.sh, 'X', the byte the payload is made of
-local ETH_HLEN <const> = 14 -- the Ethernet header, which "net" starts past
+local ETH_HLEN <const> = eth.HLEN -- the Ethernet header, which "net" starts past
 local HALF     <const> = 2 -- the bytes of a getuint32 on each side of the payload's start
 local DELTA    <const> = 16
 local REFUSAL  <const> = "skb is not linear"

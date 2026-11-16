@@ -5,6 +5,7 @@
 -- Kernel-side script for the linux.ifindex and linux.hwaddr test (see hwaddr.sh).
 
 local linux = require("linux")
+local eth   = require("linux.eth")
 local test  = require("tests.lib").test
 local moved = require("tests.linux.hwaddr_index").moved
 
@@ -17,7 +18,7 @@ local LOOPBACK  <const> = "lo"
 local LOOPINDEX <const> = 1 -- LOOPBACK_IFINDEX
 local DEV       <const> = "lunatikhw0" -- DEV in hwaddr.sh, in the initial namespace
 local MOVED     <const> = "lunatikhw1" -- MOVED in hwaddr.sh, in a namespace of its own
-local ETH_ALEN  <const> = 6
+local ETH_ALEN  <const> = eth.ALEN
 
 local MAXINDEX    <const> = (1 << 31) - 1 -- INT_MAX
 local OUTOFBOUNDS <const> = "out of bounds"

@@ -6,13 +6,14 @@
 
 local netlink = require("netlink")
 local iftype  = require("linux.nl80211").iftype
+local eth     = require("linux.eth")
 
 local station = false
 do
 	local interface <close> = netlink.nl80211.interface()
 	for _, iface in ipairs(interface:list()) do
 		if iface.name and iface.name:match("^wlan") then
-			assert(iface.ifindex and iface.wiphy and #iface.mac == 6, "interface fields incomplete")
+			assert(iface.ifindex and iface.wiphy and #iface.mac == eth.ALEN, "interface fields incomplete")
 			print("netlink nl80211: hwsim interface listed")
 			if iface.iftype == iftype.STATION then station = true end
 		end

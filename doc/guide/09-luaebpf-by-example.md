@@ -405,24 +405,25 @@ refused.
 local xdp    = require("bpf.xdp")
 local action = require("linux.xdp").action
 
-local protocols = {tcp = 6, udp = 17}
+local protocols = require("linux.socket").ipproto
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
 	local protocol = p:getbyte(23)
-	if protocol == protocols.udp then
+	if protocol == protocols.UDP then
 		return action.DROP
 	end
 	return action.PASS
 end, {default = action.PASS})
 ```
 
-`protocols` is a table the body built. The function reads `protocols.udp` when it is compiled, and
-the program holds 17, the value the body left there. Instructions 0 to 15 read byte 23 into `r8`.
+`protocols` is a table the body required, `linux.socket.ipproto`, which autogen generates from the
+kernel's `IPPROTO_` names. The function reads `protocols.UDP` when it is compiled, and the program
+holds its value, 17. Instructions 0 to 15 read byte 23 into `r8`.
 
 ```
-     line 9: if protocol == protocols.udp then
- 16  r9 = 17                       protocols.udp, read at compile time
+     line 9: if protocol == protocols.UDP then
+ 16  r9 = 17                       protocols.UDP, read at compile time
  17  r1 = r8                       protocol
  18  if r1 != r9 goto 22
      line 10: return action.DROP

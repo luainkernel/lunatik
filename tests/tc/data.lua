@@ -6,9 +6,10 @@
 
 local tc     = require("tc")
 local action = require("linux.tc").action
+local eth    = require("linux.eth")
 local packet = require("tests.tc.packet")
 
-local ETH_HLEN <const> = 14 -- the Ethernet header the classifier's frame starts with
+local ETH_HLEN <const> = eth.HLEN -- the Ethernet header the classifier's frame starts with
 local IPV4     <const> = 4 -- the version in the high nibble of an IPv4 header's first byte
 
 local function test_data(ctx)

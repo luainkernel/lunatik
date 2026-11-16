@@ -5,6 +5,7 @@
 -- Kernel-side script for the linux.ifindex and linux.hwaddr test (see run.sh).
 
 local linux = require("linux")
+local eth   = require("linux.eth")
 local test  = require("tests.lib").test
 
 local pack   = table.pack
@@ -13,7 +14,7 @@ local format = string.format
 
 local LOOPBACK  <const> = "lo"
 local LOOPINDEX <const> = 1 -- LOOPBACK_IFINDEX
-local ETH_ALEN  <const> = 6
+local ETH_ALEN  <const> = eth.ALEN
 local ABSENT    <const> = "lunatiknodev" -- fits IFNAMSIZ, and no host names a device so
 local NOINDEX   <const> = (1 << 31) - 1 -- INT_MAX, in range and no device's index
 
