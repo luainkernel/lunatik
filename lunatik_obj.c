@@ -10,8 +10,6 @@
 #include "lunatik.h"
 #include "lunatik_core.h"
 
-#ifdef LUNATIK_RUNTIME
-
 #define lunatik_iswrapped(reg)			\
 	(!strcmp((reg)->name, "__tostring") ||	\
 	(strncmp((reg)->name, "__", 2) && strcmp((reg)->name, "close") && strcmp((reg)->name, "stop")))
@@ -276,6 +274,4 @@ void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class)
 	}
 }
 EXPORT_SYMBOL(lunatik_monitorobject);
-
-#endif /* LUNATIK_RUNTIME */
 

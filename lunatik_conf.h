@@ -81,10 +81,8 @@ int lunatik_loadfile(lua_State *L, const char *filename, const char *mode);
 long long lunatik_maxccalls(lua_State *L, unsigned int count);
 #define LUAI_MAXCCALLS	lunatik_maxccalls(L, getCcalls(L))
 
-#ifdef LUNATIK_RUNTIME
 unsigned int luaS_hash(const char *str, size_t l, unsigned int seed); /* required by luarcu */
 #define	lunatik_hash(str, l, seed)	luaS_hash((str), (l), (seed))
-#endif /* LUNATIK_RUNTIME */
 
 #define LUNATIK_GCCOUNT	/* LUA_GCCOUNT in bytes, instead of Kbytes */
 

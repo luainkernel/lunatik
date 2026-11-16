@@ -32,7 +32,6 @@
 * @within lunatik
 */
 
-#ifdef LUNATIK_RUNTIME
 lunatik_object_t __rcu *lunatik_env;
 EXPORT_SYMBOL(lunatik_env);
 struct task_struct *lunatik_rtnl;	/* one task holds RTNL at a time */
@@ -500,7 +499,6 @@ static const lunatik_class_t *lunatik_classes[] = { &lunatik_runtime_class, &lun
 
 LUNATIK_NEWLIB(lunatik, lunatik_lib, lunatik_classes);
 LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL);
-#endif /* LUNATIK_RUNTIME */
 
 static struct workqueue_struct *lunatik_wq;
 
