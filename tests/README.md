@@ -2398,6 +2398,10 @@ or when `bpftool`, `clang` or `taskset` is unavailable.
 - **scx attach**: `scx.attach()` refuses a sleepable runtime with
   `runtime context mismatch: scx.ctx needs hardirq`.
 
+- **scx defaults**: `linux.scx.dsq.GLOBAL` and `linux.scx.slice.DFL` hold the
+  values `linux/sched/ext.h` gives, compared in a script body: they are what a
+  nil dispatch queue and a nil slice take, so no pass case tells them from nil.
+
 - **scx runqueue**: a scheduler of its own, whose `select_cpu` dispatches
   nothing so that every wakeup reaches its `enqueue`, runs the callback with
   the runqueue lock held, one step per enqueue. There `complete` and a
