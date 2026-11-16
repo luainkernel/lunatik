@@ -54,7 +54,7 @@ local emit = {}
 
 ---
 -- Whether the kernel Lunatik is built for, whose version `lunatik.config` carries, takes the
--- `may_goto` a loop without a proven bound needs.
+-- `may_goto` a loop without a proven bound carries in its body.
 -- @field luaebpf.emit.maygoto
 emit.maygoto = config.kernel_version >= MAYGOTO
 
@@ -72,6 +72,12 @@ emit.unaligned = config.efficient_unaligned_access
 -- in it.
 -- @field luaebpf.emit.bigendian
 emit.bigendian = config.cpu_big_endian
+
+---
+-- The kfuncs of the kernel's iterator, by role, `new`, `next` and `destroy`, which count the passes
+-- of a loop whose bound the program computes: the object declares each one a function calls.
+-- @field luaebpf.emit.iterator
+emit.iterator = frame.iterator
 
 --- @section the walk
 
@@ -104,6 +110,8 @@ local function walk(f)
 	f.code = code
 	f.labels = {}
 	f.aborted = nil
+	f.entered = {}
+	f.exits = {}
 	f.rettype = 0
 	for pc = 1, #f.proto.code do
 		f.labels[pc] = code:label()
@@ -120,6 +128,7 @@ local function walk(f)
 	end
 	for pc = 1, #f.proto.code do
 		local entry = f.entry[pc]
+		frame.within(f, pc)
 		if entry ~= nil then
 			local state, ins = copy(entry), f.proto.code[pc]
 			local handler = handlers[ins.op]
@@ -134,6 +143,7 @@ local function walk(f)
 			end
 		end
 	end
+	frame.exits(f)
 	if f.aborted ~= nil then
 		code:source(f.proto.lastlinedefined)
 		code:place(f.aborted)
@@ -193,7 +203,7 @@ end
 local function compile(unit, fn, read, name, params, isprogram)
 	local f = {
 		fn = fn, proto = read, unit = unit, params = params, drop = unit.drop,
-		default = unit.default, isprogram = isprogram, name = identifier(unit, name),
+		default = unit.default, isprogram = isprogram, name = identifier(unit, name), loops = {},
 	}
 	f.chunk = f.proto.source:gsub("^@", "")
 	unit.lowering[fn] = true

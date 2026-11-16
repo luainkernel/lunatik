@@ -5,10 +5,12 @@
 
 ---
 -- The numeric for: its iterations counted up front, as lvm.c's forprep counts them, and a loop the
--- compiler cannot bound guarded by may_goto.
+-- compiler cannot bound counted by the kernel's iterator, with may_goto in its body where the kernel
+-- has it.
 -- @module luaebpf.emit.forloop
 
 local insn  = require("luaebpf.insn")
+local proto = require("luaebpf.proto")
 local frame = require("luaebpf.emit.frame")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
@@ -19,6 +21,8 @@ local setreg, typename = frame.setreg, frame.typename
 local INT <const> = frame.INT
 
 local MININT <const> = 1 << 63
+
+local INTSIZE <const> = 4 -- bpf_iter_num_new answers an int, and bpf_iter_num_next points at one
 
 local forloop = {}
 
@@ -98,9 +102,25 @@ local function counting(f, pc, ins, state, a)
 	code:branchi(jump.JEQ, reg.R3, 1, store)
 	code:alu(alu.DIV, reg.R2, reg.R3)
 	code:place(store)
-	setreg(f, a, reg.R2)
+	setreg(f, a, reg.R1)
 	setreg(f, a + 1, reg.R5)
 	setreg(f, a + 2, reg.R1)
+end
+
+-- the kernel's iterator counts the passes after the first, numbered from 1: the end it takes is an
+-- int, so a count no int holds stops the program, and it answers an error past the passes it counts,
+-- where the program stops too
+local function iterated(f, pc, ins, state, a)
+	local code = f.code
+	counting(f, pc, ins, state, a)
+	code:branchi(jump.JGE, reg.R2, proto.script("linux.limits").int.MAX, abort(f))
+	local loop = frame.enter(f, pc, pc + ins.bx + 1)
+	code:alu(alu.MOV, reg.R3, reg.R2)
+	code:alui(alu.ADD, reg.R3, 1)
+	code:set(reg.R2, 1)
+	frame.iterate(f, frame.iterator.new, loop)
+	frame.extend(f, reg.R0, INTSIZE)
+	code:branchi(jump.JNE, reg.R0, 0, abort(f))
 end
 
 function forloop.FORPREP(f, pc, ins, state)
@@ -119,7 +139,7 @@ function forloop.FORPREP(f, pc, ins, state)
 	local never = proven and counted(f, pc, ins, state, a)
 	if not never then
 		if not proven then
-			counting(f, pc, ins, state, a)
+			iterated(f, pc, ins, state, a)
 		end
 		state[a] = {t = INT}
 		state[a + 1] = {t = INT, k = step}
@@ -130,25 +150,47 @@ function forloop.FORPREP(f, pc, ins, state)
 	return false
 end
 
-function forloop.FORLOOP(f, pc, ins, state)
+-- a loop the compiler bounds counts its passes down in its first register, and adds the step to i, as
+-- OP_FORLOOP does
+local function countdown(f, pc, ins, state)
 	local a, code = ins.a, f.code
-	local after = labelof(f, pc + 1)
-	if not f.bounded[pc] then
-		if not f.unit.maygoto then
-			refuse(f, pc, "a 'for' the compiler cannot bound needs may_goto, which this kernel lacks")
-		end
-		if f.drop ~= "maygoto" then
-			code:maygoto(abort(f)) -- a spent budget stops: past the loop, it returns what Lua never does
-		end
-	end
 	into(f, pc, state, a, reg.R1)
-	code:branchi(jump.JEQ, reg.R1, 0, after)
+	code:branchi(jump.JEQ, reg.R1, 0, labelof(f, pc + 1))
 	code:alui(alu.ADD, reg.R1, -1)
 	setreg(f, a, reg.R1)
 	into(f, pc, state, a + 2, reg.R2)
 	code:alu(alu.ADD, reg.R2, getreg(f, pc, state, a + 1, reg.R3))
 	setreg(f, a + 2, reg.R2)
 	code:jump(labelof(f, pc + 1 - ins.bx))
+end
+
+-- the iterator counts the passes of any other, and answers NULL past the last, where it is destroyed
+-- and the code after the loop follows. i is the start in the first register plus the step times the
+-- pass the iterator answers: an i each pass carries to the next, once the body has made it precise,
+-- differs from every pass the verifier walked, which then walks them all
+local function iterating(f, pc, ins, state, loop)
+	local a, code, done = ins.a, f.code, f.code:label()
+	frame.iterate(f, frame.iterator.next, loop)
+	code:branchi(jump.JEQ, reg.R0, 0, done)
+	if f.unit.maygoto then
+		code:maygoto(abort(f)) -- the time the kernel gives a call's loops, where it times them
+	end
+	code:load(reg.R1, reg.R0, 0, INTSIZE)
+	code:alu(alu.MUL, reg.R1, getreg(f, pc, state, a + 1, reg.R2))
+	code:alu(alu.ADD, reg.R1, getreg(f, pc, state, a, reg.R2))
+	setreg(f, a + 2, reg.R1)
+	code:jump(labelof(f, pc + 1 - ins.bx))
+	code:place(done)
+	frame.iterate(f, frame.iterator.destroy, loop)
+end
+
+function forloop.FORLOOP(f, pc, ins, state)
+	local a = ins.a
+	if f.bounded[pc] then
+		countdown(f, pc, ins, state)
+	else
+		iterating(f, pc, ins, state, f.loops[#f.loops])
+	end
 	state[a] = {t = INT}
 	state[a + 2] = {t = INT}
 	reach(f, pc + 1 - ins.bx, state)

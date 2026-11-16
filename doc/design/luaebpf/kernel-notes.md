@@ -217,8 +217,15 @@ under `sudo`.
   [lvm.c#L223-L259](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lvm.c#L223-L259))
   and `OP_FORLOOP` counts it down
   ([lopcodes.h#L333-L334](https://github.com/luainkernel/lua/blob/74f1f100cb58a23b4ff7625a99715394540beba9/lopcodes.h#L333-L334)):
-  a counted loop by construction. Constant bounds become a bounded loop; anything else gets a
-  `may_goto` header.
+  a counted loop by construction. Constant bounds become a bounded loop; anything else hands its
+  count to the iterator, which answers `-E2BIG` past `BPF_MAX_LOOPS`
+  ([bpf_iter.c#L770-L788](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/bpf_iter.c#L770-L788)),
+  and carries a `may_goto` header where the kernel has one. The verifier refuses a program that
+  exits holding an iterator, "Unreleased reference"
+  ([verifier.c#L9946-L9966](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L9946-L9966)),
+  and widens only the scalars no later test made precise when it walks a pass of one
+  (`widen_imprecise_scalars`, [#L7494](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/verifier.c#L7494)):
+  a value a pass carries to the next and a test decides keeps it walking every pass.
 * **Exceptions are one way.** `bpf_throw`
   ([helpers.c#L3388](https://github.com/torvalds/linux/blob/v7.2/kernel/bpf/helpers.c#L3388))
   unwinds to the program's exception callback and never returns. `pcall` cannot be compiled; the
@@ -730,8 +737,8 @@ bytecode reader and types are LuaJIT's. The design transfers, the code does not.
 | 16 call frames | v7.2 | [2148794eeaf2](https://github.com/torvalds/linux/commit/2148794eeaf2a898adc791e9472eb80ea55984da) (2026-06-13) |
 
 None of these is a floor. The emitter picks the loop form the running kernel accepts: a
-non-constant loop bound needs `may_goto` (v6.9) or an iterator (v6.4) and is refused on a kernel
-without either; a constant bound compiles anywhere. The escape hatch needs the tree's kfunc (v6.4).
+non-constant loop bound takes the iterator (v6.4), below the tree's floor, and the `may_goto` header
+where the kernel has it (v6.9); a constant bound compiles anywhere. The escape hatch needs the tree's kfunc (v6.4).
 Signing is available to the loader on v6.18 and later and not required.
 
 ## What is and is not exported

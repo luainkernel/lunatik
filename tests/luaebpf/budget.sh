@@ -7,8 +7,6 @@
 # caught here rather than against the million-instruction limit.
 #   - the "processed N insns" figure the verifier's log prints for the heaviest program of each
 #     corpus is reported as a KTAP comment and asserted under a ceiling
-#   - the loops under a may_goto header are among them only on a kernel that has it, since
-#     forvar.bpf.lua is refused on one that does not
 #   - the calls into the kernel Lua runtime are among them only where the kernel publishes luaxdp's
 #     BTF, in which libbpf resolves their kfunc
 # The ceiling is set from what was measured, not predicted; the figures are in
@@ -25,8 +23,7 @@ trap cleanup EXIT
 
 CEILING=20000
 
-CORPORA="pass arith divzero branch forconst call ctx packet bounds mapget mapset struct"
-luaebpf_maygoto && CORPORA="$CORPORA forvar"
+CORPORA="pass arith divzero branch forconst forvar call ctx packet bounds mapget mapset struct"
 [ -z "$(luaebpf_kfunc luaxdp)" ] && CORPORA="$CORPORA callback"
 
 luaebpf_start 1

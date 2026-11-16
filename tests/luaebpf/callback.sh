@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Tests a compiled program's call into the kernel Lua runtime, whose answer the program returns.
-# callback.bpf.lua declares four XDP programs over one runtime, and words.lua is that runtime, run
+# callback.bpf.lua declares five XDP programs over one runtime, and words.lua is that runtime, run
 # in softirq: its callback answers PASS for no argument, DROP for MAGIC alone or for WRONG then
 # MAGIC, and ABORTED for anything else, and each program returns TX where the call answered nil,
 # a verdict the callback never returns. The object is loaded with bpftool, so the runtime is the
@@ -14,6 +14,9 @@
 #   - a call with no argument hands the callback an empty argument
 #   - another argument reaches the callback's rejection, so a DROP above is the argument's
 #   - two arguments arrive as two words, in the order the call wrote them
+#   - two calls in a loop whose bound the program computes reach the callback: each writes its
+#     arguments below the frame, under the loop's iterator, which the verifier refuses to step once
+#     overwritten
 #   - the answer read before a test, as a number, compared by '==' with a number and by '<',
 #     returned, negated, copied by 'or' and tested where a join met it with another value; an argument
 #     that is not a number, a call from a function the program calls, a call from a program that
@@ -41,7 +44,7 @@ SCRIPT=tests/luaebpf/words
 ABORTED=0
 DROP=1
 PASS=2
-CALLS=4
+CALLS=5
 REFUSALS=14
 
 luaebpf_start $((CALLS + 1 + REFUSALS + 3))
@@ -108,6 +111,7 @@ else
 	noargs=$(luaebpf_verdict noargs)
 	wrong=$(luaebpf_verdict wrong)
 	pair=$(luaebpf_verdict pair)
+	looped=$(luaebpf_verdict looped)
 	lunatik stop "$SCRIPT" > /dev/null 2>&1
 	rm -rf "$LUAEBPF_PINS"
 
@@ -119,6 +123,8 @@ else
 	ktap_pass "luaebpf: the callback tells another argument from the one it accepts"
 	[ "$pair" = "$DROP" ] || fail "luaebpf: the call with WRONG and MAGIC answered '$pair', not DROP"
 	ktap_pass "luaebpf: two arguments reach the callback as two words, in order"
+	[ "$looped" = "$DROP" ] || fail "luaebpf: the calls in a computed loop answered '$looped', not DROP"
+	ktap_pass "luaebpf: calls in a loop whose bound the program computes reach the callback"
 fi
 
 row untested 16 "'words' may be nil here; test it first" $'\tlocal v = words:run(1)\n\treturn v + 1'

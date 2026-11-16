@@ -52,7 +52,7 @@ luaebpf_kfunc() {
 	[ -r "/sys/kernel/btf/$1" ] || echo "$1 publishes no BTF; run make btf_install, then make install"
 }
 
-# whether the running kernel takes the may_goto header a loop without a proven bound needs
+# whether the running kernel takes the may_goto header a loop without a proven bound carries
 luaebpf_maygoto() {
 	[ "$(printf '%s\n6.9\n' "$(uname -r | cut -d. -f1,2)" | sort -V | head -1)" = "6.9" ]
 }

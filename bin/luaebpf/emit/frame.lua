@@ -6,7 +6,8 @@
 ---
 -- What every lowering shares: the declaration of a type a Lua register may hold, and the four
 -- `resolve` gives, the words each frame reserves, the abstract state the walk carries along each
--- edge, where a Lua register lives, and the jumps.
+-- edge, where a Lua register lives, the loops whose iterator a jump out of them destroys, and the
+-- jumps.
 -- @module luaebpf.emit.frame
 
 local insn  = require("luaebpf.insn")
@@ -32,6 +33,12 @@ local ABORTED  <const> = -SLOT
 local CALLER   <const> = -SLOT * 2
 local KEY      <const> = -SLOT * 3
 local VALUE    <const> = -SLOT * 4
+
+local PAST     <const> = math.maxinteger -- where an abort jumps to: past every loop
+
+-- the kfuncs of the kernel's open-coded iterator (kernel/bpf/bpf_iter.c), which counts the passes of
+-- a loop whose bound the program computes, and which the kernel holds until the program destroys it
+local iterator = {new = "bpf_iter_num_new", next = "bpf_iter_num_next", destroy = "bpf_iter_num_destroy"}
 
 local typenames = {}
 
@@ -70,7 +77,7 @@ local OTHER <const> = newtype("compile-time value")
 local frame = {
 	NREGS = NREGS, SLOT = SLOT, NBITS = NBITS, BYTE = BYTE, RESERVED = RESERVED, ABORTED = ABORTED,
 	CALLER = CALLER, KEY = KEY, VALUE = VALUE, INT = INT, BOOL = BOOL, NIL = NIL, OTHER = OTHER,
-	classes = classes, type = newtype, typenames = typenames,
+	classes = classes, type = newtype, typenames = typenames, iterator = iterator,
 }
 
 -- a join reads as the type it holds first and what else it may be, nil last, so that a refusal never
@@ -188,9 +195,10 @@ local function offset(i)
 	return -SLOT * (i - NREGS + 1 + RESERVED)
 end
 
--- the bytes a frame holds: the words it reserves and the Lua registers that spill below them
+-- the bytes a frame holds: the words it reserves, the Lua registers that spill below them, and the
+-- iterator of each loop the code being emitted is in
 local function depth(f)
-	return (math.max(f.proto.maxstacksize - NREGS, 0) + RESERVED) * SLOT
+	return (math.max(f.proto.maxstacksize - NREGS, 0) + RESERVED + #f.loops) * SLOT
 end
 frame.depth = depth
 
@@ -320,6 +328,75 @@ local function extend(f, dst, size)
 end
 frame.extend = extend
 
+--- @section loops
+
+-- R1 := the address of the loop's iterator, which every kfunc of the iterator takes first
+local function iterate(f, kfunc, loop)
+	address(f, reg.R1, loop.slot)
+	f.code:kfunc(kfunc)
+end
+frame.iterate = iterate
+
+-- the loop of the FORPREP at pc and the FORLOOP at last, whose iterator takes the word below every
+-- other the frame holds while the code between them is emitted
+local function enter(f, pc, last)
+	local loop = {first = pc, last = last, line = f.proto.lines[pc], exits = {}}
+	table.insert(f.entered, loop)
+	table.insert(f.loops, loop)
+	loop.slot = -depth(f)
+	stack(f, pc, depth(f))
+	return loop
+end
+frame.enter = enter
+
+-- the loops the code at pc is in, outermost first
+local function within(f, pc)
+	local loops = {}
+	for _, loop in ipairs(f.entered) do
+		if loop.first < pc and pc <= loop.last then
+			table.insert(loops, loop)
+		end
+	end
+	f.loops = loops
+end
+frame.within = within
+
+-- a return leaves every loop: what it emits after the destroys is in none
+local function leave(f)
+	for i = #f.loops, 1, -1 do
+		iterate(f, iterator.destroy, f.loops[i])
+	end
+	f.loops = {}
+end
+frame.leave = leave
+
+-- the label a jump to target takes from the loop at level and those around it: a target past its
+-- FORLOOP leaves the loop, through the destroy of its iterator, which every jump to that target shares
+local function route(f, level, target, label)
+	local loop = f.loops[level]
+	if loop == nil or target <= loop.last then
+		return label
+	end
+	local exit = loop.exits[target]
+	if exit == nil then
+		exit = {label = f.code:label(), loop = loop, to = route(f, level - 1, target, label)}
+		loop.exits[target] = exit
+		table.insert(f.exits, exit)
+	end
+	return exit.label
+end
+
+-- the destroys a jump out of a loop goes through, each on to the next loop out or to its target
+local function exits(f)
+	for _, exit in ipairs(f.exits) do
+		f.code:source(exit.loop.line)
+		f.code:place(exit.label)
+		iterate(f, iterator.destroy, exit.loop)
+		f.code:jump(exit.to)
+	end
+end
+frame.exits = exits
+
 --- @section control flow
 
 local function labelof(f, pc)
@@ -327,7 +404,7 @@ local function labelof(f, pc)
 	if label == nil then
 		refuse(f, pc, "a jump leaves the function")
 	end
-	return label
+	return route(f, #f.loops, pc, label)
 end
 frame.labelof = labelof
 
@@ -337,7 +414,7 @@ local function abort(f)
 	if f.aborted == nil then
 		f.aborted = f.code:label()
 	end
-	return f.aborted
+	return route(f, #f.loops, PAST, f.aborted)
 end
 frame.abort = abort
 

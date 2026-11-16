@@ -46,8 +46,27 @@ local function pair(_)
 	return action.TX
 end
 
+-- two calls in a loop whose bound the program computes: each writes the name and the argument below
+-- the frame, under the loop's iterator, which the verifier refuses to step once overwritten; the bound
+-- is the runtime's answer: the context's layout comes from the host's BTF, refused for the other byte order
+local function looped(_)
+	local n = words:run()
+	if not n then
+		return action.TX
+	end
+	local verdict = action.TX
+	for _ = n, n + 1 do
+		local v = words:run(MAGIC)
+		if v then
+			verdict = v
+		end
+	end
+	return verdict
+end
+
 xdp.program(answer, {name = "answer", default = action.PASS})
 xdp.program(noargs, {name = "noargs", default = action.PASS})
 xdp.program(wrong, {name = "wrong", default = action.PASS})
 xdp.program(pair, {name = "pair", default = action.PASS})
+xdp.program(looped, {name = "looped", default = action.PASS})
 
