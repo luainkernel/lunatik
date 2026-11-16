@@ -12,19 +12,11 @@ menuconfig LUNATIK
 
 if LUNATIK
 
-config LUNATIK_RUNTIME
-	bool
-	default y
-	select LUNATIK_DEVICE
-	select LUNATIK_RCU
-	help
-	  Enables the core Lunatik runtime environment, allowing creation of
-	  isolated Lua states within the kernel. This requires both device
-	  and RCU support.
-
 config LUNATIK_RUN
 	tristate "Lunatik Run (Execution Support)"
 	default y
+	select LUNATIK_DEVICE
+	select LUNATIK_RCU
 	help
 	  Support for running Lua scripts in the kernel. This is required
 	  for basic script execution functionality.
@@ -117,12 +109,14 @@ config LUNATIK_SYSCALL
 config LUNATIK_XDP
 	tristate "Lunatik XDP Support"
 	default m
+	select LUNATIK_RCU
 	help
 	  Express Data Path (XDP) support for high-performance packet processing.
 
 config LUNATIK_TC
 	tristate "Lunatik TC Support"
 	default m
+	select LUNATIK_RCU
 	help
 	  Traffic Control (TC) support for high-performance packet scheduling.
 
@@ -186,6 +180,7 @@ config LUNATIK_SCX
 	tristate "Lunatik Scheduler Support"
 	default m
 	select LUNATIK_TASK
+	select LUNATIK_RCU
 	help
 	  Extensible Linux Scheduler support for custom process scheduling.
 

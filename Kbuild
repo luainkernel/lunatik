@@ -27,7 +27,7 @@ LUNATIK_FLAGS := -D_LUNATIK -D_KERNEL -I$(src)/$(KLIBC_INC)
 
 asflags-y += $(LUNATIK_FLAGS)
 # include/ ahead of KLIBC_INC: its klibc/diverr.h stands in for klibc's, which includes <signal.h>
-ccflags-y += -I$(src)/include $(LUNATIK_FLAGS) -DLUNATIK_RUNTIME=$(CONFIG_LUNATIK_RUNTIME) \
+ccflags-y += -I$(src)/include $(LUNATIK_FLAGS) \
 	-Wimplicit-fallthrough=0 -I$(src) -I$(src)/lua
 # presence, not version: stable series took the helper with the passive namespace reference it drops
 LUNATIK_SOCK_H := $(srctree)/include/net/sock.h
