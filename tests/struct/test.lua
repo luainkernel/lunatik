@@ -45,6 +45,12 @@ local network = struct{size = 6, fields = {
 assert(network.format == "=I1x>I2=I2", "big-endian: " .. network.format)
 assert(network:pack(1, 0x1234, 0x5678):sub(3, 4) == "\x12\x34", "big-endian pack")
 
+-- bitfields leave the format as the fields alone make it
+local bitfields = struct{size = 6, fields = network.layout.fields, bitfields = {
+	{name = "n", offset = 0, size = 2, signed = false, shift = 4, mask = 0xf},
+}}
+assert(bitfields.format == network.format, "bitfields: " .. bitfields.format)
+
 -- overlapping fields (a union) are rejected
 local ok = pcall(struct, { size = 4, fields = {
 	{ name = "x", offset = 0, size = 4, signed = false },

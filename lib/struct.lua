@@ -30,7 +30,7 @@ local BYTE <const> = 8
 local unsigned = {[1] = "getuint8", [2] = "getuint16", [4] = "getuint32", [8] = "getint64"}
 local signed   = {[1] = "getint8", [2] = "getint16", [4] = "getint32", [8] = "getint64"}
 
--- a field's read, by the order its bytes are in
+-- a field's read, by the order its bytes are in, or out of the load that covers a bitfield
 local reads = {}
 
 function reads.native(data, at, field)
@@ -45,6 +45,12 @@ function reads.bigendian(data, at, field)
 		value = value << BYTE | data:getbyte(i)
 	end
 	return value
+end
+
+-- the load, read unsigned, shifted and masked, and the sign bit's weight taken twice where it is set
+function reads.bitfield(data, at, field)
+	local value = data[field.getter](data, at) >> field.shift & field.mask
+	return field.sign and (value ~ field.sign) - field.sign or value
 end
 
 -- what each view reads from, kept outside it so that a struct may have a field of any name
@@ -94,11 +100,20 @@ local function reader(field)
 	return {read = reads.native, offset = field.offset, getter = getters[field.size]}
 end
 
+-- a bitfield's read: its load, unsigned, then its shift and mask, and its sign bit where it is signed
+local function bitreader(field)
+	return {read = reads.bitfield, offset = field.offset, getter = unsigned[field.size], shift = field.shift,
+		mask = field.mask, sign = field.signed and (field.mask >> 1) + 1 or nil}
+end
+
 -- each field's read, by its name
 local function readers(layout)
 	local byname = {}
 	for _, field in ipairs(layout.fields) do
 		byname[field.name] = reader(field)
+	end
+	for _, field in ipairs(layout.bitfields or {}) do
+		byname[field.name] = bitreader(field)
 	end
 	return byname
 end
@@ -144,8 +159,9 @@ end
 -- A view of the struct as it lies in `data` from `at`, which reads a field by its name:
 -- `view.ttl` reads the field at `at` plus its offset, with its width and sign, each time it is
 -- indexed, as the `data` object's reads do: in the kernel's byte order, but for a field the layout
--- marks `bigendian`, read most significant first. A read past the end of `data` raises as theirs
--- does, a field is 1, 2, 4 or 8 bytes wide, and a name the layout lacks raises.
+-- marks `bigendian`, read most significant first, and for a bitfield, taken out of its load. A read
+-- past the end of `data` raises as theirs does, a field or a bitfield's load is 1, 2, 4 or 8 bytes
+-- wide, and a name the layout lacks raises.
 -- @function codec:view
 -- @tparam data data the bytes, a `data` object or one that reads as it does
 -- @tparam integer at the offset in `data` the struct starts at
@@ -164,8 +180,11 @@ end
 ---
 -- Builds a codec from a layout descriptor.
 -- @function struct
--- @tparam table layout `{ size = bytes, fields = { {name, offset, size, signed, bigendian}, ... } }`,
---   `bigendian` true for a field kept big-endian whatever the kernel's order
+-- @tparam table layout `{size = bytes, fields = {{name, offset, size, signed, bigendian}, ...},
+--   bitfields = {{name, offset, size, signed, shift, mask}, ...}}`: `bigendian` true for a field
+--   kept big-endian whatever the kernel's order, and `bitfields`, which `pack` and `unpack` skip and
+--   which may be absent, each the `size` bytes at `offset` shifted right by `shift` and masked with
+--   `mask`
 -- @treturn codec a codec exposing `:pack`, `:unpack`, `:fieldsize`, `:view` and the `size` and `fields`
 --   fields.
 -- @raise "struct: derived format does not match the layout size (overlapping fields?)"

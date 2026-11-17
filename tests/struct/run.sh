@@ -6,15 +6,18 @@
 # Tests for the struct library: format derivation from a layout descriptor
 # (inter-field padding, signed fields, trailing pad, out-of-order fields),
 # the codec's fields in offset order, the pack/unpack round-trip, the
-# overlapping-fields (union) guard, and a field marked bigendian packed
-# big-endian, the format switching order for it alone.
+# overlapping-fields (union) guard, a field marked bigendian packed
+# big-endian, the format switching order for it alone, and bitfields leaving
+# the format as the fields alone make it.
 #
 # A codec's view over a data object, at a base past the first bytes, reads every field of every
 # width and sign as unpack reads it off the same bytes, two fields named as what the view is
 # handed, data and at, included; a field marked bigendian of each width wider than a byte, one
-# signed, reads its first byte as the most significant. A field past the end of the data raises
-# "out of bounds" while one before it reads, a big-endian one too, an assignment raises "struct:
-# a view is read-only" and leaves what the field reads, and a name the layout lacks raises.
+# signed, reads its first byte as the most significant; a bitfield, unsigned or signed, out of a
+# load of one byte or two, reads its bits shifted and masked out of that load. A field past the end
+# of the data raises "out of bounds" while one before it reads, a big-endian one and a bitfield
+# too, an assignment raises "struct: a view is read-only" and leaves what the field reads, and a
+# name the layout lacks raises.
 #
 # Usage: sudo bash tests/struct/test.sh
 
