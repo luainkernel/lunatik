@@ -37,18 +37,19 @@ jobs:
       run: |
         SERIES="${{ matrix.kernel-version }}"
         # kernel.org publishes only the latest point release of each
-        # maintained series: resolve it from releases.json (empty for an EOL
-        # series) and fetch its tarball from the CDN, checked against the
-        # series' sha256sums.asc, which names a truncated download as one
+        # series in releases.json, an EOL one until it drops the series,
+        # and lists it later in the series' sha256sums.asc, which names a
+        # truncated download as one: fetch from the CDN the newest point
+        # release sha256sums.asc lists
         ESC=$(echo "$SERIES" | sed 's/\./\\./g')
         curl -fsSL --retry 3 --retry-all-errors -o releases.json https://www.kernel.org/releases.json
-        VERSION=$(grep -oE '"'"$ESC"'\.[0-9]+"' releases.json | tr -d '"' | head -1)
-        test -n "$VERSION" || { echo "no maintained release for kernel series $SERIES"; exit 1; }
-        CDN="https://cdn.kernel.org/pub/linux/kernel/v${VERSION%%.*}.x"
-        TARBALL="linux-${VERSION}.tar.xz"
+        grep -qE '"'"$ESC"'\.[0-9]+"' releases.json || { echo "no maintained release for kernel series $SERIES"; exit 1; }
+        CDN="https://cdn.kernel.org/pub/linux/kernel/v${SERIES%%.*}.x"
         curl -fsSL --retry 3 --retry-all-errors -o sha256sums.asc "$CDN/sha256sums.asc"
+        VERSION=$(sed -nE "s/^[0-9a-f]{64}  linux-($ESC\.[0-9]+)\.tar\.xz$/\1/p" sha256sums.asc | sort -V | tail -1)
+        test -n "$VERSION" || { echo "no checksum for a point release of kernel series $SERIES"; exit 1; }
+        TARBALL="linux-${VERSION}.tar.xz"
         SUM=$(awk -v f="$TARBALL" '$2 == f' sha256sums.asc)
-        test -n "$SUM" || { echo "no checksum for $TARBALL"; exit 1; }
         echo "Fetching $TARBALL"
         for try in 1 2 3; do
           curl -sSL --retry 3 -o "$TARBALL" "$CDN/$TARBALL" && echo "$SUM" | sha256sum -c --quiet - && break
