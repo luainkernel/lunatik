@@ -16,6 +16,9 @@ local format   = string.format
 local mathtype = math.type
 local getinfo  = debug.getinfo
 
+-- a program that names no license carries one license_is_gpl_compatible counts, so its kfunc calls load
+local LICENSE <const> = "Dual MIT/GPL"
+
 local declared = {}
 
 local programs = {}
@@ -53,25 +56,50 @@ local function unmet(program)
 	end
 end
 
+-- why a program's license cannot be the object's, or nil where it can: libbpf loads every program
+-- of an object under the one string of its license section
+local function unlicensed(program)
+	local license, first = program.license, declared[1]
+	if type(license) ~= "string" then
+		return "is not a string"
+	end
+	if first ~= nil and license ~= first.license then
+		return format("'%s' is not '%s', the license of the programs before it", license, first.license)
+	end
+end
+
+local function refuse(constructor, fn, reason)
+	local info = getinfo(fn, "S") -- a caller that returns xdp.program(...) leaves no line of its own
+	error(format("%s:%d: %s's %s", info.short_src, info.linedefined, constructor, reason), 0)
+end
+
 ---
 -- Records one program, held to what every constructor takes.
 -- @function luaebpf.programs.declare
 -- @tparam string constructor the constructor the program file called, `xdp.program` or its peer
 -- @tparam function fn the program
--- @tparam table program `{section, default, error, name, context, kfunc, actions}`, `actions` the
---   verdicts of its type, `{first, last, name}`
+-- @tparam table program `{section, default, error, name, license, context, kfunc, actions}`,
+--   `actions` the verdicts of its type, `{first, last, name}`, and `license`, `Dual MIT/GPL` where
+--   it is nil
 -- @treturn table the program, with `fn`
 -- @raise `<constructor> takes a Lua function`, or `<file>:<line>: <constructor>'s default verdict
---   is not an integer` or `is not <actions.name>`, the line where `fn` is defined
+--   is not an integer` or `is not <actions.name>`, or `<file>:<line>: <constructor>'s license is
+--   not a string` or `'<license>' is not '<before>', the license of the programs before it`, the
+--   line where `fn` is defined
 function programs.declare(constructor, fn, program)
 	if type(fn) ~= "function" or getinfo(fn, "S").what == "C" then
 		error(format("%s takes a Lua function", constructor), 2) -- each constructor tail-calls declare
 	end
 	local expected = unmet(program)
 	if expected ~= nil then
-		local info = getinfo(fn, "S") -- a caller that returns xdp.program(...) leaves no line of its own
-		error(format("%s:%d: %s's default verdict is not %s", info.short_src, info.linedefined,
-			constructor, expected), 0)
+		refuse(constructor, fn, "default verdict is not " .. expected)
+	end
+	if program.license == nil then
+		program.license = LICENSE
+	end
+	local reason = unlicensed(program)
+	if reason ~= nil then
+		refuse(constructor, fn, "license " .. reason)
 	end
 	program.fn = fn
 	insert(declared, program)

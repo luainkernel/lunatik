@@ -283,9 +283,10 @@ luaebpf_device() {
 	ip link set "$LUAEBPF_DEV" up && ip link set "$LUAEBPF_PEER" up
 }
 
-# the id of the XDP program a device carries, $LUAEBPF_DEV unless one is named, or nothing
+# the id of the program a device carries by XDP or by tcx, $LUAEBPF_DEV unless one is named, or
+# nothing; bpftool prints an XDP program as `driver id` and a tcx one as `prog_id`
 luaebpf_attached() {
-	bpftool net show dev "${1:-$LUAEBPF_DEV}" | grep -oP 'driver id \K[0-9]+'
+	bpftool net show dev "${1:-$LUAEBPF_DEV}" | grep -oP '(driver id|prog_id) \K[0-9]+'
 }
 
 # what a refused run may not leave behind

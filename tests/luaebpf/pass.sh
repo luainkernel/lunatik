@@ -10,7 +10,7 @@
 #   - prog run returns the verdict each program's function returns
 #   - a program returning nil takes its default verdict, as one returning nothing does, since
 #     the hook reads the two alike
-#   - the license section reads Dual MIT/GPL, which is what libbpf accepts for a GPL helper
+#   - the license section reads Dual MIT/GPL, the license of a file that names none
 #   - the object's BTF carries one FUNC per program
 #
 # Usage: sudo bash tests/luaebpf/pass.sh

@@ -26,7 +26,6 @@ local concat = table.concat
 local TEXT    <const> = ".text"
 local MAPS    <const> = ".maps"
 local KSYMS   <const> = ".ksyms"
-local LICENSE <const> = "Dual MIT/GPL"
 
 local writer = {}
 
@@ -233,7 +232,8 @@ end
 ---
 -- Lowers the programs and writes the object that carries them.
 -- @function luaebpf.writer.write
--- @tparam table declared the programs `luaebpf.programs` holds, in declaration order, each named
+-- @tparam table declared the programs `luaebpf.programs` holds, in declaration order, each named,
+--   under the one license they carry
 -- @tparam[opt] string hook the mechanism `LUAEBPF_DROP` names, which the object is written without
 -- @treturn string the BPF ELF object
 -- @treturn table a line per call into the kernel Lua runtime the compiler met, in that order,
@@ -295,7 +295,7 @@ function writer.write(declared, hook)
 	end
 
 	object:section{name = "license", type = elf.section.PROGBITS, flags = elf.flags.ALLOC |
-		elf.flags.WRITE, data = LICENSE .. "\0", align = 1}
+		elf.flags.WRITE, data = declared[1].license .. "\0", align = 1}
 	local described = {}
 	for _, unit in ipairs(units) do
 		if unit.at > 0 then

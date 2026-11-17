@@ -25,7 +25,8 @@
 --
 -- A call into a kernel Lua runtime `lunatik.runtime` names, `r:run(a, b)`, lowers to
 -- `bpf_luaxdp_run`: it answers the verdict the callback `xdp.attach` registered returns, or nil, and
--- the program tests the answer before it reads it.
+-- the program tests the answer before it reads it. The kernel loads a program that calls it only under
+-- a license it counts as GPL-compatible.
 -- @module bpf.xdp
 -- @usage
 -- local xdp    = require("bpf.xdp")
@@ -69,16 +70,20 @@ local xdp = {}
 -- @function bpf.xdp.program
 -- @tparam function fn the program; it takes the context and returns a verdict.
 -- @tparam table opts `default`, required, the verdict the program returns where its function
---   returns no value, an action, and `name`, what the program is called in the object, cut to the
---   fifteen characters `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken.
+--   returns no value, an action, `name`, what the program is called in the object, cut to the
+--   fifteen characters `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken,
+--   and `license`, a string, the license the object declares for every program of the file,
+--   `Dual MIT/GPL` where it names none.
 -- @treturn table the declared program
 -- @raise `xdp.program takes a Lua function`, or `<file>:<line>: xdp.program's default verdict is not
---   an integer`, which a missing `default` raises too, or `is not an XDP action`, the line where
---   `fn` is defined
+--   an integer`, which a missing `default` raises too, or `is not an XDP action`, or
+--   `<file>:<line>: xdp.program's license is not a string` or `'<license>' is not '<before>', the
+--   license of the programs before it`, the line where `fn` is defined
 function xdp.program(fn, opts)
 	opts = opts or {}
 	return programs.declare("xdp.program", fn, {section = SECTION, default = opts.default,
-		error = action.ABORTED, name = opts.name, context = context, kfunc = KFUNC, actions = actions})
+		error = action.ABORTED, name = opts.name, license = opts.license, context = context, kfunc = KFUNC,
+		actions = actions})
 end
 
 return xdp

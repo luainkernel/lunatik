@@ -28,7 +28,8 @@
 --
 -- A call into a kernel Lua runtime `lunatik.runtime` names, `r:run(a, b)`, lowers to
 -- `bpf_luatc_run`: it answers the verdict the callback `tc.attach` registered returns, or nil, and
--- the program tests the answer before it reads it.
+-- the program tests the answer before it reads it. The kernel loads a program that calls it only under
+-- a license it counts as GPL-compatible.
 -- @module bpf.tc
 -- @usage
 -- local tc     = require("bpf.tc")
@@ -84,17 +85,20 @@ local tc = {}
 -- @tparam function fn the program; it takes the context and returns a verdict.
 -- @tparam table opts `egress`, which attaches the program on the way out rather than in,
 --   `default`, required, the verdict the program returns where its function returns no value, an
---   action, and `name`, what the program is called in the object, cut to the fifteen characters
---   `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken.
+--   action, `name`, what the program is called in the object, cut to the fifteen characters
+--   `BPF_OBJ_NAME_LEN` leaves and made unique against the names already taken, and `license`, a
+--   string, the license the object declares for every program of the file, `Dual MIT/GPL` where it
+--   names none.
 -- @treturn table the declared program
 -- @raise `tc.program takes a Lua function`, or `<file>:<line>: tc.program's default verdict is not
---   an integer`, which a missing `default` raises too, or `is not a TC action`, the line where `fn`
---   is defined
+--   an integer`, which a missing `default` raises too, or `is not a TC action`, or
+--   `<file>:<line>: tc.program's license is not a string` or `'<license>' is not '<before>', the
+--   license of the programs before it`, the line where `fn` is defined
 function tc.program(fn, opts)
 	opts = opts or {}
 	return programs.declare("tc.program", fn, {section = opts.egress and EGRESS or INGRESS,
-		default = opts.default, error = action.SHOT, name = opts.name, context = context,
-		kfunc = KFUNC, actions = actions})
+		default = opts.default, error = action.SHOT, name = opts.name, license = opts.license,
+		context = context, kfunc = KFUNC, actions = actions})
 end
 
 return tc
