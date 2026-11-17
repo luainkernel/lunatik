@@ -37,6 +37,14 @@ Tests are shell scripts emitting KTAP plus a kernel side Lua script.
 * a test does not depend on what else runs on the host: when a host process — a network manager, say
   — can race it by acting on a resource the test created, make the test robust to any such process,
   not wired to silence one by name, which does not carry to another distro or to CI;
+* a case the host cannot run for the version of a tool or a library installed there, a libbpf older
+  than the attach the case needs, runs there once that version is installed: the case keeps its skip
+  for a host without that version, and the session's run neither takes it nor brings the cell to the
+  maintainer to accept unrun, since the host is the session's to equip, and a skip only that host
+  takes hides the cell from every review of its run. #2654 first held its TC rows to bpftool's load,
+  the host's libbpf attaching no tcx program, and offered that as an option; the maintainer asked why
+  the tool was not upgraded, and with libbpf installed from its release the rows ran, and so did the
+  tc suite's compiled cases, which #1969 had found never run there;
 * a case pins a refusal the API makes, never a capability it gave up: a notifier narrowed to the
   initial namespace came with a case asserting that a device of another namespace is not reported,
   so a lost capability became the contract and restoring it has to delete a green test;
