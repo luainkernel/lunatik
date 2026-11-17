@@ -504,14 +504,19 @@ refused.
 ## Values of the body
 
 ```Lua
-local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
+local struct  = require("struct")
+local vmlinux = require("luaebpf.vmlinux")
+local xdp     = require("bpf.xdp")
+local action  = require("linux.xdp").action
+local eth     = require("linux.eth")
 
 local protocols = require("linux.socket").ipproto
 
+local iphdr = struct(vmlinux.layout("iphdr"))
+
 return xdp.program(function(ctx)
 	local p = ctx:packet()
-	local protocol = p:getbyte(23)
+	local protocol = iphdr:view(p, eth.HLEN).protocol
 	if protocol == protocols.UDP then
 		return action.DROP
 	end
@@ -521,28 +526,29 @@ end, {default = action.PASS})
 
 `protocols` is a table the body required, `linux.socket.ipproto`, which autogen generates from the
 kernel's `IPPROTO_` names. The function reads `protocols.UDP` when it is compiled, and the program
-holds its value, 17. Instructions 0 to 15 read byte 23 into `r8`.
+holds its value, 17. Instructions 0 to 18 read the IPv4 header's protocol into `r8`, as
+[Views](#views) reads a field.
 
 ```
-     line 9: if protocol == protocols.UDP then
- 16  r9 = 17                       protocols.UDP, read at compile time
- 17  r1 = r8                       protocol
- 18  if r1 != r9 goto 22
-     line 10: return action.DROP
- 19  r9 = 1                        XDP_DROP
- 20  r0 = r9
- 21  exit
-     line 12: return action.PASS
- 22  r9 = 2                        XDP_PASS
+     line 14: if protocol == protocols.UDP then
+ 19  r9 = 17                       protocols.UDP, read at compile time
+ 20  r1 = r8                       protocol
+ 21  if r1 != r9 goto 25
+     line 15: return action.DROP
+ 22  r9 = 1                        XDP_DROP
  23  r0 = r9
  24  exit
-     line 13: end, {default = action.PASS})
- 25  r0 = 0                        XDP_ABORTED, where Lua would raise
- 26  exit
+     line 17: return action.PASS
+ 25  r9 = 2                        XDP_PASS
+ 26  r0 = r9
+ 27  exit
+     line 18: end, {default = action.PASS})
+ 28  r0 = 0                        XDP_ABORTED, where Lua would raise
+ 29  exit
 ```
 
-An IPv4 frame whose byte 23 is 17, UDP, returns 1, `XDP_DROP`; one whose byte 23 is 6, TCP, returns
-2, and a 14-byte frame stops at the read and returns 0, `XDP_ABORTED`. An index the program
+An IPv4 frame whose protocol is 17, UDP, returns 1, `XDP_DROP`; one whose protocol is 6, TCP,
+returns 2, and a 14-byte frame stops at the read and returns 0, `XDP_ABORTED`. An index the program
 computes, `protocols[name]` with `name` read from the packet, has no value the compiler can read,
 and is refused; so are `#protocols` and a write to the table.
 
@@ -663,15 +669,20 @@ and returns 2, `TC_ACT_SHOT`, so the packet is dropped and its priority stays wh
 ## Maps
 
 ```Lua
-local map    = require("bpf.map")
-local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
+local map     = require("bpf.map")
+local struct  = require("struct")
+local vmlinux = require("luaebpf.vmlinux")
+local xdp     = require("bpf.xdp")
+local action  = require("linux.xdp").action
+local eth     = require("linux.eth")
+
+local iphdr = struct(vmlinux.layout("iphdr"))
 
 local seen = map.hash("seen", {key = "I4", value = "I8", entries = 256})
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
-	local proto = p:getbyte(23)
+	local proto = iphdr:view(p, eth.HLEN).protocol
 	local n = seen[proto]
 	if n then
 		seen[proto] = n + 1
@@ -685,54 +696,54 @@ end, {default = action.PASS})
 `seen[proto]` is a lookup, whose value is a number or nil until `if n then` tests it. The helpers
 are called by number: 1 is `bpf_map_lookup_elem`, 2 `bpf_map_update_elem`. `llvm-objdump -r`
 prints the map as a relocation, which libbpf fills in when it loads the object. Instructions 0 to
-15 read byte 23 into `r8`.
+18 read the IPv4 header's protocol into `r8`, as [Views](#views) reads a field.
 
 ```
-     line 10: local n = seen[proto]
- 16  r5 = r8                       proto
- 17  r5 >>= 32
- 18  if r5 != 0 goto 76            wider than I4: stops
- 19  *(u64 *)(r10 -24) = 0
- 20  *(u32 *)(r10 -24) = r8        the key, four bytes
- 21  r1 = map seen                 two slots, relocated by libbpf
- 23  r2 = r10
- 24  r2 += -24                     the key, by address
- 25  call 1                        bpf_map_lookup_elem
- 26  r9 = r0                       a pointer to the value, or NULL
-     line 11: if n then
- 27  if r9 == 0 goto 31            NULL: n is nil
- 28  r1 = *(u64 *)(r9 +0)          found: the value, eight bytes
- 29  r9 = r1                       n
- 30  goto 32
- 31  goto 54                       the else branch
-     line 12: seen[proto] = n + 1
- 32  to 35: n + 1, kept in Lua register 5
- 36  to 38: the key held to I4 again
- 39  to 43: the key at r10 -24, the value at r10 -32
- 44  to 49: r1 the map, r2 and r3 the key and the value, by address
- 50  r4 = 0                        BPF_ANY: insert or replace
- 51  call 2                        bpf_map_update_elem
- 52  if r0 != 0 goto 76            the map refuses: stops
- 53  goto 71
-     line 14: seen[proto] = 1
- 54  to 70: the same update, with the value 1
-     line 16: return action.PASS
- 71  to 75: r0 is 2, and the exit
-     line 17: end, {default = action.PASS})
- 76  r0 = 0                        XDP_ABORTED, where Lua would raise
- 77  exit
+     line 15: local n = seen[proto]
+ 19  r5 = r8                       proto
+ 20  r5 >>= 32
+ 21  if r5 != 0 goto 79            wider than I4: stops
+ 22  *(u64 *)(r10 -24) = 0
+ 23  *(u32 *)(r10 -24) = r8        the key, four bytes
+ 24  r1 = map seen                 two slots, relocated by libbpf
+ 26  r2 = r10
+ 27  r2 += -24                     the key, by address
+ 28  call 1                        bpf_map_lookup_elem
+ 29  r9 = r0                       a pointer to the value, or NULL
+     line 16: if n then
+ 30  if r9 == 0 goto 34            NULL: n is nil
+ 31  r1 = *(u64 *)(r9 +0)          found: the value, eight bytes
+ 32  r9 = r1                       n
+ 33  goto 35
+ 34  goto 57                       the else branch
+     line 17: seen[proto] = n + 1
+ 35  to 38: n + 1, kept in Lua register 5
+ 39  to 41: the key held to I4 again
+ 42  to 46: the key at r10 -24, the value at r10 -32
+ 47  to 52: r1 the map, r2 and r3 the key and the value, by address
+ 53  r4 = 0                        BPF_ANY: insert or replace
+ 54  call 2                        bpf_map_update_elem
+ 55  if r0 != 0 goto 79            the map refuses: stops
+ 56  goto 74
+     line 19: seen[proto] = 1
+ 57  to 73: the same update, with the value 1
+     line 21: return action.PASS
+ 74  to 78: r0 is 2, and the exit
+     line 22: end, {default = action.PASS})
+ 79  r0 = 0                        XDP_ABORTED, where Lua would raise
+ 80  exit
 ```
 
-Instruction 28 reads the value only past instruction 27: the verifier refuses a read through a
+Instruction 31 reads the value only past instruction 30: the verifier refuses a read through a
 pointer that may be NULL, and the compiler refuses to use `n` before `if n then` tests it. Four
 frames, one after the other, over a map that starts empty:
 
-| Frame | Byte 23 | Path | `seen` after |
+| Frame | `proto` | Path | `seen` after |
 |-------|---------|------|--------------|
-| IPv4, TCP | 6 | 27 jumps: nil, so 54 to 70 store 1 | `{[6] = 1}` |
-| the same again | 6 | 27 goes on: 1, so 32 to 52 store 2 | `{[6] = 2}` |
-| ARP, 42 bytes | 0 | nil, so 1 is stored | `{[6] = 2, [0] = 1}` |
-| 14 bytes | none | the read of 23 jumps to 76 before the lookup | unchanged |
+| IPv4, TCP | 6 | 30 jumps: nil, so 57 to 73 store 1 | `{[6] = 1}` |
+| the same again | 6 | 30 goes on: 1, so 35 to 55 store 2 | `{[6] = 2}` |
+| ARP, 42 bytes | 0, the byte where IPv4 keeps its protocol | nil, so 1 is stored | `{[6] = 2, [0] = 1}` |
+| 14 bytes | none | the read of the protocol jumps to 79 before the lookup | unchanged |
 
 Each run returns 2 but the last, which stops and returns 0, `XDP_ABORTED`. A kernel script reads
 the same map with the kernel's `bpf.map`, as `map.hash("/sys/fs/bpf/lunatik/<script>/seen", "I4",
@@ -1020,15 +1031,24 @@ compiled".
 ## Calls into a kernel Lua runtime
 
 ```Lua
+local struct  = require("struct")
+local vmlinux = require("luaebpf.vmlinux")
 local xdp     = require("bpf.xdp")
 local lunatik = require("lunatik")
 local action  = require("linux.xdp").action
+local eth     = require("linux.eth")
+
+local WORD <const> = 4 -- bytes in a unit of ihl
+
+local iphdr  = struct(vmlinux.layout("iphdr"))
+local udphdr = struct(vmlinux.layout("udphdr"))
 
 local limits = lunatik.runtime("limits")
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
-	local port = p:getbyte(36) << 8 | p:getbyte(37)
+	local ip = iphdr:view(p, eth.HLEN)
+	local port = udphdr:view(p, eth.HLEN + ip.ihl * WORD).dest
 	local verdict = limits:run(port, #p)
 	if verdict then
 		return verdict
@@ -1044,75 +1064,81 @@ reads the runtime's one method, which emits nothing: the runtime is a value of t
 register holds no word. The call lowers to the kfunc of an XDP program, `bpf_luaxdp_run`: `r1` the
 address of the name, `r2` its length with the NUL, `r3` the context, `r4` the address of the
 arguments and `r5` their size. The name and the arguments go below the frame's deepest word,
-`r10 - 56` here, where nothing outlives the call. `TX` on the nil branch tells that branch from the
-callback's verdict and from the `XDP_ABORTED` a stop returns. Instructions 0 to 45 take `ctx` and
-`p` and read bytes 36 and 37 into `port`, in `r8`.
+`r10 - 64` here, where nothing outlives the call. `TX` on the nil branch tells that branch from the
+callback's verdict and from the `XDP_ABORTED` a stop returns. Instructions 0 to 44 take `ctx` and
+`p`, and read `ip.ihl` and the UDP header's `dest`, past the IPv4 header by `ihl`, into `port`, in
+`r9`, as [Views](#views) reads a field.
 
 ```
-     line 10: local verdict = limits:run(port, #p)
- 46  *(u64 *)(r10 -48) = r8        port, in Lua register 5, past the method and limits
- 47  r1 = *(u32 *)(r7 +0)          xdp_md.data
- 48  r2 = *(u32 *)(r7 +4)          xdp_md.data_end
- 49  r2 -= r1                      #p
- 50  *(u64 *)(r10 -56) = r2        #p, in Lua register 6
- 51  r1 = 126943822178668 ll       the name: two slots, decoded below
- 53  *(u64 *)(r10 -80) = r1        the name, below the frame
- 54  to 57: port at r10 -72 and #p at r10 -64, the arguments in order
- 58  r1 = r10
- 59  r1 += -80                     r1: the name, by address
- 60  r2 = 7                        r2: "limits" and its NUL
- 61  r3 = r6                       r3: the context
- 62  r4 = r10
- 63  r4 += -72                     r4: the arguments, by address
- 64  r5 = 16                       r5: their size, two words
- 65  call -1                       bpf_luaxdp_run: decoded below
- 66  r0 <<= 32                     the int's 32 bits, the only ones defined
- 67  r0 s>>= 32                    sign-extended, so -1 stays -1
- 68  r9 = r0                       verdict
-     line 11: if verdict then
- 69  if r9 == -1 goto 71           the kfunc's -1: nil
- 70  goto 73                       a verdict: the number branch
- 71  r9 = 0                        nil, the zero word it is everywhere else
- 72  goto 77                       the nil branch
-     line 12: return verdict
- 73  r0 = r9
- 74  if r0 s< 0 goto 82            not an XDP action: stops
- 75  if r0 s> 4 goto 82
- 76  exit
-     line 14: return action.TX
- 77  r1 = 3                        XDP_TX, read from linux.xdp
- 78  to 81: r0 is 3, and the exit
-     line 15: end, {default = action.PASS})
- 82  r0 = 0                        XDP_ABORTED, where the program stops
- 83  exit
+     line 19: local verdict = limits:run(port, #p)
+ 45  *(u64 *)(r10 -56) = r9        port, in Lua register 6, past the method and limits
+ 46  r1 = *(u32 *)(r7 +0)          xdp_md.data
+ 47  r2 = *(u32 *)(r7 +4)          xdp_md.data_end
+ 48  r2 -= r1                      #p
+ 49  *(u64 *)(r10 -64) = r2        #p, in Lua register 7
+ 50  r1 = 126943822178668 ll       the name: two slots, decoded below
+ 52  *(u64 *)(r10 -88) = r1        the name, below the frame
+ 53  to 56: port at r10 -80 and #p at r10 -72, the arguments in order
+ 57  r1 = r10
+ 58  r1 += -88                     r1: the name, by address
+ 59  r2 = 7                        r2: "limits" and its NUL
+ 60  r3 = r6                       r3: the context
+ 61  r4 = r10
+ 62  r4 += -80                     r4: the arguments, by address
+ 63  r5 = 16                       r5: their size, two words
+ 64  call -1                       bpf_luaxdp_run: decoded below
+ 65  r0 <<= 32                     the int's 32 bits, the only ones defined
+ 66  r0 s>>= 32                    sign-extended, so -1 stays -1
+ 67  *(u64 *)(r10 -40) = r0        verdict, in Lua register 4
+     line 20: if verdict then
+ 68  r1 = *(u64 *)(r10 -40)
+ 69  if r1 == -1 goto 71           the kfunc's -1: nil
+ 70  goto 74                       a verdict: the number branch
+ 71  r1 = 0                        nil, the zero word it is everywhere else
+ 72  *(u64 *)(r10 -40) = r1
+ 73  goto 79                       the nil branch
+     line 21: return verdict
+ 74  r0 = *(u64 *)(r10 -40)
+ 75  r0 = r0
+ 76  if r0 s< 0 goto 84            not an XDP action: stops
+ 77  if r0 s> 4 goto 84
+ 78  exit
+     line 23: return action.TX
+ 79  r1 = 3                        XDP_TX, read from linux.xdp
+ 80  to 83: r0 is 3, and the exit
+     line 24: end, {default = action.PASS})
+ 84  r0 = 0                        XDP_ABORTED, where the program stops
+ 85  exit
 ```
 
 `llvm-objdump` prints two of these instructions by what their bytes hold before libbpf has read
-the object. Instruction 51 is `18 01 00 00 6c 69 6d 69 00 00 00 00 74 73 00 00`, an `LD_IMM64`
+the object. Instruction 50 is `18 01 00 00 6c 69 6d 69 00 00 00 00 74 73 00 00`, an `LD_IMM64`
 whose two immediates are the bytes `6c 69 6d 69` and `74 73 00 00`: `limits` and its NUL, padded to
-a word, in the kernel's byte order, which LLVM prints as the integer they make. Instruction 65 is
+a word, in the kernel's byte order, which LLVM prints as the integer they make. Instruction 64 is
 `85 00 00 00 ff ff ff ff`, a call whose source register is 0 and whose immediate is -1, on which
 `llvm-objdump -r` prints the relocation `R_BPF_64_32 bpf_luaxdp_run`: libbpf, as it loads the
 object, writes there the source register 2, `BPF_PSEUDO_KFUNC_CALL`, the kfunc's id in `luaxdp`'s
 BTF as the immediate, and which BTF that is as the offset. `bpftool prog dump xlated` of the loaded
 program prints it `call bpf_luaxdp_run`.
 
-A frame of 600 bytes whose bytes 36 and 37 are `00 35`, with the runtime `limits` running:
+A frame of 600 bytes, an IPv4 header of 20 and a UDP one whose destination port is `00 35`, with the
+runtime `limits` running:
 
 | Instructions | What they compute | Value |
 |--------------|-------------------|-------|
-| 3 to 45 | bytes 36 and 37, `00 35`, joined | `port` is 53 |
-| 47 to 49 | `data_end` less `data` | `#p` is 600 |
-| 51 to 64 | the name, 53 and 600 below the frame, and their addresses and sizes | |
-| 65 | the callback reads 53 with `getint64(0)` and 600 with `getint64(8)`: 600 is over 512 | `r0` is 1, `XDP_DROP` |
-| 66 to 68 | 1, sign-extended | `verdict` is 1 |
-| 69, 70 | 1 is not -1 | jump to 73 |
-| 73 to 76 | `r0` is 1, within 0 to 4 | the program returns 1, `XDP_DROP` |
+| 3 to 44 | `ihl`, 5, and the UDP header's `dest`, the two bytes at 14 + 5 * 4 + 2, `00 35`, swapped | `port` is 53 |
+| 46 to 48 | `data_end` less `data` | `#p` is 600 |
+| 50 to 63 | the name, 53 and 600 below the frame, and their addresses and sizes | |
+| 64 | the callback reads 53 with `getint64(0)` and 600 with `getint64(8)`: 600 is over 512 | `r0` is 1, `XDP_DROP` |
+| 65 to 67 | 1, sign-extended | `verdict` is 1 |
+| 68 to 70 | 1 is not -1 | jump to 74 |
+| 74 to 78 | `r0` is 1, within 0 to 4 | the program returns 1, `XDP_DROP` |
 
 A frame of 100 bytes to port 53, or one of 600 to port 80, makes the callback return nothing: the
 kfunc answers -1, instruction 69 jumps to 71, and the program returns 3, `XDP_TX`, as it does for
 every frame that reaches the call while no runtime `limits` runs. A frame of 30 bytes stops at the
-read of byte 36 and returns 0, `XDP_ABORTED`. `bpftool prog run` returned these for the object
-loaded on Linux 6.8, arm64, with the runtime started by `lunatik run --context=softirq limits`. In a
-TC program the call is the same over `bpf_luatc_run`, and `r3` holds the `__sk_buff`.
+read of the port, past its end, and returns 0, `XDP_ABORTED`. `bpftool prog run` returned these for
+the object loaded on Linux 6.8, arm64, with the runtime started by
+`lunatik run --context=softirq limits`. In a TC program the call is the same over `bpf_luatc_run`,
+and `r3` holds the `__sk_buff`.
 

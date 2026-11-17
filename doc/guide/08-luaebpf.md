@@ -19,20 +19,24 @@ reads.
 `protocols.bpf.lua`:
 
 ```Lua
-local map    = require("bpf.map")
-local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
-local eth    = require("linux.eth").proto
+local map     = require("bpf.map")
+local xdp     = require("bpf.xdp")
+local struct  = require("struct")
+local vmlinux = require("luaebpf.vmlinux")
+local action  = require("linux.xdp").action
+local eth     = require("linux.eth")
 
-local ETHERTYPE <const> = 12 -- the ethertype, in network order
-local PROTOCOL  <const> = 23 -- the protocol byte of the IPv4 header
+local ethhdr = struct(vmlinux.layout("ethhdr"))
+local iphdr  = struct(vmlinux.layout("iphdr"))
 
 local counts = map.array("counts", {key = "I4", value = "I8", entries = 256})
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
-	if p:getbyte(ETHERTYPE) << 8 | p:getbyte(ETHERTYPE + 1) == eth.IP then
-		local protocol = p:getbyte(PROTOCOL)
+	local frame = ethhdr:view(p, 0)
+	if frame.h_proto == eth.proto.IP then
+		local ip = iphdr:view(p, eth.HLEN)
+		local protocol = ip.protocol
 		local n = counts[protocol]
 		if n then
 			counts[protocol] = n + 1
@@ -43,9 +47,11 @@ end, {default = action.PASS})
 ```
 
 The file has two parts. Its body, every line outside the function, runs once, on the host, when
-the file is compiled: it declares the map `counts` and the program, with the verdict a `return`
-with no value gives. The function is the program: it is compiled to eBPF and runs in the kernel on
-each packet. It returns `XDP_PASS`, so every packet it can read goes on to the network stack.
+the file is compiled: it reads the kernel's Ethernet and IPv4 headers from its BTF, declares the map
+`counts` and the program, with the verdict a `return` with no value gives. The function is the
+program: it is compiled to eBPF and runs in the kernel on each packet, and reads the headers' fields
+by name, each where the kernel's struct puts it ([The packet](#the-packet)). It returns `XDP_PASS`,
+so every packet it can read goes on to the network stack.
 
 Compile it into place and attach it to a device:
 
@@ -65,10 +71,10 @@ local counts <close> = map.array("/sys/fs/bpf/lunatik/protocols/counts", "I4", "
 return counts[ipproto.TCP], counts[ipproto.UDP]'
 ```
 
-A frame that says IPv4 but is shorter than 24 bytes has no byte 23: its read stops the program,
-which returns `XDP_ABORTED`, so the frame is dropped and nothing is counted. The lookup and the
-update are two steps, so two CPUs that count the same protocol at once can lose one of the
-increments.
+A frame that says IPv4 but is too short to hold the IPv4 header's protocol stops the program at the
+read of `ip.protocol`, which returns `XDP_ABORTED`, so the frame is dropped and nothing is counted.
+The lookup and the update are two steps, so two CPUs that count the same protocol at once can lose
+one of the increments.
 
 ```Shell
 sudo lunatik stop protocols
@@ -114,7 +120,7 @@ callback returns on the same hook.
   an XDP program, stops the program, as the kernel's Lua answers a callback returning it with the
   hook's fallback, the answer it gives a callback that raised. One the compiler knows is refused,
   "the verdict 11 is not an XDP action", and so is a boolean, which no action is: `return
-  p:getbyte(23) == ipproto.TCP` gives "the verdict may be a boolean here; return an action".
+  ip.protocol == ipproto.TCP` gives "the verdict may be a boolean here; return an action".
 
 A `return` with no value, or with `nil`, returns the default verdict. A verdict that may be nil is
 refused: "the verdict may be nil here; test it first". The constructor names the default verdict,
@@ -340,22 +346,27 @@ port 53 longer than 512 bytes:
 ```Lua
 local xdp     = require("bpf.xdp")
 local lunatik = require("lunatik")
+local struct  = require("struct")
+local vmlinux = require("luaebpf.vmlinux")
 local action  = require("linux.xdp").action
-local eth     = require("linux.eth").proto
+local eth     = require("linux.eth")
 local ipproto = require("linux.socket").ipproto
 
-local ETHERTYPE <const> = 12 -- the ethertype, in network order
-local PROTOCOL  <const> = 23 -- the protocol byte of the IPv4 header
-local PORT      <const> = 36 -- the UDP destination port, past an IPv4 header with no options
+local WORD <const> = 4 -- bytes in a unit of ihl
+
+local ethhdr = struct(vmlinux.layout("ethhdr"))
+local iphdr  = struct(vmlinux.layout("iphdr"))
+local udphdr = struct(vmlinux.layout("udphdr"))
 
 local limits = lunatik.runtime("limits")
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
-	if p:getbyte(ETHERTYPE) << 8 | p:getbyte(ETHERTYPE + 1) ~= eth.IP or p:getbyte(PROTOCOL) ~= ipproto.UDP then
+	local ip = iphdr:view(p, eth.HLEN)
+	if ethhdr:view(p, 0).h_proto ~= eth.proto.IP or ip.protocol ~= ipproto.UDP then
 		return action.PASS
 	end
-	local port = p:getbyte(PORT) << 8 | p:getbyte(PORT + 1)
+	local port = udphdr:view(p, eth.HLEN + ip.ihl * WORD).dest
 	local verdict = limits:run(port, #p)
 	if verdict then
 		return verdict
@@ -569,7 +580,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | a number that may be nil cannot be compared with a number here | `==` on a variable nil on one path | `local v = 0` |
 | a number that may be nil has no truth value in a compiled function | `if v then`, `v` nil on one path | `local v = 0`, then `if v ~= 0 then` |
 | the verdict may be nil here; test it first | `return v`, `v` nil on one path | a verdict on every path |
-| the verdict may be a boolean here; return an action | `return p:getbyte(23) == ipproto.TCP` | `if p:getbyte(23) == ipproto.TCP then return action.DROP end` |
+| the verdict may be a boolean here; return an action | `return ip.protocol == ipproto.TCP` | `if ip.protocol == ipproto.TCP then return action.DROP end` |
 | the verdict 11 is not an XDP action | `return 11`, a value no action of the program's type | an action of `linux.xdp.action` or `linux.tc.action` |
 | xdp.program's default verdict is not an XDP action | `{default = 5}` | `{default = action.DROP}` |
 | xdp.program's default verdict is not an integer | `xdp.program(fn)`, `{default = "drop"}` | `xdp.program(fn, {default = action.PASS})`, and `tc.program` alike |

@@ -13,13 +13,20 @@
 -- @usage
 -- local xdp     = require("bpf.xdp")
 -- local lunatik = require("lunatik")
+-- local struct  = require("struct")
+-- local vmlinux = require("luaebpf.vmlinux")
 -- local action  = require("linux.xdp").action
+-- local eth     = require("linux.eth")
+--
+-- local iphdr  = struct(vmlinux.layout("iphdr"))
+-- local udphdr = struct(vmlinux.layout("udphdr"))
 --
 -- local limits = lunatik.runtime("limits")
 --
 -- return xdp.program(function(ctx)
 --     local p = ctx:packet()
---     local port = p:getbyte(36) << 8 | p:getbyte(37)
+--     local ip = iphdr:view(p, eth.HLEN)
+--     local port = udphdr:view(p, eth.HLEN + ip.ihl * 4).dest
 --     local verdict = limits:run(port, #p)
 --     if verdict then
 --         return verdict
