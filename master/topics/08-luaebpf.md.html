@@ -375,7 +375,8 @@ A program past the verifier&rsquo;s limits, most often a loop of many passes, is
 <code>lunatik run</code> prints the verifier&rsquo;s log, which quotes the Lua lines, exits 1 and leaves nothing
 attached. A call into a runtime whose module carries no BTF is refused there too, by libbpf,
 whose warning names the kfunc
-(<a href="#calls-into-a-kernel-lua-runtime">Calls into a kernel Lua runtime</a>).</li>
+(<a href="#calls-into-a-kernel-lua-runtime">Calls into a kernel Lua runtime</a>), and so is one under a
+license the kernel does not count as GPL-compatible (<a href="#the-license">The license</a>).</li>
 <li><strong>Stops.</strong> In the kernel, on a packet, the program returns at once <code>XDP_ABORTED</code> in XDP or
 <code>TC_ACT_SHOT</code> in TC, which drop the packet, and nothing is logged (#2098); a tracer reads an
 XDP program&rsquo;s stops at the tracepoint <code>xdp:xdp_exception</code>. A program stops at a read past the
@@ -850,6 +851,39 @@ when the program computes it.</li>
 
 <p><code>while</code>, <code>repeat</code>, a <code>goto</code> backwards and a generic <code>for</code> are refused.</p>
 
+<p><a name="The_license"></a></p>
+
+<h2 id="the-license">The license</h2>
+
+<p>The object declares one license for its programs, which the kernel reads when <code>lunatik run</code> loads
+them. A program file names it in the options its constructors take, <code>license</code>, a string, and a
+file that names none declares <code>Dual MIT/GPL</code>:</p>
+
+<pre>
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(filter, {default = action.DROP, license = <span class="string">"GPL"</span>})
+</pre>
+
+
+<ul>
+<li>Every program of a file carries the license the object declares, since libbpf loads each under
+the object&rsquo;s one <code>license</code> section. A constructor whose license is not the one of the programs
+before it is refused at the line of its function, a program that names none counting as
+<code>Dual MIT/GPL</code>: &ldquo;tc.program&rsquo;s license &lsquo;GPL&rsquo; is not &lsquo;Dual MIT/GPL&rsquo;, the license of the programs
+before it&rdquo;. So is a license that is not a string, &ldquo;xdp.program&rsquo;s license is not a string&rdquo;. Any
+string compiles, and libbpf keeps its first 63 bytes.</li>
+<li>The kernel reads the string for one thing, whether the program is GPL-compatible, which it is
+under <code>GPL</code>, <code>GPL v2</code>, <code>GPL and additional rights</code>, <code>Dual BSD/GPL</code>, <code>Dual MIT/GPL</code> and
+<code>Dual MPL/GPL</code> (<code>license_is_gpl_compatible</code>, <code>include/linux/license.h</code>) and under no other
+string. It keeps that alone: <code>bpftool prog show</code> prints <code>gpl</code> for a GPL-compatible program, and
+the string is read from the object, <code>readelf -p license protocols.bpf.o</code>.</li>
+<li>A program that calls a kernel function loads only under a GPL-compatible license, and a call
+into a runtime is such a call. Under any other, <code>lunatik run</code> prints the verifier&rsquo;s &ldquo;cannot call
+kernel function from non-GPL compatible program&rdquo;, exits 1 and leaves nothing attached. A program
+that calls none, which reads its packet and its context and looks up and updates its maps,
+loads under any license.</li>
+</ul>
+
+
 <p><a name="Where_a_compiled_function_and_Lua_differ"></a></p>
 
 <h2 id="where-a-compiled-function-and-lua-differ">Where a compiled function and Lua differ</h2>
@@ -1079,6 +1113,16 @@ as the words of 1 and 0, which are actions, so a test of the word cannot tell th
 <td> <code>xdp.program(fn, {default = action.PASS})</code>, and <code>tc.program</code> alike </td>
 </tr>
 <tr>
+<td> xdp.program&rsquo;s license is not a string </td>
+<td> <code>{license = 2}</code> </td>
+<td> <code>{license = &quot;GPL&quot;}</code> </td>
+</tr>
+<tr>
+<td> tc.program&rsquo;s license &lsquo;GPL&rsquo; is not &lsquo;Dual MIT/GPL&rsquo;, the license of the programs before it </td>
+<td> <code>license = &quot;GPL&quot;</code> on one program of a file, and none on another </td>
+<td> the same <code>license</code> on every program </td>
+</tr>
+<tr>
 <td> &lsquo;half&rsquo; is a float, which a compiled function cannot hold </td>
 <td> <code>local half = math.sqrt(4)</code> in the body </td>
 <td> an integer </td>
@@ -1191,7 +1235,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 16:05:58</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 16:07:13</span>
 </div>
 </footer>
 </body>

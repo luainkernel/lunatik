@@ -214,7 +214,8 @@
 
 <p> A call into a kernel Lua runtime <a href="../modules/lunatik.html#runtime">lunatik.runtime</a> names, <code>r:run(a, b)</code>, lowers to
  <code>bpf_luaxdp_run</code>: it answers the verdict the callback <a href="../modules/xdp.html#attach">xdp.attach</a> registered returns, or nil, and
- the program tests the answer before it reads it.
+ the program tests the answer before it reads it. The kernel loads a program that calls it only under
+ a license it counts as GPL-compatible.
     <h2 id="usage">Usage</h2>
         <pre class="example">local xdp    = require(&quot;bpf.xdp&quot;)
 local action = require(&quot;linux.xdp&quot;).action
@@ -253,8 +254,10 @@ end, {default = action.PASS})
         <li><span class="parameter">opts</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          <code>default</code>, required, the verdict the program returns where its function
-   returns no value, an action, and <code>name</code>, what the program is called in the object, cut to the
-   fifteen characters <code>BPF_OBJ_NAME_LEN</code> leaves and made unique against the names already taken.
+   returns no value, an action, <code>name</code>, what the program is called in the object, cut to the
+   fifteen characters <code>BPF_OBJ_NAME_LEN</code> leaves and made unique against the names already taken,
+   and <code>license</code>, a string, the license the object declares for every program of the file,
+   <code>Dual MIT/GPL</code> where it names none.
         </li>
     </ul>
 
@@ -267,8 +270,9 @@ end, {default = action.PASS})
 
     <h3>Raises</h3>
      <code>xdp.program takes a Lua function</code>, or <code>&lt;file&gt;:&lt;line&gt;: xdp.program&apos;s default verdict is not
-   an integer</code>, which a missing <code>default</code> raises too, or <code>is not an XDP action</code>, the line where
-   <code>fn</code> is defined
+   an integer</code>, which a missing <code>default</code> raises too, or <code>is not an XDP action</code>, or
+   <code>&lt;file&gt;:&lt;line&gt;: xdp.program&apos;s license is not a string</code> or <code>&apos;&lt;license&gt;&apos; is not &apos;&lt;before&gt;&apos;, the
+   license of the programs before it</code>, the line where <code>fn</code> is defined
 
 
 
@@ -290,7 +294,7 @@ end, {default = action.PASS})
 <a href="../../modules/bpf.xdp.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.xdp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 16:05:58</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 16:07:13</span>
 </div>
 </footer>
 </body>

@@ -582,6 +582,7 @@ window.LUNATIK_SEARCH = [
 ["Calls","topics/08-luaebpf.md.html#calls","Guide · Compiling Lua to eBPF"],
 ["Calls into a kernel Lua runtime","topics/08-luaebpf.md.html#calls-into-a-kernel-lua-runtime","Guide · Compiling Lua to eBPF"],
 ["Loops","topics/08-luaebpf.md.html#loops","Guide · Compiling Lua to eBPF"],
+["The license","topics/08-luaebpf.md.html#the-license","Guide · Compiling Lua to eBPF"],
 ["Where a compiled function and Lua differ","topics/08-luaebpf.md.html#where-a-compiled-function-and-lua-differ","Guide · Compiling Lua to eBPF"],
 ["Messages","topics/08-luaebpf.md.html#messages","Guide · Compiling Lua to eBPF"],
 ["How a program file becomes a program","topics/08-luaebpf.md.html#how-a-program-file-becomes-a-program","Guide · Compiling Lua to eBPF"],

@@ -59,7 +59,8 @@ the program file defines.
 ### Programs and maps
 
 A program constructor leaves each program in `programs.lua`: its function, its default verdict, the
-error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`, its name if the file gave one, the ELF
+error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`, its name if the file gave one, its
+license, `Dual MIT/GPL` if it gave none, the ELF
 section its kind names, `xdp`, `tcx/ingress` or `tcx/egress`,
 from which libbpf reads the program type and the attach point, the actions a verdict of its type
 may be, the range `luakfunc_action` holds a kernel callback to, its context: the kernel struct
@@ -95,7 +96,8 @@ the byte order of the kernel `lunatik.config` describes:
 * `.maps`, each map BTF-defined: a struct of pointer-to-array members whose element counts libbpf
   reads as the map's type, entries, key size and value size, a `VAR` of that struct, and a
   `DATASEC` holding them;
-* `license`, `Dual MIT/GPL`, which a program calling a kfunc needs;
+* `license`, the string the programs' constructors name, `Dual MIT/GPL` where they name none,
+  which the kernel reads for whether a program may call a kfunc;
 * `.BTF`, a `FUNC` and its `FUNC_PROTO` for each compiled function, every parameter a `long`, a
   program's result an `int` and a subprogram's a `long`, a program global and a subprogram static;
 * `.BTF.ext`, each function's `func_info`, and the `line_info` that quotes the Lua line each
