@@ -14,16 +14,27 @@
 #   - each of those fields is four bytes, which is the only width the kernel lets a program use
 #     on either context (net/core/filter.c's __is_valid_xdp_access and bpf_skb_is_valid_access)
 #   - iphdr's whole-byte members are reported at the dump's offsets, while the dump's named
-#     bitfields and its anonymous union are absent from the layout
+#     bitfields are no field of the layout and its anonymous union is absent from it
 #   - every member reported of xdp_md, __sk_buff, iphdr, tcphdr and flowi_tunnel is marked bigendian
 #     exactly where the dump types it __be16, __be32 or __be64, so iphdr's tot_len, tcphdr's seq and
 #     flowi_tunnel's tun_id are, and iphdr's check, a __sum16, is not
+#   - every bitfield the dump names of iphdr and tcphdr is reported, with a mask of its
+#     bitfield_size bits under a naturally aligned load of 1, 2, 4 or 8 bytes that covers its bits
+#   - views of the layouts of iphdr and tcphdr, over the SYN and the ClientHello of the corpus as
+#     the compiler's packet twin reads them, read the version, ihl, total length, protocol,
+#     destination port, doff and flags each packet carries, the TCP header found past the IPv4 one
+#     by ihl: a shift a byte order gets wrong reads another nibble or flag
+#   - a BTF the case writes, of a struct whose bitfields those of the kernel's own structs give no
+#     instance of, answers through --btf: one of an int is reported signed, one that crosses the four
+#     bytes of its type takes the load of eight that covers it, and one no load of eight bytes
+#     covers is absent, though bpftool names it
 #   - a struct the kernel does not publish raises a message naming it
 #   - --btf on a copy of /sys/kernel/btf/vmlinux answers the same layouts, and the object is byte
 #     for byte the one compiled without it
 #   - the kernel's BTF swapped into the byte order the host does not use, which bpftool reads as it
 #     reads the kernel's, answers the same layouts through --btf, a copy of the program file setting
-#     luaebpf.emit.bigendian to that order
+#     luaebpf.emit.bigendian to that order, but for each bitfield's shift, which counts from the other
+#     end of the same load, as BTF numbers a big-endian kernel's bits from the most significant
 #   - a BTF of another byte order than the object's is refused naming both, the swapped one for an
 #     object in the host's order and the running kernel's for one in the other, with no object left
 #     behind
@@ -39,7 +50,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 12
+luaebpf_start 16
 
 DUMP=
 LAYOUT=
@@ -108,6 +119,91 @@ mismarked() {
 	' "$DUMP"
 }
 
+# the bitfields the dump names of a struct the layout reports bitfields of, that the layout reports
+# otherwise than the dump's bits_offset and bitfield_size say: a mask of that many bits, under a
+# naturally aligned load of 1, 2, 4 or 8 bytes that covers the bits
+miscovered() {
+	awk -v layout="$LAYOUT" '
+		BEGIN {
+			while ((getline line < layout) > 0) {
+				split(line, f, "\t")
+				if (f[1] == "bitfield") { wanted["'\''" f[2] "'\''"] = 1; load[f[2] "." f[3]] = f[4] " " f[5] " " f[6] }
+			}
+		}
+		$1 ~ /^\[/ { on = ($2 == "STRUCT" && $3 in wanted) ? $3 : ""; next }
+		on != "" && $4 ~ /^bitfield_size=/ {
+			split($3, o, "="); split($4, b, "=")
+			bits[substr(on, 2, length(on) - 2) "." substr($1, 2, length($1) - 2)] = o[2] " " b[2]
+		}
+		END {
+			for (key in bits) {
+				split(bits[key], m, " ")
+				if (!(key in load)) { print key ": a bitfield the layout does not report"; continue }
+				split(load[key], l, " ")
+				aligned = (l[2] == 1 || l[2] == 2 || l[2] == 4 || l[2] == 8) && l[1] % l[2] == 0
+				covers = l[1] * 8 <= m[1] && m[1] + m[2] <= (l[1] + l[2]) * 8
+				if (!aligned || !covers || l[3] != 2 ^ m[2] - 1)
+					print key ": a load at " l[1] " of " l[2] " bytes masked by " l[3] ", for " m[2] " bits at " m[1]
+			}
+		}
+	' "$DUMP"
+}
+
+# the bitfields whose shift in the swapped BTF does not count from the other end of the load the
+# kernel's own BTF shifts them in, the width of the load less the kernel's shift and the bitfield's
+reversed() {
+	awk -F'\t' '
+		FILENAME == ARGV[1] { if ($1 == "bitfield") { size[$2 "." $3] = $5; mask[$2 "." $3] = $6 } next }
+		FILENAME == ARGV[2] { native[$1 "." $2] = $3; next }
+		{
+			key = $1 "." $2; n++
+			for (bits = 0; 2 ^ bits - 1 < mask[key]; bits++);
+			if ($3 != size[key] * 8 - native[key] - bits)
+				print key ": shift " $3 " in the swapped BTF, " native[key] " in the kernel'\''s"
+		}
+		END { if (n == 0) print "the swapped BTF answered no bitfield" }
+	' "$LAYOUT" "$LUAEBPF_WORK/shift.txt" "$LUAEBPF_WORK/$other/shift.txt"
+}
+
+# crossing <out>: a raw little-endian BTF of the struct crossing, four bitfields of four-byte types:
+# narrow, 4 bits of an unsigned int; negative, 4 of an int; wide, 20 that cross the unsigned int's
+# four bytes; and uncovered, 30 that no eight naturally aligned bytes hold
+crossing() {
+	lua5.5 - "$1" <<'LUA'
+local pack = string.pack
+
+-- uapi/linux/btf.h: a btf_type's info holds its kind from bit 24 and a struct's kind_flag in bit 31, the
+-- word after an INT its encoding from bit 24 and its bits, and a member's offset its bitfield size
+-- from bit 24
+local INT    <const> = 1 << 24
+local STRUCT <const> = 1 << 31 | 4 << 24
+local SIGNED <const> = 1 << 24
+local BITS   <const> = 32
+
+local strings = "\0unsigned int\0int\0crossing\0narrow\0negative\0wide\0uncovered\0"
+
+local function name(text)
+	return (strings:find("\0" .. text .. "\0", 1, true))
+end
+
+local function integer(text, encoding)
+	return pack("<I4I4I4I4", name(text), INT, BITS // 8, encoding | BITS)
+end
+
+local function member(text, type, bit, bits)
+	return pack("<I4I4I4", name(text), type, bits << 24 | bit)
+end
+
+local members = {member("narrow", 1, 0, 4), member("negative", 2, 4, 4), member("wide", 1, 20, 20),
+	member("uncovered", 1, 40, 30)}
+local types = integer("unsigned int", 0) .. integer("int", SIGNED) ..
+	pack("<I4I4I4", name("crossing"), STRUCT | #members, 12) .. table.concat(members)
+local file = assert(io.open(arg[1], "wb"))
+assert(file:write(pack("<I2I1I1I4I4I4I4I4", 0xeb9f, 1, 0, 24, 0, #types, #types, #strings), types, strings))
+assert(file:close())
+LUA
+}
+
 # the byte offset and the width the reader answered for one field
 reports() {
 	awk -v what="$1" -v field="$2" '$1 == "field" && $2 == what && $3 == field {print $4, $5}' "$LAYOUT"
@@ -159,12 +255,48 @@ for absent in ihl version "(anon)"; do
 	[ -z "$(reports iphdr "$absent")" ] \
 		|| fail "luaebpf: the layout reports iphdr.$absent, which is no whole-byte integer"
 done
-ktap_pass "luaebpf: a bitfield and an anonymous union are absent, and the whole-byte members are not"
+ktap_pass "luaebpf: a bitfield is no field, an anonymous union is absent, and the whole-byte members are fields"
 
 output=$(mismarked)
 [ -z "$output" ] && grep -q "^field	iphdr	tot_len	.*	true$" "$LAYOUT" \
 	|| { comment "$output"; fail "luaebpf: a member is marked bigendian otherwise than the dump types it"; }
 ktap_pass "luaebpf: a member is marked bigendian exactly where the dump types it a big-endian typedef"
+
+output=$(miscovered)
+[ -z "$output" ] && grep -q "^bitfield	tcphdr	doff	" "$LAYOUT" \
+	|| { comment "$output"; fail "luaebpf: a bitfield is not reported under a load that covers its bits"; }
+ktap_pass "luaebpf: every bitfield is reported with its mask, under an aligned load that covers its bits"
+
+views=$'syn 4 5 44 6 443 6 1 0 0\ntls 4 5 112 6 443 5 0 1 1'
+[ "$(cat "$LUAEBPF_WORK/view.txt")" = "$views" ] \
+	|| { comment "$(cat "$LUAEBPF_WORK/view.txt")"; fail "luaebpf: a view of iphdr and tcphdr misreads a packet"; }
+ktap_pass "luaebpf: views of iphdr and tcphdr read each packet's version, ihl, ports, doff and flags by name"
+
+crossing "$LUAEBPF_WORK/crossing.btf" \
+	&& bpftool btf dump file "$LUAEBPF_WORK/crossing.btf" format raw | grep -q "'uncovered' .*bitfield_size=30" \
+	|| fail "luaebpf: the BTF of a struct of crossing bitfields could not be written"
+cat > "$LUAEBPF_WORK/crossing.bpf.lua" <<'LUA'
+require("luaebpf.emit").bigendian = false
+
+local vmlinux = require("luaebpf.vmlinux")
+local xdp     = require("bpf.xdp")
+local action  = require("linux.xdp").action
+
+local out = assert(io.open("crossing.txt", "w"))
+for _, field in ipairs(vmlinux.layout("crossing").bitfields) do
+	out:write(field.name, " ", field.offset, " ", field.size, " ", tostring(field.signed), " ", field.shift, " ",
+		field.mask, "\n")
+end
+out:close()
+
+return xdp.program(function(_) return action.PASS end, {default = action.PASS})
+LUA
+output=$(luaebpf_written crossing --btf="$LUAEBPF_WORK/crossing.btf" 2>&1) \
+	|| { comment "$output"; fail "luaebpf: crossing.bpf.lua did not compile over the BTF the case wrote"; }
+crossed=$'narrow 0 4 false 0 15\nnegative 0 4 true 4 15\nwide 0 8 false 20 1048575'
+[ "$(cat "$LUAEBPF_WORK/crossing.txt")" = "$crossed" ] \
+	|| { comment "$(cat "$LUAEBPF_WORK/crossing.txt")"; fail "luaebpf: a bitfield past its type's bytes is not under the load that covers it"; }
+ktap_pass "luaebpf: a bitfield past its type's bytes takes the wider load, a signed one is signed, one no load covers is absent"
 
 grep -q "^missing	false	the kernel BTF has no struct 'a_struct_no_kernel_publishes'$" "$LAYOUT" \
 	|| { comment "$(grep '^missing' "$LAYOUT")"; fail "luaebpf: an unpublished struct does not raise with its name"; }
@@ -190,6 +322,10 @@ output=$(luaebpf_ordered $other btfview --btf="$LUAEBPF_WORK/swapped.btf") \
 cmp -s "$LUAEBPF_WORK/$other/layout.txt" "$LAYOUT" \
 	|| { comment "$(diff "$LAYOUT" "$LUAEBPF_WORK/$other/layout.txt")"; fail "luaebpf: the swapped BTF answers other layouts"; }
 ktap_pass "luaebpf: the kernel BTF swapped into the order the host does not use answers the same layouts"
+
+output=$(reversed)
+[ -z "$output" ] || { comment "$output"; fail "luaebpf: a bitfield's shift does not count from the swapped end"; }
+ktap_pass "luaebpf: a bitfield's shift in the swapped BTF counts from the other end of the same load"
 
 cp "$LUAEBPF_SRC/btfview.bpf.lua" "$LUAEBPF_WORK/" || fail "luaebpf: btfview.bpf.lua could not be copied"
 output=$(luaebpf_refuses btfview "$LUAEBPF_WORK/swapped.btf is a $other-endian BTF, for a $host-endian object" \
