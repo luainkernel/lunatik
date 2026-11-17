@@ -36,6 +36,15 @@ local unordered = struct{ size = 4, fields = {
 assert(unordered.format == "=I2I2", "out-of-order: " .. unordered.format)
 assert(unordered.fields[1].name == "lo" and unordered.fields[2].name == "hi", "fields in offset order")
 
+-- a big-endian field switches the format's order for itself alone
+local network = struct{size = 6, fields = {
+	{name = "a", offset = 0, size = 1, signed = false},
+	{name = "b", offset = 2, size = 2, signed = false, bigendian = true},
+	{name = "c", offset = 4, size = 2, signed = false},
+}}
+assert(network.format == "=I1x>I2=I2", "big-endian: " .. network.format)
+assert(network:pack(1, 0x1234, 0x5678):sub(3, 4) == "\x12\x34", "big-endian pack")
+
 -- overlapping fields (a union) are rejected
 local ok = pcall(struct, { size = 4, fields = {
 	{ name = "x", offset = 0, size = 4, signed = false },
