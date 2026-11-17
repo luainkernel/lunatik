@@ -438,8 +438,15 @@ write to the memory names where. A `#N` is no such path: the append that prompte
 to a memory that named `AGENTS.md` already, and the lesson it carried was in no file of the tree. A
 lesson that belongs to no place of the public tree, the language of the conversation, the tone, a
 private consumer, is a memory of type `user`, and naming `CLAUDE.local.md` does not pass it as a
-`feedback` one. The other types pass, and so does the index, `MEMORY.md`, which carries none. What a call
-adds is what Write writes, the `new_string` of an Edit and the whole command of a shell write, a
+`feedback` one. The other types pass. The index, `MEMORY.md`, carries none, and a call that adds to it a
+link the index does not hold yet is refused when the directory holds no such file, or holds a lesson
+whose own text names no path of the tree: a session wrote a lesson the guard refused and, in the same
+turn, a `sed -i` that added its line to the index, which then pointed at a memory that did not exist,
+and the maintainer asked "pq colocou no MEMORY.md? deveria ter guards contra isso". A link to a `user`,
+`project` or `reference` memory passes, and so does one the index holds already, so a line reworded
+keeps its link; the index lists a memory once the call that writes it has landed, so a call that writes
+both is refused, and the memory goes first, in a call of its own. What a call adds is what Write
+writes, the `new_string` of an Edit and the whole command of a shell write, a
 redirection, a `tee` or a `sed -i` into a memory read through `commands.sh`, its path spelled whole,
 through a variable the command assigns or under a directory it changes to, as
 `cd <memory> && cat >> <file>` spells it, a relative path read under every directory the command

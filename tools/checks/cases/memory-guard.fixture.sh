@@ -5,7 +5,8 @@
 #
 # Builds, in the empty directory <dir>, the home directory memory-guard.cases reads, user/: a
 # project's Claude Code memories, a lesson that names no place of the repository, one that names a
-# skill, a project memory and the index.
+# skill, a project memory, the index, which lists the first, and a second lesson that names no place
+# of the repository, which it does not list.
 #
 # Usage: bash tools/checks/cases/memory-guard.fixture.sh <dir>
 
@@ -15,4 +16,5 @@ printf -- '---\nname: feedback-bare\ndescription: "Run the suite twice"\nmetadat
 printf -- '---\nname: feedback-placed\ndescription: "Install before testing"\nmetadata:\n  type: feedback\n---\n\nInstall before testing.\nLives in .agents/skills/lunatik-cycle/SKILL.md.\n' > "$memory/feedback_placed.md"
 printf -- '---\nname: project-batch\ndescription: "A batch of runs"\nmetadata:\n  type: project\n---\n\nThree runs in flight.\n' > "$memory/project_batch.md"
 printf -- '- [Bare](feedback_bare.md) - run the suite twice\n' > "$memory/MEMORY.md"
+printf -- '---\nname: feedback-loose\ndescription: "Run it once"\nmetadata:\n  type: feedback\n---\n\nRun the example once.\n' > "$memory/feedback_loose.md"
 
