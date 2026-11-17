@@ -18,9 +18,10 @@
 --
 -- The context has the methods of the kernel's XDP `ctx` object: `ctx:packet()`, the packet, read
 -- with `getbyte`, `getint16` and the other reads of the kernel's `data` object, in the kernel's
--- byte order; `ctx:ingress()`, the index of the device the packet arrived on; and `ctx:queue()`,
--- the receive queue it arrived in, neither writable. Any other method is refused, "the context has
--- no method '<name>'".
+-- byte order, or a field at a time through the view a `struct` codec makes of it, `iphdr:view(p,
+-- eth.HLEN).protocol`, as `codec:view` reads a `data` object; `ctx:ingress()`, the index of the
+-- device the packet arrived on; and `ctx:queue()`, the receive queue it arrived in, neither
+-- writable. Any other method is refused, "the context has no method '<name>'".
 -- `ctx.data` and `ctx.data_end` are the bounds of the packet, not numbers; `#p` is its length.
 --
 -- A call into a kernel Lua runtime `lunatik.runtime` names, `r:run(a, b)`, lowers to

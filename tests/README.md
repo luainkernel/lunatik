@@ -1485,6 +1485,30 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   is refused, and a byte field is not, where the kernel lacks efficient
   unaligned access, the program file's body setting `luaebpf.emit.unaligned`
   as in **packet**.
+- **view**: `codec:view(p, at)` in a compiled function, a field read by name as
+  one packet read at the view's offset plus the field's, over the five packets
+  of `packets.lua` through `ctx:packet()` and through `skb:data()`, against the
+  interpreted view of `lib/struct.lua` reading the same bytes: of the kernel's
+  `ethhdr`, `iphdr` and `tcphdr` as `luaebpf.vmlinux` lays them out, the
+  big-endian `h_proto`, `tot_len`, `dest` and `seq`, the byte `ttl`, the
+  `__sum16` `check` in the kernel's order, the bitfields `version`, `ihl`, `doff`
+  and `psh`, and the TCP header at the offset `ihl` gives, and of a codec the
+  body writes over the source address, a signed byte, a signed big-endian field,
+  a signed native one, a signed bitfield and a big-endian field of eight bytes.
+  Each view is made in a function the program calls with the packet, and in the
+  program's own frame, where a read past the end, `doff` on the ICMP echo,
+  stops the program after an earlier field kept its value, and a view each arm
+  of a branch makes of the one struct is read where the arms meet. A view with no
+  offset, where an earlier call left a number in the register the offset would
+  take, over the context or at an offset that is not a number, another method
+  of a codec, a field the layout lacks, a write, an index, a method on the view,
+  a view passed to a function or returned, one that may be nil, one two structs
+  merge into, a read in a function that assigned the parameter its packet came
+  in and a width no eBPF load covers are refused with their messages and lines. An
+  XDP field wider than a byte, a two-byte bitfield's load among them, is refused,
+  and a byte field and a bitfield of a byte are not, where the kernel lacks
+  efficient unaligned access, while a TC field that wide compiles, as in
+  **packet**.
 - **refuse**: every construct the phase 1 subset refuses, one program file per
   row, asserted on its exact message and Lua line, on the non-zero exit, and
   on no object being left behind; a global, a table of the body and a map's
