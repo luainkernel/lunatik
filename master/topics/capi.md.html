@@ -481,6 +481,8 @@ sets the <em>reference counter</em> to <code>1</code> and then returns <code>0</
 The script&rsquo;s first return value stays on the state&rsquo;s stack, at index <code>1</code>, below what a handler
 pushes.
 Otherwise, it returns <code>-ENOMEM</code>, if insufficient memory is available;
+<code>-EOPNOTSUPP</code>, if <code>opt</code> is <code>LUNATIK_OPT_HARDIRQ</code> on a kernel built with <code>CONFIG_PREEMPT_RT</code>,
+where that spinlock sleeps, before the script runs;
 or <code>-ENOEXEC</code>, if it fails to load or run the <code>script</code>, and logs the error with <code>pr_err</code>.</p>
 
 <h4 id="example-lunatik_runtime">Example: lunatik_runtime</h4>
@@ -2923,7 +2925,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 15:28:11</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 15:36:24</span>
 </div>
 </footer>
 </body>

@@ -308,6 +308,12 @@ CLI before installing another over it, or reboot.</p>
 </table>
 
 
+<p>A kernel built with <code>CONFIG_PREEMPT_RT</code> creates no hardirq runtime, and refuses one with <code>hardirq
+runtime not allowed on PREEMPT_RT, where a spinlock sleeps</code> before its script runs: there
+<code>spin_lock_irqsave</code> neither turns interrupts off nor spins, and may sleep where a kprobe handler
+or the scheduler cannot. A hook that needs a hardirq runtime, a kprobe among them, is not available
+on such a kernel.</p>
+
 <p>A binding that registers a hook checks that the runtime registering it has the context the hook
 fires in, and raises <code>runtime context mismatch: &lt;class&gt; needs &lt;context&gt;</code> from a runtime of another
 context. A class whose objects may sleep is a process-context class, and creating one of its
@@ -549,7 +555,7 @@ loads the object, and the kernel&rsquo;s <a href="https://www.lua.org/manual/5.5
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 15:28:11</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 15:36:24</span>
 </div>
 </footer>
 </body>

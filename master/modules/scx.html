@@ -213,8 +213,10 @@
  own lines do. An allocation the callback&rsquo;s Lua makes under memory pressure can still wake
  kswapd, whose wakeup takes the same lock.</p>
 
-<p> Needs 6.12 and later, with <code>CONFIG_SCHED_CLASS_EXT</code>; without it the module loads
- and offers <a href="../modules/scx.html#attach">attach</a>, which raises <code>EOPNOTSUPP</code>, and <a href="../modules/scx.html#detach">detach</a>, which does nothing.
+<p> Needs 6.12 and later, with <code>CONFIG_SCHED_CLASS_EXT</code> and without <code>CONFIG_PREEMPT_RT</code>,
+ where a runtime&rsquo;s lock sleeps and the kfunc would take it under the runqueue lock;
+ otherwise the module loads without the kfunc and offers <a href="../modules/scx.html#attach">attach</a>, which raises
+ <code>EOPNOTSUPP</code>, and <a href="../modules/scx.html#detach">detach</a>, which does nothing.
  The kfunc needs the module&rsquo;s BTF: run <code>sudo make btf_install</code> before <code>make</code>, or the kernel logs
  <code>missing module BTF, cannot register kfuncs</code> and an eBPF program that calls
  <code>bpf_luascx_run</code> does not load. The eBPF side is a sched_ext <code>struct_ops</code>
@@ -325,9 +327,9 @@ and then the slice.</li>
     </ol>
 
     <h3>Raises</h3>
-     <code>EOPNOTSUPP</code> on a kernel without sched_ext; <code>runtime context mismatch</code> unless the
-   runtime is hardirq; <code>not allowed while the runtime closes</code> from a finalizer that runs at its
-   close; or on allocation failure.
+     <code>EOPNOTSUPP</code> on a kernel without sched_ext or built with <code>CONFIG_PREEMPT_RT</code>;
+   <code>runtime context mismatch</code> unless the runtime is hardirq; <code>not allowed while the runtime
+   closes</code> from a finalizer that runs at its close; or on allocation failure.
 
     <h3>See also</h3>
     <ul>
@@ -391,7 +393,7 @@ scx.<span class="function-name">attach</span>(my_scheduler)
 <a href="../../modules/scx.html">5.1 docs</a> ·
 <a href="../../5.0/modules/scx.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 15:28:11</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 15:36:24</span>
 </div>
 </footer>
 </body>

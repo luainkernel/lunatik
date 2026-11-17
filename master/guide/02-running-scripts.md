@@ -77,6 +77,12 @@ A runtime is created in one of three contexts, and this decides what its code ma
 | softirq | `lunatik run --context=softirq <script>` | `GFP_ATOMIC` | `spin_lock_bh`; `spin_lock_irqsave` with IRQs already off | no |
 | hardirq | `lunatik run --context=hardirq <script>` | `GFP_ATOMIC` | `spin_lock_irqsave`, always | no |
 
+A kernel built with `CONFIG_PREEMPT_RT` creates no hardirq runtime, and refuses one with `hardirq
+runtime not allowed on PREEMPT_RT, where a spinlock sleeps` before its script runs: there
+`spin_lock_irqsave` neither turns interrupts off nor spins, and may sleep where a kprobe handler
+or the scheduler cannot. A hook that needs a hardirq runtime, a kprobe among them, is not available
+on such a kernel.
+
 A binding that registers a hook checks that the runtime registering it has the context the hook
 fires in, and raises `runtime context mismatch: <class> needs <context>` from a runtime of another
 context. A class whose objects may sleep is a process-context class, and creating one of its
