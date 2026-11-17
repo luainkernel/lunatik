@@ -23,6 +23,11 @@ usage: lunatik [-h | -V]
        lunatik test [<suite>]
        lunatik compile [<lunatic argument>...]
        lunatik bpf [--btf=<file>] [--scripts=<dir>] [-o <object>] <program>]=]
+local STARTUP <const> = [[
+	lunatik = lunatik or require("lunatik")
+	lunatik.runner = lunatik.runner or require("lunatik.runner")
+	lunatik.runner.startup()
+]]
 
 local modules = config.modules
 
@@ -68,11 +73,7 @@ local function load_modules()
 	if not probe() then
 		error("couldn't create " .. DEVICE, 0)
 	end
-	local ok, result = dostring[[
-		lunatik = require("lunatik")
-		lunatik.runner = require("lunatik.runner")
-		lunatik.runner.startup()
-	]]
+	local ok, result = dostring(STARTUP)
 	if not ok then error(result, 0) end
 end
 
@@ -145,7 +146,7 @@ end
 local function unload_modules()
 	unload_programs()
 	if probe() then
-		local ok, result = dostring("lunatik.runner.shutdown()")
+		local ok, result = dostring("if lunatik and lunatik.runner then lunatik.runner.shutdown() end")
 		if not ok then error(result, 0) end
 	end
 	repeat
@@ -172,13 +173,8 @@ local function status_modules()
 end
 
 local function ensure_loaded()
-	if not probe() then load_modules() end
-	local ok, result = dostring[[
-		lunatik = lunatik or require("lunatik")
-		lunatik.runner = lunatik.runner or require("lunatik.runner")
-		lunatik.runner.startup()
-	]]
-	if not ok then error(result, 0) end
+	-- modprobe can load lunatik_run without a module lunatik.runner requires
+	if not (probe() and dostring(STARTUP)) then load_modules() end
 end
 
 local function test_modules(suite)

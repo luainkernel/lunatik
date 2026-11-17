@@ -515,7 +515,8 @@ debugobjects' `ODEBUG:` line match neither, and both functions pass over them.
 ### cli
 
 Tests for `bin/lunatik`, the command line tool: its usage, its exit status, its
-REPL and the builds `status` and `reload` compare.
+REPL, the builds `status` and `reload` compare and a set of modules another
+loader loaded.
 
 - **usage**: `-h` and `--help` print the usage on stdout, exit 0; an unknown
   option, an unknown command, a verb without its script, `list` with one, a
@@ -561,6 +562,11 @@ REPL and the builds `status` and `reload` compare.
   replace, naming the core; with the modules unloaded, `status` against another
   build exits 0, names the core not loaded and no module as another build, and
   `unload` exits 0 with nothing printed.
+- **modprobe**: `modprobe` makes `/dev/lunatik` from `lunatik`, `luarcu`,
+  `luadevice` and `lunatik_run` alone and starts no runner; `list` then starts
+  the runner, though `luathread`, which `lunatik.runner` requires, is not
+  loaded, and exits 0 with nothing printed, and `unload` with no runner started
+  exits 0 with nothing printed and leaves no Lunatik module loaded.
 
 ### completion
 

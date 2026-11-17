@@ -8,7 +8,7 @@
 # Usage: sudo bash tests/cli/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
-TESTS="usage verbs repl builds"
+TESTS="usage verbs repl builds modprobe"
 FAILED=0
 
 SEP=$'\n'
