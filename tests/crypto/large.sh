@@ -16,7 +16,11 @@
 # LZ4_COMPRESSBOUND, raise EINVAL on 6.14 and earlier, where scomp bounds the input and the output by
 # its 128 KiB scratch, which the case reads as SCOMP_SCRATCH_SIZE from linux.crypto, generated from the
 # kernel's headers, and round-trip on 6.15 and later, whose headers declare none, the ciphertext's output
-# past 128 KiB as well. A string past KMALLOC_MAX_SIZE, which kvmalloc always takes from
+# past 128 KiB as well. Each call of the cases of 128 KiB and past it asks for a kmalloc block past
+# 128 KiB, of order 6 or 7 on 4 KiB pages, which the page allocator gives up on where memory is
+# fragmented: the call then raises "not enough memory", as the classes document below KMALLOC_MAX_SIZE
+# too, and the case reports a skip naming the block, which this script prints under its verdict, rather
+# than a failure. A string past KMALLOC_MAX_SIZE, which kvmalloc always takes from
 # vmalloc, is refused with "not enough memory" as the data of skcipher's encrypt and decrypt, of
 # aead's and of comp's compress and decompress, as aead's associated data and as the output size of
 # comp's, whose block holds the output too, and run_test reads no WARNING in dmesg, the copy asking
@@ -63,6 +67,7 @@ if option=$(lacking CONFIG_CRYPTO_SKCIPHER2 CONFIG_CRYPTO_AEAD2 CONFIG_CRYPTO_AC
 	ktap_skip "crypto/large: needs $option"
 else
 	served_case "crypto/large" run_test "$SCRIPT"
+	skipped=$(dmesg_since | grep -oE "SKIP	.*") && comment "$skipped"
 fi
 ktap_totals
 

@@ -16,11 +16,15 @@ end
 --- Runs a test function and prints the result.
 -- @tparam string test_name test name.
 -- @tparam function func test function to run.
+-- @tparam[opt] function skip called with what `func` raised: a reason it returns reports the case skipped, not failed.
 -- @usage test("Test Name", function() ... end)
-function lib.test(test_name, func)
+function lib.test(test_name, func, skip)
 	local status, err = pcall(func)
+	local reason = not status and skip and skip(err)
 	if status then
 		log("pass", test_name)
+	elseif reason then
+		log("skip", test_name, reason)
 	else
 		log("fail", test_name, err, "\n" .. traceback())
 	end
