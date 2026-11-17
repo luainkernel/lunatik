@@ -4,8 +4,8 @@
 */
 
 /*
-* Stand-in for OpenZFS's zfs.ko, which run.sh builds for depmod to read and never loads: ZFS's own
-* Lua exports lua_createtable, a name every Lunatik binding imports.
+* Stand-in for OpenZFS's zfs.ko, which zfs.sh loads beside lunatik.ko: ZFS's own Lua exports
+* lua_createtable, a name Lua's C API declares.
 */
 
 #include <linux/module.h>

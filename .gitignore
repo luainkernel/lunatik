@@ -9,6 +9,7 @@ modules.builtin
 modules.order
 build/
 lunatik_sym.h
+lunatik_prefix.h
 vmlinux.h
 moontastik*
 doc/*

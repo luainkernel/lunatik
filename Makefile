@@ -6,9 +6,6 @@
 KERNEL_RELEASE ?= ${shell uname -r}
 MODULES_PATH := /lib/modules
 MODULES_RELEASE_PATH := ${MODULES_PATH}/${KERNEL_RELEASE}
-# needed when zfs module is installed
-MODULES_ORDER_LIST := kernel/zfs/zfs.ko kernel/zfs/zlua.ko updates/dkms/zfs.ko updates/dkms/zlua.ko ubuntu/dkms/zfs/zfs.ko extra/zfs.ko updates/zfs.ko extra/zfs/zfs.ko weak-updates/zfs/zfs.ko
-MODULES_ORDER_FILE := ${MODULES_RELEASE_PATH}/modules.order
 BTF_INSTALL_PATH = ${MODULES_RELEASE_PATH}/build
 MODULES_BUILD_PATH ?= ${BTF_INSTALL_PATH}
 MODULES_INSTALL_PATH := ${MODULES_RELEASE_PATH}/kernel
@@ -103,7 +100,7 @@ AUTOGEN_KEY := $(KERNEL_RELEASE)|$(LUNATIK_MODULES)
 	tests_install tests_uninstall \
 	ebpf ebpf_install ebpf_uninstall
 
-all: lunatik_sym.h autogen ${LUNATIC} ${LUAEBPF_TABLES} ${LOADER}
+all: lunatik_sym.h lunatik_prefix.h autogen ${LUNATIC} ${LUAEBPF_TABLES} ${LOADER}
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${CURDIR} $(LUNATIK_CONFIG_FLAGS)
 
 ${LUNATIC}: ${LUNATIC_SRCS} $(wildcard lua/*.h) lunatik_conf.h
@@ -124,7 +121,7 @@ clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${CURDIR} clean
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${CURDIR}/autogen clean
 	${MAKE} -C examples/filter clean
-	${RM} lunatik_sym.h ${LUNATIC} ${LOADER}
+	${RM} lunatik_sym.h lunatik_prefix.h ${LUNATIC} ${LOADER}
 	${RM} -r ${LUAEBPF_BYTECODE}
 	${RM} -r lib/linux
 	${RM} autogen/lunatik/*.lua autogen/linux/*.lua \
@@ -301,20 +298,16 @@ modules_uninstall:
 # the program files of examples_install and tests_install compile with the CLI scripts_install writes
 install: scripts_install modules_install
 	${MAKE} examples_install tests_install
-	for mod in $(MODULES_ORDER_LIST); do \
-		sed -i "\|^$$mod$$|d" $(MODULES_ORDER_FILE); \
-		echo "$$mod" >> $(MODULES_ORDER_FILE); \
-	done
 	depmod -a ${KERNEL_RELEASE}
 
 uninstall: scripts_uninstall modules_uninstall examples_uninstall tests_uninstall
-	for mod in $(MODULES_ORDER_LIST); do \
-		sed -i "\|^$$mod$$|d" $(MODULES_ORDER_FILE); \
-	done
 	depmod -a ${KERNEL_RELEASE}
 
 lunatik_sym.h: $(LUA_API) gensymbols.sh
 	${shell CC='$(CC)' ./gensymbols.sh $(LUA_API) > lunatik_sym.h}
+
+lunatik_prefix.h: $(LUA_API) gensymbols.sh
+	${shell CC='$(CC)' ./gensymbols.sh -p $(LUA_API) > lunatik_prefix.h}
 
 # Only rewrite .config when the key actually changes, so its mtime
 # advances exactly when KERNEL_RELEASE or the enabled module set does.
