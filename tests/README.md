@@ -268,7 +268,11 @@ skip without `cryptd` and `ansi_cprng`, which select the APIs they reach.
   shrinks, and 131072 bytes of `cbc(aes)` ciphertext it cannot, given an output
   of `LZ4_COMPRESSBOUND`, raise `EINVAL` on 6.14 and earlier, where scomp bounds
   input and output by its 128 KiB scratch, and round-trip on 6.15 and later;
-  `large.sh` writes which the running release is. A string past
+  `large.sh` writes which the running release is. Each call of the cases of
+  128 KiB and past it asks for a kmalloc block past 128 KiB, which the page
+  allocator gives up on where memory is fragmented: the call raises "not enough
+  memory", as the classes document below `KMALLOC_MAX_SIZE` too, and the case
+  reports a skip, which `large.sh` prints under its verdict. A string past
   `KMALLOC_MAX_SIZE`, always vmalloc's, is refused
   with "not enough memory" as the data of each `encrypt`, `decrypt`, `compress`
   and `decompress`, as `aead`'s associated data and as the output size of

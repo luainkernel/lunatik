@@ -27,6 +27,7 @@ local EBADMSG <const> = "EBADMSG"
 local EINVAL <const> = "EINVAL"
 local SCRATCH <const> = scomp.SCRATCH_SIZE or (128 * 1024) -- 6.15 and later bound none; the cases straddle that size
 local LZ4_BOUND <const> = SCRATCH + SCRATCH // 255 + 16 -- LZ4_COMPRESSBOUND(SCRATCH), lz4's worst output
+local UNSERVED <const> = "the kernel could not serve a kmalloc block past 128 KiB"
 
 local page = sizes.page
 local spanning = rep("a", page) .. rep("b", page) .. rep("c", BLOCK)
@@ -87,6 +88,11 @@ local function roundtrip(c, data, max_len)
 	return #packed
 end
 
+-- on 4 KiB pages a block past 128 KiB is of order 6 or 7, which the page allocator gives up on in fragmented memory
+local function unserved(err)
+	return err:find(ENOMEM, 1, true) and UNSERVED
+end
+
 test("SKCIPHER AES-128-CBC data spanning pages matches its pages chained", function()
 	local c = cbc()
 	local ciphertext = c:encrypt(IV, spanning)
@@ -129,7 +135,7 @@ end)
 test("COMP lz4 data of 128 KiB round-trips", function()
 	local c = crypto.comp(LZ4)
 	roundtrip(c, rep("z", SCRATCH), page)
-end)
+end, unserved)
 
 test("COMP lz4 data past 128 KiB " .. past, function()
 	local c = crypto.comp(LZ4)
@@ -139,7 +145,7 @@ test("COMP lz4 data past 128 KiB " .. past, function()
 	else
 		roundtrip(c, data, page)
 	end
-end)
+end, unserved)
 
 test("COMP lz4 output past 128 KiB " .. past, function()
 	local c = crypto.comp(LZ4)
@@ -149,7 +155,7 @@ test("COMP lz4 output past 128 KiB " .. past, function()
 	else
 		assert(roundtrip(c, data, LZ4_BOUND) > SCRATCH, "compressed data is not past 128 KiB")
 	end
-end)
+end, unserved)
 
 test("COMP lz4 data or output past KMALLOC_MAX_SIZE", function()
 	local c = crypto.comp(LZ4)
