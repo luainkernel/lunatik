@@ -207,10 +207,11 @@
  runs with the runqueue lock of its CPU held: a wakeup from there takes that lock again on a
  CPU that already holds it. So in the callback, whichever operation calls the kfunc, a
  completion&rsquo;s <code>complete</code>, and a mailbox&rsquo;s <code>send</code> through it, raise <code>not allowed under the
- runqueue lock</code>, and what the dispatch logs, an error the callback raises or a decision it
- gets wrong, reaches the console deferred, as the scheduler&rsquo;s own lines do.
- A callback must still not call <a href="https://www.lua.org/manual/5.5/manual.html#pdf-print">print</a>, whose console wakeup is the same hazard, and an
- allocation its Lua makes under memory pressure can wake kswapd the same way.</p>
+ runqueue lock&lt;code&gt;. What the callback&amp;apos;s Lua writes to the kernel log, through &lt;/code&gt;print&lt;code&gt;, &lt;/code&gt;warn</code> or
+ the VM&rsquo;s warning of an error a finalizer raises, and what the dispatch logs, an error the
+ callback raises or a decision it gets wrong, reach the console deferred, as the scheduler&rsquo;s
+ own lines do. An allocation the callback&rsquo;s Lua makes under memory pressure can still wake
+ kswapd, whose wakeup takes the same lock.</p>
 
 <p> Needs 6.12 and later, with <code>CONFIG_SCHED_CLASS_EXT</code>; without it the module loads
  and offers <a href="../modules/scx.html#attach">attach</a>, which raises <code>EOPNOTSUPP</code>, and <a href="../modules/scx.html#detach">detach</a>, which does nothing.
@@ -390,7 +391,7 @@ scx.<span class="function-name">attach</span>(my_scheduler)
 <a href="../../modules/scx.html">5.1 docs</a> ·
 <a href="../../5.0/modules/scx.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 13:58:03</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 15:28:11</span>
 </div>
 </footer>
 </body>
