@@ -391,6 +391,16 @@ included: the compiler's runtime a module of the tree calls lives in the core, k
 links into `lunatik.ko` and `lunatik_libgcc.c`, which exports them, and #2132 first took klibc's helpers
 into `lib/lualinux.c` and defined `__divmoddi4` in `lunatik_aux.c`.
 
+`forks.sh` reads each fork `.gitmodules` names with `git ls-remote` and names one whose `lunatik`
+branch is not at the tip of its kernel branch, the newest of its branches named `<release>-kernel`,
+which `lunatik`, the fork's default branch, follows (AGENTS.md, *Layout*): luainkernel/lua#12 merged
+into `v5.5.1-kernel` and left `lunatik` a commit behind until the maintainer saw it, "vc nao syncou o
+branch lunatik de lua/, o que eh uma falha grave de processo!", then "isso deve ser reforcado no
+harness". The merged skill moves `lunatik` as a fork's pull request merges and runs the check in the
+report of every merge, so a move it missed is named at the next one. The `Checks` workflow does not run
+it: what it reads is the forks, which no pull request of the tree changes, and a lag would fail every
+open pull request's run until each ran again.
+
 `discard-guard.sh`, wired before a shell call, refuses a command that writes over a file holding a
 change nobody committed, a checkout or a restore of a path, `git reset --hard`, and a checkout or a
 switch that forces, naming the files: a session that meant to put back its head's version of two

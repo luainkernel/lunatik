@@ -1,6 +1,6 @@
 ---
 name: merged
-description: After a pull request merges, the maintainer's or a harness one the session merged once an agent's review passed it, retarget the pull requests stacked on its branch to the default branch, restack them onto it, delete the merged branch, and report the queue and the issues the merge closed. Use when told a pull request was merged, to merge a harness pull request review.js returned ready, or to merge one the maintainer approved in his own words.
+description: After a pull request merges, the maintainer's or a harness one the session merged once an agent's review passed it, retarget the pull requests stacked on its branch to the default branch, restack them onto it, delete the merged branch, move a fork's lunatik branch to the kernel branch its merge moved, and report the queue and the issues the merge closed. Use when told a pull request was merged, a fork's among them, to merge a harness pull request review.js returned ready, or to merge one the maintainer approved in his own words.
 ---
 
 AGENTS.md, "Patches and commits", and the review-pr skill's process.md, "Comments and the verdict", are the authority; this card orders
@@ -97,10 +97,30 @@ Its commits are on master under new SHAs, and GitHub keeps the old head as `refs
 delete the session's permissions refuse goes to the maintainer as a script under `/tmp` and the line
 that runs it (AGENTS.md, *Deciding what to change*).
 
-# 5. Report
+# 5. A fork's lunatik branch
+
+A fork a submodule follows, luainkernel/lua, luac or klibc, keeps a kernel branch per release,
+`v5.5.1-kernel` or `klibc-2.0.14-kernel`, and its default branch, `lunatik`, follows it (AGENTS.md,
+*Layout*). A pull request of the fork merged into its kernel branch moves `lunatik` to the same commit
+in the same pass, from the submodule's directory in a worktree, each a command of its own:
+
+    git fetch <fork url> refs/heads/<kernel branch>
+    git push <fork url> FETCH_HEAD:refs/heads/lunatik
+
+A push that does not force takes a fast-forward only, and no pull request's merge makes one: GitHub
+ends each with a commit of its own, a merge commit, a squash or a rebase's copies, which leaves
+`lunatik` at a commit the kernel branch does not hold. The push is the fork's process, then, and on
+lua, whose `lunatik` is locked, it is an administrator's, which GitHub reports as bypassing the rule
+that asks for a pull request. One git refuses is never forced: a new release's kernel branch is
+upstream's tag plus the patch and no descendant of `lunatik`, whose move to it is the maintainer's to
+order, and the report says so. luainkernel/lua#12 merged into `v5.5.1-kernel` and left `lunatik` a
+commit behind until the maintainer saw it.
+
+# 6. Report
 
 The new master tip; for each stacked pull request, retargeted, restacked, the patch verdict and the
-push; the branches deleted, and a branch a worktree kept with whose it is; `bash tools/pr-status.sh`
-for the queue that follows; and the issues the merge closed, with any it names only as "Part of" that
-it finished.
+push; the branches deleted, and a branch a worktree kept with whose it is; the fork whose `lunatik`
+step 5 moved, and each `bash tools/checks/forks.sh` names, a `lunatik` behind its kernel branch, moved
+the same way before the report goes; `bash tools/pr-status.sh` for the queue that follows; and the
+issues the merge closed, with any it names only as "Part of" that it finished.
 
