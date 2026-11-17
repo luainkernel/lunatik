@@ -6,7 +6,7 @@ includes an eBPF program which keeps the dispatch queue and slice of each task i
 eBPF task storage, and a Lua kernel script which sets the dispatch queue and slice
 of the tasks seen for the first time according to a Lua [policy table](workload.lua#L13).
 
-Needs a kernel 6.12 or later with `CONFIG_SCHED_CLASS_EXT`, clang, the libbpf headers 1.2 or later and
+Needs a kernel 6.12 or later with `CONFIG_SCHED_CLASS_EXT`, clang, the libbpf headers and
 `bpftool`.
 
 Install and load the scheduler, from the root of the Lunatik checkout:
