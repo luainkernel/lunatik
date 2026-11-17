@@ -444,6 +444,7 @@ window.LUNATIK_SEARCH = [
 ["codec:fieldsize (name)","modules/struct.html#codec:fieldsize","struct · Returns the size in bytes of a named field."],
 ["codec:pack (...)","modules/struct.html#codec:pack","struct · Serializes the field values (in offset order) into the struct's bytes."],
 ["codec:unpack (buf[, pos])","modules/struct.html#codec:unpack","struct · Deserializes the struct's fields from a buffer."],
+["codec:view (data, at)","modules/struct.html#codec:view","struct · A view of the struct as it lies in data from at, which reads a field by its name: view.ttl reads the field at at plus its offset, with its width and sign, each time it is indexed, as the data object's reads do: in the kernel's byte order, but for a field the layout marks bigendian, read most significant first, and for a bitfield, taken out of its load."],
 ["struct (layout)","modules/struct.html#struct","struct · Builds a codec from a layout descriptor."],
 ["syscall","modules/syscall.html","Module · Accessing kernel system call information."],
 ["address (syscall_number)","modules/syscall.html#address","syscall · Retrieves the kernel address of a system call."],
