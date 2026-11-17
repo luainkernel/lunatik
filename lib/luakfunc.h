@@ -10,14 +10,7 @@
 
 static const char luakfunc_env_key;
 
-#define luakfunc_err(fmt, ...)						\
-do {									\
-	static DEFINE_RATELIMIT_STATE(_rs, DEFAULT_RATELIMIT_INTERVAL,	\
-				      DEFAULT_RATELIMIT_BURST);		\
-									\
-	if (__ratelimit(&_rs))						\
-		lunatik_printk(KERN_ERR pr_fmt(fmt), ##__VA_ARGS__);	\
-} while (0)
+#define luakfunc_err(fmt, ...)	lunatik_ratelimited(lunatik_printk, KERN_ERR pr_fmt(fmt), ##__VA_ARGS__)
 
 static inline lunatik_object_t *luakfunc_getruntimes(void)
 {

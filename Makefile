@@ -264,6 +264,7 @@ tests_install:
 		lua=$(call LUA_SCRIPTS,tests/$$d); \
 		[ -z "$$lua" ] || ${INSTALL} -m 0644 $$lua ${SCRIPTS_INSTALL_PATH}/tests/$$d; \
 	done
+	${INSTALL} -m 0644 tests/runtime/Makefile tests/runtime/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/runtime
 	${INSTALL} -m 0644 tests/xdp/Makefile tests/xdp/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/xdp
 	${INSTALL} -m 0644 tests/tc/Makefile tests/tc/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/tc
 	${INSTALL} -m 0644 tests/scx/Makefile tests/scx/*.bpf.c tests/scx/*.bpf.h ${LUNATIK_TESTS_INSTALL_PATH}/scx

@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 
-all: tc_pass.bpf.o tc_drop.bpf.o tc_detach.bpf.o tc_zerokey.bpf.o tc_reattach.bpf.o tc_data.bpf.o tc_nonlinear.bpf.o tc_verdict.bpf.o tc_copy.bpf.o tc_macsec.bpf.o tc_checksum.bpf.o tc_resend.bpf.o tc_shared.bpf.o
+all: tc_pass.bpf.o tc_drop.bpf.o tc_detach.bpf.o tc_zerokey.bpf.o tc_reattach.bpf.o tc_data.bpf.o tc_nonlinear.bpf.o tc_verdict.bpf.o tc_copy.bpf.o tc_macsec.bpf.o tc_checksum.bpf.o tc_resend.bpf.o tc_shared.bpf.o \
+	tc_log.bpf.o
 
 vmlinux.h: /sys/kernel/btf/vmlinux
 	bpftool btf dump file /sys/kernel/btf/vmlinux format c > $@
@@ -47,7 +48,11 @@ tc_resend.bpf.o: tc_resend.bpf.c vmlinux.h
 tc_shared.bpf.o: tc_shared.bpf.c vmlinux.h
 	clang -target bpf -Wall -O2 -c -g $<
 
+tc_log.bpf.o: tc_log.bpf.c vmlinux.h
+	clang -target bpf -Wall -O2 -c -g $<
+
 clean:
 	rm -f vmlinux.h tc_pass.bpf.o tc_drop.bpf.o tc_detach.bpf.o tc_zerokey.bpf.o tc_reattach.bpf.o tc_data.bpf.o \
-		tc_nonlinear.bpf.o tc_verdict.bpf.o tc_copy.bpf.o tc_macsec.bpf.o tc_checksum.bpf.o tc_resend.bpf.o tc_shared.bpf.o
+		tc_nonlinear.bpf.o tc_verdict.bpf.o tc_copy.bpf.o tc_macsec.bpf.o tc_checksum.bpf.o tc_resend.bpf.o tc_shared.bpf.o \
+		tc_log.bpf.o
 

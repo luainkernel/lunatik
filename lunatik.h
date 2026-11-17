@@ -178,6 +178,15 @@ extern const lunatik_class_t lunatik_runtime_class;
 #define lunatik_monitormt(class, monitor)	((monitor) ? (const void *)&(class)->opt : (const void *)(class))
 #define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_CLOSED)
 
+#define lunatik_ratelimited(print, fmt, ...)				\
+do {									\
+	static DEFINE_RATELIMIT_STATE(_rs, DEFAULT_RATELIMIT_INTERVAL,	\
+				      DEFAULT_RATELIMIT_BURST);		\
+									\
+	if (__ratelimit(&_rs))						\
+		print(fmt, ##__VA_ARGS__);				\
+} while (0)
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0))
 #define LUNATIK_KFUNC_BTF_SET_START(name) BTF_KFUNCS_START(name)
 #define LUNATIK_KFUNC_BTF_SET_END(name)   BTF_KFUNCS_END(name)

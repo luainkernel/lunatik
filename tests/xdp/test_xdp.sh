@@ -25,6 +25,11 @@
 # compiled from compiled_pass.bpf.lua or compiled_drop.bpf.lua, with no kernel script and no
 # callback, so the verdict is read off the ping and the program off the device.
 #
+# The log case runs a program that calls bpf_lunatik_log, the kfunc lunatik.ko
+# registers for every program type, with bpftool prog run rather than a ping
+# (lunatik_logs in tests/lib.sh): one run logs its line once and none of the bytes
+# past the size it passes, and 30 runs more stop at the rate limit's burst.
+#
 # The reload case keeps the pass program attached across `lunatik reload`: the
 # program holds luaxdp loaded while lunatik_run unloads and loads again with a new
 # _ENV. A ping before the reload has the kfunc find the pass script, and the one
@@ -45,6 +50,7 @@ PREFIX="xdp verdict: "
 INVALID="$MODULE: invalid action"
 RAISED="${PREFIX}raised"
 RELOADED="xdp reload: the callback runs after lunatik_run reloads under an attached program"
+LOGGED="xdp log: an XDP program logs through bpf_lunatik_log, within its size and rate limit"
 
 # the verdict cases: the payload sizes verdict.lua reads, the case each picks, what it logs
 VERDICT_PAYLOADS=(101 102 103 104 105 106 107)
@@ -65,7 +71,7 @@ DIR="$(dirname "$(readlink -f "$0")")"
 source "$DIR/../lib.sh"
 
 ktap_header
-ktap_plan 18
+ktap_plan 19
 
 skip_all()
 {
@@ -83,6 +89,7 @@ skip_all()
 	for title in "${VERDICT_TITLES[@]}"; do
 		ktap_skip "$title"
 	done
+	ktap_skip "$LOGGED"
 	ktap_skip "$RELOADED"
 	ktap_totals
 	exit 0
@@ -97,7 +104,7 @@ cleanup()
 {
 	bpftool net detach xdp dev "$IFACE" 2>/dev/null
 	rm -f "${PIN}_pass" "${PIN}_drop" "${PIN}_reattach" "${PIN}_detach" "${PIN}_zerokey" "${PIN}_process" "${PIN}_percpu"
-	rm -f "${PIN}_verdict" "${PIN}_reload"
+	rm -f "${PIN}_verdict" "${PIN}_reload" "${PIN}_log"
 	lunatik stop tests/xdp/pass > /dev/null 2>&1
 	lunatik stop tests/xdp/drop > /dev/null 2>&1
 	lunatik stop tests/xdp/reattach > /dev/null 2>&1
@@ -390,6 +397,7 @@ zerokey_case
 process_case
 percpu_case
 verdict_case
+lunatik_logs "$DIR/xdp_log.bpf.o" "${PIN}_log" "xdp log: a line from the program" "$LOGGED"
 compiled_case compiled_pass yes "xdp compiled pass: a compiled program lets the ping through"
 compiled_case compiled_drop no "xdp compiled drop: a compiled program blocks the ping"
 reload_case

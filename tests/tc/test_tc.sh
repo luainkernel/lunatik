@@ -111,6 +111,11 @@
 # script and no callback, so the verdict is read off the ping and the program off the device.
 # They skip where the CLI's loader is built against a libbpf older than tcx, which it names.
 #
+# The log case runs a program that calls bpf_lunatik_log, the kfunc lunatik.ko
+# registers for every program type, with bpftool prog run rather than a ping
+# (lunatik_logs in tests/lib.sh): one run logs its line once and none of the bytes
+# past the size it passes, and 30 runs more stop at the rate limit's burst.
+#
 # The reload case keeps the pass program attached across `lunatik reload`: the
 # program holds luatc loaded while lunatik_run unloads and loads again with a new
 # _ENV. A ping before the reload has the kfunc find the pass script, and the one
@@ -151,6 +156,7 @@ PREFIX="tc verdict: "
 INVALID="$MODULE: invalid action"
 RAISED="${PREFIX}raised"
 RELOADED="tc reload: the callback runs after lunatik_run reloads under an attached program"
+LOGGED="tc log: a TC program logs through bpf_lunatik_log, within its size and rate limit"
 NOTCX="tcx needs libbpf 1.3.0"
 IFNAME="tc ifname: the callback reads the name and the index of a device of another namespace"
 RESENT="tc resend: forward() sends a frame the callback's later write through its view does not reach"
@@ -244,7 +250,7 @@ echoes() {
 }
 
 ktap_header
-ktap_plan 30
+ktap_plan 31
 
 skip_all()
 {
@@ -273,6 +279,7 @@ skip_all()
 	for title in "${VERDICT_TITLES[@]}"; do
 		ktap_skip "$title"
 	done
+	ktap_skip "$LOGGED"
 	ktap_skip "$IFNAME"
 	ktap_skip "$RELOADED"
 	ktap_totals
@@ -288,6 +295,7 @@ command -v tc > /dev/null 2>&1 || skip_all "tc not available"
 cleanup()
 {
 	tc_unload
+	rm -f "${PIN}_log"
 	tc qdisc del dev "$IFACE" clsact 2>/dev/null
 	lunatik stop tests/tc/pass > /dev/null 2>&1
 	lunatik stop tests/tc/drop > /dev/null 2>&1
@@ -798,6 +806,7 @@ route_case
 verdict_case
 compiled_case compiled_pass yes "tc compiled pass: a compiled program lets the ping through"
 compiled_case compiled_drop no "tc compiled drop: a compiled program blocks the ping"
+lunatik_logs "$DIR/tc_log.bpf.o" "${PIN}_log" "tc log: a line from the program" "$LOGGED"
 ifname_case
 reload_case
 
