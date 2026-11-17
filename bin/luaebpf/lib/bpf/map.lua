@@ -76,13 +76,16 @@ local function unreadable(spec)
 	end
 end
 
--- a struct codec, whose layout says where every field sits and how wide it is
+-- a struct codec, whose layout says where every field and every bitfield's load sits and how wide it is
 local function record(spec)
 	if type(spec) ~= "table" or spec.pack == nil or spec.layout == nil then
 		return nil
 	end
 	local fields = {}
 	for _, field in ipairs(spec.layout.fields) do
+		fields[field.name] = field
+	end
+	for _, field in ipairs(spec.layout.bitfields or {}) do
 		fields[field.name] = field
 	end
 	return {size = spec.size, fields = fields, native = true}
@@ -159,8 +162,9 @@ end
 -- delete the map refuses, a full hash map, an index past an array, a delete from an array, stop
 -- the program, which returns `XDP_ABORTED` or `TC_ACT_SHOT`. A `struct` value spec gives a read-only
 -- value read by field name, `v.ttl`, as the kernel module decodes such a value into a table keyed by
--- the layout's names; an index into it is refused, and so is a field wider than a byte on a kernel
--- without efficient unaligned access, as a packet read is.
+-- the layout's names, and a bitfield, `v.ihl`, as the codec's view reads it; an index into it is
+-- refused, and so is a field wider than a byte on a kernel without efficient unaligned access, as a
+-- packet read is.
 -- @section declare
 
 ---

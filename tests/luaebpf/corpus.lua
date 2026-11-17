@@ -189,6 +189,11 @@ local function bypacket(build)
 	return contexts
 end
 
+-- the twin of the kernel's data object over bytes no context carries, a map value's among them
+function corpus.data(bytes)
+	return packet:new{bytes = bytes}
+end
+
 -- the corpus behind XDP contexts
 function corpus.packets()
 	return bypacket(loopback)

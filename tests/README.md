@@ -1472,8 +1472,9 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   padding and a field marked `bigendian` of each width, a signed one and a
   byte, which a compiled read does not swap, among them, and a layout
   `luaebpf.vmlinux` read out of the running kernel's BTF seeded with an IPv4
-  header, whose `tot_len` the layout marks `bigendian`, each answering what
-  the same codec reads off the bytes the case seeded. A write to a field or to
+  header, whose `tot_len` the layout marks `bigendian` and whose `ihl` and
+  `version` are bitfields, each answering what the same codec, or for a
+  bitfield its view, reads off the bytes the case seeded. A write to a field or to
   the whole value, a field the
   codec does not carry, an index into the value, a constant, one a local holds
   and one the program computes, a field whose width no eBPF load covers, a spec

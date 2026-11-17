@@ -328,6 +328,45 @@ local function extend(f, dst, size)
 end
 frame.extend = extend
 
+-- as lib/struct.lua's codec reads a bitfield, so that a compiled read and an interpreted one agree
+local function bitfield(f, dst, field)
+	local code = f.code
+	if field.shift ~= 0 then
+		code:alui(alu.RSH, dst, field.shift)
+	end
+	code:set(reg.R5, field.mask) -- an immediate is 32 bits sign-extended, which a mask may not fit
+	code:alu(alu.AND, dst, reg.R5)
+	if field.signed then
+		code:set(reg.R5, (field.mask >> 1) + 1) -- the sign bit's weight: xor, then subtract, sign-extends
+
+		code:alu(alu.XOR, dst, reg.R5)
+		code:alu(alu.SUB, dst, reg.R5)
+	end
+end
+
+-- a field that is no bitfield, out of its load in dst: swapped where the layout marks it bigendian, a
+-- byte having no order and BPF_END taking 2, 4 or 8 of them, and its sign extended where it is signed
+local function whole(f, dst, field)
+	if field.bigendian and field.size > 1 then
+		f.code:swap(dst, field.size)
+	end
+	if field.signed and field.size * BYTE < NBITS then
+		extend(f, dst, field.size)
+	end
+end
+
+-- Lua register a := the number a codec reads out of a field's load in R1, named name
+local function decode(f, state, a, field, name)
+	if field.mask ~= nil then
+		bitfield(f, reg.R1, field)
+	else
+		whole(f, reg.R1, field)
+	end
+	setreg(f, a, reg.R1)
+	state[a] = {t = INT, name = name}
+end
+frame.decode = decode
+
 --- @section loops
 
 -- R1 := the address of the loop's iterator, which every kfunc of the iterator takes first

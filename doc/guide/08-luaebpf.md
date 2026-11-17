@@ -208,7 +208,7 @@ means the program returns `XDP_ABORTED` or `TC_ACT_SHOT`, which drop the packet;
 | [`skb:priority(v)`](09-luaebpf-by-example.md#the-context) | `v`, stored as the packet's priority | `v` is outside 0 to 4294967295 | a known `v` is outside it |
 | [`m[k]`](09-luaebpf-by-example.md#maps) | the value, or nil | `k` does not fit the key's spec | a known `k` does not fit it; the value is used before `if v then` tests it |
 | [`m[k] = v`, `m[k] = nil`](09-luaebpf-by-example.md#maps) | the entry inserted or replaced, or deleted | the map refuses; `k` or `v` does not fit its spec | a known `k` or `v` does not fit it |
-| [`v.field`, `v` a struct value](09-luaebpf-by-example.md#maps) | the field | never | the field does not exist; a write |
+| [`v.field`, `v` a struct value](09-luaebpf-by-example.md#maps) | the field, or the bitfield taken out of its load | never | the field does not exist; a write |
 | [`return v`, the verdict](09-luaebpf-by-example.md#the-verdict) | `v`, an action of the program's type | `v` is no action of it | `v` may be nil or a boolean; a known `v` is no action |
 
 Besides what the table refuses, these are refused: a table constructor, `..`, a closure, an
@@ -281,8 +281,10 @@ In a compiled function a map reads as a table.
   array. One the compiler knows is refused: "the map key -1 does not fit 'I4'".
 * A `struct` value is read-only and read by field name, `v.ttl`, as its codec decodes it: a field
   the layout marks `bigendian`, as `luaebpf.vmlinux.layout` marks a `__be16`, reads most
-  significant byte first, so `v.tot_len` of an IPv4 header whose total length is 28 is 28. A field
-  wider than a byte is refused on a kernel without efficient unaligned access, as a packet read is.
+  significant byte first, so `v.tot_len` of an IPv4 header whose total length is 28 is 28, and a
+  bitfield the layout lists, `v.ihl`, is taken out of the load that covers it, as the codec's view
+  takes it. A field wider than a byte, or a bitfield whose load is, is refused on a kernel without
+  efficient unaligned access, as a packet read is.
 
 ## Calls
 
