@@ -33,8 +33,8 @@ message naming `make`.
    its 64 bits on every packet of a corpus. Where the interpreted side raises (an out-of-bounds
    read, a division by zero, a map key or value `string.pack` refuses), the compiled side must
    keep nothing and return the error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`. A loop
-   past the budget the kernel gives `may_goto` stops the same way where the interpreter makes every
-   pass, so its test asserts the stop alone, with no oracle.
+   past the passes the kernel's iterator counts, or the budget it gives `may_goto`, stops the same
+   way where the interpreter makes every pass, so its test asserts the stop alone, with no oracle.
 3. *The wire.* The existing `xdp` and `tc` harness: a veth pair with its peer in a namespace, a
    ping, and a verdict that either blocks it or lets it through.
 
@@ -48,24 +48,23 @@ failure paths are exercised, not only the happy one. Phase 1 reads no packet, an
 
 **Proving the compiler discriminates.** Removing a mechanism from the emitter must fail the
 suite. The emitter exposes a test hook, `LUAEBPF_DROP`, an environment variable the CLI has no
-option for, naming one mechanism to drop: `divisor` (the test before a division), `maygoto` (the header
-a loop without a proven bound needs), `lineinfo` (the `.BTF.ext` records), `verdict` (the write to
-`R0`), `action` (the test of a computed verdict against its type's actions), `bounds` (the
-`data_end` test before a packet load), `loadbytes` (the test of what `bpf_skb_load_bytes` answers a
-TC read) and `ksyms` (a kfunc's entry in the `.ksyms` DATASEC). Each has a test that asserts the
-verifier rejects the program, that the log lacks the Lua line, that libbpf cannot resolve the
-kfunc, or that the arithmetic, the read's answer or the verdict changes.
+option for, naming one mechanism to drop: `divisor` (the test before a division), `lineinfo` (the
+`.BTF.ext` records), `verdict` (the write to `R0`), `action` (the test of a computed verdict against
+its type's actions), `bounds` (the `data_end` test before a packet load), `loadbytes` (the test of
+what `bpf_skb_load_bytes` answers a TC read) and `ksyms` (a kfunc's entry in the `.ksyms`
+DATASEC). Each has a test that asserts the verifier rejects the program, that the log lacks the Lua
+line, that libbpf cannot resolve the kfunc, or that the arithmetic, the read's answer or the verdict
+changes.
 
 **Pinned object cleanup.** Programs, maps and links pinned by a test outlive it. The cleanup
 removes everything under `/sys/fs/bpf/luaebpf/` and under `/sys/fs/bpf/lunatik/tests/luaebpf/`
 (the loader's root for the suite's scripts), in the `trap` and once up front, so a crashed run
 does not poison the next.
 
-**Feature skips, not failures.** A kernel without `may_goto` skips the runtime-bound loop tests
-and asserts instead that the compiler refuses the loop with the documented message; a libbpf
-without `bpf_program__attach_tcx` skips the TC attach tests; a kernel that publishes no BTF for
-`luaxdp` or `luatc` skips the cases whose programs call that module's kfunc; a machine without
-`bpftool` skips the suite with the reason.
+**Feature skips, not failures.** A kernel without `may_goto` runs the runtime-bound loop tests
+without asserting the header; a libbpf without `bpf_program__attach_tcx` skips the TC attach tests;
+a kernel that publishes no BTF for `luaxdp` or `luatc` skips the cases whose programs call that
+module's kfunc; a machine without `bpftool` skips the suite with the reason.
 
 ## Test matrix
 
@@ -87,7 +86,7 @@ matching and failing, not a list of features.
 | `verdict.sh` | a verdict the program computes within its type's actions, at either end, is returned, and one outside them, past 32 bits or computed by a callee returns the error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`, not the default verdict; a known verdict outside them, a boolean, pure or joined, and a default outside them are refused with their lines; with the test dropped by the hook the verifier still loads the program and the raw values come back |
 | `branch.sh` | `if`, `and`, `or`, `not` and every comparison over signed and unsigned edges match |
 | `forconst.sh` | a `for` with constant bounds runs the right count; a zero-trip and a descending loop included |
-| `forvar.sh` | a `for` whose bound is a program value verifies with `may_goto` and terminates, or returns `XDP_ABORTED` past the kernel's budget; skips and asserts the refusal on a kernel without it |
+| `forvar.sh` | a `for` whose bound is a program value counts its passes with the kernel's iterator, verifies with a `may_goto` header where the kernel has it and without one before 6.9, and terminates with the interpreter's answer, or returns `XDP_ABORTED` past what the iterator counts |
 | `call.sh` | a call to a file-declared function becomes a subprogram; the object carries one `func_info` per subprogram; a check that fails inside one returns `XDP_ABORTED` through the flag each frame raises in its caller's |
 | `refuse.sh` | each refused construct (runtime table, a table of the body written through a register or its upvalue, a global assigned, a map's field written, closure, vararg, `pcall`, unknown global, tail call, `while`, `repeat`, a float the CLI's libraries return, a float literal `lunatic` refuses to parse, a function the CLI's Lua compiled from a string) fails with its message and line, and nothing is written; recursion and the five-argument call sit in `call.sh`, beside the calls they are the edges of |
 | `lineinfo.sh` | the object's `.BTF.ext` names the `.lua` file, and a program broken by the test hook is rejected with a log that quotes the Lua line |
@@ -125,7 +124,7 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 
 | Test | Proves |
 |------|--------|
-| `callback.sh` | a compiled program that calls `words:run(n)` reaches the callback, which reads `n` from `ctx:argument()` with all eight bytes and returns a verdict the program returns; no argument is an empty one, another argument reaches the callback's rejection and two arrive in order; the answer read before its test, compared with a number, returned, negated, copied by `or` and tested where a join met it, an argument that is not a number, a call from a subprogram or from a program without the context, a runtime with no script, one whose name the frame cannot hold, a call of the runtime itself and another method are refused with their lines; one runtime called from both program types names both kfuncs, a function named as the kfunc takes another name in the object, and the key reads back as the name in either byte order |
+| `callback.sh` | a compiled program that calls `words:run(n)` reaches the callback, which reads `n` from `ctx:argument()` with all eight bytes and returns a verdict the program returns; no argument is an empty one, another argument reaches the callback's rejection and two arrive in order, and two calls in a loop whose bound the program computes reach it; the answer read before its test, compared with a number, returned, negated, copied by `or` and tested where a join met it, an argument that is not a number, a call from a subprogram or from a program without the context, a runtime with no script, one whose name the frame cannot hold, a call of the runtime itself and another method are refused with their lines; one runtime called from both program types names both kfuncs, a function named as the kfunc takes another name in the object, and the key reads back as the name in either byte order |
 | `miss.sh` | a call whose runtime is not loaded yields `nil` and the program takes its nil branch, whose word is the zero nil is everywhere else; with the runtime up the same program returns the callback's verdict, `if not v`, `v ~= nil`, `v == nil` and `v = v or x` take each arm as `if v` does, and a process-context runtime is not dispatched, which the module logs |
 | `partition.sh` | the classifier's shape under `BPF_PROG_TEST_RUN`: the first packet of a flow calls Lua, the second is decided from the map, counted through an `rcu.table`; the priority the callback set is what the map holds and what `ctx_out` carries, and a packet the header walk rejects never reaches Lua |
 | `report.sh` | the compiler's summary lists every call into Lua with its line |
@@ -135,7 +134,7 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 
 | Test | Proves |
 |------|--------|
-| `iter.sh` | a `for` whose bound the program computes counts its passes with the iterator kfuncs and matches the interpreter, on a kernel with and without `may_goto` |
+| `forvar.sh` | every way out of a loop whose bound the program computes, a break, a return, a stop and a goto out of two, alone and from an inner loop, destroys its iterator and matches the interpreter, on a kernel with and without `may_goto`; a count past the int the iterator takes, or past the passes it counts, stops before the first pass, and on a kernel with `may_goto` two nested loops past the budget it gives one call stop where it runs out |
 
 ### Phase 6: examples
 

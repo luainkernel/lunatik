@@ -286,7 +286,7 @@ else, the compiler emits what lies between:</p>
 <td> <code>for i = 1, n, s</code> </td>
 <td> the iterations counted up front, so the loop never passes <code>n</code> by overflowing </td>
 <td> a back edge, which the verifier walks iteration by iteration or refuses </td>
-<td> the count as <code>forprep</code> computes it, with an unsigned division; a bounded loop where the compiler holds the three values, a <code>may_goto</code> header otherwise </td>
+<td> the count as <code>forprep</code> computes it, with an unsigned division; a bounded loop where the compiler holds the three values, and otherwise the kernel&rsquo;s iterator, handed the count, <code>i</code> the start plus the step times the pass it answers, and a <code>may_goto</code> header where the kernel has it </td>
 </tr>
 <tr>
 <td> <code>for</code> with a step of <code>0</code> </td>
@@ -297,8 +297,14 @@ else, the compiler emits what lies between:</p>
 <tr>
 <td> <code>for i = 1, n</code> past the kernel&rsquo;s budget </td>
 <td> every pass </td>
-<td> the jump <code>may_goto</code> takes once the budget runs out, which past the loop goes on with what the loop held so far </td>
-<td> the header&rsquo;s jump, which stops the program </td>
+<td> <code>bpf_iter_num_new</code> takes the low 32 bits of the count, and past 8,388,608 answers an error and counts none, so the first pass alone runs; <code>may_goto</code> jumps once the budget runs out, which past the loop goes on with what the loop held so far </td>
+<td> the count tested against <code>INT_MAX</code>, the answer tested, and the header&rsquo;s jump, each of which stops the program </td>
+</tr>
+<tr>
+<td> <code>break</code>, <code>return</code> or a stop in such a loop </td>
+<td> leaves the loop </td>
+<td> a jump or an exit with the iterator held, which the verifier refuses: &ldquo;Unreleased reference&rdquo; </td>
+<td> <code>bpf_iter_num_destroy</code> on each way out, of each loop it leaves </td>
 </tr>
 <tr>
 <td> <code>goto continue</code> </td>
@@ -425,7 +431,8 @@ listings write <code>may_goto</code> and its target.</p>
 alone. Lua registers 4 and up live in the frame, at <code>r10 - 40</code>, <code>r10 - 48</code> and on down.</li>
 <li><code>r10</code> is the frame. <code>r10 - 8</code> holds the flag a called function raises, <code>r10 - 16</code> the address of
 its caller&rsquo;s flag, and <code>r10 - 24</code> and <code>r10 - 32</code> the key and the value a map helper takes;
-<code>r10 - 32</code> also takes the bytes a TC read copies.</li>
+<code>r10 - 32</code> also takes the bytes a TC read copies. Below the Lua registers lies the iterator of
+each loop whose bound the program computes.</li>
 <li><code>r1</code> to <code>r5</code> hold what one line computes.</li>
 </ul>
 
@@ -1251,8 +1258,12 @@ the program returns 4, <code>XDP_REDIRECT</code>. A 16-byte frame stops at the t
 16 is past the packet, and returns 0 too.</p>
 
 <p>With a bound the program computes, the count is computed when the loop starts, with an unsigned
-division as <code>forprep</code> does, and each pass goes through <code>may_goto</code>, which the kernel takes from
-Linux 6.9. Compiled for 6.9 or later:</p>
+division as <code>forprep</code> does, and handed to the kernel&rsquo;s iterator, <code>bpf_iter_num_new</code>, which counts
+the passes after the first and answers each with its number. The verifier walks a pass or two of
+such a loop rather than all of them, and <code>i</code> is the start plus the step times that number: an <code>i</code>
+each pass carried to the next would differ from every pass the verifier walked once the body
+compared it with a number or read the packet at it. Each pass goes through <code>may_goto</code> too, which
+the kernel takes from Linux 6.9. Compiled for 6.9 or later:</p>
 
 <pre>
 <span class="keyword">local</span> xdp    = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
@@ -1261,59 +1272,78 @@ Linux 6.9. Compiled for 6.9 or later:</p>
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
     <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
     <span class="keyword">local</span> s = <span class="number">0</span>
-    <span class="keyword">for</span> i = <span class="number">1</span>, p:<span class="function-name">getuint32</span>(<span class="number">14</span>) <span class="keyword">do</span>
-        s = s + <span class="number">1</span>
+    <span class="keyword">for</span> i = <span class="number">14</span>, #p - <span class="number">1</span> <span class="keyword">do</span>
+        s = s + p:<span class="function-name">getbyte</span>(i)
     <span class="keyword">end</span>
-    <span class="keyword">return</span> s
+    <span class="keyword">if</span> s &gt; <span class="number">100</span> <span class="keyword">then</span>
+        <span class="keyword">return</span> action.DROP
+    <span class="keyword">end</span>
+    <span class="keyword">return</span> action.PASS
 <span class="keyword">end</span>, {default = action.PASS})
 </pre>
 
 
 <pre><code>      line 6: local s = 0
    3  r8 = 0                        s
-      line 7: for i = 1, p:getuint32(14) do
-   4  r9 = 1                        the start
-   5  to 17: the read of bytes 14 to 17, held to the bounds of the packet
-  18  *(u64 *)(r10 -40) = r1        the bound
-  19  to 20: r10 -48 is 1           the step
-  21  to 24: the start in r1, the bound in r2, the step in r3 and r5
-  25  if r3 s&lt; 0 goto 29            a step below 0 counts down
-  26  if r1 s&gt; r2 goto 53           no pass at all
-  27  r2 -= r1                      the bound less the start
-  28  goto 34
-  29  to 33: the same, counted down
-  34  if r3 == 1 goto 36
-  35  r2 /= r3                      over the step, unsigned
-  36  r9 = r2                       the count
-  37  to 38: r10 -40 is the step, r10 -48 is i
-      line 8: s = s + 1
-  39  to 42: r8 = r8 + 1            s
-      line 7: for i = 1, p:getuint32(14) do
-  43  may_goto 57                   the budget spent: stops
-  44  r1 = r9
-  45  if r1 == 0 goto 53            no pass left
-  46  r1 += -1
-  47  r9 = r1
-  48  to 51: i + the step
-  52  goto 39                       the back edge
-      line 10: return s
-  53  r0 = r8
-  54  if r0 s&lt; 0 goto 57            not an XDP action: stops
-  55  if r0 s&gt; 4 goto 57
-  56  exit
-      line 11: end, {default = action.PASS})
-  57  r0 = 0                        XDP_ABORTED, where the program stops
-  58  exit
+      line 7: for i = 14, #p - 1 do
+   4  r9 = 14                       the start
+   5  to 12: #p less 1 at r10 -40   the bound
+  13  to 14: r10 -48 is 1           the step
+  15  to 18: the start in r1, the bound in r2, the step in r3 and r5
+  19  if r3 s&lt; 0 goto 23            a step below 0 counts down
+  20  if r1 s&gt; r2 goto 75           no pass at all
+  21  r2 -= r1                      the bound less the start
+  22  goto 28
+  23  to 27: the same, counted down
+  28  if r3 == 1 goto 30
+  29  r2 /= r3                      over the step, unsigned: the count
+  30  r9 = r1                       the start
+  31  to 32: r10 -40 is the step, r10 -48 is i
+  33  if r2 &gt;= 2147483647 goto 88   a count no int holds: stops
+  34  to 38: the count + 1 in r3, 1 in r2, the iterator at r10 -80 in r1
+  39  call bpf_iter_num_new         passes 1 to the count, after the first
+  40  to 41: r0 sign-extended from 32 bits
+  42  if r0 != 0 goto 84            more than it counts: stops
+      line 8: s = s + p:getbyte(i)
+  43  to 55: the read of byte i, held to the bounds of the packet; past them, goto 84
+  56  to 60: r8 = r8 + the byte     s
+      line 7: for i = 14, #p - 1 do
+  61  to 62: r1 = r10 - 80          the iterator
+  63  call bpf_iter_num_next        the number of the next pass, or NULL
+  64  if r0 == 0 goto 72            no pass left
+  65  may_goto 84                   the budget spent: stops
+  66  r1 = *(u32 *)(r0 + 0)         the pass
+  67  to 69: r1 * the step + r9
+  70  *(u64 *)(r10 -48) = r1        i
+  71  goto 43                       the back edge
+  72  to 74: bpf_iter_num_destroy   past the loop
+      line 10: if s &gt; 100 then
+  75  to 77: if s s&lt;= 100 goto 81
+      line 11: return action.DROP
+  78  to 80: r0 = 1, exit           XDP_DROP
+      line 13: return action.PASS
+  81  to 83: r0 = 2, exit           XDP_PASS
+      line 7: for i = 14, #p - 1 do
+  84  to 86: bpf_iter_num_destroy   where the loop stops
+  87  goto 88
+      line 14: end, {default = action.PASS})
+  88  r0 = 0                        XDP_ABORTED, where the program stops
+  89  exit
 </code></pre>
 
-<p>Bytes 14 to 17 at <code>03 00 00 00</code>, 3 in the byte order of x86 and arm64, make three passes, and the
-program returns 3, <code>XDP_TX</code>. At <code>ff ff ff ff</code> the bound is 4294967295, and Lua would make every
-pass; the kernel takes the jump of instruction 43 once the budget it gives the loop runs out, after
-8,388,608 passes where it counts them and about a quarter of a second where its JIT times them, and
-the program stops and returns 0, <code>XDP_ABORTED</code>. The kernel keeps that budget in the function&rsquo;s
-frame, set as the function starts, so each call of a function starts with all of it. Compiled for an
-earlier kernel, the loop is refused: &ldquo;a &lsquo;for&rsquo; the compiler cannot bound needs may_goto, which this
-kernel lacks&rdquo;.</p>
+<p>A 17-byte frame whose last three bytes are <code>10 20 30</code> makes three passes: the count is 2, the
+iterator answers 1 and 2, <code>i</code> is 14, 15 and 16, <code>s</code> is 96, and the program returns 2, <code>XDP_PASS</code>;
+one byte more, <code>40</code>, makes <code>s</code> 160, and the program returns 1, <code>XDP_DROP</code>. A 14-byte frame makes
+no pass, the start past the bound at 20. No packet is long enough to reach 33 or 42, which a bound
+read from the packet reaches: a count of 2,147,483,647 or more, which no int holds, stops at 33,
+and one past 8,388,608, which <code>bpf_iter_num_new</code> answers with an error, at 42, both before the
+first pass. The kernel takes the jump of instruction 65 once the budget it gives the loops of a
+call of the function runs out, about a quarter of a second where its JIT times them and 8,388,608
+passes after the first where it counts them, which one loop alone never spends. Each way out of
+the loop destroys the iterator, or the verifier refuses the program: 72 when no pass is left, 84
+when the program stops in the loop, and the same call before the jump of a <code>break</code> or a <code>goto</code>
+out of it, and before a <code>return</code> in it. Compiled for a kernel before 6.9, the listing has no
+instruction 65, and every instruction after it comes one earlier.</p>
 
 <p><a name="Goto"></a></p>
 
@@ -1638,7 +1668,7 @@ TC program the call is the same over <code>bpf_luatc_run</code>, and <code>r3</c
 <a href="../../topics/09-luaebpf-by-example.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/09-luaebpf-by-example.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 12:40:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 12:51:07</span>
 </div>
 </footer>
 </body>

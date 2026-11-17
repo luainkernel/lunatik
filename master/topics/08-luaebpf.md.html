@@ -463,7 +463,7 @@ means the program returns <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, 
 <td> <a href="../topics/09-luaebpf-by-example.md.html#loops"><code>for i = a, b, s do</code></a> </td>
 <td> the passes Lua makes </td>
 <td> <code>s</code> is 0; a bound or a step is computed, and the passes outrun the kernel&rsquo;s budget (<a href="#loops">Loops</a>) </td>
-<td> <code>s</code> is a known 0; a bound or a step is computed, before Linux 6.9 (<a href="#loops">Loops</a>) </td>
+<td> <code>s</code> is a known 0 </td>
 </tr>
 <tr>
 <td> <a href="../topics/09-luaebpf-by-example.md.html#goto"><code>goto continue</code></a> </td>
@@ -820,14 +820,26 @@ nothing attached.</li>
 The verifier walks it pass by pass when <code>lunatik run</code> loads it, so a loop of many passes is
 refused there: <code>for i = 1, 100000 do</code> gives &ldquo;BPF program is too large&rdquo;, and one that reads the
 packet on each pass &ldquo;The sequence of 8193 jumps is too complex&rdquo;, at fewer passes.</li>
-<li>With a bound or a step the program computes, <code>for i = 1, n do</code>, it compiles for Linux 6.9 and
-later, through the kernel&rsquo;s <code>may_goto</code>, and is refused before 6.9: &ldquo;a &lsquo;for&rsquo; the compiler cannot
-bound needs may_goto, which this kernel lacks&rdquo;. The kernel gives these loops a budget, which the
-loops of one call of a function share and each call starts in full, and the program stops once
-it runs out, where Lua would make every pass: 8,388,608 passes, or about a quarter of a second
-where the kernel&rsquo;s JIT times the loops, x86 from 6.15 and arm64 from 6.18 among them. From 6.17
-a kernel that times them writes &ldquo;ERROR: Timeout detected for may_goto instruction&rdquo; to the
-program&rsquo;s stderr stream when it stops one.</li>
+<li>With a bound or a step the program computes, <code>for i = 1, n do</code>, it compiles for every kernel.
+The kernel&rsquo;s iterator counts its passes, 8,388,609 at most, and a loop that would make more
+stops the program before its first pass. The iterator is a kfunc, which the kernel lets a
+program call only under its JIT: with <code>net.core.bpf_jit_enable</code> at 0 the load is refused, &ldquo;JIT
+is required for calling kernel function&rdquo;, and on an architecture whose JIT calls none, &ldquo;JIT does
+not support calling kernel function&rdquo;. From Linux 6.9 each pass also goes through the kernel&rsquo;s
+<code>may_goto</code>, which gives the loops of one call of a function a budget they share, each call
+starting it in full: about a quarter of a second where the kernel&rsquo;s JIT times the loops, x86
+from 6.15 and arm64 from 6.18 among them, and 8,388,608 passes after the first elsewhere, which
+one loop alone never spends. The program stops once it runs out, where Lua would make every
+pass. From 6.17 a kernel that times them writes &ldquo;ERROR: Timeout detected for may_goto
+instruction&rdquo; to the program&rsquo;s stderr stream when it stops one. Before 6.9 nothing bounds the
+time, so loops nested in one another make every pass they count.</li>
+<li>The verifier walks such a loop until a pass ends as an earlier one did, and a value the body
+carries from pass to pass, read by a later test the verifier decides, never ends one so. A count
+of the bytes that match, <code>n = n + 1</code> in the body and <code>if n &gt; 3 then</code> after the loop, is such a
+value, since the verifier knows <code>n</code> on every pass, and so is a sum of the packet&rsquo;s bytes returned
+as <code>s &amp; 3</code>, whose verdict test it decides from the two bits: each is refused at load, &ldquo;The
+sequence of 8193 jumps is too complex&rdquo; or &ldquo;BPF program is too large&rdquo;. The same sum tested with
+<code>if s &gt; 100 then</code> loads, and so does a flag the body sets, <code>found = true</code>, tested after the loop.</li>
 <li>A step of 0 is refused when the compiler knows it, &ldquo;&lsquo;for&rsquo; step is zero&rdquo;, and stops the program
 when the program computes it.</li>
 </ul>
@@ -1079,11 +1091,6 @@ as the words of 1 and 0, which are actions, so a test of the word cannot tell th
 <td> a numeric <code>for</code> </td>
 </tr>
 <tr>
-<td> a &lsquo;for&rsquo; the compiler cannot bound needs may_goto, which this kernel lacks </td>
-<td> <code>for i = 1, n</code>, before Linux 6.9 </td>
-<td> known bounds </td>
-</tr>
-<tr>
 <td> &lsquo;for&rsquo; step is zero </td>
 <td> <code>for i = 1, 10, 0</code> </td>
 <td> a step that is not 0 </td>
@@ -1181,7 +1188,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 12:40:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 12:51:07</span>
 </div>
 </footer>
 </body>

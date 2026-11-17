@@ -406,8 +406,9 @@ it builds the modules against: that kernel&rsquo;s version and whether it reads 
 decide what a program may emit, and its byte order is the object&rsquo;s. The types a program reads, its
 context&rsquo;s struct and any layout <a href="../modules/luaebpf.vmlinux.html#">luaebpf.vmlinux</a> answers, come from that kernel&rsquo;s BTF:
 <code>/sys/kernel/btf/vmlinux</code> unless <code>--btf</code> names a raw BTF file, the bytes that path serves. The
-kernel scripts the body requires, its <code>linux.*</code> tables among them, and the <a href="../modules/linux.bpf.html#">linux.bpf</a> the compiler
-reads the stack limit from, come from <code>/lib/modules/lua/</code> unless <code>--scripts</code> names another directory
+kernel scripts the body requires, its <code>linux.*</code> tables among them, the <a href="../modules/linux.bpf.html#">linux.bpf</a> the compiler
+reads the stack limit from, and the <a href="../modules/linux.limits.html#">linux.limits</a> it reads the largest <code>int</code> from for a <code>for</code> whose
+bound the program computes, come from <code>/lib/modules/lua/</code> unless <code>--scripts</code> names another directory
 laid out as that one; a module that directory lacks is not found, and is not read from
 <code>/lib/modules/lua/</code>.</p>
 
@@ -548,7 +549,7 @@ loads the object, and the kernel&rsquo;s <a href="https://www.lua.org/manual/5.5
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 12:40:26</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 12:51:07</span>
 </div>
 </footer>
 </body>

@@ -195,7 +195,7 @@ means the program returns `XDP_ABORTED` or `TC_ACT_SHOT`, which drop the packet;
 | [`a == b`, `a ~= b`](09-luaebpf-by-example.md#comparisons-and-truth) | `false` between values of two types | never | an operand may hold two types, a number on one path and nil on another |
 | [`if v then`, `and`, `or`, `not`](09-luaebpf-by-example.md#comparisons-and-truth) | `0` is true; only `nil` and `false` are false | never | `v` may be a number on one path and nil or a boolean on another |
 | [`t.x`, `t[1]`, `t` a table of the body](09-luaebpf-by-example.md#values-of-the-body) | the value the body left there | never | the index is computed; `#t`; a write to `t` |
-| [`for i = a, b, s do`](09-luaebpf-by-example.md#loops) | the passes Lua makes | `s` is 0; a bound or a step is computed, and the passes outrun the kernel's budget ([Loops](#loops)) | `s` is a known 0; a bound or a step is computed, before Linux 6.9 ([Loops](#loops)) |
+| [`for i = a, b, s do`](09-luaebpf-by-example.md#loops) | the passes Lua makes | `s` is 0; a bound or a step is computed, and the passes outrun the kernel's budget ([Loops](#loops)) | `s` is a known 0 |
 | [`goto continue`](09-luaebpf-by-example.md#goto) | a jump to the label | never | the label is above the `goto` |
 | [`local v = f(x)`](09-luaebpf-by-example.md#calls) | the value `f` returns | `f` stops | [Calls](#calls) says |
 | [`return f(x)`](09-luaebpf-by-example.md#calls) | | | always: a tail call |
@@ -415,14 +415,26 @@ A numeric `for` is the only loop compiled. It makes the passes Lua makes.
   The verifier walks it pass by pass when `lunatik run` loads it, so a loop of many passes is
   refused there: `for i = 1, 100000 do` gives "BPF program is too large", and one that reads the
   packet on each pass "The sequence of 8193 jumps is too complex", at fewer passes.
-* With a bound or a step the program computes, `for i = 1, n do`, it compiles for Linux 6.9 and
-  later, through the kernel's `may_goto`, and is refused before 6.9: "a 'for' the compiler cannot
-  bound needs may_goto, which this kernel lacks". The kernel gives these loops a budget, which the
-  loops of one call of a function share and each call starts in full, and the program stops once
-  it runs out, where Lua would make every pass: 8,388,608 passes, or about a quarter of a second
-  where the kernel's JIT times the loops, x86 from 6.15 and arm64 from 6.18 among them. From 6.17
-  a kernel that times them writes "ERROR: Timeout detected for may_goto instruction" to the
-  program's stderr stream when it stops one.
+* With a bound or a step the program computes, `for i = 1, n do`, it compiles for every kernel.
+  The kernel's iterator counts its passes, 8,388,609 at most, and a loop that would make more
+  stops the program before its first pass. The iterator is a kfunc, which the kernel lets a
+  program call only under its JIT: with `net.core.bpf_jit_enable` at 0 the load is refused, "JIT
+  is required for calling kernel function", and on an architecture whose JIT calls none, "JIT does
+  not support calling kernel function". From Linux 6.9 each pass also goes through the kernel's
+  `may_goto`, which gives the loops of one call of a function a budget they share, each call
+  starting it in full: about a quarter of a second where the kernel's JIT times the loops, x86
+  from 6.15 and arm64 from 6.18 among them, and 8,388,608 passes after the first elsewhere, which
+  one loop alone never spends. The program stops once it runs out, where Lua would make every
+  pass. From 6.17 a kernel that times them writes "ERROR: Timeout detected for may_goto
+  instruction" to the program's stderr stream when it stops one. Before 6.9 nothing bounds the
+  time, so loops nested in one another make every pass they count.
+* The verifier walks such a loop until a pass ends as an earlier one did, and a value the body
+  carries from pass to pass, read by a later test the verifier decides, never ends one so. A count
+  of the bytes that match, `n = n + 1` in the body and `if n > 3 then` after the loop, is such a
+  value, since the verifier knows `n` on every pass, and so is a sum of the packet's bytes returned
+  as `s & 3`, whose verdict test it decides from the two bits: each is refused at load, "The
+  sequence of 8193 jumps is too complex" or "BPF program is too large". The same sum tested with
+  `if s > 100 then` loads, and so does a flag the body sets, `found = true`, tested after the loop.
 * A step of 0 is refused when the compiler knows it, "'for' step is zero", and stops the program
   when the program computes it.
 
@@ -504,7 +516,6 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | 'half' is a float, which a compiled function cannot hold | `local half = math.sqrt(4)` in the body | an integer |
 | malformed number near '.5', which `lunatic` prints before `lunatic could not compile it` | `2.5` | an integer: the kernel's Lua has no float |
 | 'while', 'repeat' and a 'goto' backwards are not compiled yet | `while`, `repeat`, a `goto` backwards | a numeric `for` |
-| a 'for' the compiler cannot bound needs may_goto, which this kernel lacks | `for i = 1, n`, before Linux 6.9 | known bounds |
 | 'for' step is zero | `for i = 1, 10, 0` | a step that is not 0 |
 | the map key -1 does not fit 'I4' | a key or a value outside its spec | a value its spec packs |
 | module 'byteorder' not found | `require` of a C module | a Lua module under `/lib/modules/lua/`, or the directory `--scripts` names |
