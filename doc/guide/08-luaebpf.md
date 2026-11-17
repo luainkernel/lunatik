@@ -204,6 +204,8 @@ means the program returns `XDP_ABORTED` or `TC_ACT_SHOT`, which drop the packet;
 | [`if v then`, `v == nil`, `v` what `limits:run` answered](09-luaebpf-by-example.md#calls-into-a-kernel-lua-runtime) | the branch Lua takes: `v` is the verdict on one, nil on the other | never | `v` is used before one of these tests reads it; `v` is the answer on one path and another value on another |
 | [`p:getuint16(n)` and the other reads](09-luaebpf-by-example.md#the-packet) | the bytes at `n`, in the kernel's byte order | the read passes the end of the packet | [The packet](#the-packet) says |
 | [`#p`](09-luaebpf-by-example.md#the-packet) | the length of the packet | never | never |
+| [`codec:view(p, at)`](09-luaebpf-by-example.md#views) | the struct the codec lays out, as it lies in `p` from `at` | never | `p` is not the packet; `at` is not a number; another method of the codec |
+| [`h.field`, `h` a view](09-luaebpf-by-example.md#views) | the field at `at` plus its offset, most significant byte first where the layout marks it `bigendian`, or the bitfield taken out of its load | the read passes the end of the packet | the field does not exist; a write; `h` is passed to a function or returned |
 | [`skb:data()`](09-luaebpf-by-example.md#the-context) | the whole packet, linear or not | never | a layer is given |
 | [`skb:priority(v)`](09-luaebpf-by-example.md#the-context) | `v`, stored as the packet's priority | `v` is outside 0 to 4294967295 | a known `v` is outside it |
 | [`m[k]`](09-luaebpf-by-example.md#maps) | the value, or nil | `k` does not fit the key's spec | a known `k` does not fit it; the value is used before `if v then` tests it |
@@ -243,11 +245,31 @@ host sends carries its payload there, and `#p` is `#skb`.
 
 A read wider than a byte is in the byte order of the kernel, as the kernel's `data` object reads
 it: little-endian on x86 and arm64, where `p:getuint16(16)` of an IPv4 header whose total length
-is 28 gives 7168. A field in network order is read a byte at a time:
+is 28 gives 7168. A header's field is read by name, in the order the kernel keeps it, through a
+view of the kernel's own struct:
 
 ```Lua
-local length = p:getbyte(16) << 8 | p:getbyte(17) --> 28
+local struct  = require("struct")
+local vmlinux = require("luaebpf.vmlinux")
+local eth     = require("linux.eth")
+
+local iphdr = struct(vmlinux.layout("iphdr")) -- in the body
+
+local ip = iphdr:view(p, eth.HLEN) -- in the function
+local length = ip.tot_len --> 28
 ```
+
+The body builds a `struct` codec of the struct `luaebpf.vmlinux.layout` reads from the kernel's
+BTF, and `codec:view(p, at)` is that struct as it lies in the packet from `at`. Each field read
+is one read of the packet at `at` plus the field's offset, of its width and sign: a field the
+layout marks `bigendian`, as it marks a `__be16`, reads most significant byte first, so
+`ip.tot_len` is 28 on every kernel, and a bitfield, `ip.ihl`, is taken out of the load that covers
+it. The offset may be one the program computes: the TCP header past the options of an IPv4 one
+is `tcphdr:view(p, eth.HLEN + ip.ihl * 4)`. A field read past the end of the packet stops the
+program at that field, and on a kernel without efficient unaligned access an XDP field wider than a
+byte, or a bitfield whose load is, is refused as a read is. A view is read in the function that
+made it: one passed to a function is refused, "argument #1 is a view, and a compiled call passes
+numbers and packets", and so is a field the layout lacks, "a view has no field 'flags'".
 
 A read that passes the end of the packet stops the program, and so does an XDP read that starts
 past byte 65535 less its width. There is no `getuint64`, since a Lua integer is signed, and no
@@ -497,6 +519,11 @@ Give the variable one type on every path: `local v = 0`. These are refused too:
   0 and not -1; test it before the paths join". The kernel holds the answer's nil as -1 and every
   other nil as 0, and the word does not say which path it came from. Tested on the path of the
   call, the answer is a verdict or the nil every other path holds, and the paths join as any two do.
+* A variable that holds a view of one struct on one path and of another struct on the other: "a
+  view here is of more than one struct". Which struct it views decides where a field is read.
+* A view read in a function that has assigned the parameter its context or its packet came in: "a
+  view is read through the context or a packet, which no parameter of the function holds here". A
+  view keeps the offset it starts at and no packet, and its fields are read through that parameter.
 * A verdict that may be nil: "the verdict may be nil here; test it first". The kernel would read
   nil as 0, which is an action.
 * A verdict that may be a boolean: "the verdict may be a boolean here; return an action". The

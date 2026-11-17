@@ -5,8 +5,9 @@
 
 ---
 -- The packet proxy: the reads the kernel's data object publishes, each held to the packet's bounds
--- or copied out of the packet by the call the context names, its length, and the dispatch of a
--- method called on either proxy.
+-- or copied out of the packet by the call the context names, its length, the view of a struct a codec
+-- lays out over it, read a field at a time by the same reads, and the dispatch of a method called on
+-- either proxy or on a codec.
 -- @module luaebpf.emit.packet
 
 local insn    = require("luaebpf.insn")
@@ -15,16 +16,15 @@ local context = require("luaebpf.emit.context")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local format = string.format
-local abort, aligned, extend, fetch, into = frame.abort, frame.aligned, frame.extend, frame.fetch, frame.into
+local abort, aligned, fetch = frame.abort, frame.aligned, frame.fetch
 local isinteger, refuse, setreg, typename = frame.isinteger, frame.refuse, frame.setreg, frame.typename
 local contextcall, layout = context.contextcall, context.layout
 
-local BYTE   <const> = frame.BYTE
 local CTX    <const> = context.CTX
 local INT    <const> = frame.INT
-local NBITS  <const> = frame.NBITS
 local PACKET <const> = frame.type("packet", "proxy")
 local VALUE  <const> = frame.VALUE
+local VIEW   <const> = frame.type("view", "proxy")
 
 -- MAX_PACKET_OFF: the verifier refuses arithmetic between a packet pointer and a register whose
 -- range it does not know, and find_good_pkt_pointers leaves a pointer no range at all once the
@@ -49,7 +49,10 @@ local accessors = {
 -- an accessor is called with the receiver and the offset, both of which OP_CALL counts
 local ACCESSARGS <const> = 2
 
-local packet = {PACKET = PACKET}
+-- a view is made with the receiver, the packet and the offset, each of which OP_CALL counts
+local VIEWARGS <const> = 3
+
+local packet = {PACKET = PACKET, VIEW = VIEW}
 
 -- data and data_end, which the kernel rewrites a four-byte context load of into a full pointer
 local function bounds(f)
@@ -57,13 +60,21 @@ local function bounds(f)
 	return fields[packet.base], fields[packet.limit]
 end
 
+-- dst := the offset in Lua register at, plus a constant
+local function offset(f, at, plus, dst)
+	frame.move(f, fetch(f, at, dst), dst)
+	if plus ~= 0 then
+		f.code:alui(alu.ADD, dst, plus)
+	end
+end
+
 -- One access, self-contained: data and data_end are re-read from the context rather than kept
 -- live, so the proxy is one register that survives a call and cannot go stale.
-local function directread(f, pc, ins, state, access, name)
+local function directread(f, pc, source, at, plus, access, what)
 	local code, base, limit = f.code, bounds(f)
-	aligned(f, pc, format("'%s'", name), access.size)
-	into(f, pc, state, ins.a + 2, reg.R4)
-	local ptr = fetch(f, ins.a + 1, reg.R3)
+	aligned(f, pc, what, access.size)
+	offset(f, at, plus, reg.R4)
+	local ptr = fetch(f, source, reg.R3)
 	code:load(reg.R1, ptr, base.offset, base.size)
 	code:load(reg.R2, ptr, limit.offset, limit.size)
 	code:branchi(jump.JGT, reg.R4, PACKETMAX - access.size, abort(f))
@@ -80,10 +91,10 @@ end
 -- holds them, and answers non-zero past the packet, where the interpreter raises. It takes the low
 -- 32 bits of the offset, so the offset is tested against copymax first: one above it whose low 32
 -- bits fall in the packet would read there.
-local function copyread(f, pc, ins, state, access, packet)
+local function copyread(f, source, at, plus, access, packet)
 	local code = f.code
-	frame.into(f, pc, state, ins.a + 2, reg.R2)
-	frame.move(f, frame.fetch(f, ins.a + 1, reg.R1), reg.R1)
+	offset(f, at, plus, reg.R2)
+	frame.move(f, frame.fetch(f, source, reg.R1), reg.R1)
 	code:branchi(jump.JGT, reg.R2, packet.copymax, frame.abort(f))
 	code:alu(alu.MOV, reg.R3, reg.FP)
 	code:alui(alu.ADD, reg.R3, VALUE)
@@ -95,18 +106,20 @@ local function copyread(f, pc, ins, state, access, packet)
 	code:load(reg.R1, reg.FP, VALUE, access.size)
 end
 
-local function packetread(f, pc, ins, state, access, name)
+-- R1 := the access's bytes at the offset in Lua register at plus a constant, of the packet in Lua
+-- register source, unextended
+local function packetload(f, pc, source, at, plus, access, what)
 	local packet = f.unit.context.packet
 	if packet.loadbytes ~= nil then
-		copyread(f, pc, ins, state, access, packet)
+		copyread(f, source, at, plus, access, packet)
 	else
-		directread(f, pc, ins, state, access, name)
+		directread(f, pc, source, at, plus, access, what)
 	end
-	if access.signed and access.size * BYTE < NBITS then
-		extend(f, reg.R1, access.size)
-	end
-	setreg(f, ins.a, reg.R1)
-	state[ins.a] = {t = INT}
+end
+
+local function packetread(f, pc, ins, state, access, name)
+	packetload(f, pc, ins.a + 1, ins.a + 2, 0, access, format("'%s'", name))
+	frame.decode(f, state, ins.a, access)
 end
 
 local function span(f, ptr)
@@ -150,11 +163,36 @@ local function contextmethod(f, pc, ins, state, callee)
 	contextcall(f, pc, ins, state, callee.name)
 end
 
-local function method(f, pc, ins, state, callee)
-	local recv = callee.recv
-	if recv.t == CTX then
-		return contextmethod(f, pc, ins, state, callee)
+-- whether a value the body holds is a struct codec, whose view a compiled function makes
+local function iscodec(value)
+	local codec = value.k
+	return value.t == frame.OTHER and type(codec) == "table" and codec.layout ~= nil and codec.view ~= nil
+end
+packet.iscodec = iscodec
+
+-- a view of the struct a codec lays out, from an offset into the packet: its register holds the
+-- offset, and its state the codec, whose layout a field is read at
+local function view(f, pc, ins, state, callee)
+	if callee.name ~= "view" then
+		refuse(f, pc, "a codec's '%s' cannot be called in a compiled function", callee.name)
 	end
+	if ins.b - 1 < VIEWARGS then
+		refuse(f, pc, "'view' takes the packet and an offset")
+	end
+	local data, at = state[ins.a + 2], state[ins.a + 3]
+	if data == nil or data.t ~= PACKET then
+		refuse(f, pc, "'view' takes the packet, not a %s", typename(data))
+	end
+	if not isinteger(at) then
+		refuse(f, pc, "'view' takes an offset, not a %s", typename(at))
+	end
+	setreg(f, ins.a, fetch(f, ins.a + 3, reg.R1))
+	state[ins.a] = {t = VIEW, codec = callee.recv.k}
+end
+
+-- a read the kernel's data object publishes, called on the packet
+local function accessor(f, pc, ins, state, callee)
+	local recv = callee.recv
 	local access = recv.t == PACKET and accessors[callee.name]
 	if not access then
 		refuse(f, pc, "the %s has no method '%s'", typename(recv), callee.name)
@@ -169,7 +207,62 @@ local function method(f, pc, ins, state, callee)
 	end
 	packetread(f, pc, ins, state, access, callee.name)
 end
+
+local function method(f, pc, ins, state, callee)
+	local recv = callee.recv
+	if recv.t == CTX then
+		return contextmethod(f, pc, ins, state, callee)
+	end
+	if iscodec(recv) then
+		return view(f, pc, ins, state, callee)
+	end
+	accessor(f, pc, ins, state, callee)
+end
 packet.method = method
+
+-- the field or the bitfield a codec's layout names key, or nil
+local function fieldof(codec, key)
+	for _, field in ipairs(codec.layout.fields) do
+		if field.name == key then
+			return field
+		end
+	end
+	for _, field in ipairs(codec.layout.bitfields or {}) do
+		if field.name == key then
+			return field
+		end
+	end
+end
+
+-- the parameter holding the context or a packet, each the context pointer, which a view, holding its
+-- offset alone, is read through: a register past the parameters may be one a single path wrote
+local function holder(f, pc, state)
+	for i = 0, f.proto.numparams - 1 do
+		local value = state[i]
+		if value.t == CTX or value.t == PACKET then
+			return i
+		end
+	end
+	refuse(f, pc, "a view is read through the context or a packet, which no parameter of the function holds here")
+end
+
+-- a field of a view: one packet read, at the view's offset plus the field's, of the field's width or
+-- of the load that covers a bitfield, then read as the codec reads it
+local function viewfield(f, pc, ins, state, value, key)
+	if value.codec == nil then
+		refuse(f, pc, "a view here is of more than one struct")
+	end
+	local field = fieldof(value.codec, key)
+	if field == nil then
+		refuse(f, pc, "a view has no field '%s'", key)
+	end
+	if not insn.loadable(field.size) then
+		refuse(f, pc, "a view reads 1, 2, 4 or 8 bytes at a time, not %d", field.size)
+	end
+	packetload(f, pc, holder(f, pc, state), ins.b, field.offset, field, format("field '%s'", key))
+	frame.decode(f, state, ins.a, field, key)
+end
+packet.viewfield = viewfield
 
 return packet
 

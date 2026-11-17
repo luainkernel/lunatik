@@ -83,6 +83,16 @@ insn.reg = {R0 = 0, R1 = 1, R2 = 2, R3 = 3, R4 = 4, R5 = 5, R6 = 6, R7 = 7, R8 =
 insn.SIZE = SIZE
 
 ---
+-- Whether a load or a store takes `n` bytes: eBPF has one of 1, 2, 4 and 8, so whatever a compiled
+-- function reads as one number is one of those widths.
+-- @function luaebpf.insn.loadable
+-- @tparam integer n
+-- @treturn boolean
+function insn.loadable(n)
+	return widths[n] ~= nil
+end
+
+---
 -- A code buffer.
 -- @type luaebpf.insn.code
 local code = class{}

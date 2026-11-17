@@ -147,6 +147,9 @@ function loads.GETFIELD(f, pc, ins, state)
 	if isrecord(container) then
 		return mapfield(f, pc, ins, state, container, key)
 	end
+	if container ~= nil and container.t == packet.VIEW then
+		return packet.viewfield(f, pc, ins, state, container, key)
+	end
 	if container ~= nil and maps.declares(container.k) then
 		mapnumber(f, pc, "key")
 	end
@@ -214,13 +217,18 @@ function loads.GETTABLE(f, pc, ins, state)
 	resolve(f, pc, state, ins.a, lookup(f, pc, container, key.k, name))
 end
 
+-- what a compiled method is called on: a proxy, or a struct codec of the body, whose view the call makes
+local function receiver(value)
+	return value ~= nil and ((value.t & classes.proxy) ~= 0 or packet.iscodec(value))
+end
+
 -- the receiver goes to A+1 and the method to A, which the call then reads back
 function loads.SELF(f, pc, ins, state)
 	local recv = state[ins.b]
 	if recv ~= nil and runtime.isproxy(recv.k) then
 		return runtime.self(f, pc, ins, state)
 	end
-	if recv == nil or (recv.t & classes.proxy) == 0 then
+	if not receiver(recv) then
 		refuse(f, pc, "a method call cannot be compiled")
 	end
 	moveslot(f, state, ins.a + 1, ins.b)

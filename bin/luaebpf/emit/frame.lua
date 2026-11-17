@@ -46,7 +46,7 @@ local typenames = {}
 -- reader takes the field where it uses it and never copies it into a local
 local classes = {
 	word     = 0, -- a value the kernel holds as a word
-	proxy    = 0, -- a pointer the kernel holds, read through a proxy
+	proxy    = 0, -- a pointer the kernel holds, or an offset into one, read through a proxy
 	untested = 0, -- a word the program must test before the kernel reads it
 }
 
@@ -135,24 +135,25 @@ frame.aligned = aligned
 --- @section the abstract state
 
 -- the join of two abstract values: the types of both, the compile-time value only where every
--- path agrees on it, and the map a lookup came from where the other path agrees on it or is nil
+-- path agrees on it, the map a lookup came from where the other path agrees on it or is nil, and the
+-- codec a view reads with where every path agrees on it
 local function join(a, b)
 	if a == nil or b == nil then
 		return a or b
 	end
-	if a.t == b.t and a.k == b.k and a.map == b.map then
+	if a.t == b.t and a.k == b.k and a.map == b.map and a.codec == b.codec then
 		return a
 	end
 	local map = a.map == b.map and a.map or a.t == NIL and b.map or b.t == NIL and a.map or nil
 	return {t = a.t | b.t, k = a.k == b.k and a.k or nil, name = a.name == b.name and a.name or nil,
-		map = map}
+		map = map, codec = a.codec == b.codec and a.codec or nil}
 end
 
 local function same(a, b)
 	if a == nil or b == nil then
 		return a == b
 	end
-	return a.t == b.t and a.k == b.k and a.map == b.map
+	return a.t == b.t and a.k == b.k and a.map == b.map and a.codec == b.codec
 end
 
 local function copy(state)

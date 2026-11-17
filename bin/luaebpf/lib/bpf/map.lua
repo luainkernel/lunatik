@@ -15,6 +15,7 @@
 -- local flows = map.hash("flows", {key = "I4", value = "I4", entries = 65536})
 -- local hits  = map.array("hits", {key = "I4", value = "I8", entries = 1})
 
+local insn     = require("luaebpf.insn")
 local maps     = require("luaebpf.maps")
 local emit     = require("luaebpf.emit")
 local map_type = require("linux.bpf").map_type
@@ -24,10 +25,6 @@ local mathtype               = math.type
 
 -- the map types a program file may declare, under the name of the constructor that declares them
 local kinds = {hash = map_type.HASH, array = map_type.ARRAY, lru_hash = map_type.LRU_HASH}
-
--- eBPF loads and stores one, two, four or eight bytes, so whatever a compiled function reads as
--- one number is one of those widths
-local loadable = {[1] = true, [2] = true, [4] = true, [8] = true}
 
 local MAXENTRIES <const> = 0xffffffff -- max_entries is a __u32
 local INDEX      <const> = 4          -- array_map_alloc_check refuses any other key_size
@@ -70,7 +67,7 @@ end
 -- the width in a spec that no eBPF load covers, or nil where every one of them is covered
 local function unreadable(spec)
 	for _, field in pairs(spec.fields or {spec}) do
-		if not loadable[field.size] then
+		if not insn.loadable(field.size) then
 			return field.size
 		end
 	end

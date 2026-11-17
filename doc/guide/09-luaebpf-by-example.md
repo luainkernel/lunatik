@@ -36,6 +36,7 @@ else, the compiler emits what lies between:
 | `f(x)` | the callee's value, and its raise | a call, which answers R0 and nothing else | the arguments in R1 to R4, the address of the caller's flag after them, and the flag read after the call |
 | `p:getint16(n)` | two bytes at `n`, signed; raises past the packet | a load the verifier refuses until the program tests the end | the offset tested unsigned against 65535 less the width, the end against `data_end`, and the sign extended by a shift left and an arithmetic shift right, where `BPF_MEMSX` would extend it |
 | `p:getint16(n)` on TC | the same, of the whole packet, past the skb's linear head too | a load stops at `data_end`, the end of the linear head | the offset tested unsigned against `INT_MAX`, the helper's own bound, since it takes the low 32 bits, then `bpf_skb_load_bytes` into the frame, which copies the bytes wherever the skb holds them, a stop where it answers non-zero, and the sign extended alike |
+| `h.field`, `h` a view | the field `codec:view` reads at the view's offset plus the field's, most significant byte first where the layout marks it `bigendian`, a bitfield out of its load; raises past the packet | a load the verifier refuses until the program tests the end, in the kernel's byte order | the view's offset, which its register holds, plus the field's, read as `p:getint16(n)` reads, of the field's width or of the load that covers a bitfield, through the parameter that holds the context or a packet; then what `v.field` of a struct value emits after its load |
 | `#p` | the bytes the `data` object views | no instruction: the context holds the two bounds | `data_end` less `data`, both read from the context; on TC `len`, as `#skb` |
 | `skb:data()` on an skb that is not linear | the whole packet, in a tc callback, read from a copy of it | `data_end` ends the linear head, short of the packet | the context register, which the reads hand to `bpf_skb_load_bytes` |
 | `skb:priority(v)` | raises outside 0 to `U32_MAX` | a four-byte store keeps the low 32 bits | a value the compiler holds checked against the field's width, and one the program computes tested, which stops the program |
@@ -150,8 +151,107 @@ instructions 15 and 16 of [Floor division and modulo](#floor-division-and-modulo
 | 34 bytes, IPv4, total length `00 1c`, 28 | 13, 14, 18 | 18 is within 34; `00 1c` read little-endian is 7168, `0x1c00`, past `XDP_REDIRECT` | 0, `XDP_ABORTED` |
 | 14 bytes, an Ethernet header alone | 13 | 18 is past 14 | 0, `XDP_ABORTED` |
 
-The kernel's Lua reads the same 7168 from `p:getuint16(16)` on arm64 and x86. Read a byte at a
-time, `p:getbyte(16) << 8 | p:getbyte(17)`, the length is 28 on every kernel.
+The kernel's Lua reads the same 7168 from `p:getuint16(16)` on arm64 and x86. Read through a
+view, as [Views](#views) reads it, the length is 28 on every kernel.
+
+## Views
+
+A view of the kernel's IPv4 header reads its fields by name, here to drop a header that carries
+options or a packet longer than 1500 bytes:
+
+```Lua
+local struct  = require("struct")
+local vmlinux = require("luaebpf.vmlinux")
+local xdp     = require("bpf.xdp")
+local action  = require("linux.xdp").action
+local eth     = require("linux.eth")
+
+local LONGEST <const> = 1500
+
+local iphdr = struct(vmlinux.layout("iphdr"))
+
+return xdp.program(function(ctx)
+	local p = ctx:packet()
+	local ip = iphdr:view(p, eth.HLEN)
+	if ip.ihl > 5 or ip.tot_len > LONGEST then
+		return action.DROP
+	end
+	return action.PASS
+end, {default = action.PASS})
+```
+
+`luaebpf.vmlinux.layout` reads `iphdr` from the kernel's BTF: `ihl` is the low four bits of byte 0
+on a little-endian kernel, and `tot_len` two bytes at 2, a `__be16` the layout marks `bigendian`.
+The view is one register, `r8`, which holds the offset it starts at; a field is read through the
+context, `r6`, as `p:getbyte(n)` reads, at that offset plus the field's.
+
+```
+     line 11: return xdp.program(function(ctx)
+  0  r6 = r1                       ctx
+     line 12: local p = ctx:packet()
+  1  r8 = r6                       the packet: the context register
+  2  r7 = r8                       p
+     line 13: local ip = iphdr:view(p, eth.HLEN)
+  3  *(u64 *)(r10 -40) = r7        p, the argument
+  4  r1 = 14                       eth.HLEN, read at compile time
+  5  *(u64 *)(r10 -48) = r1
+  6  r1 = *(u64 *)(r10 -48)
+  7  r8 = r1                       ip: the offset it starts at
+     line 14: if ip.ihl > 5 or ip.tot_len > LONGEST then
+  8  r4 = r8                       14, plus ihl's offset, 0
+  9  r1 = *(u32 *)(r6 +0)          xdp_md.data, through ctx
+ 10  r2 = *(u32 *)(r6 +4)          xdp_md.data_end
+ 11  if r4 > 65534 goto 45         past 65535 less the width: stops
+ 12  r1 += r4
+ 13  r4 = r1
+ 14  r4 += 1
+ 15  if r4 > r2 goto 45            past the end of the packet: stops
+ 16  r1 = *(u8 *)(r1 +0)           the byte that holds ihl
+ 17  r5 = 15                       ihl's mask; its shift is 0
+ 18  r1 &= r5
+ 19  r9 = r1                       ip.ihl
+ 20  r1 = r9
+ 21  r2 = 5
+ 22  if r1 s> r2 goto 39
+ 23  r4 = r8
+ 24  r4 += 2                       14, plus tot_len's offset, 2
+ 25  to 31: the tests of 9 to 15, for two bytes
+ 32  r1 = *(u16 *)(r1 +0)          two bytes, in the kernel byte order
+ 33  r1 = be16 r1                  BPF_END: tot_len is marked bigendian
+ 34  r9 = r1                       ip.tot_len
+ 35  r1 = 1500                     LONGEST
+ 36  *(u64 *)(r10 -40) = r1
+ 37  r1 = *(u64 *)(r10 -40)
+ 38  if r1 s>= r9 goto 42          tot_len is not past LONGEST
+     line 15: return action.DROP
+ 39  r9 = 1                        XDP_DROP
+ 40  r0 = r9
+ 41  exit
+     line 17: return action.PASS
+ 42  r9 = 2                        XDP_PASS
+ 43  r0 = r9
+ 44  exit
+     line 18: end, {default = action.PASS})
+ 45  r0 = 0                        XDP_ABORTED, where the program stops
+ 46  exit
+```
+
+Instructions 8 to 16 are the read [The packet](#the-packet) lists, at the view's offset plus the
+field's, so a field past the end stops the program as a read does, at that field. Instruction 33
+swaps the two bytes on a little-endian kernel and keeps them on a big-endian one, where they are
+already in order. A bitfield at a shift past 0, `ip.version`, is shifted right before the mask, and
+a signed one has the weight of its sign bit taken twice after it, an exclusive or and a
+subtraction. On TC the read is `bpf_skb_load_bytes`, as [The context](#the-context) lists it.
+
+| Frame | Instructions | What they compute | The program returns |
+|-------|--------------|-------------------|---------------------|
+| 34 bytes, IPv4, `45`, total length `00 1c` | 16 to 22, 32 to 38 | ihl is 5, not past 5; `00 1c` swapped is 28, not past 1500 | 2, `XDP_PASS` |
+| the same, `46` | 16 to 22 | ihl is 6, past 5 | 1, `XDP_DROP` |
+| 14 bytes, an Ethernet header alone | 15 | 15 is past 14 | 0, `XDP_ABORTED` |
+
+A view holds no packet of its own: it is read through the parameter that holds the function's
+context or a packet, and refused where the function has assigned it, since a copy in another
+register may be one a single path wrote; it is not passed to a function nor returned.
 
 ## Arithmetic
 
