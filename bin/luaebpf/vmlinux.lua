@@ -29,6 +29,7 @@ local HDRLEN   <const> = 24
 local TYPESIZE <const> = 12
 local MEMBER   <const> = 12
 local BYTE     <const> = 8
+local WIDEST   <const> = 8 -- bytes of the widest load
 local NESTING  <const> = 16 -- qualifiers a member's type may be wrapped in, so a cycle ends
 
 -- uapi/linux/btf.h, BTF_KIND_*
@@ -158,8 +159,37 @@ local function scalar(self, id)
 	return size, (encoding >> 24) & SIGNED ~= 0, big
 end
 
+-- the narrowest naturally aligned load, of the member type's size or wider, that covers a bitfield's
+-- bits, or nil where none of eight bytes does
+-- based on bpf_core_calc_field_relo() @ tools/lib/bpf/relo_core.c
+local function cover(bit, bits, size)
+	local offset = bit // BYTE // size * size
+	while bit + bits > (offset + size) * BYTE do
+		if size >= WIDEST then
+			return nil
+		end
+		size = size * 2
+		offset = bit // BYTE // size * size
+	end
+	return offset, size
+end
+
+-- adds a bitfield to bitfields with the load that covers it and the shift and the mask that take it
+-- out of that load, unless no load covers it
+local function addbitfield(self, bitfields, nameoff, bit, bits, size, signed)
+	local offset, width = cover(bit, bits, size)
+	if offset == nil then
+		return
+	end
+	local from = bit - offset * BYTE
+	-- BTF counts bits from the first byte's low end on a little-endian kernel, its high end on a big one
+	local shift = self.order == "<" and from or width * BYTE - from - bits
+	insert(bitfields, {name = name(self, nameoff), offset = offset, size = width, signed = signed,
+		shift = shift, mask = (1 << bits) - 1})
+end
+
 local function members(self, at, vlen, kflag)
-	local fields = {}
+	local fields, bitfields = {}, {}
 	for i = 0, vlen - 1 do
 		local nameoff, typeid, offset = unpack(self.order .. "I4I4I4", self.bytes, at + TYPESIZE + i * MEMBER)
 		local bitfield = kflag == 1 and offset >> 24 or 0
@@ -168,9 +198,11 @@ local function members(self, at, vlen, kflag)
 		if size ~= nil and bitfield == 0 and bit % BYTE == 0 then
 			insert(fields, {name = name(self, nameoff), offset = bit // BYTE,
 				size = size, signed = signed, bigendian = big or nil})
+		elseif size ~= nil and bitfield ~= 0 then
+			addbitfield(self, bitfields, nameoff, bit, bitfield, size, signed)
 		end
 	end
-	return fields
+	return fields, bitfields
 end
 
 local function reader()
@@ -222,13 +254,16 @@ end
 --
 -- A member is reported when its type resolves to an integer of a whole number of bytes at a
 -- byte-aligned offset, and marked `bigendian` when its type is a `__be16`, `__be32` or `__be64`,
--- which `struct` packs and reads big-endian; a `__sum16` is not. A bitfield, a union such as
--- `__sk_buff`'s `__bpf_md_ptr` members, and a nested struct are absent, and `struct` reads the gap
--- they leave as padding.
+-- which `struct` packs and reads big-endian; a `__sum16` is not. A bitfield of an integer type is
+-- reported in `bitfields`, with the load that covers it, the narrowest naturally aligned one of its
+-- type's size or wider, as libbpf's CO-RE relocations read it, and the `shift` and `mask` that take
+-- it out of that load, for the BTF's byte order; one no load of eight bytes covers is absent. A
+-- union such as `__sk_buff`'s `__bpf_md_ptr` members, and a nested struct, are absent, and `struct`
+-- reads the gap they and the bitfields leave as padding.
 -- @function luaebpf.vmlinux.layout
 -- @tparam string what the struct's name, as `bpftool btf dump` prints it
--- @treturn table `{size = bytes, fields = {{name, offset, size, signed, bigendian}, ...}}`, offsets
---   and sizes in bytes
+-- @treturn table `{size = bytes, fields = {{name, offset, size, signed, bigendian}, ...},
+--   bitfields = {{name, offset, size, signed, shift, mask}, ...}}`, offsets and sizes in bytes
 -- @raise `<path>: <reason>`, when the BTF file cannot be read, `<path> carries no BTF header`,
 --   `<path> is shorter than its BTF header says`, and `the kernel BTF has no struct '<what>'`
 function vmlinux.layout(what)
@@ -239,7 +274,8 @@ function vmlinux.layout(what)
 	end
 	local at = self.offsets[id]
 	local _, info, size = unpack(self.order .. "I4I4I4", self.bytes, at)
-	return {size = size, fields = members(self, at, info & 0xffff, info >> 31)}
+	local fields, bitfields = members(self, at, info & 0xffff, info >> 31)
+	return {size = size, fields = fields, bitfields = bitfields}
 end
 
 return vmlinux

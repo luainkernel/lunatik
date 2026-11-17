@@ -1351,16 +1351,26 @@ compiled program keeps nothing and owes the error verdict of its type instead,
 - **btfview**: `luaebpf.vmlinux` against `bpftool btf dump file
   /sys/kernel/btf/vmlinux format raw`: the size of `xdp_md` and `__sk_buff` and
   the byte offset and four-byte width of every field the context proxies
-  expose, `iphdr`'s whole-byte members, its bitfields and its anonymous union
-  absent from the layout though the dump names them, every member reported of
-  `xdp_md`, `__sk_buff`, `iphdr`, `tcphdr` and `flowi_tunnel` marked `bigendian`
-  exactly where the dump types it `__be16`, `__be32` or `__be64`, and a struct the kernel
-  does not publish raising a message that names it. `lunatik bpf --btf` on a
+  expose, `iphdr`'s whole-byte members, its bitfields no field of the layout
+  and its anonymous union absent from it though the dump names them, every
+  member reported of `xdp_md`, `__sk_buff`, `iphdr`, `tcphdr` and
+  `flowi_tunnel` marked `bigendian` exactly where the dump types it `__be16`,
+  `__be32` or `__be64`,
+  every bitfield the dump names of `iphdr` and `tcphdr` reported with a mask of
+  its width under a naturally aligned load that covers it, views of those two
+  layouts reading the version, `ihl`, total length, protocol, destination
+  port, `doff` and flags of the corpus's SYN and ClientHello, a BTF the case
+  writes, of a struct with a bitfield of an `int`, reported signed, one that
+  crosses the four bytes of its type, reported under the load of eight that
+  covers it, and one no load of eight bytes covers, absent though `bpftool`
+  names it, and a struct the kernel does not publish raising a message that
+  names it. `lunatik bpf --btf` on a
   copy of the kernel's BTF answers the same layouts and writes the same object;
   the kernel's BTF swapped into the byte order the host does not use, which
   `bpftool` reads as it reads the kernel's, answers the same layouts through
   `--btf` to a copy of the program file that sets `luaebpf.emit.bigendian` to
-  that order. A BTF of another order than the object's is refused naming both,
+  that order, but for each bitfield's shift, which counts from the other end of
+  the same load. A BTF of another order than the object's is refused naming both,
   the swapped one for an object in the host's order and the kernel's for one in
   the other, and so are a `--btf` that cannot be read, one that holds no BTF
   header, an ELF object, and one cut short of what its header sizes, each
