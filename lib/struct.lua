@@ -23,10 +23,29 @@ local pack, unpack, packsize     = string.pack, string.unpack, string.packsize
 local struct = {}
 struct.__index = struct
 
+local BYTE <const> = 8
+
 -- the data object's read of each width, unsigned and signed; a Lua integer is signed, so 8 bytes
 -- read as getint64 either way
 local unsigned = {[1] = "getuint8", [2] = "getuint16", [4] = "getuint32", [8] = "getint64"}
 local signed   = {[1] = "getint8", [2] = "getint16", [4] = "getint32", [8] = "getint64"}
+
+-- a field's read, by the order its bytes are in
+local reads = {}
+
+function reads.native(data, at, field)
+	return data[field.getter](data, at)
+end
+
+-- the first byte, read with the field's sign, is the most significant whatever order the data
+-- object reads in
+function reads.bigendian(data, at, field)
+	local value = data[field.getter](data, at)
+	for i = at + 1, at + field.size - 1 do
+		value = value << BYTE | data:getbyte(i)
+	end
+	return value
+end
 
 -- what each view reads from, kept outside it so that a struct may have a field of any name
 local states = setmetatable({}, {__mode = "k"})
@@ -36,7 +55,7 @@ local view = {}
 function view.__index(proxy, name)
 	local state = states[proxy]
 	local field = state.codec.readers[name]
-	return state.data[field.getter](state.data, state.at + field.offset)
+	return field.read(state.data, state.at + field.offset, field)
 end
 
 -- a write would land in the proxy, which every later read of that name would then answer
@@ -46,14 +65,18 @@ end
 
 -- Derive the `string.pack` format from a layout: each field as `I<size>` (or
 -- `i<size>` when signed), with `x` filling inter-field padding and the tail
--- up to `size`. Native byte order (`=`) for the host-endian struct. Returns
--- the format and the fields in the offset order it packs them.
+-- up to `size`. Native byte order (`=`) for the host-endian struct, and big
+-- (`>`) for a field marked `bigendian`. Returns the format and the fields in
+-- the offset order it packs them.
 local function build_format(layout)
 	local fields = move(layout.fields, 1, #layout.fields, 1, {})
 	sort(fields, function(a, b) return a.offset < b.offset end)
-	local out, pos = {"="}, 0
+	local out, pos, order = {"="}, 0, "="
 	for _, f in ipairs(fields) do
 		if f.offset > pos then insert(out, ("x"):rep(f.offset - pos)) end
+		local wanted = f.bigendian and ">" or "="
+		if wanted ~= order then insert(out, wanted) end
+		order = wanted
 		insert(out, (f.signed and "i" or "I") .. f.size)
 		pos = f.offset + f.size
 	end
@@ -61,17 +84,28 @@ local function build_format(layout)
 	return concat(out), fields
 end
 
--- each field's read, by its name: the data object's getter of its width and sign, at its offset
+-- a field's read: the data object's getter of its width and sign, or for a big-endian field that of
+-- its first byte, the one that carries the sign
+local function reader(field)
+	local getters = field.signed and signed or unsigned
+	if field.bigendian then
+		return {read = reads.bigendian, offset = field.offset, size = field.size, getter = getters[1]}
+	end
+	return {read = reads.native, offset = field.offset, getter = getters[field.size]}
+end
+
+-- each field's read, by its name
 local function readers(layout)
 	local byname = {}
 	for _, field in ipairs(layout.fields) do
-		byname[field.name] = {offset = field.offset, getter = (field.signed and signed or unsigned)[field.size]}
+		byname[field.name] = reader(field)
 	end
 	return byname
 end
 
 ---
--- Codec a layout builds, packing its fields in native byte order. Its `size` field holds the
+-- Codec a layout builds, packing its fields in native byte order but those the layout marks
+-- `bigendian`, which it packs big-endian, as the kernel keeps a `__be16`. Its `size` field holds the
 -- struct's size in bytes, and its `fields` field the layout's fields in offset order, the order
 -- `pack` takes and `unpack` returns their values.
 -- @type codec
@@ -109,9 +143,9 @@ end
 ---
 -- A view of the struct as it lies in `data` from `at`, which reads a field by its name:
 -- `view.ttl` reads the field at `at` plus its offset, with its width and sign, each time it is
--- indexed, as the `data` object's reads do, so the bytes are in the kernel's byte order and a read
--- past the end of `data` raises as theirs does. A field is 1, 2, 4 or 8 bytes wide, and a name the
--- layout lacks raises.
+-- indexed, as the `data` object's reads do: in the kernel's byte order, but for a field the layout
+-- marks `bigendian`, read most significant first. A read past the end of `data` raises as theirs
+-- does, a field is 1, 2, 4 or 8 bytes wide, and a name the layout lacks raises.
 -- @function codec:view
 -- @tparam data data the bytes, a `data` object or one that reads as it does
 -- @tparam integer at the offset in `data` the struct starts at
@@ -130,7 +164,8 @@ end
 ---
 -- Builds a codec from a layout descriptor.
 -- @function struct
--- @tparam table layout `{ size = bytes, fields = { {name, offset, size, signed}, ... } }`
+-- @tparam table layout `{ size = bytes, fields = { {name, offset, size, signed, bigendian}, ... } }`,
+--   `bigendian` true for a field kept big-endian whatever the kernel's order
 -- @treturn codec a codec exposing `:pack`, `:unpack`, `:fieldsize`, `:view` and the `size` and `fields`
 --   fields.
 -- @raise "struct: derived format does not match the layout size (overlapping fields?)"
