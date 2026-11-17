@@ -1525,6 +1525,19 @@ suite's own; each tears down before it reads its verdict.
   verifier's own log, which quotes the Lua line from the object's
   `line_info`; **load** loads the same program file compiled without the test
   hook, so the quote is the rejection's.
+- **license**: the license a program file names in its constructors' options.
+  An XDP and a TC program naming `GPL` compile into an object whose `license`
+  section reads `GPL`, and `bpftool` reads both loaded GPL-compatible; under
+  `Proprietary`, which `license_is_gpl_compatible` does not count, both load
+  and neither is GPL-compatible, and `lunatik run` attaches an XDP one and a
+  TC one, the TC one by tcx. Under it, an XDP and a TC program calling the
+  runtime compile and the run of each exits 1 with the verifier's "cannot call
+  kernel function from non-GPL compatible program", leaving nothing behind,
+  each skipped where its module publishes no BTF; the TC runs skip where the
+  CLI's loader names a libbpf older than 1.3.0, which has no tcx. A constructor
+  whose license is not that of the programs before it, one naming none
+  counting as `Dual MIT/GPL`, and a license that is not a string are refused
+  at the line of its function.
 
 The runtime cases load program files whose programs call the kernel Lua
 runtime with bpftool, run them with `bpftool prog run` and start the runtime

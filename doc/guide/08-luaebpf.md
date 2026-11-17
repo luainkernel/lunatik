@@ -168,7 +168,8 @@ fails in one of three places.
   `lunatik run` prints the verifier's log, which quotes the Lua lines, exits 1 and leaves nothing
   attached. A call into a runtime whose module carries no BTF is refused there too, by libbpf,
   whose warning names the kfunc
-  ([Calls into a kernel Lua runtime](#calls-into-a-kernel-lua-runtime)).
+  ([Calls into a kernel Lua runtime](#calls-into-a-kernel-lua-runtime)), and so is one under a
+  license the kernel does not count as GPL-compatible ([The license](#the-license)).
 * **Stops.** In the kernel, on a packet, the program returns at once `XDP_ABORTED` in XDP or
   `TC_ACT_SHOT` in TC, which drop the packet, and nothing is logged (#2098); a tracer reads an
   XDP program's stops at the tracepoint `xdp:xdp_exception`. A program stops at a read past the
@@ -428,6 +429,33 @@ A numeric `for` is the only loop compiled. It makes the passes Lua makes.
 
 `while`, `repeat`, a `goto` backwards and a generic `for` are refused.
 
+## The license
+
+The object declares one license for its programs, which the kernel reads when `lunatik run` loads
+them. A program file names it in the options its constructors take, `license`, a string, and a
+file that names none declares `Dual MIT/GPL`:
+
+```Lua
+return xdp.program(filter, {default = action.DROP, license = "GPL"})
+```
+
+* Every program of a file carries the license the object declares, since libbpf loads each under
+  the object's one `license` section. A constructor whose license is not the one of the programs
+  before it is refused at the line of its function, a program that names none counting as
+  `Dual MIT/GPL`: "tc.program's license 'GPL' is not 'Dual MIT/GPL', the license of the programs
+  before it". So is a license that is not a string, "xdp.program's license is not a string". Any
+  string compiles, and libbpf keeps its first 63 bytes.
+* The kernel reads the string for one thing, whether the program is GPL-compatible, which it is
+  under `GPL`, `GPL v2`, `GPL and additional rights`, `Dual BSD/GPL`, `Dual MIT/GPL` and
+  `Dual MPL/GPL` (`license_is_gpl_compatible`, `include/linux/license.h`) and under no other
+  string. It keeps that alone: `bpftool prog show` prints `gpl` for a GPL-compatible program, and
+  the string is read from the object, `readelf -p license protocols.bpf.o`.
+* A program that calls a kernel function loads only under a GPL-compatible license, and a call
+  into a runtime is such a call. Under any other, `lunatik run` prints the verifier's "cannot call
+  kernel function from non-GPL compatible program", exits 1 and leaves nothing attached. A program
+  that calls none, which reads its packet and its context and looks up and updates its maps,
+  loads under any license.
+
 ## Where a compiled function and Lua differ
 
 Lua decides some things only when the line runs, from the type a value has then. A compiled
@@ -501,6 +529,8 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | the verdict 11 is not an XDP action | `return 11`, a value no action of the program's type | an action of `linux.xdp.action` or `linux.tc.action` |
 | xdp.program's default verdict is not an XDP action | `{default = 5}` | `{default = action.DROP}` |
 | xdp.program's default verdict is not an integer | `xdp.program(fn)`, `{default = "drop"}` | `xdp.program(fn, {default = action.PASS})`, and `tc.program` alike |
+| xdp.program's license is not a string | `{license = 2}` | `{license = "GPL"}` |
+| tc.program's license 'GPL' is not 'Dual MIT/GPL', the license of the programs before it | `license = "GPL"` on one program of a file, and none on another | the same `license` on every program |
 | 'half' is a float, which a compiled function cannot hold | `local half = math.sqrt(4)` in the body | an integer |
 | malformed number near '.5', which `lunatic` prints before `lunatic could not compile it` | `2.5` | an integer: the kernel's Lua has no float |
 | 'while', 'repeat' and a 'goto' backwards are not compiled yet | `while`, `repeat`, a `goto` backwards | a numeric `for` |
