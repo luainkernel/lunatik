@@ -169,7 +169,8 @@ local function mapfrom(f, pc, value)
 	return value.map
 end
 
--- one field of a struct value, at the offset and the width its codec carries
+-- one field of a struct value, at the offset and the width its codec carries, in the order the codec
+-- packs it
 local function mapfield(f, pc, ins, state, value, key)
 	tested(f, pc, value)
 	local field = mapfrom(f, pc, value).value.fields[key]
@@ -178,6 +179,9 @@ local function mapfield(f, pc, ins, state, value, key)
 	end
 	aligned(f, pc, format("field '%s'", key), field.size)
 	f.code:load(reg.R1, fetch(f, ins.b, reg.R1), field.offset, field.size)
+	if field.bigendian and field.size > 1 then -- a byte has no order, and swap takes 2, 4 or 8 of them
+		f.code:swap(reg.R1, field.size)
+	end
 	if field.signed and field.size * BYTE < NBITS then
 		extend(f, reg.R1, field.size)
 	end

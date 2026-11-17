@@ -23,6 +23,7 @@ local LD    <const> = 0x00
 local LDX   <const> = 0x01
 local ST    <const> = 0x02
 local STX   <const> = 0x03
+local ALU   <const> = 0x04
 local JMP   <const> = 0x05
 local ALU64 <const> = 0x07
 local W     <const> = 0x00
@@ -31,10 +32,13 @@ local B     <const> = 0x10
 local DW    <const> = 0x18
 local MEM   <const> = 0x60
 local SRC_X <const> = 0x08
+local END   <const> = 0xd0
+local TO_BE <const> = 0x08
 local PSEUDO_CALL <const> = 1
 local MAY_GOTO    <const> = 0
 local SIZE  <const> = 8
 local WORD  <const> = 8
+local BYTE  <const> = 8
 
 -- bpf_insn's dst_reg and src_reg share a byte as bitfields, the first declared low on a little-endian machine
 local NIBBLE <const> = 4
@@ -156,6 +160,13 @@ end
 -- @function luaebpf.insn.code:load
 function code:load(dst, src, off, n)
 	return append(self, {code = LDX | widths[n or WORD] | MEM, dst = dst, src = src, off = off, imm = 0})
+end
+
+--- `dst := the low n bytes of dst, read big-endian`: a byte swap on a little-endian kernel and the
+-- low bytes alone on a big-endian one, zero-extended either way; `n` is 2, 4 or 8.
+-- @function luaebpf.insn.code:swap
+function code:swap(dst, n)
+	return append(self, {code = ALU | END | TO_BE, dst = dst, src = 0, off = 0, imm = n * BYTE})
 end
 
 --- `*(u<8n> *)(dst + off) := src`; `n` is eight bytes by default.

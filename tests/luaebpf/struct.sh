@@ -5,12 +5,15 @@
 #
 # Tests a map whose value spec is a struct codec, which a compiled function reads a field at a
 # time rather than as one number.
-#   - one field of every width and signedness, with a gap the codec reads as padding: the case
-#     seeds the value with `bpftool map update` and each program keeps one field, so a wrong
-#     offset, width or sign extension changes the number
+#   - one field of every width and signedness, with a gap the codec reads as padding, and a field
+#     marked bigendian of each width, a signed one and a byte among them: the case seeds the value
+#     with `bpftool map update` and each program keeps one field, so a wrong offset, width, sign
+#     extension or byte order changes the number, and a BPF_END of the byte, which has no order to
+#     swap, is one the verifier refuses
 #   - a layout `luaebpf.vmlinux` read out of the running kernel's BTF as the value spec, seeded
 #     with an IPv4 header: that ties the reader to the map path, since a field read at a wrong
-#     offset answers a different byte of the same twenty
+#     offset answers a different byte of the same twenty, and tot_len, a __be16 the layout marks,
+#     reads the total length the header carries
 #   - a write to a field, and an assignment of the whole value, are refused, a struct value
 #     being read-only; a field the codec does not carry, a field whose width no eBPF load covers,
 #     and a value spec that is neither a format nor a codec, are refused too
