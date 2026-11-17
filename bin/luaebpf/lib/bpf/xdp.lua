@@ -30,12 +30,17 @@
 -- a license it counts as GPL-compatible.
 -- @module bpf.xdp
 -- @usage
--- local xdp    = require("bpf.xdp")
--- local action = require("linux.xdp").action
+-- local xdp     = require("bpf.xdp")
+-- local struct  = require("struct")
+-- local vmlinux = require("luaebpf.vmlinux")
+-- local action  = require("linux.xdp").action
+-- local eth     = require("linux.eth")
+--
+-- local ethhdr = struct(vmlinux.layout("ethhdr"))
 --
 -- return xdp.program(function(ctx)
 --     local p = ctx:packet()
---     if p:getbyte(12) == 0x08 and p:getbyte(13) == 0x00 then -- IPv4
+--     if ethhdr:view(p, 0).h_proto == eth.proto.IP then
 --         return action.DROP
 --     end
 --     return action.PASS
