@@ -991,19 +991,14 @@ after the watch is stopped.
 
 ### install
 
-Tests for what `make install` leaves in the module tree. Nothing is loaded,
-and the host's module tree is only read.
+Tests for Lunatik's installed modules among the host's.
 
-- **zfs**: OpenZFS exports its own Lua under names `lunatik.ko` exports too,
-  and the edit `make install` makes to `modules.order` leaves depmod giving
-  those names to `lunatik.ko`. A stand-in for `zfs.ko`, built from `zfs.c`,
-  exports `lua_createtable` as ZFS's Lua does, and sits in turn at
-  `kernel/zfs/zfs.ko`, `kernel/zfs/zlua.ko`, `updates/dkms/zfs.ko`,
-  `updates/dkms/zlua.ko`, `ubuntu/dkms/zfs/zfs.ko`, `extra/zfs.ko`,
-  `updates/zfs.ko`, `extra/zfs/zfs.ko` and `weak-updates/zfs/zfs.ko`, beside
-  the installed Lunatik modules and the host's `modules.order`, in a tree of
-  the suite's own that `depmod -b` reads; no module under `kernel/lunatik/`
-  depends on it at any of those paths.
+- **zfs**: OpenZFS exports its own Lua under the names of Lua's C API, and the
+  kernel refuses a module that exports a name a loaded module exports already.
+  A stand-in for `zfs.ko`, built from `zfs.c`, exports `lua_createtable` as
+  ZFS's Lua does, and loads beside `lunatik.ko`, which exports that function
+  under Lunatik's prefix. Skips without the running kernel's build tree, and
+  when a module named `zfs` is loaded already.
 - **softdep**: `lunatik_run` makes `/dev/lunatik` from a script that requires
   `device`, which the kernel's `require` finds only in a module already
   loaded, and it uses no symbol of `luadevice`. `modprobe --show-depends

@@ -38,6 +38,7 @@ __printf(1, 2) void lunatik_printk(const char *fmt, ...);
 #endif
 
 #include <linux/module.h>
+#include "lunatik_prefix.h"
 #ifdef MODULE /* see https://lwn.net/Articles/813350/ */
 void *lunatik_lookup(const char *symbol);
 #define lsys_loadlib(l)		__symbol_get((l))
