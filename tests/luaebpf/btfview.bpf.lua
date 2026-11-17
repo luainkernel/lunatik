@@ -9,11 +9,12 @@ local xdp     = require("bpf.xdp")
 local action  = require("linux.xdp").action
 
 local out = assert(io.open("layout.txt", "w"))
-for _, what in ipairs({"xdp_md", "__sk_buff", "iphdr"}) do
+for _, what in ipairs({"xdp_md", "__sk_buff", "iphdr", "tcphdr", "flowi_tunnel"}) do
 	local layout = vmlinux.layout(what)
 	out:write("size\t", what, "\t", layout.size, "\n")
 	for _, field in ipairs(layout.fields) do
-		out:write("field\t", what, "\t", field.name, "\t", field.offset, "\t", field.size, "\n")
+		out:write("field\t", what, "\t", field.name, "\t", field.offset, "\t", field.size, "\t",
+			tostring(field.bigendian == true), "\n")
 	end
 end
 local ok, message = pcall(vmlinux.layout, "a_struct_no_kernel_publishes")

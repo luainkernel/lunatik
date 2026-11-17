@@ -1331,7 +1331,9 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   /sys/kernel/btf/vmlinux format raw`: the size of `xdp_md` and `__sk_buff` and
   the byte offset and four-byte width of every field the context proxies
   expose, `iphdr`'s whole-byte members, its bitfields and its anonymous union
-  absent from the layout though the dump names them, and a struct the kernel
+  absent from the layout though the dump names them, every member reported of
+  `xdp_md`, `__sk_buff`, `iphdr`, `tcphdr` and `flowi_tunnel` marked `bigendian`
+  exactly where the dump types it `__be16`, `__be32` or `__be64`, and a struct the kernel
   does not publish raising a message that names it. `lunatik bpf --btf` on a
   copy of the kernel's BTF answers the same layouts and writes the same object;
   the kernel's BTF swapped into the byte order the host does not use, which
@@ -1441,9 +1443,12 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   what the map held is kept. A value that is not a number is refused.
 - **struct**: a map whose value spec is a `struct` codec, read a field at a
   time: one field of every width and signedness with a gap the codec reads as
-  padding, and a layout `luaebpf.vmlinux` read out of the running kernel's BTF
-  seeded with an IPv4 header, each answering what the same codec reads off the
-  bytes the case seeded. A write to a field or to the whole value, a field the
+  padding and a field marked `bigendian` of each width, a signed one and a
+  byte, which a compiled read does not swap, among them, and a layout
+  `luaebpf.vmlinux` read out of the running kernel's BTF seeded with an IPv4
+  header, whose `tot_len` the layout marks `bigendian`, each answering what
+  the same codec reads off the bytes the case seeded. A write to a field or to
+  the whole value, a field the
   codec does not carry, an index into the value, a constant, one a local holds
   and one the program computes, a field whose width no eBPF load covers, a spec
   that is neither a format nor a codec, and a field read through a value two

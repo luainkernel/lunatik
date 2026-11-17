@@ -63,6 +63,10 @@ local qualifiers = {[TYPEDEF] = true, [VOLATILE] = true, [CONST] = true, [RESTRI
 -- only an INT says where its bits sit in their word
 local integers = {[INT] = true, [ENUM] = true, [ENUM64] = true}
 
+-- the typedefs of include/uapi/linux/types.h whose value the kernel keeps big-endian whatever its
+-- own byte order
+local bigendians = {__be16 = true, __be32 = true, __be64 = true}
+
 -- the byte order a refusal names for each prefix string.unpack reads a BTF with
 local endianness = {["<"] = "little", [">"] = "big"}
 
@@ -115,18 +119,21 @@ local function index(bytes)
 	return self
 end
 
--- the type a member names, with every typedef and qualifier stripped
+-- the type a member names, with every typedef and qualifier stripped, and whether one of those
+-- typedefs keeps it big-endian
 local function resolve(self, id)
+	local big = false
 	for _ = 1, NESTING do
 		local at = self.offsets[id]
 		if at == nil then
 			return nil
 		end
-		local _, info, size = unpack(self.order .. "I4I4I4", self.bytes, at)
+		local nameoff, info, size = unpack(self.order .. "I4I4I4", self.bytes, at)
 		local kind = (info >> 24) & 0x1f
 		if not qualifiers[kind] then
-			return kind, size, at
+			return kind, size, at, big
 		end
+		big = big or kind == TYPEDEF and bigendians[name(self, nameoff)] == true
 		id = size
 	end
 	return nil
@@ -135,20 +142,20 @@ end
 -- an INT says how many bits it takes and where in its word they sit, so a bitfield declared
 -- without a kind_flag is caught here rather than by its member's offset
 local function scalar(self, id)
-	local kind, size, at = resolve(self, id)
+	local kind, size, at, big = resolve(self, id)
 	if kind == nil or not integers[kind] then
 		return nil
 	end
 	if kind ~= INT then
 		local _, info = unpack(self.order .. "I4I4", self.bytes, at)
-		return size, info >> 31 == 1
+		return size, info >> 31 == 1, big
 	end
 	local encoding = unpack(self.order .. "I4", self.bytes, at + TYPESIZE)
 	local bits, offset = encoding & 0xff, (encoding >> 16) & 0xff
 	if offset ~= 0 or bits ~= size * BYTE then
 		return nil
 	end
-	return size, (encoding >> 24) & SIGNED ~= 0
+	return size, (encoding >> 24) & SIGNED ~= 0, big
 end
 
 local function members(self, at, vlen, kflag)
@@ -157,10 +164,10 @@ local function members(self, at, vlen, kflag)
 		local nameoff, typeid, offset = unpack(self.order .. "I4I4I4", self.bytes, at + TYPESIZE + i * MEMBER)
 		local bitfield = kflag == 1 and offset >> 24 or 0
 		local bit = kflag == 1 and offset & 0xffffff or offset
-		local size, signed = scalar(self, typeid)
+		local size, signed, big = scalar(self, typeid)
 		if size ~= nil and bitfield == 0 and bit % BYTE == 0 then
 			insert(fields, {name = name(self, nameoff), offset = bit // BYTE,
-				size = size, signed = signed})
+				size = size, signed = signed, bigendian = big or nil})
 		end
 	end
 	return fields
@@ -214,12 +221,14 @@ end
 -- The layout of a kernel struct.
 --
 -- A member is reported when its type resolves to an integer of a whole number of bytes at a
--- byte-aligned offset; a bitfield, a union such as `__sk_buff`'s `__bpf_md_ptr` members, and a
--- nested struct are absent, and `struct` reads the gap they leave as padding.
+-- byte-aligned offset, and marked `bigendian` when its type is a `__be16`, `__be32` or `__be64`,
+-- which `struct` packs and reads big-endian; a `__sum16` is not. A bitfield, a union such as
+-- `__sk_buff`'s `__bpf_md_ptr` members, and a nested struct are absent, and `struct` reads the gap
+-- they leave as padding.
 -- @function luaebpf.vmlinux.layout
 -- @tparam string what the struct's name, as `bpftool btf dump` prints it
--- @treturn table `{size = bytes, fields = {{name, offset, size, signed}, ...}}`, offsets and
---   sizes in bytes
+-- @treturn table `{size = bytes, fields = {{name, offset, size, signed, bigendian}, ...}}`, offsets
+--   and sizes in bytes
 -- @raise `<path>: <reason>`, when the BTF file cannot be read, `<path> carries no BTF header`,
 --   `<path> is shorter than its BTF header says`, and `the kernel BTF has no struct '<what>'`
 function vmlinux.layout(what)

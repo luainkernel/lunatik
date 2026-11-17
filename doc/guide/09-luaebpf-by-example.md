@@ -44,7 +44,7 @@ else, the compiler emits what lies between:
 | `if v then`, `v == nil` on an answer | false and true where the call answered nil | a test of zero reads `-1` as true | a comparison with `-1`, the branch that finds it storing the zero word nil is everywhere else |
 | `m[k] = v`, `m[k] = nil` | the kernel's `bpf.map` raises when the map refuses the update, or refuses the delete for any reason but an absent key | the helper's return code | the helper, and a stop on any code but zero, or `-ENOENT` from a delete |
 | `m[k]` with `k` outside the key's spec | `string.pack` raises | a store that keeps the low bytes | a key the compiler holds packed when the function is compiled, and one the program computes tested, which stops the program; a value alike |
-| `v.field` of a struct value | the field the codec decodes | a load the verifier refuses until the program tests the lookup | a load at the field's offset and width, the sign extended where the field is signed |
+| `v.field` of a struct value | the field the codec decodes, most significant byte first where the layout marks it `bigendian` | a load the verifier refuses until the program tests the lookup, in the kernel's byte order | a load at the field's offset and width, a `BPF_END` to big-endian where the layout marks a field wider than a byte `bigendian`, and the sign extended where the field is signed |
 | `return v`, the verdict | the kernel's Lua answers a value outside its type's actions, or a boolean, with the hook's fallback | `r0`, whose low 32 bits the kernel reads as an action, a boolean as 1 or 0 | `v` tested against the first and the last action, which stops the program outside them; a boolean refused, and so is a known `v` outside them |
 
 The shift pair stands for `BPF_MEMSX`, which the s390 JIT of 6.6 does not take, and the division of
@@ -636,7 +636,9 @@ frames, one after the other, over a map that starts empty:
 
 Each run returns 2 but the last, which stops and returns 0, `XDP_ABORTED`. A kernel script reads
 the same map with the kernel's `bpf.map`, as `map.hash("/sys/fs/bpf/lunatik/<script>/seen", "I4",
-"I8")`. A `struct` value is read a field at a time, by a load at the field's offset and width.
+"I8")`. A `struct` value is read a field at a time, by a load at the field's offset and width,
+which a field wider than a byte that the layout marks `bigendian` follows with `BPF_END`: a byte
+swap on a little-endian kernel, so the field reads as the codec decodes it.
 
 ## Loops
 

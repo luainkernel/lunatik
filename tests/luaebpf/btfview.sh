@@ -5,7 +5,7 @@
 #
 # Tests luaebpf.vmlinux, which reads a kernel struct's layout out of the kernel's BTF,
 # /sys/kernel/btf/vmlinux or the raw BTF file `lunatik bpf --btf` names. A program file's body asks
-# it for three structs and writes what it answered beside the object; the case compares that with
+# it for five structs and writes what it answered beside the object; the case compares that with
 # `bpftool btf dump file /sys/kernel/btf/vmlinux format raw`, the same BTF read by a different
 # program.
 #   - the size of xdp_md and of __sk_buff, and the byte offset of every field the context
@@ -15,6 +15,9 @@
 #     on either context (net/core/filter.c's __is_valid_xdp_access and bpf_skb_is_valid_access)
 #   - iphdr's whole-byte members are reported at the dump's offsets, while the dump's named
 #     bitfields and its anonymous union are absent from the layout
+#   - every member reported of xdp_md, __sk_buff, iphdr, tcphdr and flowi_tunnel is marked bigendian
+#     exactly where the dump types it __be16, __be32 or __be64, so iphdr's tot_len, tcphdr's seq and
+#     flowi_tunnel's tun_id are, and iphdr's check, a __sum16, is not
 #   - a struct the kernel does not publish raises a message naming it
 #   - --btf on a copy of /sys/kernel/btf/vmlinux answers the same layouts, and the object is byte
 #     for byte the one compiled without it
@@ -36,7 +39,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 11
+luaebpf_start 12
 
 DUMP=
 LAYOUT=
@@ -75,6 +78,32 @@ structsize() {
 		$2 == "STRUCT" && $3 == want {
 			for (i = 4; i <= NF; i++) if ($i ~ /^size=/) { split($i, p, "="); print p[2] }
 			exit
+		}
+	' "$DUMP"
+}
+
+# the members the layout marks otherwise than the dump's typedef of them says: bigendian exactly for a
+# __be16, a __be32 or a __be64
+mismarked() {
+	awk -v layout="$LAYOUT" '
+		BEGIN {
+			while ((getline line < layout) > 0) {
+				split(line, f, "\t")
+				if (f[1] == "field") { wanted["'\''" f[2] "'\''"] = 1; mark[f[2] "." f[3]] = f[6] }
+			}
+		}
+		$2 == "TYPEDEF" { typedef[$1] = $3 }
+		$1 ~ /^\[/ { on = ($2 == "STRUCT" && $3 in wanted) ? $3 : ""; next }
+		on != "" {
+			split($2, t, "=")
+			member[substr(on, 2, length(on) - 2) "." substr($1, 2, length($1) - 2)] = "[" t[2] "]"
+		}
+		END {
+			for (key in mark) {
+				name = typedef[member[key]]
+				want = name ~ /^'\''__be(16|32|64)'\''$/ ? "true" : "false"
+				if (mark[key] != want) print key ": bigendian " mark[key] ", the dump types it " name
+			}
 		}
 	' "$DUMP"
 }
@@ -131,6 +160,11 @@ for absent in ihl version "(anon)"; do
 		|| fail "luaebpf: the layout reports iphdr.$absent, which is no whole-byte integer"
 done
 ktap_pass "luaebpf: a bitfield and an anonymous union are absent, and the whole-byte members are not"
+
+output=$(mismarked)
+[ -z "$output" ] && grep -q "^field	iphdr	tot_len	.*	true$" "$LAYOUT" \
+	|| { comment "$output"; fail "luaebpf: a member is marked bigendian otherwise than the dump types it"; }
+ktap_pass "luaebpf: a member is marked bigendian exactly where the dump types it a big-endian typedef"
 
 grep -q "^missing	false	the kernel BTF has no struct 'a_struct_no_kernel_publishes'$" "$LAYOUT" \
 	|| { comment "$(grep '^missing' "$LAYOUT")"; fail "luaebpf: an unpublished struct does not raise with its name"; }
