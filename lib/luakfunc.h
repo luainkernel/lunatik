@@ -134,33 +134,7 @@ do { \
 	} \
 } while (0)
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0))
-#define LUAKFUNC_START() __bpf_kfunc_start_defs()
-#define LUAKFUNC_END()   __bpf_kfunc_end_defs()
-#else
-#define LUAKFUNC_START() \
-	__diag_push(); \
-	__diag_ignore_all("-Wmissing-prototypes", \
-			"Global kfuncs as their definitions will be in BTF")
-#define LUAKFUNC_END()   __diag_pop()
-#endif
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0))
-#define LUAKFUNC_BTF_SET_START(name) BTF_KFUNCS_START(name)
-#define LUAKFUNC_BTF_SET_END(name)   BTF_KFUNCS_END(name)
-#else
-#define LUAKFUNC_BTF_SET_START(name) BTF_SET8_START(name)
-#define LUAKFUNC_BTF_SET_END(name)   BTF_SET8_END(name)
-#endif
-
-#define LUAKFUNC_DEFINE_SET(subsys, kfunc) \
-	LUAKFUNC_BTF_SET_START(bpf_lua##subsys##_set) \
-	BTF_ID_FLAGS(func, kfunc) \
-	LUAKFUNC_BTF_SET_END(bpf_lua##subsys##_set) \
-	static const struct btf_kfunc_id_set bpf_lua##subsys##_kfunc_set = { \
-		.owner = THIS_MODULE, \
-		.set   = &bpf_lua##subsys##_set, \
-	};
+#define LUAKFUNC_DEFINE_SET(subsys, kfunc)	LUNATIK_KFUNC_DEFINE_SET(lua##subsys, kfunc)
 
 #define LUAKFUNC_NEWLIB(subsys, lib, class) \
 	LUNATIK_CLASSES(subsys, class); \

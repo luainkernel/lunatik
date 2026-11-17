@@ -178,6 +178,14 @@ extern const lunatik_class_t lunatik_runtime_class;
 #define lunatik_monitormt(class, monitor)	((monitor) ? (const void *)&(class)->opt : (const void *)(class))
 #define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_CLOSED)
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0))
+#define LUNATIK_KFUNC_BTF_SET_START(name) BTF_KFUNCS_START(name)
+#define LUNATIK_KFUNC_BTF_SET_END(name)   BTF_KFUNCS_END(name)
+#else
+#define LUNATIK_KFUNC_BTF_SET_START(name) BTF_SET8_START(name)
+#define LUNATIK_KFUNC_BTF_SET_END(name)   BTF_SET8_END(name)
+#endif
+
 void lunatik_releaseobject(struct kref *kref);
 void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 
@@ -579,6 +587,26 @@ static int name(lua_State *L)				\
 	lua_pushinteger(L, expr);			\
 	return 1;					\
 }
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0))
+#define LUNATIK_KFUNC_START() __bpf_kfunc_start_defs()
+#define LUNATIK_KFUNC_END()   __bpf_kfunc_end_defs()
+#else
+#define LUNATIK_KFUNC_START() \
+	__diag_push(); \
+	__diag_ignore_all("-Wmissing-prototypes", \
+			"Global kfuncs as their definitions will be in BTF")
+#define LUNATIK_KFUNC_END()   __diag_pop()
+#endif
+
+#define LUNATIK_KFUNC_DEFINE_SET(name, kfunc) \
+	LUNATIK_KFUNC_BTF_SET_START(bpf_##name##_set) \
+	BTF_ID_FLAGS(func, kfunc) \
+	LUNATIK_KFUNC_BTF_SET_END(bpf_##name##_set) \
+	static const struct btf_kfunc_id_set bpf_##name##_kfunc_set = { \
+		.owner = THIS_MODULE, \
+		.set   = &bpf_##name##_set, \
+	};
 
 #define lunatik_getregistry(L, key)	lua_rawgetp((L), LUA_REGISTRYINDEX, (key))
 

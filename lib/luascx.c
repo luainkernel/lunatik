@@ -47,7 +47,7 @@
 #include <linux/sched.h>
 #include <linux/sched/ext.h>
 
-LUAKFUNC_START();
+LUNATIK_KFUNC_START();
 
 struct luascx_task_class {
 	u64 dsq;
@@ -174,7 +174,7 @@ __bpf_kfunc int bpf_luascx_run(char *key, size_t key__sz, struct task_struct *ta
 	return ret;
 }
 
-LUAKFUNC_END();
+LUNATIK_KFUNC_END();
 
 LUAKFUNC_DEFINE_SET(scx, bpf_luascx_run);
 

@@ -1460,6 +1460,19 @@ string a script reads as `_LUNATIK_VERSION` and `lunatik -V` prints. A module de
 `lunatik reload` compares only for a module that declares a version, unless the kernel sets
 `CONFIG_MODULE_SRCVERSION_ALL`.
 
+### LUNATIK\_KFUNC\_START
+```C
+#define LUNATIK_KFUNC_START()
+#define LUNATIK_KFUNC_END()
+#define LUNATIK_KFUNC_DEFINE_SET(name, kfunc)
+```
+`LUNATIK_KFUNC_START` and `LUNATIK_KFUNC_END` enclose the definitions of a module's kfuncs, which no
+header declares: `__bpf_kfunc_start_defs` and `__bpf_kfunc_end_defs` from v6.7, pragmas that silence
+`-Wmissing-prototypes` before. `LUNATIK_KFUNC_DEFINE_SET`, written after them, defines the BTF set
+`bpf_<name>_set` of the one `kfunc`, enclosed in `BTF_KFUNCS_START` and `BTF_KFUNCS_END` from v6.9
+and `BTF_SET8_START` and `BTF_SET8_END` before, and the `struct btf_kfunc_id_set`
+`bpf_<name>_kfunc_set` that registers it, owned by `THIS_MODULE`.
+
 ### Writing a binding
 A kernel module exposing a Lua library `foo` whose objects count: the private structure, its
 checker, a method table carrying `__gc` and `__close`, the class, a constructor, and the module's
@@ -1932,21 +1945,12 @@ The body of a kfunc: it looks the runtime up with
 for a negative value, the `-ENXIO` and `-EDEADLK` of `lunatik_run` included, and keeps its value
 when no runtime is found, so the kfunc sets it to its answer for none first.
 
-### LUAKFUNC\_START
+### LUAKFUNC\_DEFINE\_SET
 ```C
-#define LUAKFUNC_START()
-#define LUAKFUNC_END()
-#define LUAKFUNC_BTF_SET_START(name)
-#define LUAKFUNC_BTF_SET_END(name)
 #define LUAKFUNC_DEFINE_SET(subsys, kfunc)
 ```
-`LUAKFUNC_START` and `LUAKFUNC_END` enclose the definitions of the module's kfuncs, which no header
-declares: `__bpf_kfunc_start_defs` and `__bpf_kfunc_end_defs` from v6.7, pragmas that silence
-`-Wmissing-prototypes` before. `LUAKFUNC_DEFINE_SET`, written after them, defines the BTF set
-`bpf_lua<subsys>_set` of the one `kfunc`, enclosed in `LUAKFUNC_BTF_SET_START` and
-`LUAKFUNC_BTF_SET_END`, which are `BTF_KFUNCS_START` and `BTF_KFUNCS_END` from v6.9 and
-`BTF_SET8_START` and `BTF_SET8_END` before, and the `struct btf_kfunc_id_set`
-`bpf_lua<subsys>_kfunc_set` that registers it, owned by `THIS_MODULE`.
+`LUAKFUNC_DEFINE_SET` is [`LUNATIK_KFUNC_DEFINE_SET`](#lunatik_kfunc_start) for the name
+`lua<subsys>`, whose set [`LUAKFUNC_INIT`](#luakfunc_newlib) registers.
 
 ### LUAKFUNC\_NEWLIB
 ```C

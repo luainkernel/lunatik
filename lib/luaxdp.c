@@ -34,7 +34,7 @@
 #include "luadata.h"
 #include "luakfunc.h"
 
-LUAKFUNC_START();
+LUNATIK_KFUNC_START();
 
 typedef struct luaxdp_ctx_s {
 	struct xdp_buff  *xdp;
@@ -162,7 +162,7 @@ __bpf_kfunc int bpf_luaxdp_run(char *key, size_t key__sz, struct xdp_md *xdp_ctx
 	return action;
 }
 
-LUAKFUNC_END();
+LUNATIK_KFUNC_END();
 
 LUAKFUNC_DEFINE_SET(xdp, bpf_luaxdp_run);
 
