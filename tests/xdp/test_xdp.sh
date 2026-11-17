@@ -41,6 +41,7 @@ PEER="lunatik1"
 NETNS="lunatik_xdp"
 PIN="/sys/fs/bpf/xdp"
 TARGET="10.199.0.1"
+MAC="02:00:00:00:c7:01"
 PREFIX="xdp verdict: "
 INVALID="$MODULE: invalid action"
 RAISED="${PREFIX}raised"
@@ -118,7 +119,8 @@ cleanup
 make -C "$DIR" || { ktap_fail "failed to build XDP program"; ktap_totals; exit 1; }
 
 ip netns add "$NETNS"
-ip link add "$IFACE" type veth peer name "$PEER"
+# the namespace pins $MAC: a random address is one a host process may replace, as udev's MACAddressPolicy does
+ip link add "$IFACE" address "$MAC" type veth peer name "$PEER"
 ip link set "$PEER" netns "$NETNS"
 ip addr add "$TARGET/24" dev "$IFACE"
 ip link set "$IFACE" up
@@ -126,7 +128,6 @@ ip netns exec "$NETNS" ip addr add 10.199.0.2/24 dev "$PEER"
 ip netns exec "$NETNS" ip link set "$PEER" up
 
 # pin the neighbor entries so ARP never competes with ICMP for the verdict
-MAC=$(cat /sys/class/net/$IFACE/address)
 PEER_MAC=$(ip netns exec "$NETNS" cat /sys/class/net/$PEER/address)
 ip neigh replace 10.199.0.2 lladdr "$PEER_MAC" dev "$IFACE" nud permanent
 ip netns exec "$NETNS" ip neigh replace "$TARGET" lladdr "$MAC" dev "$PEER" nud permanent
