@@ -2832,6 +2832,12 @@ pid, what a valid call does, and where it refuses to run.
   out-of-order fields, which the codec's `fields` lists in offset order — with a
   pack/unpack round-trip, `fieldsize` reporting
   a named field's width, and the overlapping-fields (union) guard.
+- **view**: a codec's view over a `data` object, at a base past its first
+  bytes, reads every field of every width and sign as `unpack` reads it off
+  the same bytes, two fields named `data` and `at`, as what the view is handed,
+  included. A field past the end of the data raises "out of bounds" while one
+  before it reads, an assignment raises "struct: a view is read-only" and
+  leaves what the field reads, and a name the layout lacks raises.
 
 ### task
 
