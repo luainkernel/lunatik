@@ -55,10 +55,12 @@ local function be64(_) local v = records[AT] if v then return v.be64 end return 
 local function ttl(_) local v = headers[AT] if v then return v.ttl end return MISS end
 local function protocol(_) local v = headers[AT] if v then return v.protocol end return MISS end
 local function totlen(_) local v = headers[AT] if v then return v.tot_len end return MISS end
+local function ihl(_) local v = headers[AT] if v then return v.ihl end return MISS end
+local function version(_) local v = headers[AT] if v then return v.version end return MISS end
 
 local reads = {{"u8", u8}, {"i8", i8}, {"u16", u16}, {"i16", i16}, {"be8", be8}, {"u32", u32}, {"i32", i32},
 	{"be16", be16}, {"bei16", bei16}, {"be32", be32}, {"be64", be64}, {"ttl", ttl}, {"protocol", protocol},
-	{"totlen", totlen}}
+	{"totlen", totlen}, {"ihl", ihl}, {"version", version}}
 for _, read in ipairs(reads) do
 	corpus.program(xdp.program, {name = read[1], default = action.PASS}, corpus.returning, read[2])
 end
@@ -91,6 +93,8 @@ local packed = record:pack(values[1][2], values[2][2], values[3][2], values[4][2
 -- a TTL and a protocol, then the addresses
 local wire <const> = "\x45\x00\x00\x1c\x00\x01\x00\x00\x40\x01\x00\x00\x0a\x00\x00\x01\x0a\x00\x00\x02"
 local header_fields = decode(header, wire)
+-- the bitfields, which the codec does not unpack, as a view of the same bytes reads them
+local header_view = header:view(corpus.data(wire), 0)
 
 local out = assert(io.open("rows.txt", "w"))
 out:write("seed\trecords\t", bytes(pack(KEY, AT)), "\t", bytes(packed), "\n")
@@ -101,5 +105,7 @@ end
 out:write("expect\tttl\t", header_fields.ttl, "\n")
 out:write("expect\tprotocol\t", header_fields.protocol, "\n")
 out:write("expect\ttotlen\t", header_fields.tot_len, "\n")
+out:write("expect\tihl\t", header_view.ihl, "\n")
+out:write("expect\tversion\t", header_view.version, "\n")
 out:close()
 

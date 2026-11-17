@@ -12,8 +12,9 @@
 #     swap, is one the verifier refuses
 #   - a layout `luaebpf.vmlinux` read out of the running kernel's BTF as the value spec, seeded
 #     with an IPv4 header: that ties the reader to the map path, since a field read at a wrong
-#     offset answers a different byte of the same twenty, and tot_len, a __be16 the layout marks,
-#     reads the total length the header carries
+#     offset answers a different byte of the same twenty, tot_len, a __be16 the layout marks,
+#     reads the total length the header carries, and ihl and version, the bitfields of its first
+#     byte, read what a view of the same bytes reads, a shift or a mask gone wrong another nibble
 #   - a write to a field, and an assignment of the whole value, are refused, a struct value
 #     being read-only; a field the codec does not carry, a field whose width no eBPF load covers,
 #     and a value spec that is neither a format nor a codec, are refused too

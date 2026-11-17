@@ -21,7 +21,6 @@ local extend, fetch, fitsunsigned, getreg = frame.extend, frame.fetch, frame.fit
 local isinteger, refuse, setreg, tested = frame.isinteger, frame.refuse, frame.setreg, frame.tested
 
 local BYTE   <const> = frame.BYTE
-local INT    <const> = frame.INT
 local KEY    <const> = frame.KEY
 local MAYBE  <const> = frame.type("map value", "proxy", "untested") -- a map value the program has not tested yet
 local NBITS  <const> = frame.NBITS
@@ -169,8 +168,8 @@ local function mapfrom(f, pc, value)
 	return value.map
 end
 
--- one field of a struct value, at the offset and the width its codec carries, in the order the codec
--- packs it
+-- one field of a struct value, at the offset and the width its codec carries, read as the codec reads
+-- it
 local function mapfield(f, pc, ins, state, value, key)
 	tested(f, pc, value)
 	local field = mapfrom(f, pc, value).value.fields[key]
@@ -179,14 +178,7 @@ local function mapfield(f, pc, ins, state, value, key)
 	end
 	aligned(f, pc, format("field '%s'", key), field.size)
 	f.code:load(reg.R1, fetch(f, ins.b, reg.R1), field.offset, field.size)
-	if field.bigendian and field.size > 1 then -- a byte has no order, and swap takes 2, 4 or 8 of them
-		f.code:swap(reg.R1, field.size)
-	end
-	if field.signed and field.size * BYTE < NBITS then
-		extend(f, reg.R1, field.size)
-	end
-	setreg(f, ins.a, reg.R1)
-	state[ins.a] = {t = INT, name = key}
+	frame.decode(f, state, ins.a, field, key)
 end
 map.mapfield = mapfield
 
@@ -211,11 +203,7 @@ local function mapvalue(f, pc, state, i, value)
 		return
 	end
 	f.code:load(reg.R1, fetch(f, i, reg.R1), 0, spec.size)
-	if spec.signed and spec.size * BYTE < NBITS then
-		extend(f, reg.R1, spec.size)
-	end
-	setreg(f, i, reg.R1)
-	state[i] = {t = INT, name = value.name}
+	frame.decode(f, state, i, spec, value.name)
 end
 
 -- a lookup is narrowed where the program tests it, and the read goes on the branch that found
