@@ -262,7 +262,8 @@ unaligned access"; a TC read is not, since it copies its bytes before it reads t
 The body declares a map with `bpf.map`: `map.hash(name, spec)`, `map.array(name, spec)` or
 `map.lru_hash(name, spec)`. The spec is `{key = ..., value = ..., entries = ...}`: the key is a
 `string.pack` format of one integer, four bytes wide in an array, the value one of those or a
-`struct` codec, both in the kernel's byte order, and `entries` the map's capacity. `lunatik run`
+`struct` codec, both in the kernel's byte order but for a field the codec's layout marks
+`bigendian`, and `entries` the map's capacity. `lunatik run`
 creates the map and pins it at `/sys/fs/bpf/lunatik/<script>/<name>`, where a kernel script opens
 it with the constructor of the same name of the kernel's `bpf.map`, which takes the path and the
 two specs: `map.hash(path, "I4", "I8")`.
@@ -277,8 +278,10 @@ In a compiled function a map reads as a table.
 * A key or a value its spec cannot pack stops the program, and so does an update or a delete the
   map refuses: an update of a full hash map, an index past an array's entries, a delete from an
   array. One the compiler knows is refused: "the map key -1 does not fit 'I4'".
-* A `struct` value is read-only and read by field name, `v.ttl`; a field wider than a byte is
-  refused on a kernel without efficient unaligned access, as a packet read is.
+* A `struct` value is read-only and read by field name, `v.ttl`, as its codec decodes it: a field
+  the layout marks `bigendian`, as `luaebpf.vmlinux.layout` marks a `__be16`, reads most
+  significant byte first, so `v.tot_len` of an IPv4 header whose total length is 28 is 28. A field
+  wider than a byte is refused on a kernel without efficient unaligned access, as a packet read is.
 
 ## Calls
 

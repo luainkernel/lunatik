@@ -646,7 +646,8 @@ unaligned access&rdquo;; a TC read is not, since it copies its bytes before it r
 <p>The body declares a map with <a href="../modules/bpf.map.html#">bpf.map</a>: <code>map.hash(name, spec)</code>, <code>map.array(name, spec)</code> or
 <code>map.lru_hash(name, spec)</code>. The spec is <code>{key = ..., value = ..., entries = ...}</code>: the key is a
 <a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a> format of one integer, four bytes wide in an array, the value one of those or a
-<a href="../modules/struct.html#">struct</a> codec, both in the kernel&rsquo;s byte order, and <code>entries</code> the map&rsquo;s capacity. <code>lunatik run</code>
+<a href="../modules/struct.html#">struct</a> codec, both in the kernel&rsquo;s byte order but for a field the codec&rsquo;s layout marks
+<code>bigendian</code>, and <code>entries</code> the map&rsquo;s capacity. <code>lunatik run</code>
 creates the map and pins it at <code>/sys/fs/bpf/lunatik/&lt;script&gt;/&lt;name&gt;</code>, where a kernel script opens
 it with the constructor of the same name of the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a>, which takes the path and the
 two specs: <code>map.hash(path, &quot;I4&quot;, &quot;I8&quot;)</code>.</p>
@@ -662,8 +663,10 @@ does not hold is not an error.</li>
 <li>A key or a value its spec cannot pack stops the program, and so does an update or a delete the
 map refuses: an update of a full hash map, an index past an array&rsquo;s entries, a delete from an
 array. One the compiler knows is refused: &ldquo;the map key -1 does not fit &lsquo;I4&rsquo;&rdquo;.</li>
-<li>A <a href="../modules/struct.html#">struct</a> value is read-only and read by field name, <code>v.ttl</code>; a field wider than a byte is
-refused on a kernel without efficient unaligned access, as a packet read is.</li>
+<li>A <a href="../modules/struct.html#">struct</a> value is read-only and read by field name, <code>v.ttl</code>, as its codec decodes it: a field
+the layout marks <code>bigendian</code>, as <a href="../modules/luaebpf.vmlinux.html#luaebpf.vmlinux.layout">luaebpf.vmlinux.layout</a> marks a <code>__be16</code>, reads most
+significant byte first, so <code>v.tot_len</code> of an IPv4 header whose total length is 28 is 28. A field
+wider than a byte is refused on a kernel without efficient unaligned access, as a packet read is.</li>
 </ul>
 
 
@@ -1188,7 +1191,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 15:59:54</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 16:05:58</span>
 </div>
 </footer>
 </body>

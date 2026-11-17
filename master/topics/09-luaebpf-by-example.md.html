@@ -380,9 +380,9 @@ else, the compiler emits what lies between:</p>
 </tr>
 <tr>
 <td> <code>v.field</code> of a struct value </td>
-<td> the field the codec decodes </td>
-<td> a load the verifier refuses until the program tests the lookup </td>
-<td> a load at the field&rsquo;s offset and width, the sign extended where the field is signed </td>
+<td> the field the codec decodes, most significant byte first where the layout marks it <code>bigendian</code> </td>
+<td> a load the verifier refuses until the program tests the lookup, in the kernel&rsquo;s byte order </td>
+<td> a load at the field&rsquo;s offset and width, a <code>BPF_END</code> to big-endian where the layout marks a field wider than a byte <code>bigendian</code>, and the sign extended where the field is signed </td>
 </tr>
 <tr>
 <td> <code>return v</code>, the verdict </td>
@@ -1196,7 +1196,9 @@ frames, one after the other, over a map that starts empty:</p>
 
 <p>Each run returns 2 but the last, which stops and returns 0, <code>XDP_ABORTED</code>. A kernel script reads
 the same map with the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a>, as <code>map.hash("/sys/fs/bpf/lunatik/&lt;script&gt;/seen", "I4",
-"I8")&lt;code&gt;. A &lt;/code&gt;struct</code> value is read a field at a time, by a load at the field&rsquo;s offset and width.</p>
+"I8")&lt;code&gt;. A &lt;/code&gt;struct</code> value is read a field at a time, by a load at the field&rsquo;s offset and width,
+which a field wider than a byte that the layout marks <code>bigendian</code> follows with <code>BPF_END</code>: a byte
+swap on a little-endian kernel, so the field reads as the codec decodes it.</p>
 
 <p><a name="Loops"></a></p>
 
@@ -1668,7 +1670,7 @@ TC program the call is the same over <code>bpf_luatc_run</code>, and <code>r3</c
 <a href="../../topics/09-luaebpf-by-example.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/09-luaebpf-by-example.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 15:59:54</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 16:05:58</span>
 </div>
 </footer>
 </body>

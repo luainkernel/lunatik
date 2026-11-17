@@ -255,8 +255,10 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
     The layout of a kernel struct.</p>
 
 <p> A member is reported when its type resolves to an integer of a whole number of bytes at a
- byte-aligned offset; a bitfield, a union such as <code>__sk_buff</code>&rsquo;s <code>__bpf_md_ptr</code> members, and a
- nested struct are absent, and <a href="../modules/struct.html#">struct</a> reads the gap they leave as padding.
+ byte-aligned offset, and marked <code>bigendian</code> when its type is a <code>__be16</code>, <code>__be32</code> or <code>__be64</code>,
+ which <a href="../modules/struct.html#">struct</a> packs and reads big-endian; a <code>__sum16</code> is not. A bitfield, a union such as
+ <code>__sk_buff</code>&rsquo;s <code>__bpf_md_ptr</code> members, and a nested struct are absent, and <a href="../modules/struct.html#">struct</a> reads the gap
+ they leave as padding.
 
 
     <h3>Parameters</h3>
@@ -271,8 +273,8 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        <code>{size = bytes, fields = {{name, offset, size, signed}, ...}}</code>, offsets and
-   sizes in bytes
+        <code>{size = bytes, fields = {{name, offset, size, signed, bigendian}, ...}}</code>, offsets
+   and sizes in bytes
     </ol>
 
     <h3>Raises</h3>
@@ -320,7 +322,7 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
 <a href="../../modules/luaebpf.vmlinux.html">5.1 docs</a> ·
 <a href="../../5.0/modules/luaebpf.vmlinux.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 15:59:54</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 16:05:58</span>
 </div>
 </footer>
 </body>
