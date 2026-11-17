@@ -720,6 +720,7 @@ window.LUNATIK_SEARCH = [
 ["lunatik_free","topics/capi.md.html#lunatik_free","Guide · Lunatik C API"],
 ["lunatik_checkalloc","topics/capi.md.html#lunatik_checkalloc","Guide · Lunatik C API"],
 ["lunatik_gfp","topics/capi.md.html#lunatik_gfp","Guide · Lunatik C API"],
+["lunatik_maskgfp","topics/capi.md.html#lunatik_maskgfp","Guide · Lunatik C API"],
 ["Symbols","topics/capi.md.html#symbols","Guide · Lunatik C API"],
 ["lunatik_lookup","topics/capi.md.html#lunatik_lookup","Guide · Lunatik C API"],
 ["luacrypto","topics/capi.md.html#luacrypto","Guide · Lunatik C API"],

@@ -2187,9 +2187,9 @@ calls the kfunc fails to load.</p>
 
 
 <p>Allocates <code>size</code> bytes using the Lua allocator. Returns <code>NULL</code> on failure. The allocator asks for
-the runtime&rsquo;s <code>gfp</code>, <a href="#lunatik_gfp"><code>lunatik_gfp</code></a>, without an allocation warning; with
-<code>GFP_KERNEL</code>, a block larger than a page may come from <code>vmalloc</code>. Free it with <code>lunatik_free</code>,
-never <code>kfree</code>.</p>
+the runtime&rsquo;s <code>gfp</code>, <a href="#lunatik_gfp"><code>lunatik_gfp</code></a>, through <a href="#lunatik_maskgfp"><code>lunatik_maskgfp</code></a>
+and without an allocation warning; with <code>GFP_KERNEL</code>, a block larger than a page may come from
+<code>vmalloc</code>. Free it with <code>lunatik_free</code>, never <code>kfree</code>.</p>
 
 <h3 id="lunatik_realloc">lunatik_realloc</h3>
 
@@ -2244,6 +2244,27 @@ gfp_t <span class="function-name">lunatik_gfp</span>(lunatik_object_t *object);
 and the object&rsquo;s while it calls a monitored method.
 A binding that allocates outside the Lua allocator passes <code>lunatik_gfp(lunatik_toruntime(L))</code>.
 Defined as a macro.</p>
+
+<h3 id="lunatik_maskgfp">lunatik_maskgfp</h3>
+
+<pre>
+gfp_t <span class="function-name">lunatik_maskgfp</span>(gfp_t gfp);
+</pre>
+
+
+<p>Returns <code>gfp</code> without <code>__GFP_KSWAPD_RECLAIM</code> and with <code>__GFP_NOWARN</code> where
+<a href="#lunatik_isrunqueue"><code>lunatik_isrunqueue</code></a> holds, and <code>gfp</code> itself elsewhere: an scx callback holds
+its CPU&rsquo;s runqueue lock, which a wakeup from there can take again, and an allocation wakes kswapd
+when memory runs low and, when it fails with a warning, a task waiting for the console. Under memory
+pressure the allocation then fails without a log line rather than wake either, as the kernel&rsquo;s own
+<code>alloc_pages_nolock</code> asks for a caller in any context; on 6.18 to 7.1, where the slab allocator
+takes flags with neither reclaim bit for <code>kmalloc_nolock</code>&rsquo;s, it also fails where a lock of the slab
+or the page allocator is held, and a new slab draws on no reserve of <code>__GFP_HIGH</code>&rsquo;s. A binding that
+allocates outside the Lua allocator, on a path an scx callback reaches, passes its flags through it.
+The slab allocator still wakes kswapd on two paths that read none of these flags: on 7.0 and later,
+a free that finds its CPU&rsquo;s cache of freed objects full, and on 6.13 to 6.17 booted with
+<code>slab_strict_numa</code>, an allocation&rsquo;s first try on the node of the task&rsquo;s memory policy. Defined as a
+macro.</p>
 
 <hr />
 
@@ -2772,11 +2793,11 @@ for a value other than nil when its entry cannot be allocated or the key takes <
 or more; and <code>-ELOOP</code> for an <a href="../modules/rcu.html#table">rcu.table</a> that is <a href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a> or reaches it, or that reaches more than
 <code>LUARCU_MAXWALK</code> tables holding tables. It checks nothing else of <code>value</code>: the caller passes what
 <a href="#lunatik_value_t"><code>lunatik_checkvalue</code></a> reads, never a <code>LUNATIK_OPT_SINGLE</code> object. It allocates
-with <code>GFP_ATOMIC</code> and takes the table&rsquo;s lock, a spinlock taken with interrupts off only where they
-already are, so any context writes; but a table a probe handler writes is not written from another
-runtime with interrupts on, as the <a href="../modules/rcu.html#">rcu</a> module says. The value a store replaces or removes is
-dropped with <a href="#lunatik_putobject"><code>lunatik_putobject</code></a> once the lock is let go. <code>luarcu_setobject</code>
-stores <code>obj</code>, which is not <code>NULL</code>.</p>
+with <code>GFP_ATOMIC</code>, through <a href="#lunatik_maskgfp"><code>lunatik_maskgfp</code></a>, and takes the table&rsquo;s lock, a
+spinlock taken with interrupts off only where they already are, so any context writes; but a table
+a probe handler writes is not written from another runtime with interrupts on, as the <a href="../modules/rcu.html#">rcu</a> module
+says. The value a store replaces or removes is dropped with <a href="#lunatik_putobject"><code>lunatik_putobject</code></a>
+once the lock is let go. <code>luarcu_setobject</code> stores <code>obj</code>, which is not <code>NULL</code>.</p>
 
 <hr />
 
@@ -2925,7 +2946,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 16:10:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-17 16:16:34</span>
 </div>
 </footer>
 </body>
