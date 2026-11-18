@@ -28,9 +28,10 @@ local raw = {}
 -- @return A new raw packet socket bound for proto and ifindex.
 -- @raise Error if socket.new() or socket.bind() fail; a socket whose bind fails is closed first.
 -- @usage
---   local rx <close> = raw.new(0x0003)
---   local tx <close> = raw.new(0x88cc, ifindex)
---   tx:send(frame, 0x88cc, ifindex)
+--   local eth = require("linux.eth").proto
+--   local rx <close> = raw.new(eth.ALL)
+--   local tx <close> = raw.new(eth.LLDP, ifindex)
+--   tx:send(frame, eth.LLDP, ifindex)
 -- @see socket.new
 -- @see socket.bind
 function raw.new(proto, ifindex)
