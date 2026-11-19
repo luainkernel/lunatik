@@ -57,11 +57,13 @@
 # raises, and records in an rcu.table of _ENV that it went on; it then calls complete
 # and a mailbox's send, records that each raised "not allowed under the runqueue lock"
 # and that send left its message queued, and lets complete's raise reach the dispatch;
-# it then returns a dispatch queue that is not a number, and then detaches. The
-# scheduler calls the kfunc for its first five enqueues, so the fifth finds no
-# callback, and for no more: each one past it would log that line again, and ten of
-# them rate limit the line of a run that follows within five seconds. Three naps of a
-# sleep enqueue more tasks than the five.
+# it then returns a dispatch queue that is not a number; it then concatenates strings,
+# whose buffer the allocator moves each time it outgrows it, records that the result
+# kept its bytes, drops them and collects; and then it detaches. The scheduler calls
+# the kfunc for its first six enqueues, so the sixth finds no callback, and for no
+# more: each one past it would log that line again, and ten of them rate limit the
+# line of a run that follows within five seconds. Three naps of a sleep enqueue more
+# tasks than the six.
 # Once the scheduler is unregistered and its runtime stopped, runqueue_check.lua
 # reads the record, and the log must hold the printed line, the warning and the VM's
 # warning of the finalizer's error, and the dispatch must have logged the raise, the
@@ -72,6 +74,17 @@
 # the console to an irq_work; that case skips where the kprobe cannot be placed. The
 # runqueue cases skip where the pass cases do, and while another sched_ext
 # scheduler is enabled.
+#
+# A tracing instance of the test's own says where the callback's blocks were
+# freed: the function tracer, filtered to kvfree and krealloc, sees none called from
+# lunatik_free or lunatik_alloc with interrupts off, which only the dispatch runs the
+# runtime's Lua with and which the first flag of its line reads, and, filtered to
+# lunatik_kvfreedeferred too, that finalizer of a block lunatik_defer hands the core's
+# work run at least once with interrupts on, after the dispatch, and never with them
+# off. The runtime's stop closes its state off the marker, with interrupts on, and
+# there the tracer sees lunatik_free call kvfree, at once. A core without
+# lunatik_kvfreedeferred fails the case; a kernel before 7.0, where the callback frees
+# at once, and a tracefs without the function tracer skip it.
 #
 # Usage: sudo bash tests/scx/run.sh
 
@@ -90,17 +103,19 @@ RUNQUEUE_WARNED="Lua warning: scx runqueue warned"
 RUNQUEUE_GCERROR="Lua warning: error in __gc \(scx runqueue collected\)"
 # the runqueue cases, as runqueue_check.lua names them, the lines each reads in the log, one per line, and its title;
 # the last title is the case runqueue_deferred reads alone
-RUNQUEUE_CASES=(written refused raised detached)
+RUNQUEUE_CASES=(written refused raised freed detached)
 RUNQUEUE_LOGGED=(
 	"scx runqueue printed"$'\n'"$RUNQUEUE_WARNED"$'\n'"$RUNQUEUE_GCERROR"
 	""
 	"$RUNQUEUE_RAISED"$'\n'"$MODULE: invalid task class"
+	""
 	"$MODULE: no callback attached"
 )
 RUNQUEUE_TITLES=(
 	"scx runqueue: print, warn and an error a finalizer raises write their lines from the callback"
 	"scx runqueue: complete and a mailbox's send raise \"not allowed under the runqueue lock\" in the callback"
 	"scx runqueue: the dispatch logs an error the callback raises and a decision it refuses"
+	"scx runqueue: a block the callback frees is freed on a kernel worker after the dispatch, none in it"
 	"scx runqueue: a dispatch that finds no callback logs \"no callback attached\""
 	"scx runqueue: the dispatch writes its lines deferred, at LOGLEVEL_SCHED"
 )
@@ -108,6 +123,11 @@ RUNQUEUE_TITLES=(
 RUNQUEUE_WRITES="scx_runqueue/write"
 RUNQUEUE_WRITE='vprintk_emit level=$arg2:s32 fmt=+0($arg4):string'
 RUNQUEUE_SCHED="level=-2"
+FINALIZER="lunatik_kvfreedeferred"
+# a free in place: kvfree from lunatik_free, a krealloc from lunatik_alloc, or the finalizer, with interrupts off
+INPLACE='\] [dD][^ ]* +[0-9]+\.[0-9]+: (kvfree <-lunatik_(free|alloc)|krealloc[a-z_]* <-lunatik_alloc|'"$FINALIZER"' <-[^ ]+)$'
+# a free at once: kvfree from lunatik_free with interrupts on
+ATONCE='\] \.[^ ]* +[0-9]+\.[0-9]+: kvfree <-lunatik_(free|alloc)$'
 PASS="tests/scx/pass"
 RESUME="tests/scx/resume"
 RECORD="tests/scx/record"
@@ -145,6 +165,7 @@ source "$DIR/../lib.sh"
 
 INSTANCE="$TRACING/instances/lunatik_scx"
 KMALLOC="$INSTANCE/events/kmem/kmalloc"
+FREES="$TRACING/instances/lunatik_scx_free"
 
 # asked <site> <flags>: an allocation made at <site> asked for <flags>, a name the event prints among its gfp_flags
 asked() { grep -F "call_site=$1" "$INSTANCE/trace" 2>/dev/null | grep -qE "gfp_flags=([^ ]*\|)?$2(\|[^ ]*)? "; }
@@ -190,6 +211,8 @@ if ! cat /sys/module/$MODULE/refcnt > /dev/null 2>&1; then
 	skip_rest "$MODULE not loaded"
 fi
 
+untrace() { [ -d "$FREES" ] && rmdir "$FREES"; }
+
 cleanup()
 {
 	bpftool struct_ops unregister name "$OPS" 2>/dev/null
@@ -208,6 +231,7 @@ cleanup()
 	fi
 	rm -f "$PIN"
 	[ -z "$TASKS" ] || rm -rf "$TASKS"
+	untrace
 }
 trap cleanup EXIT
 cleanup
@@ -251,7 +275,8 @@ runqueue_cases()
 	done
 }
 
-# runqueue_verdict <i> <log>: runqueue_check.lua passed case <i>, and <log> holds each of its lines
+# runqueue_verdict <i> <log> [<why>]: runqueue_check.lua passed case <i>, <log> holds each of its lines,
+# and no <why> says it failed
 runqueue_verdict()
 {
 	local line missing=""
@@ -259,12 +284,13 @@ runqueue_verdict()
 	while IFS= read -r line; do
 		[ -z "$line" ] || grep -qE "$line" <<< "$2" || missing="$missing $line"
 	done <<< "${RUNQUEUE_LOGGED[$1]}"
-	if passed "${RUNQUEUE_CASES[$1]}" && [ -z "$missing" ]; then
+	if passed "${RUNQUEUE_CASES[$1]}" && [ -z "$missing" ] && [ -z "$3" ]; then
 		ktap_pass "${RUNQUEUE_TITLES[$1]}"
 	else
 		ktap_fail "${RUNQUEUE_TITLES[$1]}"
 		comment "$(dmesg_since | grep -E "${RUNQUEUE_CASES[$1]}[[:space:]]")"
 		[ -z "$missing" ] || comment "not logged:$missing"
+		[ -z "$3" ] || comment "$3"
 	fi
 }
 
@@ -289,10 +315,36 @@ runqueue_deferred()
 	fi
 }
 
+finalizes() { grep -qE "[[:space:]]$FINALIZER[[:space:]]+\[lunatik\]$" /proc/kallsyms; }
+
+# trace: arms the instance, or prints why the case skips; a core without the finalizer leaves it out of the filter
+trace()
+{
+	printf '7.0\n%s\n' "$(uname -r)" | sort -CV ||
+		{ echo "before 7.0 the callback frees at once"; return; }
+	mkdir "$FREES" 2>/dev/null && echo 'kvfree krealloc*' > "$FREES/set_ftrace_filter" 2>/dev/null &&
+		{ ! finalizes || echo "$FINALIZER" >> "$FREES/set_ftrace_filter" 2>/dev/null; } &&
+		echo function > "$FREES/current_tracer" 2>/dev/null ||
+		echo "couldn't trace kvfree, krealloc and $FINALIZER with the function tracer"
+}
+
+# unfreed <trace>: why <trace> shows a block freed in the dispatch, none freed at once off it, or none
+# freed by the core's work after it
+unfreed()
+{
+	local inplace
+
+	inplace=$(grep -E "$INPLACE" <<< "$1")
+	[ -z "$inplace" ] || echo "$(wc -l <<< "$inplace") frees in the dispatch, as $(head -1 <<< "$inplace")"
+	grep -qE "$ATONCE" <<< "$1" || echo "no kvfree from lunatik_free with interrupts on"
+	finalizes || { echo "the loaded core has no $FINALIZER"; return; }
+	grep -qE "\] \.[^ ]* +[0-9]+\.[0-9]+: $FINALIZER <-" <<< "$1" || echo "no $FINALIZER with interrupts on"
+}
+
 # the scheduler, the runtime and the kprobe are gone before the record is read
 runqueue()
 {
-	local log errs i levels placed=0
+	local log errs i levels untraced placed=0 traced=""
 
 	if [ "$(cat /sys/kernel/sched_ext/state)" != disabled ]; then
 		runqueue_cases skip "another sched_ext scheduler is enabled"
@@ -300,9 +352,11 @@ runqueue()
 	fi
 	run_test --context=hardirq "$RUNQUEUE" || { runqueue_cases fail "$RUNQUEUE did not run"; return; }
 	kprobe_place "$RUNQUEUE_WRITES" "$RUNQUEUE_WRITE" && placed=1
+	untraced=$(trace)
 	if ! bpftool struct_ops register "$DIR/scx_runqueue.bpf.o" > /dev/null; then
 		kprobe_remove "$RUNQUEUE_WRITES"
 		lunatik stop "$RUNQUEUE"
+		untrace
 		runqueue_cases fail "the scheduler did not register"
 		return
 	fi
@@ -311,6 +365,8 @@ runqueue()
 	done
 	bpftool struct_ops unregister name "$RUNQUEUE_OPS" > /dev/null
 	lunatik stop "$RUNQUEUE"
+	[ -n "$untraced" ] || traced=$(cat "$FREES/trace")
+	untrace
 	log=$(dmesg_since)
 	levels=$(runqueue_levels | sort -u)
 	kprobe_remove "$RUNQUEUE_WRITES"
@@ -322,7 +378,13 @@ runqueue()
 	fi
 	run_test "$RUNQUEUE_CHECK"
 	for i in "${!RUNQUEUE_CASES[@]}"; do
-		runqueue_verdict "$i" "$log"
+		if [ "${RUNQUEUE_CASES[$i]}" != freed ]; then
+			runqueue_verdict "$i" "$log"
+		elif [ -n "$untraced" ]; then
+			ktap_skip "${RUNQUEUE_TITLES[$i]}: $untraced"
+		else
+			runqueue_verdict "$i" "$log" "$(unfreed "$traced")"
+		fi
 	done
 	runqueue_deferred "$placed" "$levels"
 }

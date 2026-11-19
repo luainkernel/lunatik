@@ -14,7 +14,6 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include <linux/module.h>
 #include <linux/mm.h>
-#include <linux/vmalloc.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -47,24 +46,31 @@ static inline void lunatik_setversion(lua_State *L)
 	lua_setglobal(L, "_LUNATIK_VERSION");
 }
 
-#define lunatik_cankrealloc(p, n, f)	\
-	(((f) == GFP_ATOMIC || (n) <= PAGE_SIZE) && (!is_vmalloc_addr(p) || (p) == NULL))
+/* v7.0 and later: kfree can wake kswapd, whose wakeup takes a runqueue lock */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
+#define lunatik_cankfree()	(!lunatik_isrunqueue())
+#else
+#define lunatik_cankfree()	(true)
+#endif
 
-/* runs on a kernel worker, where vfree may sleep */
-static void lunatik_vfreedeferred(lunatik_defer_t *defer)
+#define lunatik_cankrealloc(p, n, f)	\
+	(((f) == GFP_ATOMIC || (n) <= PAGE_SIZE) && (!is_vmalloc_addr(p) || (p) == NULL) && lunatik_cankfree())
+
+/* vfree may sleep, and BUGs in NMI */
+#define lunatik_canfree(p)	((!is_vmalloc_addr(p) || !lunatik_isatomic()) && lunatik_cankfree())
+
+/* runs on a kernel worker, where vfree may sleep and kfree may wake kswapd */
+static void lunatik_kvfreedeferred(lunatik_defer_t *defer)
 {
-	vfree(defer);
+	kvfree(defer);
 }
 
 void lunatik_free(const void *ptr)
 {
-	if (is_vmalloc_addr(ptr) && lunatik_isatomic()) { /* vfree may sleep, and BUGs in NMI */
-		lunatik_defer_t *defer = (lunatik_defer_t *)ptr; /* the item fits: a vmalloc'd block is past a page */
-
-		lunatik_defer(defer, lunatik_vfreedeferred);
-	}
-	else
+	if (lunatik_canfree(ptr))
 		kvfree(ptr);
+	else if (ptr != NULL)
+		lunatik_defer((lunatik_defer_t *)ptr, lunatik_kvfreedeferred);
 }
 EXPORT_SYMBOL(lunatik_free);
 
@@ -82,11 +88,12 @@ static void *lunatik_alloc(void *ud, void *optr, size_t osize, size_t nsize)
 	lunatik_object_t *runtime = (lunatik_object_t *)ud;
 	gfp_t gfp = lunatik_gfp(runtime);
 	gfp_t nowarn = lunatik_maskgfp(gfp) | __GFP_NOWARN; /* Lua raises on a NULL */
+	size_t size = lunatik_blocksize(nsize); /* room for the item lunatik_free writes */
 
 	if (lunatik_cankrealloc(optr, nsize, gfp))
-		return krealloc(optr, nsize, nowarn);
+		return krealloc(optr, size, nowarn);
 
-	void *nptr = gfp == GFP_KERNEL ? kvmalloc(nsize, nowarn) : kmalloc(nsize, nowarn);
+	void *nptr = gfp == GFP_KERNEL ? kvmalloc(size, nowarn) : kmalloc(size, nowarn);
 	if (nptr == NULL) /* if shrinking, it's safe to return optr */
 		return nsize <= osize ? optr : nptr;
 	else if (optr != NULL) {

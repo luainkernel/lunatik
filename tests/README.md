@@ -2544,8 +2544,17 @@ or when `bpftool`, `clang` or `taskset` is unavailable.
   `no callback attached`, the last one the scheduler calls the kfunc for. A
   kprobe on `vprintk_emit` reads the level of each of those writes, which must
   be `LOGLEVEL_SCHED`, the level that leaves the console to an irq_work; that
-  case skips where the kprobe cannot be placed. The record is read once the
-  scheduler is unregistered and its runtime stopped.
+  case skips where the kprobe cannot be placed. A step concatenates strings,
+  whose buffer the allocator moves as it grows, records that the result kept
+  its bytes, drops them and collects, and a tracing instance of the test's own
+  reads where its blocks went back: the function tracer sees no `kvfree` from
+  `lunatik_free` nor `krealloc` from `lunatik_alloc` with interrupts off, and
+  sees `lunatik_kvfreedeferred`, the finalizer of a block `lunatik_defer` hands
+  the core's work, run at least once with interrupts on, after the dispatch,
+  and never with them off, while the runtime's stop, off the marker, still
+  frees through `kvfree` at once; that case skips before 7.0, where the callback
+  frees at once, and where tracefs has no function tracer. The record is read
+  once the scheduler is unregistered and its runtime stopped.
 
 - **scx reattach**: a hardirq runtime attaches, re-attaches (replacing the
   callback) and detaches without a Lua error.
