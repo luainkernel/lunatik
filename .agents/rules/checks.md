@@ -410,6 +410,13 @@ two components down, never the directory beside it. The build of #2080's run rem
 under the runs in flight, and the next build found its defect patches gone (#2123). `SCRATCH_OK=1`
 removes one known to hold nothing of another run's.
 
+`cd-guard.sh`, wired before a shell call, refuses one whose working directory, the `cwd` the hook input
+carries, which follows the session's `cd`, lies under the checkout other than its root, until a call
+opens with `cd` back to the root: Claude Code keeps the directory a `cd` leaves for every later call,
+and its own check refuses to remove the session's working directory, so the `rm -rf` that ends a scratch
+worktree the session had entered fell to the maintainer as a script, three times on 2026-11-16 and 17. A
+subagent, whose `cd` lasts one call, and a worktree Claude Code enters under `.claude/worktrees` pass.
+
 `message-guard.sh`, wired before a shell call, refuses a `git commit` whose editor copies a message in,
 `GIT_EDITOR="cp <file>"`, or edits the file `-F` reads, when that file holds a line that opens with `#`:
 git cleans a message an editor gave in strip mode, which drops such a line without a word, and an amend!
