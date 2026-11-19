@@ -392,6 +392,13 @@ guards typed `origin/master`, and the edit it had made over them went with no co
 planted to prove a test is a patch reverted with `git apply -R`; `DISCARD_OK=1` writes over files
 known to hold nothing to keep.
 
+`unanswered.sh <pr>` reads a pull request on GitHub and names each comment a person left there that no
+reply of the session answers: an inline one whose thread holds no later reply of the session's, and one
+of the conversation, or a review's body, that no later comment of the session quotes by its first line
+outside a quote. The session posts from the maintainer's account, so its posts are told from his by the
+note each opens with. #2630's review asked whether the collector could be stopped in an `scx` callback,
+and the answer reached the session's chat alone.
+
 `stage-guard.sh`, wired before a shell call, refuses staging the whole tree, `git add -A`, `--all`, `-u`,
 `--update`, `.` or `:/`, and `git commit -a`: a commit is staged by purpose, and a tree an edit left with
 several changes in it otherwise fuses them under a message that explains one. `STAGE_OK=1` stages a tree
