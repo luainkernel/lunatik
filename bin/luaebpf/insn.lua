@@ -245,6 +245,17 @@ function code:map(dst, name)
 	return at
 end
 
+--- `dst := the address of `bytes``, which the object keeps in its `.data`, where the program may
+-- write over them. The object carries a relocation against the symbol of those bytes, and libbpf
+-- writes the map it makes of `.data` and the symbol's offset in its value, as it does for the
+-- `ld_imm64` clang emits for a global variable.
+-- @function luaebpf.insn.code:data
+function code:data(dst, bytes)
+	local at = append(self, {code = LD | DW, dst = dst, src = 0, off = 0, imm = 0, data = bytes})
+	append(self, {code = 0, dst = 0, src = 0, off = 0, imm = 0})
+	return at
+end
+
 --- Returns from the function, with the value in `R0`.
 -- @function luaebpf.insn.code:exit
 function code:exit()
@@ -275,7 +286,7 @@ end
 -- Where each relocation of one kind sits and what it names, for the object to record.
 -- @function luaebpf.insn.code:relocations
 -- @tparam string kind `"call"` for a BPF-to-BPF call, `"map"` for a map reference, `"kfunc"` for a
---   call to a kfunc
+--   call to a kfunc, `"data"` for the address of bytes in `.data`, named by those bytes
 -- @treturn table `{at, name}` entries, `at` an index into the buffer
 function code:relocations(kind)
 	local found = {}

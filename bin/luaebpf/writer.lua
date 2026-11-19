@@ -10,8 +10,9 @@
 -- Each program is lowered by `luaebpf.emit` and laid out with `luaebpf.elf` and `luaebpf.btf`, in
 -- the byte order `luaebpf.emit.bigendian` says: its entry in the section its kind names, every
 -- subprogram in `.text`, the maps `luaebpf.maps` holds in `.maps`, the kfunc a call into the kernel Lua
--- runtime names and those of the iterator a loop calls in `.ksyms`, the license, each function's BTF,
--- and the line info that quotes the Lua line each instruction came from.
+-- runtime names and those of the iterator a loop calls in `.ksyms`, the bytes a function's code takes
+-- the address of, the line a stop logs among them, in `.data`, the license, each function's BTF, and
+-- the line info that quotes the Lua line each instruction came from.
 -- @module luaebpf.writer
 
 local maps = require("luaebpf.maps")
@@ -26,6 +27,7 @@ local concat = table.concat
 local TEXT    <const> = ".text"
 local MAPS    <const> = ".maps"
 local KSYMS   <const> = ".ksyms"
+local DATA    <const> = ".data"
 
 local writer = {}
 
@@ -95,7 +97,7 @@ end
 -- what a function's code names for the object to relocate, each kind with the relocation its
 -- instruction takes, in the order the records are written
 local relocated = {{kind = "call", type = elf.relocation.IMM32}, {kind = "map", type = elf.relocation.IMM64},
-	{kind = "kfunc", type = elf.relocation.IMM32}}
+	{kind = "kfunc", type = elf.relocation.IMM32}, {kind = "data", type = elf.relocation.IMM64}}
 
 local function place(types, unit, frame, cache, subprograms)
 	local at = unit.at
@@ -151,6 +153,40 @@ local function maplayout(object, types, declared)
 	object:section{name = MAPS, type = elf.section.PROGBITS, flags = elf.flags.ALLOC |
 		elf.flags.WRITE, data = ("\0"):rep(at), align = 8}
 	types:datasec(MAPS, entries)
+	return symbols
+end
+
+-- each symbol of `list` in the object, under the name a relocation looks it up by
+local function named(object, indexes, list)
+	for _, symbol in ipairs(list) do
+		indexes[symbol.name] = object:symbol(symbol)
+	end
+end
+
+-- the bytes a function's code takes the address of, each kept once however many name them
+local function constants(strings, kept, frame)
+	for _, use in ipairs(frame.code:relocations("data")) do
+		if not kept[use.name] then
+			kept[use.name] = true
+			insert(strings, use.name)
+		end
+	end
+end
+
+-- `.data`, of which libbpf makes an array map whose one value holds the bytes, at the address a
+-- program reads them at (tools/lib/bpf/libbpf.c), and a local symbol of each one's offset, named by
+-- the bytes, which no function, map or kfunc is
+local function datalayout(object, strings)
+	local symbols, at = {}, 0
+	for _, bytes in ipairs(strings) do
+		insert(symbols, {name = bytes, section = DATA, value = at, size = #bytes, bind = elf.bind.LOCAL,
+			type = elf.type.OBJECT})
+		at = at + #bytes
+	end
+	if at > 0 then
+		object:section{name = DATA, type = elf.section.PROGBITS, flags = elf.flags.ALLOC | elf.flags.WRITE,
+			data = concat(strings), align = 8}
+	end
 	return symbols
 end
 
@@ -244,6 +280,7 @@ function writer.write(declared, hook)
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
 	local names, subprograms, order, externs, called, calls = {}, {}, {}, {}, {}, {}
+	local strings, kept = {}, {}
 	-- maps and kfuncs take their names before any function does, so a relocation names one symbol
 	for _, map in ipairs(maps.declared()) do
 		names[map.name] = true
@@ -258,6 +295,7 @@ function writer.write(declared, hook)
 			local at = place(types, unit, frame, cache, subprograms)
 			report(calls, frame)
 			extern(externs, called, program, frame)
+			constants(strings, kept, frame)
 			if i == 1 then
 				insert(order, {name = frame.name, section = program.section, value = at,
 					size = frame.code:len() * insn.SIZE, bind = elf.bind.GLOBAL,
@@ -274,15 +312,13 @@ function writer.write(declared, hook)
 		end
 	end
 	local mapsymbols = maplayout(object, types, maps.declared())
-	for _, subprogram in ipairs(subprograms) do
-		indexes[subprogram.name] = object:symbol(subprogram)
-	end
+	local datasymbols = datalayout(object, strings)
+	named(object, indexes, subprograms)
+	named(object, indexes, datasymbols)
 	for _, entry in ipairs(order) do
 		object:symbol(entry)
 	end
-	for _, symbol in ipairs(mapsymbols) do
-		indexes[symbol.name] = object:symbol(symbol)
-	end
+	named(object, indexes, mapsymbols)
 	ksyms(object, types, externs, hook, indexes)
 	for _, unit in ipairs(units) do
 		local records = {}

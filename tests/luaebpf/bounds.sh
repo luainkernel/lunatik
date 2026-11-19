@@ -13,6 +13,10 @@
 #     through bpf_skb_load_bytes
 #   - every row is declared twice, once with each of two defaults, so the verdict is the error
 #     verdict of the program's type whatever default the file named
+#   - one run of a read past the end and of one above the ceiling on XDP, and of one past the end
+#     and one past 32 bits on TC, each a test of its own, writes "out of bounds" into the trace
+#     ring at the read's file and line, once and alone; so does a read past the end in a program
+#     file whose path holds bytes past ASCII, which the line carries as they are
 #   - with LUAEBPF_DROP=bounds the object is still written, and the verifier rejects it naming an
 #     invalid packet access, which is what says the check is emitted rather than implied
 #   - with LUAEBPF_DROP=loadbytes the test of what bpf_skb_load_bytes answers is gone from a TC
@@ -31,11 +35,44 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 5
+luaebpf_start 7
+
+BOUNDS="out of bounds" # luadata_checkbounds, lib/luadata.c
+
+# the line each test of a read logs, the first stops of the object
+reads() {
+	luaebpf_logs past1 "$(luaebpf_logline bounds "function makers.past" "$BOUNDS")" arp
+	luaebpf_logs high1 "$(luaebpf_logline bounds "function makers.high" "$BOUNDS")" arp
+	luaebpf_logs skbpast1 "$(luaebpf_logline bounds "function skbmakers.past" "$BOUNDS")" skbarp
+	luaebpf_logs skbwrapped1 "$(luaebpf_logline bounds "function skbmakers.wrapped" "$BOUNDS")" skbarp
+}
 
 output=$(luaebpf_compile bounds) || { comment "$output"; fail "luaebpf: bounds.bpf.lua did not compile"; }
 output=$(luaebpf_loadall bounds) || { comment "$output"; fail "luaebpf: the bounds checks did not verify"; }
 ktap_pass "luaebpf: every out-of-bounds row verifies"
+
+luaebpf_logcase "a read out of bounds logs its file and line once, on XDP and on TC" reads
+
+# a program file named in UTF-8, whose line logs the bytes of its path
+cat > "$LUAEBPF_WORK/ação.bpf.lua" <<'LUA'
+local xdp = require("bpf.xdp")
+local action = require("linux.xdp").action
+
+return xdp.program(function(ctx)
+	local p = ctx:packet()
+	local v = p:getbyte(#p)
+	return action.PASS
+end, {name = "acao", default = action.PASS})
+LUA
+
+# the line the read past the end of ação.bpf.lua logs
+named() {
+	luaebpf_written ação > /dev/null 2>&1 || { echo "ação.bpf.lua did not compile"; return; }
+	luaebpf_loadall ação > /dev/null || { echo "ação.bpf.o did not verify"; return; }
+	luaebpf_logs acao "$LUAEBPF_WORK/ação.bpf.lua:6: $BOUNDS"
+}
+
+luaebpf_logcase "a read out of bounds logs a path past ASCII as it is" named
 
 output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a bounds row differs from the interpreter"; }
 ktap_pass "luaebpf: every out-of-bounds read returns the error verdict of its program's type"

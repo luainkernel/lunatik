@@ -19,6 +19,11 @@
 #   - a write the map refuses returns XDP_ABORTED, where the kernel's bpf.map raises: an
 #     update at an index past the array's entries, a second key in a hash of one entry, whose
 #     first entry is kept, and a delete from an array, whose entry is kept
+#   - one run of each of those stops, in the object loaded again, whose maps and rate limit start
+#     anew, writes into the trace ring at the write's file and line, once and alone,
+#     string.pack's "unsigned overflow" or "integer overflow" for a value or a key past its spec,
+#     and "the map '<name>' refused the update" or "the delete" for a write the map refuses, whose
+#     errno only the kernel knows
 #   - a value that is not a number is refused with its line
 #
 # Usage: sudo bash tests/luaebpf/mapset.sh
@@ -30,9 +35,26 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 4
+luaebpf_start 5
 
+UNSIGNED="unsigned overflow" # string.pack, lua/lstrlib.c
+SIGNED="integer overflow"
+UPDATE="refused the update"
+DELETE="refused the delete"
 ROWS=
+
+# the line each write that stops logs, in the object loaded again
+writes() {
+	rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
+	luaebpf_loadall mapset > /dev/null || { echo "the map writes did not verify again"; return; }
+	luaebpf_logs widevalue "$(luaebpf_logline mapset "flows[WIDE] = p:getbyte(0)" "$UNSIGNED")" frame
+	luaebpf_logs widekey "$(luaebpf_logline mapset "flows[p:getbyte(0) << WORD | WIDE]" "$UNSIGNED")" frame
+	luaebpf_logs widedelete "$(luaebpf_logline mapset "flows[p:getbyte(0) << WORD | KEPT]" "$UNSIGNED")" frame
+	luaebpf_logs narrowvalue "$(luaebpf_logline mapset "levels[2] = -p:getbyte(0) - SPAN" "$SIGNED")" frame
+	luaebpf_logs overflow "$(luaebpf_logline mapset "hits[p:getbyte(0)] = COUNT" "the map 'hits' $UPDATE")" frame
+	luaebpf_logs full "$(luaebpf_logline mapset "one[DELETED] = STORED" "the map 'one' $UPDATE")" frame
+	luaebpf_logs arraydelete "$(luaebpf_logline mapset "hits[INDEX] = nil" "the map 'hits' $DELETE")" frame
+}
 
 output=$(luaebpf_compile mapset) || { comment "$output"; fail "luaebpf: mapset.bpf.lua did not compile"; }
 ROWS="$LUAEBPF_WORK/rows.txt"
@@ -64,6 +86,8 @@ diff <(echo "$kept") <(echo "$owed") > "$LUAEBPF_WORK/kept.diff"
 [ -s "$LUAEBPF_WORK/kept.diff" ] && { comment "$(cat "$LUAEBPF_WORK/kept.diff")";
 	fail "luaebpf: a map does not hold what the programs wrote into it"; }
 ktap_pass "luaebpf: an update and a delete from a compiled program are what the map keeps"
+
+luaebpf_logcase "a map write that stops logs the error at its file and line, once" writes
 
 cat > "$LUAEBPF_WORK/boolvalue.bpf.lua" <<'LUA'
 local map = require("bpf.map")

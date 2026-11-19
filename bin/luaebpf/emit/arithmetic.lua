@@ -12,7 +12,7 @@ local insn  = require("luaebpf.insn")
 local frame = require("luaebpf.emit.frame")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
-local abort, constant, into, isinteger = frame.abort, frame.constant, frame.into, frame.isinteger
+local constant, into, isinteger = frame.constant, frame.into, frame.isinteger
 local refuse, resolve, setreg, typename = frame.refuse, frame.resolve, frame.setreg, frame.typename
 local classes = frame.classes
 
@@ -34,11 +34,11 @@ end
 -- Lua's floor division over the magnitudes, since the s390 JIT of v6.6 and others of the range read
 -- BPF_SDIV as BPF_DIV: the quotient is corrected toward minus infinity when the operands' signs
 -- differ, and a divisor of zero raises, so the program stops
-local function floordiv(f)
+local function floordiv(f, pc)
 	local code = f.code
 	local done = code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, abort(f))
+		code:branchi(jump.JEQ, reg.R2, 0, frame.stop(f, pc, "attempt to divide by zero"))
 	end
 	code:alu(alu.MOV, reg.R3, reg.R1)
 	code:alu(alu.XOR, reg.R3, reg.R2)
@@ -55,11 +55,11 @@ local function floordiv(f)
 end
 
 -- Lua's modulo over the magnitudes, as floordiv divides them: the remainder takes the divisor's sign
-local function floormod(f)
+local function floormod(f, pc)
 	local code = f.code
 	local done = code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, abort(f))
+		code:branchi(jump.JEQ, reg.R2, 0, frame.stop(f, pc, "attempt to perform 'n%%0'"))
 	end
 	code:alu(alu.MOV, reg.R3, reg.R1)
 	code:alu(alu.MOV, reg.R4, reg.R2)
@@ -102,8 +102,8 @@ function binops.MUL(f) f.code:alu(alu.MUL, reg.R1, reg.R2) end
 function binops.BAND(f) f.code:alu(alu.AND, reg.R1, reg.R2) end
 function binops.BOR(f) f.code:alu(alu.OR, reg.R1, reg.R2) end
 function binops.BXOR(f) f.code:alu(alu.XOR, reg.R1, reg.R2) end
-function binops.IDIV(f) floordiv(f) end
-function binops.MOD(f) floormod(f) end
+function binops.IDIV(f, pc) floordiv(f, pc) end
+function binops.MOD(f, pc) floormod(f, pc) end
 function binops.SHL(f) shiftl(f) end
 
 function binops.SHR(f)
@@ -128,7 +128,7 @@ local function register(f, pc, ins, state, op)
 	into(f, pc, state, ins.b, reg.R1)
 	into(f, pc, state, ins.c, reg.R2)
 	numbers(f, pc, state[ins.b], state[ins.c])
-	binops[op](f)
+	binops[op](f, pc)
 	setreg(f, ins.a, reg.R1)
 	state[ins.a] = {t = INT}
 end
@@ -137,7 +137,7 @@ local function immediate(f, pc, ins, state, op, value)
 	into(f, pc, state, ins.b, reg.R1)
 	numbers(f, pc, state[ins.b])
 	f.code:set(reg.R2, value)
-	binops[op](f)
+	binops[op](f, pc)
 	setreg(f, ins.a, reg.R1)
 	state[ins.a] = {t = INT}
 end

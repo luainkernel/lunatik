@@ -6,8 +6,8 @@
 ---
 -- What every lowering shares: the declaration of a type a Lua register may hold, and the four
 -- `resolve` gives, the words each frame reserves, the abstract state the walk carries along each
--- edge, where a Lua register lives, the loops whose iterator a jump out of them destroys, and the
--- jumps.
+-- edge, where a Lua register lives, the loops whose iterator a jump out of them destroys, the
+-- jumps, and the way out of a check that stops the program, which logs the error Lua raises there.
 -- @module luaebpf.emit.frame
 
 local insn  = require("luaebpf.insn")
@@ -39,6 +39,16 @@ local PAST     <const> = math.maxinteger -- where an abort jumps to: past every 
 -- the kfuncs of the kernel's open-coded iterator (kernel/bpf/bpf_iter.c), which counts the passes of
 -- a loop whose bound the program computes, and which the kernel holds until the program destroys it
 local iterator = {new = "bpf_iter_num_new", next = "bpf_iter_num_next", destroy = "bpf_iter_num_destroy"}
+
+-- a stop's line goes to bpf_trace_printk as this format's argument: before v7.1 the helper prints
+-- nothing for a format holding a byte past ASCII, which a file's path may (bpf_bprintf_prepare)
+local FORMAT <const> = "%s\0"
+
+-- the window a stop's line is rate limited in, two words of the object's .data, which its programs
+-- share: a block names it first, so it heads .data, aligned for its words
+local WINDOW <const> = ("\0"):rep(SLOT * 2)
+local OPENED <const> = 0    -- the jiffies it opened at
+local LOGGED <const> = SLOT -- the lines it logged since
 
 local typenames = {}
 
@@ -117,8 +127,13 @@ local function exact(value)
 end
 frame.exact = exact
 
+-- the chunk and the line a refusal names, and a stop logs, as Lua's own error spells them
+local function where(f, pc)
+	return format("%s:%d: ", f.chunk, f.proto.lines[pc] or f.proto.linedefined)
+end
+
 local function refuse(f, pc, reason, ...)
-	error(format("%s:%d: ", f.chunk, f.proto.lines[pc] or f.proto.linedefined) .. format(reason, ...), 0)
+	error(where(f, pc) .. format(reason, ...), 0)
 end
 frame.refuse = refuse
 
@@ -458,13 +473,63 @@ local function abort(f)
 end
 frame.abort = abort
 
+-- the way out of a check where Lua would raise: a block of its own, which logs the error Lua raises
+-- there, `<chunk>:<line>: <reason>`, and then takes the tail abort gives the loops the check is in
+local function stop(f, pc, reason, ...)
+	local site = {label = f.code:label(), line = f.proto.lines[pc], after = abort(f),
+		message = where(f, pc) .. format(reason, ...) .. "\0"}
+	table.insert(f.stops, site)
+	return site.label
+end
+frame.stop = stop
+
+-- R1 := the window, opened again where more than DEFAULT_RATELIMIT_INTERVAL jiffies passed since it
+-- opened, as ___ratelimit opens its own, and the jump to `spent` where it logged its burst already
+local function window(f, func, limit, spent)
+	local code, counted = f.code, f.code:label()
+	code:helper(func.jiffies64)
+	code:data(reg.R1, WINDOW)
+	code:load(reg.R2, reg.R1, OPENED)
+	code:alu(alu.MOV, reg.R3, reg.R0)
+	code:alu(alu.SUB, reg.R3, reg.R2)
+	code:branchi(jump.JLE, reg.R3, limit.INTERVAL, counted)
+	code:store(reg.R1, OPENED, reg.R0)
+	code:storei(reg.R1, LOGGED, 0)
+	code:place(counted)
+	code:load(reg.R2, reg.R1, LOGGED)
+	code:branchi(jump.JGE, reg.R2, limit.BURST, spent)
+	code:alui(alu.ADD, reg.R2, 1)
+	code:store(reg.R1, LOGGED, reg.R2)
+end
+
+-- each stop's block, after the function's tail: its line to the trace ring under the kernel's
+-- default rate limit, as luakfunc_err logs a callback's error, since bpf_trace_printk limits nothing
+local function stops(f)
+	if #f.stops == 0 then
+		return
+	end
+	local code = f.code
+	local func, limit = proto.script("linux.bpf").func, proto.script("linux.ratelimit").default
+	for _, site in ipairs(f.stops) do
+		code:source(site.line)
+		code:place(site.label)
+		window(f, func, limit, site.after)
+		code:data(reg.R1, FORMAT)
+		code:set(reg.R2, #FORMAT)
+		code:data(reg.R3, site.message)
+		code:helper(func.trace_printk)
+		code:jump(site.after)
+	end
+end
+frame.stops = stops
+
 -- a value the program computes past `size` unsigned bytes, fewer than a register holds, stops
--- the program
-local function fitsunsigned(f, src, size)
+-- the program where Lua raises `reason`
+local function fitsunsigned(f, pc, src, size, reason)
 	local code = f.code
 	code:alu(alu.MOV, reg.R5, src)
 	code:alui(alu.RSH, reg.R5, size * BYTE)
-	code:branchi(jump.JNE, reg.R5, 0, abort(f))
+	code:branchi(jump.JNE, reg.R5, 0, stop(f, pc, reason))
 end
 frame.fitsunsigned = fitsunsigned
 

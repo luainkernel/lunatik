@@ -16,7 +16,7 @@ local context = require("luaebpf.emit.context")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local format = string.format
-local abort, aligned, fetch = frame.abort, frame.aligned, frame.fetch
+local aligned, fetch = frame.aligned, frame.fetch
 local isinteger, refuse, setreg, typename = frame.isinteger, frame.refuse, frame.setreg, frame.typename
 local contextcall, layout = context.contextcall, context.layout
 
@@ -32,6 +32,9 @@ local VIEW   <const> = frame.type("view", "proxy")
 -- its offset against the last one its width can start at. Anything above is out of bounds on
 -- every XDP frame BPF_PROG_TEST_RUN or a NIC can build, and the interpreter raises there too.
 local PACKETMAX <const> = 65535
+
+-- what a read past the packet logs, as the kernel's data object raises it (luadata_checkbounds)
+local BOUNDS <const> = "out of bounds"
 
 -- the reads the kernel's own data object publishes (lib/luadata.c), and the load each becomes.
 -- There is no getuint64: a Lua integer is 64-bit signed and has no unsigned twin.
@@ -74,15 +77,15 @@ local function directread(f, pc, source, at, plus, access, what)
 	local code, base, limit = f.code, bounds(f)
 	aligned(f, pc, what, access.size)
 	offset(f, at, plus, reg.R4)
-	local ptr = fetch(f, source, reg.R3)
+	local ptr, past = fetch(f, source, reg.R3), frame.stop(f, pc, BOUNDS)
 	code:load(reg.R1, ptr, base.offset, base.size)
 	code:load(reg.R2, ptr, limit.offset, limit.size)
-	code:branchi(jump.JGT, reg.R4, PACKETMAX - access.size, abort(f))
+	code:branchi(jump.JGT, reg.R4, PACKETMAX - access.size, past)
 	code:alu(alu.ADD, reg.R1, reg.R4)
 	if f.drop ~= "bounds" then
 		code:alu(alu.MOV, reg.R4, reg.R1)
 		code:alui(alu.ADD, reg.R4, access.size)
-		code:branch(jump.JGT, reg.R4, reg.R2, abort(f))
+		code:branch(jump.JGT, reg.R4, reg.R2, past)
 	end
 	code:load(reg.R1, reg.R1, 0, access.size)
 end
@@ -91,17 +94,17 @@ end
 -- holds them, and answers non-zero past the packet, where the interpreter raises. It takes the low
 -- 32 bits of the offset, so the offset is tested against copymax first: one above it whose low 32
 -- bits fall in the packet would read there.
-local function copyread(f, source, at, plus, access, packet)
-	local code = f.code
+local function copyread(f, pc, source, at, plus, access, packet)
+	local code, past = f.code, frame.stop(f, pc, BOUNDS)
 	offset(f, at, plus, reg.R2)
 	frame.move(f, frame.fetch(f, source, reg.R1), reg.R1)
-	code:branchi(jump.JGT, reg.R2, packet.copymax, frame.abort(f))
+	code:branchi(jump.JGT, reg.R2, packet.copymax, past)
 	code:alu(alu.MOV, reg.R3, reg.FP)
 	code:alui(alu.ADD, reg.R3, VALUE)
 	code:set(reg.R4, access.size)
 	code:helper(packet.loadbytes)
 	if f.drop ~= "loadbytes" then
-		code:branchi(jump.JNE, reg.R0, 0, frame.abort(f))
+		code:branchi(jump.JNE, reg.R0, 0, past)
 	end
 	code:load(reg.R1, reg.FP, VALUE, access.size)
 end
@@ -111,7 +114,7 @@ end
 local function packetload(f, pc, source, at, plus, access, what)
 	local packet = f.unit.context.packet
 	if packet.loadbytes ~= nil then
-		copyread(f, source, at, plus, access, packet)
+		copyread(f, pc, source, at, plus, access, packet)
 	else
 		directread(f, pc, source, at, plus, access, what)
 	end

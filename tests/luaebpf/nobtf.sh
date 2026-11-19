@@ -13,7 +13,9 @@
 #   - bpftool's load fails naming the kfunc
 #   - `lunatik run` names it too, exits 1 and leaves no pin root, no runtime and nothing on the
 #     device
-#   - the same drop over a program file with no call into Lua leaves the object loadable
+#   - the same drop over a program file with no call into Lua leaves the object loadable, and so
+#     it does over one whose programs may stop, divzero's: a stop logs through a helper and names
+#     no kfunc, so the program needs no module's BTF
 #   - the program compiled whole deploys through `lunatik run`, whose libbpf resolves the kfunc in
 #     the module's BTF, and the program on the device answers its nil branch, since nothing starts
 #     the runtime it calls; skipped where the kernel publishes no BTF for luaxdp
@@ -31,7 +33,7 @@ trap cleanup EXIT
 KFUNC=bpf_luaxdp_run
 PASS=2
 
-luaebpf_start 4
+luaebpf_start 5
 luaebpf_device || fail "luaebpf: the case could not create $LUAEBPF_DEV"
 
 output=$(luaebpf_compile nobtf ksyms) || { comment "$output"; fail "luaebpf: nobtf.bpf.lua did not compile"; }
@@ -52,6 +54,13 @@ status=$?
 rm -rf "$LUAEBPF_PINS"
 [ "$status" -eq 0 ] || { comment "$output"; fail "luaebpf: a program with no call into Lua did not load"; }
 ktap_pass "luaebpf: the drop reaches the call into Lua and leaves a program without one loadable"
+
+output=$(luaebpf_compile divzero ksyms) || { comment "$output"; fail "luaebpf: divzero.bpf.lua did not compile"; }
+output=$(luaebpf_loadall divzero)
+status=$?
+rm -rf "$LUAEBPF_PINS"
+[ "$status" -eq 0 ] || { comment "$output"; fail "luaebpf: a program that may stop did not load under the drop"; }
+ktap_pass "luaebpf: a program that may stop names no kfunc, and loads under the drop"
 
 reason=$(luaebpf_kfunc luaxdp)
 if [ -n "$reason" ]; then

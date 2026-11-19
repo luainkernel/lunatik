@@ -14,7 +14,7 @@ local proto = require("luaebpf.proto")
 local frame = require("luaebpf.emit.frame")
 
 local alu, jump, reg = insn.alu, insn.jump, insn.reg
-local abort, getreg, into, isinteger = frame.abort, frame.getreg, frame.into, frame.isinteger
+local getreg, into, isinteger = frame.getreg, frame.into, frame.isinteger
 local labelof, reach, refuse, setimm = frame.labelof, frame.reach, frame.refuse, frame.setimm
 local setreg, typename = frame.setreg, frame.typename
 
@@ -23,6 +23,9 @@ local INT <const> = frame.INT
 local MININT <const> = 1 << 63
 
 local INTSIZE <const> = 4 -- bpf_iter_num_new answers an int, and bpf_iter_num_next points at one
+
+-- what a stop of the kernel's counting logs, where Lua makes every pass and raises nothing
+local BUDGET <const> = "'for' outruns the budget the kernel gives it"
 
 local forloop = {}
 
@@ -85,7 +88,7 @@ local function counting(f, pc, ins, state, a)
 	into(f, pc, state, a + 1, reg.R2)
 	into(f, pc, state, a + 2, reg.R3)
 	if state[a + 2].k == nil then
-		code:branchi(jump.JEQ, reg.R3, 0, abort(f))
+		code:branchi(jump.JEQ, reg.R3, 0, frame.stop(f, pc, "'for' step is zero"))
 	end
 	code:alu(alu.MOV, reg.R5, reg.R3)
 	code:branchi(jump.JSLT, reg.R3, 0, descending)
@@ -113,14 +116,14 @@ end
 local function iterated(f, pc, ins, state, a)
 	local code = f.code
 	counting(f, pc, ins, state, a)
-	code:branchi(jump.JGE, reg.R2, proto.script("linux.limits").int.MAX, abort(f))
+	code:branchi(jump.JGE, reg.R2, proto.script("linux.limits").int.MAX, frame.stop(f, pc, BUDGET))
 	local loop = frame.enter(f, pc, pc + ins.bx + 1)
 	code:alu(alu.MOV, reg.R3, reg.R2)
 	code:alui(alu.ADD, reg.R3, 1)
 	code:set(reg.R2, 1)
 	frame.iterate(f, frame.iterator.new, loop)
 	frame.extend(f, reg.R0, INTSIZE)
-	code:branchi(jump.JNE, reg.R0, 0, abort(f))
+	code:branchi(jump.JNE, reg.R0, 0, frame.stop(f, pc, BUDGET))
 end
 
 function forloop.FORPREP(f, pc, ins, state)
@@ -173,7 +176,7 @@ local function iterating(f, pc, ins, state, loop)
 	frame.iterate(f, frame.iterator.next, loop)
 	code:branchi(jump.JEQ, reg.R0, 0, done)
 	if f.unit.maygoto then
-		code:maygoto(abort(f)) -- the time the kernel gives a call's loops, where it times them
+		code:maygoto(frame.stop(f, pc, BUDGET)) -- the time the kernel gives a call's loops, where it times them
 	end
 	code:load(reg.R1, reg.R0, 0, INTSIZE)
 	code:alu(alu.MUL, reg.R1, getreg(f, pc, state, a + 1, reg.R2))

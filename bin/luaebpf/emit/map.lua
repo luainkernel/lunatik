@@ -16,7 +16,7 @@ local alu, jump, reg = insn.alu, insn.jump, insn.reg
 local format   = string.format
 local pack     = string.pack
 local mathtype = math.type
-local abort, aligned, constant = frame.abort, frame.aligned, frame.constant
+local aligned, constant = frame.aligned, frame.constant
 local extend, fetch, fitsunsigned, getreg = frame.extend, frame.fetch, frame.fitsunsigned, frame.getreg
 local isinteger, refuse, setreg, tested = frame.isinteger, frame.refuse, frame.setreg, frame.tested
 
@@ -54,17 +54,17 @@ map.packable = packable
 
 -- a spec narrower than a word holds the values its signedness reaches, and one the program
 -- computes outside them stops the program where string.pack would raise
-local function fits(f, src, spec)
+local function fits(f, pc, src, spec)
 	if spec.size * BYTE == NBITS then
 		return
 	end
 	if not spec.signed then
-		return fitsunsigned(f, src, spec.size)
+		return fitsunsigned(f, pc, src, spec.size, "unsigned overflow")
 	end
 	local code = f.code
 	code:alu(alu.MOV, reg.R5, src)
 	extend(f, reg.R5, spec.size)
-	code:branch(jump.JNE, reg.R5, src, abort(f))
+	code:branch(jump.JNE, reg.R5, src, frame.stop(f, pc, "integer overflow"))
 end
 
 -- the register a key or a value is in, held to its spec: at compile time when the compiler
@@ -78,7 +78,7 @@ local function packed(f, pc, state, i, spec, what, scratch)
 	if value.k ~= nil then
 		packable(f, pc, spec, what, value.k)
 	else
-		fits(f, src, spec)
+		fits(f, pc, src, spec)
 	end
 	return src
 end
@@ -146,7 +146,7 @@ local function mapstore(f, pc, ins, state, map, key)
 		code:helper(DELETE)
 		-- the kernel's bpf.map raises on any delete the map refuses but an absent key's (luabpf_map_checkret)
 		code:branchi(jump.JEQ, reg.R0, ENOENT, absent)
-		code:branchi(jump.JNE, reg.R0, 0, abort(f))
+		code:branchi(jump.JNE, reg.R0, 0, frame.stop(f, pc, "the map '%s' refused the delete", map.name))
 		code:place(absent)
 		return
 	end
@@ -155,7 +155,8 @@ local function mapstore(f, pc, ins, state, map, key)
 	frame.address(f, reg.R3, VALUE)
 	code:set(reg.R4, ANY)
 	code:helper(UPDATE)
-	code:branchi(jump.JNE, reg.R0, 0, abort(f)) -- the kernel's bpf.map raises on an update the map refuses
+	-- the kernel's bpf.map raises on an update the map refuses
+	code:branchi(jump.JNE, reg.R0, 0, frame.stop(f, pc, "the map '%s' refused the update", map.name))
 end
 map.mapstore = mapstore
 

@@ -15,6 +15,9 @@
 #     a caller that went on past the flag would keep; a row whose callee reaches nothing but its abort
 #     tail loads, which it would not if that tail left R0 uninitialised, since the verifier reads
 #     R0 on the caller's fall-through without pairing the flag with the path
+#   - one run of a division by zero in a called function writes one line into the trace ring, the
+#     callee's file, line and "attempt to divide by zero", and each caller that reads the flag, six
+#     of them past the deepest, writes nothing
 #   - the object carries one BTF FUNC per subprogram, named as the file names it
 #   - five arguments, fewer arguments than the callee declares, and direct or mutual recursion
 #     are refused with their messages and lines. The fifth register carries the abort pointer,
@@ -31,11 +34,22 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 6
+luaebpf_start 7
+
+DIVIDE="attempt to divide by zero" # luaV_idiv, lua/lvm.c
+
+# the line each stop in a callee logs, the first stops of the object
+callees() {
+	luaebpf_logs deepest1 "$(luaebpf_logline call "local function deep6" "$DIVIDE")"
+	luaebpf_logs calleddiv1 "$(luaebpf_logline call "return n // d" "$DIVIDE")"
+	luaebpf_logs onlyabort1 "$(luaebpf_logline call "return 1 // zero" "$DIVIDE")"
+}
 
 output=$(luaebpf_compile call) || { comment "$output"; fail "luaebpf: call.bpf.lua did not compile"; }
 output=$(luaebpf_loadall call) || { comment "$output"; fail "luaebpf: the calls did not verify"; }
 ktap_pass "luaebpf: every call row verifies"
+
+luaebpf_logcase "a stop in a callee logs the callee's line once, and its callers nothing" callees
 
 output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a call differs from the interpreter"; }
 ktap_pass "luaebpf: every call row agrees with the interpreter"

@@ -107,8 +107,13 @@ the byte order of the kernel `lunatik.config` describes:
   runtime's and the iterator's, whose prototype libbpf compares with the kernel's kind by kind, and
   an undefined symbol of no type, which the call's relocation names: libbpf resolves the kfunc in
   the kernel's BTF or the module's and writes the call's source register, immediate and offset;
+* `.data`, the bytes a stop logs and counts with: the two words of the rate limit, which a stop's
+  block names first, so they head the section, aligned for the loads, the format
+  `bpf_trace_printk` prints a line with, and the line of each check, each laid out once, under a
+  local symbol of its offset that the `LD_IMM64` loading its address relocates against: libbpf
+  makes the section an array map and writes the map and the offset there (`RELO_DATA`);
 * `.symtab`, `.strtab`, and a relocation section for each section that calls a subprogram or a
-  kfunc or names a map.
+  kfunc or names a map or bytes of `.data`.
 
 ### The kernel it compiles for
 
@@ -190,6 +195,31 @@ returns where its function returns no value. In a subprogram the tail stores a o
 address its caller passed and sets R0, which the verifier reads on every path out, and the caller,
 which reads the flag after every call, takes its own tail. A check that fails in any frame thus
 ends the program with the error verdict.
+
+Each check jumps first to a block of its own, placed after the tail, which logs the line the
+interpreter's error would carry, `<chunk>:<line>: <reason>`, chunk and line as a refusal spells
+them, and then jumps to the tail, through the destroy of every iterator the check is in. The reason
+is the interpreter's text for the operation: `attempt to divide by zero` and
+`attempt to perform 'n%0'` (`luaV_idiv`, `luaV_mod`), `'for' step is zero` (`forprep`),
+`out of bounds` for a packet read (`luadata_checkbounds`) and a `skb:priority`
+(`lunatik_checkbounds`), `unsigned overflow` and `integer overflow` for a map key or value
+(`string.pack`), and `invalid action` for a verdict (`luakfunc_action`). A map write the map refuses
+names the map and the write, "the map 'flows' refused the update", since the errno the kernel's
+`bpf.map` raises is known at run time alone, and a `for` past the kernel's budget, which the
+interpreter would run to its end, logs "'for' outruns the budget the kernel gives it". The caller
+that reads a callee's flag logs nothing, so a stop is logged once, by the check that failed.
+
+The block hands `bpf_trace_printk` the format `%s` and the line as its argument, so a byte of the
+path past ASCII, which the helper refuses in a format before 7.1, and a `%` reach the ring as they
+are. The helper limits nothing, so the block counts as `___ratelimit` does: `bpf_jiffies64` read
+against the window's start, which opens again past `DEFAULT_RATELIMIT_INTERVAL`, and a count the
+window logs up to `DEFAULT_RATELIMIT_BURST`, both kernel constants `autogen` takes into
+`linux.ratelimit`. The two words are the object's, in `.data`, so every program of an object shares
+one window, and a count read and written without a lock lets a stop that races another on a second
+CPU through. The line is a constant of `.data` rather than words written below the frame: the
+verifier sums the stack of every frame of a call chain against 512 bytes
+(`check_max_stack_depth_subprog`), and a line below each frame of the deepest chain
+`call.bpf.lua` compiles would pass it.
 
 ### Calls
 

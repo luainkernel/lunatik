@@ -1210,7 +1210,11 @@ the body runs the same programs on the host and writes what each kept beside
 the object, and the case compares that with the 64 bits the compiled program
 kept, and its verdict with the default. Where the interpreter raises, the
 compiled program keeps nothing and owes the error verdict of its type instead,
-`XDP_ABORTED` or `TC_ACT_SHOT`.
+`XDP_ABORTED` or `TC_ACT_SHOT`, and a stop writes the interpreter's error into
+the kernel's trace ring, `<file>:<line>: <reason>`. A case that reads that
+line skips where no trace ring is mounted at `/sys/kernel/tracing` or tracing
+is off, and reads it from an object whose rate limit, ten lines every five
+seconds, the stops before it have not spent.
 
 - **host**: the body runs from the chunk `lunatic` compiles, rewritten for
   the CLI's Lua, and computes as the kernel does: `10 / 4` is the integer 2,
@@ -1297,14 +1301,21 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   and shift counts of 0, 1, 63, 64, 65 and `-1`.
 - **divzero**: `// 0` and `% 0`, by a constant divisor and by one the program
   computes, return `XDP_ABORTED` and not the default the file names, and keep
-  nothing; `mininteger // -1` and `x % -1` match the interpreter; with
+  nothing, and one run of each logs "attempt to divide by zero" or "attempt to
+  perform 'n%0'" at its file and line, once and alone, past twenty runs of
+  `mininteger // -1`, which log nothing and spend none of the rate limit;
+  twenty runs of one, in the object loaded again, log ten lines, a run of
+  another of its programs none after them, and a run six seconds later one more;
+  `mininteger // -1` and `x % -1` match the interpreter; with
   `LUAEBPF_DROP=divisor` the programs keep the raw eBPF answers instead.
 - **verdict**: a verdict the program computes at either end of its type's
   actions, `XDP_ABORTED` and `XDP_REDIRECT`, `TC_ACT_UNSPEC` and `TC_ACT_TRAP`,
   is returned, and so are both TC ends where the compiler holds them; one past
   either end, one whose low 32 bits are an action and whose high ones are not,
   and one a called function computes return the error verdict of their type,
-  `XDP_ABORTED` or `TC_ACT_SHOT`, and not the default. A verdict the compiler
+  `XDP_ABORTED` or `TC_ACT_SHOT`, and not the default, one run past the last
+  action and below the first on XDP and past the last on TC logging "invalid
+  action" at the line of the return, once. A verdict the compiler
   holds outside the actions, a boolean, a value that is a boolean on one path,
   and a default verdict outside them are refused with their lines; with
   `LUAEBPF_DROP=action` the verifier still loads the programs and `prog run`
@@ -1314,6 +1325,7 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   `TEST`/`TESTSET`, a boolean held in a register, Lua's truth, where `0` is
   true, and `==` against `nil`, `true`, `false` and a captured string, which
   only the two types answer for once the compiler no longer holds the value.
+  No row stops, and the run of the corpus writes no line into the trace ring.
 - **forconst**: a numeric `for` whose bounds the compiler proves: forward,
   zero-trip, descending, a step above one, a negative start, a nested pair
   and a `goto` forwards, to the end of the body and out of the loop, none of
@@ -1326,7 +1338,12 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   iterators it leaves; a step that is zero at run time, in the program and in a
   function it calls, returns `XDP_ABORTED`, and so does a loop of more passes
   than the iterator counts, or of a count past the int it takes, in either,
-  keeping nothing; a step that is zero at compile time is refused. On a kernel
+  keeping nothing; in the object loaded again, one run of a zero step, in the
+  program and in a callee, of a division by zero in a loop and of each loop
+  past what the iterator counts logs "'for' step is zero", "attempt to divide by
+  zero" or "'for' outruns the budget the kernel gives it" at the line of its
+  `for` or its division, once, and so do the loops past the `may_goto` budget
+  where the kernel has it; a step that is zero at compile time is refused. On a kernel
   that has `may_goto`, two loops the iterator counts whole, one in the other,
   whose passes outrun the budget the kernel gives the `may_goto` of one call,
   counted or timed, return `XDP_ABORTED` and keep nothing; the case skips on a
@@ -1339,7 +1356,9 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   division inside a called function returns `XDP_ABORTED` and not the default
   the file names, a row past such a call adding one so that a caller that went
   on past the flag is not read as `XDP_ABORTED`, and a callee that reaches
-  nothing but its abort tail still loads; one static BTF
+  nothing but its abort tail still loads; one run of a division by zero six
+  frames down, two and one logs the callee's line once, and its callers
+  nothing; one static BTF
   `FUNC` per subprogram; five arguments, since the fifth register carries the
   abort pointer, a call short of an argument the callee declares, and
   recursion refused with their lines.
@@ -1383,7 +1402,7 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   top bit set, answers `v` back through the kernel's own context, the constant
   in `ctx_out` too, and a value the program computes past 32 bits or below zero
   returns `TC_ACT_SHOT` and leaves `ctx_out` with the priority it was
-  given. A field read or assigned on either context, `ctx.ingress_ifindex`,
+  given, one run of each logging "out of bounds" at its line, once. A field read or assigned on either context, `ctx.ingress_ifindex`,
   `ctx.rx_queue_index`, `skb.len` and `skb.priority` among them, `#` on an XDP
   context, `ingress_ifindex`, which the kernel's skb object does not carry, a
   field the struct does not carry, `skb:priority` given a boolean and a
@@ -1410,7 +1429,11 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   negative offset the program computed, and one past 32 bits whose low 32 name
   the packet's first byte, each through `ctx:packet()` and through
   `skb:data()` and declared under two defaults, each returning `XDP_ABORTED` or
-  `TC_ACT_SHOT` whatever default the file named; with `LUAEBPF_DROP=bounds` the
+  `TC_ACT_SHOT` whatever default the file named, one run of a read past the
+  end and of one above the ceiling on XDP, and past the end and past 32 bits on
+  TC, logging "out of bounds" at the read's line, once, and so does a read past
+  the end in a program file named `ação.bpf.lua`, whose path the line carries
+  as it is; with `LUAEBPF_DROP=bounds` the
   object is still written and the verifier refuses it naming an invalid packet
   access, and with `LUAEBPF_DROP=loadbytes`, which drops the test of what
   `bpf_skb_load_bytes` answers, it verifies and the TC reads past the last byte
@@ -1466,7 +1489,10 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   bytes name are found untouched; a negative value a signed spec packs is kept.
   A write the map refuses, an index past an array's entries, a second key in a
   hash of one entry and a delete from an array, returns `XDP_ABORTED`, and
-  what the map held is kept. A value that is not a number is refused.
+  what the map held is kept. In the object loaded again, one run of each of
+  those stops logs at the write's line, once, `string.pack`'s "unsigned
+  overflow" or "integer overflow", or "the map '<name>' refused the update" or
+  "the delete". A value that is not a number is refused.
 - **struct**: a map whose value spec is a `struct` codec, read a field at a
   time: one field of every width and signedness with a gap the codec reads as
   padding and a field marked `bigendian` of each width, a signed one and a
@@ -1497,8 +1523,10 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   a signed native one, a signed bitfield and a big-endian field of eight bytes.
   Each view is made in a function the program calls with the packet, and in the
   program's own frame, where a read past the end, `doff` on the ICMP echo,
-  stops the program after an earlier field kept its value, and a view each arm
-  of a branch makes of the one struct is read where the arms meet. A view with no
+  stops the program after an earlier field kept its value, one run of it in the
+  called function logging "out of bounds" at the line of the read, once, on XDP
+  and on TC, and a view each arm of a branch makes of the one struct is read
+  where the arms meet. A view with no
   offset, where an earlier call left a number in the register the offset would
   take, over the context or at an offset that is not a number, another method
   of a codec, a field the layout lacks, a write, an index, a method on the view,
@@ -1591,7 +1619,10 @@ suite's own; each tears down before it reads its verdict.
   section reads `GPL`, and `bpftool` reads both loaded GPL-compatible; under
   `Proprietary`, which `license_is_gpl_compatible` does not count, both load
   and neither is GPL-compatible, and `lunatik run` attaches an XDP one and a
-  TC one, the TC one by tcx. Under it, an XDP and a TC program calling the
+  TC one, the TC one by tcx. Under it, an XDP program that may stop, dividing
+  by zero, compiles and is refused at load with the verifier's "cannot call
+  GPL-restricted function from non-GPL compatible program", since its stop logs
+  through `bpf_trace_printk`. Under it, an XDP and a TC program calling the
   runtime compile and the run of each exits 1 with the verifier's "cannot call
   kernel function from non-GPL compatible program", leaving nothing behind,
   each skipped where its module publishes no BTF; the TC runs skip where the
@@ -1638,7 +1669,8 @@ publishes no BTF for the module whose kfunc its programs call.
 - **nobtf**: an object compiled with `LUAEBPF_DROP=ksyms`, which leaves the
   kfunc out of its `.ksyms` DATASEC, fails bpftool's load and `lunatik run`
   with libbpf's warning naming the kfunc, the run leaving nothing behind; the
-  same drop over a program with no call leaves the object loadable. Compiled
+  same drop over a program with no call leaves the object loadable, and so it
+  does over `divzero`'s programs, which may stop and name no kfunc. Compiled
   whole, the program deploys through `lunatik run`, whose libbpf resolves the
   kfunc in the module's BTF, and answers its nil branch on the device.
 - **report**: compiles only. `lunatik bpf` prints on stdout one line per call

@@ -25,6 +25,12 @@
 #   - a step a called function gets at run time returns XDP_ABORTED too, through the flag the
 #     callee raises in its caller's frame, and the row adds one past the call, so a caller that went
 #     on past the flag keeps 1 and returns its default, not XDP_ABORTED
+#   - one run of a zero step, in the program and in a called function, and of a division by zero in
+#     a loop, in the object loaded again, whose rate limit starts anew, writes into the trace ring at
+#     its file and line, once and alone, "'for' step is zero" and "attempt to divide by zero", the
+#     callee's line for the callee; one run of each loop past what the iterator counts, and past the
+#     may_goto budget where the kernel has it, writes "'for' outruns the budget the kernel gives it"
+#     at the line of its 'for', which the interpreter, making every pass, never raises
 #   - a step that is zero at compile time is refused with its message and line
 #
 # Usage: sudo bash tests/luaebpf/forvar.sh
@@ -36,7 +42,35 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 5
+luaebpf_start 6
+
+STEP="'for' step is zero"           # forprep, lua/lvm.c
+DIVIDE="attempt to divide by zero" # luaV_idiv
+BUDGET="'for' outruns the budget the kernel gives it"
+
+# the loops past the may_goto budget stop at the 'for' whose may_goto spends it, the inner or the outer
+drainedlog() {
+	local lines inner outer
+	lines=$(luaebpf_logged drained)
+	inner=$(luaebpf_logline forvar "for _ = #p, #p + LOOPS do" "$BUDGET")
+	outer=$(luaebpf_logline forvar "for _ = #p, #p + TURNS do" "$BUDGET")
+	[ "$lines" = "$inner" ] || [ "$lines" = "$outer" ] \
+		|| echo "drained logged '${lines:-nothing}', not '$BUDGET' at one of its two loops alone"
+}
+
+# the line each stop of a loop logs, in the object loaded again
+loops() {
+	rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
+	luaebpf_loadall forvar > /dev/null || { echo "the loops did not verify again"; return; }
+	luaebpf_logs varstep3 "$(luaebpf_logline forvar "function makers.varstep" "$STEP")"
+	luaebpf_logs calledstep1 "$(luaebpf_logline forvar "for i = 1, 10, step do" "$STEP")"
+	luaebpf_logs divides3 "$(luaebpf_logline forvar "function makers.divides" "$DIVIDE")"
+	luaebpf_logs spent "$(luaebpf_logline forvar "for _ = 1, #p * SCALE do" "$BUDGET")"
+	luaebpf_logs calledspent "$(luaebpf_logline forvar "for _ = 1, #p * SCALE do" "$BUDGET" 2)"
+	luaebpf_logs wide "$(luaebpf_logline forvar "for _ = #p, #p + WIDE do" "$BUDGET")"
+	luaebpf_logs past "$(luaebpf_logline forvar "for _ = #p, #p + LOOPS + 1 do" "$BUDGET")"
+	! luaebpf_maygoto || drainedlog
+}
 
 cat > "$LUAEBPF_WORK/zerostep.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
@@ -84,6 +118,8 @@ if luaebpf_maygoto; then
 else
 	ktap_skip "luaebpf: the kernel has no may_goto"
 fi
+
+luaebpf_logcase "a zero step, and a loop past the kernel's budget, log their reason at the line of the 'for', once" loops
 
 check_dmesg
 ktap_totals

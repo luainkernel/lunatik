@@ -11,10 +11,11 @@
 -- one argument, the context, and returns a verdict, a value of `linux.xdp.action`, as a kernel
 -- script's xdp callback does. Where it computes a verdict that is no action, and where Lua would
 -- raise, at a read past the packet or a division by 0, the program stops and returns `XDP_ABORTED`,
--- the kernel's verdict for a program error, which drops the packet; where it returns no value, it
--- returns the default verdict its constructor names. A verdict the compiler holds that is no
--- action, and a boolean, are refused, "the verdict 11 is not an XDP action" and "the verdict may be
--- a boolean here; return an action".
+-- the kernel's verdict for a program error, which drops the packet, and logs the error Lua raises
+-- there, `<file>:<line>: <reason>`, to the kernel's trace ring through `bpf_trace_printk`, ten lines
+-- every five seconds at most; where it returns no value, it returns the default verdict its
+-- constructor names. A verdict the compiler holds that is no action, and a boolean, are refused,
+-- "the verdict 11 is not an XDP action" and "the verdict may be a boolean here; return an action".
 --
 -- The context has the methods of the kernel's XDP `ctx` object: `ctx:packet()`, the packet, read
 -- with `getbyte`, `getint16` and the other reads of the kernel's `data` object, in the kernel's
@@ -26,8 +27,8 @@
 --
 -- A call into a kernel Lua runtime `lunatik.runtime` names, `r:run(a, b)`, lowers to
 -- `bpf_luaxdp_run`: it answers the verdict the callback `xdp.attach` registered returns, or nil, and
--- the program tests the answer before it reads it. The kernel loads a program that calls it only under
--- a license it counts as GPL-compatible.
+-- the program tests the answer before it reads it. The kernel loads a program that calls it, or that
+-- may stop, only under a license it counts as GPL-compatible.
 -- @module bpf.xdp
 -- @usage
 -- local xdp     = require("bpf.xdp")
