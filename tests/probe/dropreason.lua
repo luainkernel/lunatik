@@ -40,9 +40,7 @@ local function pre(_, regs)
 	end
 
 	dropped = dropped + 1
-	if dropped == BATCH then
-		print("probe dropreason: reason")
-	end
+	print("probe dropreason: drop " .. dropped)
 end
 
 print("probe dropreason: symbol " .. SYMBOL)

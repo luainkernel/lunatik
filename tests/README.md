@@ -2006,7 +2006,8 @@ from a pid namespace other than the initial one, whose pids are not the ones
   script probes whichever symbol `linux.lookup` finds, and the shell checks
   that name against `/proc/kallsyms` and that the handler counts the
   `NO_SOCKET` drops of a batch of datagrams sent to a closed UDP port, which
-  a handler reading the wrong argument counts none of. Skipped without
+  a handler reading the wrong argument counts none of; a failure gives the
+  count the handler reached. Skipped without
   `CONFIG_KPROBES` or `CONFIG_HAVE_FUNCTION_ARG_ACCESS_API`, on a kernel that
   carries neither symbol, and when something holds the port.
 
