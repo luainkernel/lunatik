@@ -22,6 +22,7 @@
 
 #include "lunatik.h"
 #include "lunatik_core.h"
+#include "lunatik_defer.h"
 #include "lunatik_sym.h"
 
 /***
@@ -49,10 +50,10 @@ static inline void lunatik_setversion(lua_State *L)
 #define lunatik_cankrealloc(p, n, f)	\
 	(((f) == GFP_ATOMIC || (n) <= PAGE_SIZE) && (!is_vmalloc_addr(p) || (p) == NULL))
 
-static void lunatik_vfreedeferred(struct work_struct *work)
+/* runs on a kernel worker, where vfree may sleep */
+static void lunatik_vfreedeferred(lunatik_defer_t *defer)
 {
-	vfree(lunatik_syncdefer(work));
-	module_put(THIS_MODULE);
+	vfree(defer);
 }
 
 void lunatik_free(const void *ptr)
@@ -60,9 +61,7 @@ void lunatik_free(const void *ptr)
 	if (is_vmalloc_addr(ptr) && lunatik_isatomic()) { /* vfree may sleep, and BUGs in NMI */
 		lunatik_defer_t *defer = (lunatik_defer_t *)ptr; /* the item fits: a vmalloc'd block is past a page */
 
-		__module_get(THIS_MODULE); /* lunatik_exit drains lunatik_wq, not a pending defer->irq */
-		lunatik_initdefer(defer, lunatik_vfreedeferred);
-		lunatik_defer(defer);
+		lunatik_defer(defer, lunatik_vfreedeferred);
 	}
 	else
 		kvfree(ptr);
@@ -514,24 +513,15 @@ static const lunatik_class_t *lunatik_classes[] = { &lunatik_runtime_class, &lun
 LUNATIK_NEWLIB(lunatik, lunatik_lib, lunatik_classes);
 LUNATIK_NEWLIB(lunatik_stub, lunatik_stub_lib, NULL);
 
-static struct workqueue_struct *lunatik_wq;
-
-void lunatik_deferirq(struct irq_work *irq)
-{
-	queue_work(lunatik_wq, &container_of(irq, lunatik_defer_t, irq)->work);
-}
-EXPORT_SYMBOL(lunatik_deferirq);
-
 static int __init lunatik_init(void)
 {
 	lunatik_resolve(); /* register_kprobe sleeps; lunatik_lookup must not */
-	lunatik_wq = alloc_workqueue("lunatik", WQ_UNBOUND, 0);
-	return lunatik_wq != NULL ? 0 : -ENOMEM;
+	return lunatik_setupdefer();
 }
 
 static void __exit lunatik_exit(void)
 {
-	destroy_workqueue(lunatik_wq);
+	lunatik_cleanupdefer();
 }
 
 module_init(lunatik_init);
