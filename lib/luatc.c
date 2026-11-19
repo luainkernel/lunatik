@@ -36,7 +36,7 @@
 #include "luakfunc.h"
 #include "luaskb.h"
 
-LUNATIK_KFUNC_START();
+LUAKFUNC_START();
 
 typedef struct luatc_ctx_s {
 	struct __sk_buff *skb;
@@ -151,7 +151,7 @@ __bpf_kfunc int bpf_luatc_run(char *key, size_t key__sz, struct __sk_buff *skb, 
 	return action;
 }
 
-LUNATIK_KFUNC_END();
+LUAKFUNC_END();
 
 LUAKFUNC_DEFINE_SET(tc, bpf_luatc_run);
 
