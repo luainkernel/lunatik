@@ -253,6 +253,15 @@ under `sudo`.
   ([Documentation/bpf/standardization/instruction-set.rst#L351-L357](https://github.com/torvalds/linux/blob/v7.2/Documentation/bpf/standardization/instruction-set.rst#L351-L357)).
   Lua raises. The emitter tests the divisor and takes the failure path, so compiled and
   interpreted code agree on every input the interpreted code accepts.
+* **A program logs to the trace ring, and limits itself.** `bpf_trace_printk` is GPL only
+  ([kernel/trace/bpf_trace.c#L375-L405](https://github.com/torvalds/linux/blob/v6.8/kernel/trace/bpf_trace.c#L375-L405)),
+  reached by XDP and TC through `bpf_base_func_proto` where the loader holds `CAP_PERFMON`
+  ([kernel/bpf/helpers.c#L1794-L1799](https://github.com/torvalds/linux/blob/v6.8/kernel/bpf/helpers.c#L1794-L1799)),
+  and checks its format when it runs, printing nothing for a byte past ASCII in it before v7.1
+  ([#L848](https://github.com/torvalds/linux/blob/v6.8/kernel/bpf/helpers.c#L848)), so a stop hands
+  it `%s` and its line. It limits nothing, and no helper or kfunc reaches `___ratelimit`, so the
+  stop counts its own window over `bpf_jiffies64`, which XDP and TC reach where the loader holds
+  `CAP_BPF`.
 * **A signed division divides the magnitudes.** `BPF_SDIV` and `BPF_SMOD`, `BPF_DIV` and `BPF_MOD`
   with `off` 1, exist from v6.6, whose verifier takes them
   ([kernel/bpf/verifier.c#L13254-L13259](https://github.com/torvalds/linux/blob/v6.6/kernel/bpf/verifier.c#L13254-L13259)),

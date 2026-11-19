@@ -18,8 +18,10 @@
 #   - each view is made and read in a function the program calls with the packet, and in the
 #     program's own frame through the context: a read past the end of the packet, the TCP header's
 #     doff on the ICMP echo, stops the program at that field, after what an earlier field of the same
-#     view kept, as the twin raises there; and a view each arm of a branch makes of the one struct,
-#     at an offset of its own, is read where the arms meet, by the struct both arms agree on
+#     view kept, as the twin raises there, and one run of it writes "out of bounds" into the trace
+#     ring at the line of the read, the callee's, once and alone, on XDP and on TC; and a view each
+#     arm of a branch makes of the one struct, at an offset of its own, is read where the arms meet,
+#     by the struct both arms agree on
 #   - a view made with no offset, where an earlier call left a number in the register the offset
 #     would take, over the context, at an offset that is not a number, and another method of a codec
 #     are refused; so are a field the layout lacks, a write to a field, an index into a view, a method
@@ -40,11 +42,21 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 19
+luaebpf_start 20
+
+BOUNDS="out of bounds" # luadata_checkbounds, lib/luadata.c
+
+# the line a field read past the end logs, in the function that reads it, the first stops of the object
+fields() {
+	luaebpf_logs doff2 "$(luaebpf_logline view "function reads.doff" "$BOUNDS")" icmp
+	luaebpf_logs skbdoff2 "$(luaebpf_logline view "function reads.doff" "$BOUNDS")" skbicmp
+}
 
 output=$(luaebpf_compile view) || { comment "$output"; fail "luaebpf: view.bpf.lua did not compile"; }
 output=$(luaebpf_loadall view) || { comment "$output"; fail "luaebpf: the view reads did not verify"; }
 ktap_pass "luaebpf: every view row verifies"
+
+luaebpf_logcase "a view field read past the packet logs its file and line once, on XDP and on TC" fields
 
 output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a view read differs"; }
 ktap_pass "luaebpf: every field a view reads answers what the interpreted view reads off the same bytes"

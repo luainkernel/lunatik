@@ -72,7 +72,9 @@ return counts[ipproto.TCP], counts[ipproto.UDP]'
 ```
 
 A frame that says IPv4 but is too short to hold the IPv4 header's protocol stops the program at the
-read of `ip.protocol`, which returns `XDP_ABORTED`, so the frame is dropped and nothing is counted.
+read of `ip.protocol`, which returns `XDP_ABORTED`, so the frame is dropped and nothing is counted,
+and logs `protocols.bpf.lua:18: out of bounds` to the kernel's trace ring, which
+`sudo bpftool prog tracelog` prints ([When a program cannot be compiled or computed](#when-a-program-cannot-be-compiled-or-computed)).
 The lookup and the update are two steps, so two CPUs that count the same protocol at once can lose
 one of the increments.
 
@@ -151,8 +153,9 @@ not through the verdict.
   REFUSED                  REFUSED AT LOAD          STOPS
   lunatik: file:line:      the verifier log,        XDP_ABORTED or
   reason; exit 1, no       which quotes the Lua     TC_ACT_SHOT: the packet
-  object written           line; exit 1, nothing    is dropped; nothing
-                           attached                 logged
+  object written           line; exit 1, nothing    is dropped, and
+                           attached                 file:line: reason goes
+                                                    to the trace ring
 
   what the subset does     a program past the       where Lua would raise:
   not compile, and a       limits of the verifier,  x // 0, a read past
@@ -174,16 +177,43 @@ fails in one of three places.
   `lunatik run` prints the verifier's log, which quotes the Lua lines, exits 1 and leaves nothing
   attached. A call into a runtime whose module carries no BTF is refused there too, by libbpf,
   whose warning names the kfunc
-  ([Calls into a kernel Lua runtime](#calls-into-a-kernel-lua-runtime)), and so is one under a
-  license the kernel does not count as GPL-compatible ([The license](#the-license)).
+  ([Calls into a kernel Lua runtime](#calls-into-a-kernel-lua-runtime)), and so are a program that
+  may stop and one that calls into a runtime under a license the kernel does not count as
+  GPL-compatible ([The license](#the-license)).
 * **Stops.** In the kernel, on a packet, the program returns at once `XDP_ABORTED` in XDP or
-  `TC_ACT_SHOT` in TC, which drop the packet, and nothing is logged (#2098); a tracer reads an
-  XDP program's stops at the tracepoint `xdp:xdp_exception`. A program stops at a read past the
-  packet, a division or a modulo by 0, a `for` step of 0 it computed, a `for` whose passes outrun
-  the budget the kernel gives it, a map key or value its spec cannot pack, a map update or delete
-  the map refuses, a `skb:priority` it computed outside 0 to 4294967295, a verdict it computed that
-  is no action of its program type, and in a function it called that stops. A division by a 0 the
+  `TC_ACT_SHOT` in TC, which drop the packet, and logs the error the kernel's Lua raises there; a
+  tracer reads an XDP program's stops at the tracepoint `xdp:xdp_exception` too. A program stops
+  at a read past the packet, a division or a modulo by 0, a `for` step of 0 it computed, a `for`
+  whose passes outrun the budget the kernel gives it, a map key or value its spec cannot pack, a
+  map update or delete the map refuses, a `skb:priority` it computed outside 0 to 4294967295, a
+  verdict it computed that is no action of its program type, and in a function it called that
+  stops. A division by a 0 the
   compiler knows is not refused: the program stops on every packet that reaches it.
+
+A stop logs `<file>:<line>: <reason>`, the file and the line of the check that stopped it, as a
+refusal names them, and the reason the kernel's Lua raises there: "attempt to divide by zero",
+"attempt to perform 'n%0'", "'for' step is zero", "out of bounds" for a read past the packet and
+for a `skb:priority` outside 0 to 4294967295, as the kernel's `data` and `skb` objects raise it,
+`string.pack`'s "unsigned overflow" or "integer overflow" for a map key or value its spec cannot
+pack, and "invalid action" for a verdict that is no action, as the kernel logs a callback's. A map
+update or delete the map refuses names the map and the write, "the map 'flows' refused the
+update", since only the kernel knows its errno, and a `for` past the kernel's budget, which Lua
+would run to its end, logs "'for' outruns the budget the kernel gives it". A stop in a function the
+program calls is logged at the callee's line, and its callers log nothing.
+
+```
+$ sudo bpftool prog tracelog
+          <idle>-0       [002] ..s21  4021.374508: bpf_trace_printk: protocols.bpf.lua:18: out of bounds
+```
+
+The line goes to the kernel's trace ring through `bpf_trace_printk`, not to the kernel log a kernel
+script's callback writes its error to: `bpftool prog tracelog` prints the ring as it fills, as
+`/sys/kernel/tracing/trace_pipe` does, and the file is named as `lunatik bpf` was given it. The
+helper limits nothing, so the program does, as the kernel's own log does: ten lines every five
+seconds at most, `DEFAULT_RATELIMIT_BURST` lines every `DEFAULT_RATELIMIT_INTERVAL` jiffies, counted
+for all the programs of an object together, so a program that stops on every packet logs the first
+ten of each five seconds. The CPUs share the count without a lock, and stops that race on several
+of them may each pass it.
 
 ## The Lua a program may use
 
@@ -502,9 +532,13 @@ return xdp.program(filter, {default = action.DROP, license = "GPL"})
   the string is read from the object, `readelf -p license protocols.bpf.o`.
 * A program that calls a kernel function loads only under a GPL-compatible license, and a call
   into a runtime is such a call. Under any other, `lunatik run` prints the verifier's "cannot call
-  kernel function from non-GPL compatible program", exits 1 and leaves nothing attached. A program
-  that calls none, which reads its packet and its context and looks up and updates its maps,
-  loads under any license.
+  kernel function from non-GPL compatible program", exits 1 and leaves nothing attached.
+* A program that may stop logs through `bpf_trace_printk`, which the kernel gives only a
+  GPL-compatible program, and only to a loader that holds `CAP_PERFMON`, as root does. Under any
+  other license `lunatik run` prints "cannot call GPL-restricted function from non-GPL compatible
+  program", exits 1 and leaves nothing attached; a read of the packet, a division, a map write and
+  a verdict the program computes each may stop it. A program that stops nowhere, which reads its
+  context, looks up its maps and returns verdicts the compiler knows, loads under any license.
 
 ## Where a compiled function and Lua differ
 

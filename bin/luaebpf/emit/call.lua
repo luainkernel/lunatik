@@ -53,14 +53,14 @@ local function checkverdict(f, pc, value)
 end
 
 -- a verdict the program computes outside its type's actions stops the program, as luakfunc_action
--- answers one a kernel callback returns as it answers a callback that raised
-local function testverdict(f, value)
+-- answers one a kernel callback returns as it answers a callback that raised, logging what it logs
+local function testverdict(f, pc, value)
 	if value.k ~= nil or f.drop == "action" then -- checkverdict held one the compiler knows
 		return
 	end
-	local actions = f.unit.actions
-	f.code:branchi(jump.JSLT, reg.R0, actions.first, abort(f))
-	f.code:branchi(jump.JSGT, reg.R0, actions.last, abort(f))
+	local actions, invalid = f.unit.actions, frame.stop(f, pc, "invalid action")
+	f.code:branchi(jump.JSLT, reg.R0, actions.first, invalid)
+	f.code:branchi(jump.JSGT, reg.R0, actions.last, invalid)
 end
 
 local function returnvalue(f, pc, state, i)
@@ -72,7 +72,7 @@ local function returnvalue(f, pc, state, i)
 	if f.drop ~= "verdict" then
 		f.code:alu(alu.MOV, reg.R0, getreg(f, pc, state, i, reg.R0))
 		if f.isprogram then
-			testverdict(f, value)
+			testverdict(f, pc, value)
 		end
 	end
 end

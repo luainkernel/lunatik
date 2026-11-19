@@ -19,7 +19,9 @@
 #     program computes from another field, with the field's top bit set, which the store takes
 #     from a register, and U32_MAX, the largest the field holds
 #   - a value the program computes past 32 bits or below zero, where the kernel's skb:priority
-#     raises, returns TC_ACT_SHOT, and ctx_out carries the priority prog run was given
+#     raises, returns TC_ACT_SHOT, and ctx_out carries the priority prog run was given; one run of
+#     each writes into the trace ring "out of bounds", as lunatik_checkbounds raises it, at its line,
+#     once and alone
 #   - a TC program declared with {egress = true} loads from its own section and reads #skb as
 #     the ingress one does
 #   - neither context has a field, read or assigned, the xdp_md and __sk_buff fields the proxies
@@ -42,11 +44,21 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 19
+luaebpf_start 20
+
+BOUNDS="out of bounds" # lunatik_checkbounds, lunatik.h
+
+# the line each priority out of bounds logs, the first stops of the object
+priorities() {
+	luaebpf_logs skbsetwide "$(luaebpf_logline ctx "skb:priority(#skb + U32MAX)" "$BOUNDS")" skbctx
+	luaebpf_logs skbsetneg "$(luaebpf_logline ctx "skb:priority(-#skb)" "$BOUNDS")" skbctx
+}
 
 output=$(luaebpf_compile ctx) || { comment "$output"; fail "luaebpf: ctx.bpf.lua did not compile"; }
 output=$(luaebpf_loadall ctx) || { comment "$output"; fail "luaebpf: the context reads did not verify"; }
 ktap_pass "luaebpf: every context row verifies"
+
+luaebpf_logcase "a priority out of bounds logs its file and line once" priorities
 
 output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a context field differs"; }
 ktap_pass "luaebpf: every context field reads back what prog run was given"

@@ -12,6 +12,9 @@
 #     ones are not, and one a called function computes, which a callee's return is not held to,
 #     return the error verdict of their type, XDP_ABORTED and TC_ACT_SHOT, and not the default,
 #     which the XDP programs set to XDP_DROP and the TC ones to TC_ACT_OK
+#   - one run of a verdict computed past the last action and below the first on XDP, and past the
+#     last on TC, writes into the trace ring "invalid action", as luakfunc_action logs a callback's,
+#     at the line of the return, once and alone
 #   - a verdict the compiler holds outside the actions, a boolean, and a value a boolean on one
 #     path, are refused with their messages and lines, and so is a default verdict outside them
 #   - with LUAEBPF_DROP=action the test is gone, the verifier still takes the object, since it
@@ -27,7 +30,16 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 15
+luaebpf_start 16
+
+INVALID="invalid action" # luakfunc_action, lib/luakfunc.h
+
+# the line each verdict outside the actions logs, the first stops of the object
+verdicts() {
+	luaebpf_logs xdpabove "$(luaebpf_logline verdict "local function xdpabove" "$INVALID")"
+	luaebpf_logs xdpbelow "$(luaebpf_logline verdict "local function xdpbelow" "$INVALID")"
+	luaebpf_logs tcabove "$(luaebpf_logline verdict "local function tcabove" "$INVALID")" tcframe
+}
 
 # check <title> <name>[:<context>]=<verdict>...: prog run of each program, over the context named or
 # the fourteen bytes common.sh writes, returns the verdict it owes
@@ -51,6 +63,8 @@ check() {
 output=$(luaebpf_compile verdict) || { comment "$output"; fail "luaebpf: verdict.bpf.lua did not compile"; }
 output=$(luaebpf_loadall verdict) || { comment "$output"; fail "luaebpf: the verdict programs did not verify"; }
 ktap_pass "luaebpf: every verdict program verifies"
+
+luaebpf_logcase "a verdict outside the actions logs \"$INVALID\" at its file and line, once" verdicts
 
 check "an XDP verdict the program computes at either end of the actions is returned" \
 	xdpfirst=0 xdplast=4

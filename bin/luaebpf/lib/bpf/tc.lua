@@ -12,10 +12,11 @@
 -- as a kernel script's tc callback does: `OK`, `SHOT` and `REDIRECT` act, and the rest decides
 -- nothing. Where it computes a verdict that is no action, and where Lua would raise, at a read past
 -- the packet or a division by 0, the program stops and returns `TC_ACT_SHOT`, which drops the
--- packet, since TC has no verdict for a program error; where it returns no value, it returns the
--- default verdict its constructor names. A verdict the compiler holds that is no action, and a
--- boolean, are refused, "the verdict 9 is not a TC action" and "the verdict may be a boolean here;
--- return an action".
+-- packet, since TC has no verdict for a program error, and logs the error Lua raises there,
+-- `<file>:<line>: <reason>`, to the kernel's trace ring through `bpf_trace_printk`, ten lines every
+-- five seconds at most; where it returns no value, it returns the default verdict its constructor
+-- names. A verdict the compiler holds that is no action, and a boolean, are refused, "the verdict 9
+-- is not a TC action" and "the verdict may be a boolean here; return an action".
 --
 -- The program's argument is spelled as the kernel's `skb` object: `#skb` is the packet's length,
 -- `skb:ifindex()` its device's index, `skb:hash()` its flow hash and `skb:priority()` its
@@ -28,8 +29,8 @@
 --
 -- A call into a kernel Lua runtime `lunatik.runtime` names, `r:run(a, b)`, lowers to
 -- `bpf_luatc_run`: it answers the verdict the callback `tc.attach` registered returns, or nil, and
--- the program tests the answer before it reads it. The kernel loads a program that calls it only under
--- a license it counts as GPL-compatible.
+-- the program tests the answer before it reads it. The kernel loads a program that calls it, or that
+-- may stop, only under a license it counts as GPL-compatible.
 -- @module bpf.tc
 -- @usage
 -- local tc     = require("bpf.tc")

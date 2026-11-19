@@ -72,7 +72,7 @@ local function contextstore(f, pc, ins, state, field)
 	local src = getreg(f, pc, state, ins.a + 2, reg.R2)
 	local bits = field.size * BYTE
 	if value.k == nil then
-		fitsunsigned(f, src, field.size)
+		fitsunsigned(f, pc, src, field.size, "out of bounds")
 	elseif value.k >> bits ~= 0 then
 		refuse(f, pc, "'%s' takes 0 to %d, not %d", field.name, (1 << bits) - 1, value.k)
 	end

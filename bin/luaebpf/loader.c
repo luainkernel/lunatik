@@ -117,8 +117,12 @@ static int lualoader_load(lua_State *L)
 
 	/* the emitter writes no pinning attribute, so pin_root_path would reach no map */
 	bpf_object__for_each_map(map, loader->object) {
-		const char *path = lua_pushfstring(L, "%s/%s", root, bpf_map__name(map));
+		const char *path;
 
+		/* .data, which no script opens, and whose dotted name bpffs refuses */
+		if (bpf_map__is_internal(map))
+			continue;
+		path = lua_pushfstring(L, "%s/%s", root, bpf_map__name(map));
 		if (bpf_map__set_pin_path(map, path) != 0)
 			return lualoader_fail(L, "couldn't pin %s: %s", path, lualoader_strerror(errno));
 		lua_pop(L, 1);

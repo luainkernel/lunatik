@@ -110,6 +110,7 @@ local function walk(f)
 	f.code = code
 	f.labels = {}
 	f.aborted = nil
+	f.stops = {}
 	f.entered = {}
 	f.exits = {}
 	f.rettype = 0
@@ -159,6 +160,7 @@ local function walk(f)
 		end
 		code:exit()
 	end
+	frame.stops(f)
 	return code
 end
 

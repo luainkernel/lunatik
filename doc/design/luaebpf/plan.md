@@ -270,7 +270,7 @@ against, and `lunatik bpf` lists every call it compiled with its line. The kerne
 `xdp.attach` and `tc.attach` are today, over `bpf_luaxdp_run` and `bpf_luatc_run`; the callback
 reads `ctx:argument()` as it does now. `btf_install` becomes a requirement of a program that calls
 a runtime, and of nothing else. The programs of `callback.bpf.lua`, each a call and the test of its
-answer, verify in 33 processed instructions at most on 6.8, as `budget.sh` records them.
+answer, verify in 73 processed instructions at most on 6.8, as `budget.sh` records them.
 
 `examples/sniclassify` stays C into phase 6, which rewrites the examples.
 
@@ -293,8 +293,8 @@ Tests: a loop with a runtime bound makes the passes Lua makes, on a kernel with 
 from the pass before: on 6.8, whose verifier compares the states of an iterator's loop exactly, a
 loop that reads the packet at a carried `i` was refused, "The sequence of 8193 jumps is too complex"
 after 311,173 processed instructions, and verifies in 196 with `i` read so. The rows of
-`forvar.bpf.lua` verify in 916 processed instructions at most on 6.8, two nested loops dividing,
-and the program of `callback.bpf.lua` that calls the runtime inside such a loop in 184, as
+`forvar.bpf.lua` verify in 1035 processed instructions at most on 6.8, two nested loops dividing,
+and the program of `callback.bpf.lua` that calls the runtime inside such a loop in 334, as
 `budget.sh` records them.
 
 ### Phase 6: examples and documentation

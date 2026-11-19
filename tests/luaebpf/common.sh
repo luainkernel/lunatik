@@ -7,8 +7,8 @@
 # module BTF check that does the same for a case calling the kernel Lua runtime, the compile into a
 # scratch directory, in either byte order, the kernel's BTF swapped into the other, the load into a
 # pin root, the differential run against the oracle a program file's own body wrote while it
-# compiled, and, for the loader cases, the device they attach to and what a refused `lunatik run`
-# may not leave behind.
+# compiled, the line a stop writes into the trace ring, and, for the loader cases, the device they
+# attach to and what a refused `lunatik run` may not leave behind.
 # Source this file, and tests/lib.sh, from each case.
 
 # the program files install beside the cases, out of the tree the kernel's require reads
@@ -128,6 +128,64 @@ luaebpf_verdict() {
 	luaebpf_returned pinned "$LUAEBPF_PINS/$name" data_in "$data" "${args[@]}"
 }
 
+# why a case cannot read the line a stop logs, which bpf_trace_printk writes into the trace ring, or
+# nothing at all
+luaebpf_tracing() {
+	[ -r "$TRACING/trace" ] || { echo "there is no trace ring at $TRACING"; return; }
+	[ "$(cat "$TRACING/tracing_on")" = 1 ] || echo "tracing is off"
+}
+
+# luaebpf_logline <name> <pattern> <reason> [<nth>]: the line a stop of the program file <name>.bpf.lua
+# logs at the line <pattern> matches first, or <nth>, its chunk named as the compile names it
+luaebpf_logline() {
+	local at
+	at=$(grep -nF -- "$2" "$LUAEBPF_SRC/$1.bpf.lua" | sed -n "${4:-1}p" | cut -d: -f1)
+	echo "$LUAEBPF_SRC/$1.bpf.lua:$at: $3"
+}
+
+# the lines of the trace ring a compiled function's stop wrote, a Lua chunk and line each, without
+# the task, the CPU and the time the ring writes before them
+luaebpf_traced() {
+	sed -n 's/^.* bpf_trace_printk: //p' "$TRACING/trace" | grep -E '\.lua:[0-9]+: '
+}
+
+# empties the trace ring, as mark_dmesg empties the log: a ring that laps drops a page of its oldest
+# lines at once, so no count of the lines it held before a run marks where that run's lines begin
+luaebpf_mark() {
+	: > "$TRACING/trace"
+}
+
+# luaebpf_logged <program> [<context> [<out> [<repeat>]]]: the lines a run of <program>, as
+# luaebpf_verdict runs it, writes into the trace ring
+luaebpf_logged() {
+	# v6.15 and later: the load enables the event bpf_trace_printk writes from a work item
+	awaited grep -qx 1 "$TRACING/events/bpf_trace/bpf_trace_printk/enable"
+	luaebpf_mark
+	luaebpf_verdict "$@" > /dev/null
+	luaebpf_traced
+}
+
+# luaebpf_logs <program> <line> [<context>]: one run of <program> logs <line> and nothing else, or
+# what it logged is printed
+luaebpf_logs() {
+	local name="$1" line="$2" lines
+	shift 2
+	lines=$(luaebpf_logged "$name" "$@")
+	[ "$lines" = "$line" ] || echo "$name logged '${lines:-nothing}', not '$line' alone"
+}
+
+# luaebpf_logcase <title> <check>...: the case passes where each check, a luaebpf_logs, prints
+# nothing, fails with what they printed, and skips where the case cannot read the trace ring
+luaebpf_logcase() {
+	local title="$1" reason output
+	shift
+	reason=$(luaebpf_tracing)
+	[ -z "$reason" ] || { ktap_skip "luaebpf: $title ($reason)"; return; }
+	output=$("$@")
+	[ -z "$output" ] || { comment "$output"; ktap_fail "luaebpf: $title"; return; }
+	ktap_pass "luaebpf: $title"
+}
+
 # what a pinned map holds under a key, as bpftool prints it, or "absent"
 luaebpf_lookup() {
 	local out
@@ -231,7 +289,8 @@ luaebpf_ordered() {
 		echo "require(\"luaebpf.emit\").bigendian = $bigendian"
 		cat "$LUAEBPF_SRC/$name.bpf.lua"
 	} > "$dir/$name.bpf.lua"
-	( cd "$dir" && lunatik bpf "$@" -o "$dir/$name.bpf.o" "$dir/$name.bpf.lua" ) 2>&1
+	# the copy by its name alone, so the line each stop logs names one chunk in either order
+	( cd "$dir" && lunatik bpf "$@" -o "$dir/$name.bpf.o" "$name.bpf.lua" ) 2>&1
 }
 
 # luaebpf_swapped <btf> <out>: the raw BTF <btf> written to <out> in the other byte order. Past the

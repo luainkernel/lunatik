@@ -11,6 +11,9 @@
 #   - an XDP and a TC program that both name Proprietary, a license license_is_gpl_compatible does
 #     not count, load, and bpftool reads neither GPL-compatible; `lunatik run` attaches an XDP
 #     program and a TC one under it, the TC one by tcx
+#   - an XDP program under Proprietary that may stop, dividing by zero, compiles, and the kernel
+#     refuses to load it with the verifier's "cannot call GPL-restricted function from non-GPL
+#     compatible program", since its stop logs through bpf_trace_printk
 #   - an XDP and a TC program under Proprietary that call the runtime compile, and the `lunatik run`
 #     of each exits 1 with the verifier's "cannot call kernel function from non-GPL compatible
 #     program" and leaves nothing behind. Each skips where the kernel publishes no BTF for the
@@ -36,21 +39,23 @@ trap cleanup EXIT
 RUNTIME=tests/luaebpf/words
 OTHER=Proprietary
 REFUSED="cannot call kernel function from non-GPL compatible program" # add_kfunc_call, kernel/bpf/verifier.c
+GPLONLY="cannot call GPL-restricted function from non-GPL compatible program" # check_helper_call
 NOTCX="tcx needs libbpf 1.3.0" # lualoader_open, bin/luaebpf/loader.c
 
-luaebpf_start 11
+luaebpf_start 12
 command -v readelf >/dev/null || skip_script "luaebpf: readelf is not installed"
 luaebpf_device || fail "luaebpf: the case could not create $LUAEBPF_DEV"
 
-# program <kind> <name> <license> [calls]: a program of <kind>, xdp or tc, named <name>, under
+# program <kind> <name> <license> [calls|stops]: a program of <kind>, xdp or tc, named <name>, under
 # <license>, a Lua expression, or none where it is '-', whose function calls the runtime where
-# `calls` follows; four lines where it calls nothing
+# `calls` follows and divides by zero where `stops` does; four lines where it does neither
 program() {
 	local kind="$1" name="$2" license="$3" verdict=xdpaction.PASS
 	[ "$kind" = tc ] && verdict=tcaction.OK
 	[ "$license" = - ] && license=
 	echo "$kind.program(function(_)"
 	[ "${4:-}" = calls ] && echo $'\tlocal v = words:run()\n\tif v then\n\t\treturn v\n\tend'
+	[ "${4:-}" = stops ] && echo $'\tlocal v = 1 // 0'
 	echo $'\t'"return $verdict"
 	echo "end, {name = \"$name\", default = $verdict${license:+, license = $license}})"
 	echo
@@ -112,6 +117,18 @@ loaded() {
 	[ "$got" = "$expected $expected " ] || { echo "the programs loaded with gpl_compatible '$got'"; return 1; }
 }
 
+# unloaded <name> <reason>: <name>.bpf.lua compiles, and the kernel refuses to load its object,
+# whose one program the file names <name>, with <reason>
+unloaded() {
+	local name="$1" output status
+	luaebpf_written "$name" || return 1
+	output=$(luaebpf_loadall "$name")
+	status=$?
+	rm -f "$LUAEBPF_PINS/$name"
+	[ "$status" -ne 0 ] || { echo "the object loaded"; return 1; }
+	grep -qF "$2" <<< "$output" || { echo "$output"; return 1; }
+}
+
 # staged <name>: <name>.bpf.lua compiled where `lunatik run` looks for tests/luaebpf/<name>'s object
 staged() {
 	luaebpf_written "$1" && mkdir -p "$LUAEBPF_OBJECTS" && cp "$LUAEBPF_WORK/$1.bpf.o" "$LUAEBPF_OBJECTS/"
@@ -137,6 +154,9 @@ row "an XDP and a TC program naming GPL compile under it and load GPL-compatible
 
 programs other "xdp otherxdp \"$OTHER\"" "tc othertc \"$OTHER\""
 row "an XDP and a TC program naming $OTHER load, and neither is GPL-compatible" loaded other "$OTHER" false
+
+programs otherstops "xdp otherstops \"$OTHER\" stops"
+row "an XDP program naming $OTHER that may stop is refused at load with the reason" unloaded otherstops "$GPLONLY"
 
 programs xdpattached "xdp xdpattached \"$OTHER\""
 row "lunatik run attaches an XDP program naming $OTHER" attached xdpattached
