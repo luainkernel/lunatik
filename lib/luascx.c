@@ -22,8 +22,10 @@
 * callback raises or a decision it gets wrong, reach the console deferred, as the scheduler's
 * own lines do. What the callback's Lua allocates is asked for without waking kswapd, whose
 * wakeup takes the same lock, so under memory pressure an allocation fails and the call that
-* made it raises; the slab allocator still wakes kswapd on a free from 7.0 on, and on an
-* allocation from 6.13 to 6.17 booted with `slab_strict_numa`.
+* made it raises, and what it frees goes back to the allocator after the dispatch from 7.0 on,
+* where a free can wake kswapd, and at once before; the slab allocator still wakes kswapd on an
+* allocation from 6.13 to 6.17 booted with `slab_strict_numa`, and on an allocation or a free up to
+* 6.16 booted with `slub_debug`'s user tracking, before 6.12.46 and 6.16.6 in their series.
 *
 * Needs 6.12 and later, with `CONFIG_SCHED_CLASS_EXT` and without `CONFIG_PREEMPT_RT`,
 * where a runtime's lock sleeps and the kfunc would take it under the runqueue lock;

@@ -284,6 +284,11 @@ static inline void *lunatik_realloc(lua_State *L, void *ptr, size_t osize, size_
 
 #define lunatik_malloc(L, s)	lunatik_realloc((L), NULL, LUA_TNONE, (s))
 void lunatik_free(const void *ptr);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
+#define lunatik_blocksize(s)	max_t(size_t, (s), sizeof(lunatik_defer_t))
+#else
+#define lunatik_blocksize(s)	(s)	/* lunatik_free defers a vmalloc'd block alone, which is past a page */
+#endif
 #define lunatik_gfp(runtime)	((runtime)->gfp)
 
 #define lunatik_enomem(L)	luaL_error((L), "not enough memory")

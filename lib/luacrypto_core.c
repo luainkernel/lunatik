@@ -181,7 +181,8 @@
 char *luacrypto_newbuffer(lua_State *L, size_t size)
 {
 	gfp_t gfp = lunatik_gfp(lunatik_toruntime(L)) | __GFP_NOWARN; /* Lua raises on a NULL */
-	return (char *)lunatik_checknull(L, kmalloc(size, gfp)); /* a scatterlist maps linear memory */
+	/* a scatterlist maps linear memory */
+	return (char *)lunatik_checknull(L, kmalloc(lunatik_blocksize(size), gfp));
 }
 
 static const luaL_Reg luacrypto_lib[] = {

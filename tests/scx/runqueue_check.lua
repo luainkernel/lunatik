@@ -35,6 +35,11 @@ test("raised", function()
 	reached("decided")
 end)
 
+test("freed", function()
+	assert(reached("moved"), "a buffer the allocator moved lost its bytes")
+	reached("freed")
+end)
+
 test("detached", function()
 	reached("detached")
 end)

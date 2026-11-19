@@ -16,6 +16,7 @@ local QUEUED  <const> = string.pack("s", MESSAGE)
 local PRINTED <const> = "scx runqueue printed"
 local WARNED  <const> = "scx runqueue warned"
 local GCERROR <const> = "scx runqueue collected"
+local GARBAGE <const> = 64
 
 local record = rcu.table()
 lunatik._ENV["scx runqueue"] = record
@@ -50,13 +51,28 @@ local function decide()
 	return "global"
 end
 
-local function detach()
+local function churn()
+	local strings = {}
+	for i = 1, GARBAGE do
+		strings[i] = string.rep("x", i)
+	end
+	return table.concat(strings)
+end
+
+local function free()
 	record.decided = true
+	local joined = churn()
+	record.moved = joined == string.rep("x", #joined)
+	collectgarbage()
+end
+
+local function detach()
+	record.freed = true
 	scx.detach()
 	record.detached = true
 end
 
-local steps = {write, wake, decide, detach}
+local steps = {write, wake, decide, free, detach}
 local step = 0
 
 local function enqueue()
