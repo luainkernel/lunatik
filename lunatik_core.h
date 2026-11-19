@@ -10,7 +10,6 @@ int lunatik_newruntime(lunatik_object_t **pruntime, lua_State *Lfrom, const char
 	lunatik_object_t *percpu, int cpu);
 int lunatik_resume(lua_State *Lto, lua_State *Lfrom, int ixfrom, int nargs);
 int lunatik_closekillable(lunatik_object_t *object);
-__printf(1, 2) void lunatik_printkdeferred(const char *fmt, ...);
 
 extern const lunatik_class_t lunatik_percpu_class;
 int lunatik_percpu(lua_State *L);

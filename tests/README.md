@@ -101,6 +101,17 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
   refusal left open. The maps stay pinned, so the handler's close is never
   their last reference, and a module without the refusal closes them there
   and fails the case (skips without `CONFIG_KPROBES` or `setarch`).
+- **log**: a syscall program, of a type other than XDP and TC, calls
+  `bpf_luabpf_log`, which `luabpf` registers on the common hook, loads and
+  runs under `bpftool prog run`, attached nowhere. Once the kfunc's rate-limit
+  window of 5 s has closed, one run logs
+  `luabpf: bpf log: a line from a syscall program` once and none of the bytes
+  the program keeps past the size it passes, and 30 runs more bring the line to
+  the burst of 10 the limit lets through. That the kfunc writes deferred, as
+  `printk_deferred` does, for a program that runs under the runqueue lock, is
+  unproved by a case: its failure is a deadlock, and a program on a scheduler
+  hook would risk it on the host. Skipped without `clang`, or where `luabpf`
+  is not loaded or carries no BTF.
 - The harness also cross-checks a Lua-written value with
   `bpftool map lookup` (kernel-to-userspace interop).
 
@@ -2090,8 +2101,7 @@ from a pid namespace other than the initial one, whose pids are not the ones
 
 ### runtime
 
-Regression tests for `lunatik_newruntime`, cross-runtime plumbing and the kfunc
-`lunatik.ko` registers.
+Regression tests for `lunatik_newruntime` and cross-runtime plumbing.
 
 - **refcnt_leak**: module use-count leak when a script errors after a
   successful `netfilter.register()` call. The fix, under the runtime
@@ -2384,17 +2394,6 @@ Regression tests for `lunatik_newruntime`, cross-runtime plumbing and the kfunc
   `pcall` and returns. Each reports whether the error it caught is the expected
   one. A build without the budget overflows the kernel stack instead, so the
   test skips unless the loaded core has `lunatik_maxccalls`.
-
-- **kfunc_log**: a syscall program, of a type other than XDP and TC, calls
-  `bpf_lunatik_log`, which `lunatik.ko` registers on the common hook, loads and
-  runs under `bpftool prog run`, attached nowhere. Once the kfunc's rate-limit
-  window of 5 s has closed, one run logs
-  `lunatik: kfunc log: a line from a syscall program` once and none of the bytes
-  the program keeps past the size it passes, and 30 runs more bring the line to
-  the burst of 10 the limit lets through. That the kfunc writes deferred, as
-  `printk_deferred` does, for a program that runs under the runqueue lock, is
-  unproved by a case: its failure is a deadlock, and a program on a scheduler
-  hook would risk it on the host. Skipped where `lunatik.ko` carries no BTF.
 
 ### scx
 
@@ -3033,12 +3032,13 @@ was bound before, and a first attach, which finds nothing, logs nothing.
   the packet through `packet.isping`, compiled as a subprogram. Skipped where
   the CLI's loader names a libbpf older than 1.3.0, which has no tcx attach.
 
-- **tc log**: a classifier that calls `bpf_lunatik_log`, the kfunc `lunatik.ko`
+- **tc log**: a classifier that calls `bpf_luabpf_log`, the kfunc `luabpf`
   registers for every program type, runs under `bpftool prog run`, attached
   nowhere. Once the kfunc's rate-limit window of 5 s has closed, one run logs
-  `lunatik: tc log: a line from the program` once and none of the bytes the
+  `luabpf: tc log: a line from the program` once and none of the bytes the
   program keeps past the size it passes, and 30 runs more bring the line to the
-  burst of 10 the limit lets through. Skipped where `lunatik.ko` carries no BTF.
+  burst of 10 the limit lets through. Skipped where `luabpf` is not loaded or
+  carries no BTF.
 
 - **tc ifname**: the pass program sits on the egress of the peer, in the
   namespace, so the skb holds a device of a namespace other than the initial one;
@@ -3241,12 +3241,13 @@ bound before, and a first attach, which finds nothing, logs nothing.
   device carries, the ping decides the verdict and `lunatik stop` takes it
   down. Both read the packet through `packet.isping`, compiled as a subprogram.
 
-- **xdp log**: a program that calls `bpf_lunatik_log`, the kfunc `lunatik.ko`
+- **xdp log**: a program that calls `bpf_luabpf_log`, the kfunc `luabpf`
   registers for every program type, runs under `bpftool prog run`, attached
   nowhere. Once the kfunc's rate-limit window of 5 s has closed, one run logs
-  `lunatik: xdp log: a line from the program` once and none of the bytes the
+  `luabpf: xdp log: a line from the program` once and none of the bytes the
   program keeps past the size it passes, and 30 runs more bring the line to the
-  burst of 10 the limit lets through. Skipped where `lunatik.ko` carries no BTF.
+  burst of 10 the limit lets through. Skipped where `luabpf` is not loaded or
+  carries no BTF.
 
 - **xdp reload**: the pass program stays attached across `lunatik reload`, which
   replaces `lunatik_run` and its `_ENV` while the program holds `luaxdp` loaded. A

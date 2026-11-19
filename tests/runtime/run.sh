@@ -43,7 +43,6 @@ TESTS=(
 	close.sh
 	close_irqs.sh
 	cstack.sh
-	kfunc_log.sh
 )
 
 SEP=""

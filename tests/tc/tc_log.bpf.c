@@ -6,7 +6,7 @@
 #include "vmlinux.h"
 #include <bpf/bpf_helpers.h>
 
-extern void bpf_lunatik_log(char *msg, size_t msg__sz) __ksym;
+extern void bpf_luabpf_log(char *msg, size_t msg__sz) __ksym;
 
 #define LINE "tc log: a line from the program"
 
@@ -18,7 +18,7 @@ int const TC_ACT_OK = 0;
 SEC("classifier")
 int test_tc_log(struct __sk_buff *skb)
 {
-	bpf_lunatik_log(message, sizeof(LINE) - 1);
+	bpf_luabpf_log(message, sizeof(LINE) - 1);
 	return TC_ACT_OK;
 }
 

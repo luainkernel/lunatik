@@ -7,15 +7,6 @@
 * Manages Lunatik runtimes — isolated Lua states running in the kernel.
 * In a softirq or hardirq runtime the module holds only `cpu` and `_ENV`: `runtime` and `percpu`
 * exist in a process runtime alone, and the `io` library is not opened there and `require` refuses it.
-*
-* `lunatik.ko` also registers a kfunc an eBPF program of any type calls to log a line,
-* `void bpf_lunatik_log(char *msg, size_t msg__sz)`: it writes the `msg__sz` bytes at `msg`, up to a
-* NUL among them, to the kernel log as `lunatik: <msg>`, at the error level and rate limited as the
-* error of a callback that raised is, and reads nothing past them. `msg` is memory the program may
-* write, its stack or a map value. It writes as `printk_deferred` does, storing the line at once and
-* leaving the console to an irq_work, since a program may run under the runqueue lock, as a tracing
-* program on `sched_switch` or a `struct_ops` scheduler does. The program declares it as a `__ksym`,
-* and loads where `lunatik.ko` was built after `make btf_install`.
 * @module lunatik
 * @pragma nostrip
 */
@@ -24,8 +15,6 @@
 #include <linux/module.h>
 #include <linux/mm.h>
 #include <linux/vmalloc.h>
-#include <linux/btf.h>
-#include <linux/btf_ids.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -519,28 +508,9 @@ void lunatik_deferirq(struct irq_work *irq)
 }
 EXPORT_SYMBOL(lunatik_deferirq);
 
-LUNATIK_KFUNC_START();
-
-__bpf_kfunc void bpf_lunatik_log(char *msg, size_t msg__sz)
-{
-	int len = min_t(size_t, msg__sz, S16_MAX); /* vsnprintf warns of a precision past S16_MAX */
-
-	/* the msg__sz bytes the verifier proves, deferred: a tracing or struct_ops program may hold the runqueue lock */
-	lunatik_ratelimited(lunatik_printkdeferred, KERN_ERR pr_fmt("%.*s\n"), len, msg);
-}
-
-LUNATIK_KFUNC_END();
-
-LUNATIK_KFUNC_DEFINE_SET(lunatik, bpf_lunatik_log);
-
 static int __init lunatik_init(void)
 {
-	int ret;
-
 	lunatik_resolve(); /* register_kprobe sleeps; lunatik_lookup must not */
-	/* BPF_PROG_TYPE_UNSPEC is the common hook, which the verifier reads for a program of any type */
-	if ((ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_UNSPEC, &bpf_lunatik_kfunc_set)) != 0)
-		return ret;
 	lunatik_wq = alloc_workqueue("lunatik", WQ_UNBOUND, 0);
 	return lunatik_wq != NULL ? 0 : -ENOMEM;
 }

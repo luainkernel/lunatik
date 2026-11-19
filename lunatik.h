@@ -178,15 +178,6 @@ extern const lunatik_class_t lunatik_runtime_class;
 #define lunatik_monitormt(class, monitor)	((monitor) ? (const void *)&(class)->opt : (const void *)(class))
 #define lunatik_argchecknull(L, o, i)	luaL_argcheck((L), (o) != NULL, (i), LUNATIK_ERR_CLOSED)
 
-#define lunatik_ratelimited(print, fmt, ...)				\
-do {									\
-	static DEFINE_RATELIMIT_STATE(_rs, DEFAULT_RATELIMIT_INTERVAL,	\
-				      DEFAULT_RATELIMIT_BURST);		\
-									\
-	if (__ratelimit(&_rs))						\
-		print(fmt, ##__VA_ARGS__);				\
-} while (0)
-
 void lunatik_releaseobject(struct kref *kref);
 void lunatik_monitorobject(lua_State *L, const lunatik_class_t *class);
 

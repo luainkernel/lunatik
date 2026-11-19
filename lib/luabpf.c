@@ -23,16 +23,29 @@
 * leaves one. The flags `update` and `push` take come from `linux.bpf.update`:
 * `ANY`, `NOEXIST` and `EXIST`.
 *
+* `luabpf.ko` also registers a kfunc an eBPF program of any type calls to log a line,
+* `void bpf_luabpf_log(char *msg, size_t msg__sz)`: it writes the `msg__sz` bytes at `msg`, up to a
+* NUL among them, to the kernel log as `luabpf: <msg>`, at the error level and rate limited as the
+* error of a callback that raised is, and reads nothing past them. `msg` is memory the program may
+* write, its stack or a map value. It writes as `printk_deferred` does, storing the line at once and
+* leaving the console to an irq_work, since a program may run under the runqueue lock, as a tracing
+* program on `sched_switch` or a `struct_ops` scheduler does. The program declares it as a `__ksym`,
+* and loads where `luabpf.ko` is loaded and was built after `make btf_install`.
+*
 * @module bpf
 */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/bpf.h>
+#include <linux/btf.h>
+#include <linux/btf_ids.h>
 #include <linux/namei.h>
 #include <linux/fs.h>
 
 #include <lunatik.h>
+
+#include "luakfunc.h"
 
 static const lunatik_class_t luabpf_hash_class;
 static const lunatik_class_t luabpf_queue_class;
@@ -506,11 +519,26 @@ static const luaL_Reg luabpf_lib[] = {
 LUNATIK_CLASSES(bpf, &luabpf_hash_class, &luabpf_queue_class);
 LUNATIK_NEWLIB(bpf, luabpf_lib, luabpf_classes);
 
+LUAKFUNC_START();
+
+__bpf_kfunc void bpf_luabpf_log(char *msg, size_t msg__sz)
+{
+	int len = min_t(size_t, msg__sz, S16_MAX); /* vsnprintf warns of a precision past S16_MAX */
+
+	/* the msg__sz bytes the verifier proves, deferred: a tracing or struct_ops program may hold the runqueue lock */
+	luakfunc_ratelimited(lunatik_printkdeferred, KERN_ERR pr_fmt("%.*s\n"), len, msg);
+}
+
+LUAKFUNC_END();
+
+LUAKFUNC_DEFINE_SET(bpf, bpf_luabpf_log);
+
 static int __init luabpf_init(void)
 {
 	if ((luabpf_map_iops = (const struct inode_operations *)lunatik_lookup("bpf_map_iops")) == NULL)
 		return -ENXIO;
-	return 0;
+	/* BPF_PROG_TYPE_UNSPEC is the common hook, which the verifier reads for a program of any type */
+	return register_btf_kfunc_id_set(BPF_PROG_TYPE_UNSPEC, &bpf_luabpf_kfunc_set);
 }
 
 static void __exit luabpf_exit(void)

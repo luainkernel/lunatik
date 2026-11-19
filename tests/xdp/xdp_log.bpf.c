@@ -6,7 +6,7 @@
 #include "vmlinux.h"
 #include <bpf/bpf_helpers.h>
 
-extern void bpf_lunatik_log(char *msg, size_t msg__sz) __ksym;
+extern void bpf_luabpf_log(char *msg, size_t msg__sz) __ksym;
 
 #define LINE "xdp log: a line from the program"
 
@@ -16,7 +16,7 @@ static char message[] = LINE " and bytes past its size";
 SEC("xdp")
 int test_xdp_log(struct xdp_md *ctx)
 {
-	bpf_lunatik_log(message, sizeof(LINE) - 1);
+	bpf_luabpf_log(message, sizeof(LINE) - 1);
 	return XDP_PASS;
 }
 

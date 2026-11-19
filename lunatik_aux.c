@@ -123,24 +123,19 @@ static void lunatik_vprintk(bool deferred, const char *fmt, va_list args)
 #endif
 }
 
-void lunatik_printk(const char *fmt, ...)
-{
-	va_list args;
+#define LUNATIK_PRINTK(name, deferred)		\
+void name(const char *fmt, ...)			\
+{						\
+	va_list args;				\
+						\
+	va_start(args, fmt);			\
+	lunatik_vprintk((deferred), fmt, args);	\
+	va_end(args);				\
+}						\
+EXPORT_SYMBOL(name)
 
-	va_start(args, fmt);
-	lunatik_vprintk(lunatik_isrunqueue(), fmt, args);
-	va_end(args);
-}
-EXPORT_SYMBOL(lunatik_printk);
-
-void lunatik_printkdeferred(const char *fmt, ...)
-{
-	va_list args;
-
-	va_start(args, fmt);
-	lunatik_vprintk(true, fmt, args);
-	va_end(args);
-}
+LUNATIK_PRINTK(lunatik_printk, lunatik_isrunqueue());
+LUNATIK_PRINTK(lunatik_printkdeferred, true);
 
 #ifdef MODULE /* see https://lwn.net/Articles/813350/ */
 #include <linux/kprobes.h>

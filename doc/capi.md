@@ -633,12 +633,15 @@ rather than the CPU's state, so the refusal comes from the script body, which ru
 ### lunatik\_printk
 ```C
 void lunatik_printk(const char *fmt, ...);
+void lunatik_printkdeferred(const char *fmt, ...);
 ```
 Writes to the kernel log as `printk` does, at the level a `KERN_*` prefix of `fmt` names, from any
 context. While [`lunatik_isrunqueue`](#lunatik_isrunqueue) holds, it writes as the scheduler's
 `printk_deferred` does, which no module can call: through `vprintk_emit` at `LOGLEVEL_SCHED`, which
 stores the line at once and leaves the console to an irq_work, since flushing it there would wake a
 task waiting on the console, whose wakeup takes the runqueue lock the CPU holds.
+`lunatik_printkdeferred` always writes that way, for a caller that may hold the runqueue lock
+without the marker, as an eBPF program on a scheduler hook does when it calls a kfunc.
 
 ### lunatik\_percpudata
 ```C
@@ -1837,10 +1840,14 @@ nothing on its path sleeps.
 ### luakfunc\_err
 ```C
 void luakfunc_err(const char *fmt, ...);
+void luakfunc_ratelimited(print, const char *fmt, ...);
 ```
 Logs as `pr_err_ratelimited` does, through [`lunatik_printk`](#lunatik_printk), so an `scx`
 dispatch, which holds its CPU's runqueue lock, writes its line deferred. Every log an `scx` dispatch
-reaches goes through it. Defined as a macro.
+reaches goes through it. `luakfunc_ratelimited` calls `print` with `fmt` and its arguments at the
+interval and the burst of `pr_err_ratelimited`, each call site under a limit of its own:
+`luakfunc_err` is it over `lunatik_printk` at `KERN_ERR`, and `bpf_luabpf_log` over
+`lunatik_printkdeferred`. Both are macros.
 
 ### luakfunc\_getruntimes
 ```C

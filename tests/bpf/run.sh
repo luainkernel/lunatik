@@ -21,6 +21,15 @@
 # module without the refusal closes them there and fails the case. Skips without
 # CONFIG_KPROBES or setarch.
 #
+# bpf/log: bpf_luabpf_log, the kfunc luabpf registers on the common hook, reaches a program of a
+# type other than XDP and TC: a syscall program calls it and loads, and runs under bpftool prog run,
+# attached nowhere, as luabpf_logs in tests/lib.sh runs the xdp and tc log cases: one run logs its
+# line once and none of the bytes past the size it passes, and 30 runs more stop at the rate
+# limit's burst. That the kfunc defers its write, which a program under the runqueue lock needs, is
+# unproved by a case: its failure is a deadlock, which a program on a scheduler hook would risk on
+# the host. BPF_PROG_TEST_RUN of a syscall program takes no data and refuses a repeat, which
+# bpftool sets to 1 unless told 0. Skips without clang.
+#
 # Usage: sudo bash tests/bpf/run.sh
 
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -39,6 +48,8 @@ FULL_MAP=$BPF_FS/test_map_full
 SOFTIRQ_SCRIPT=tests/bpf/map_softirq
 PROBE_SCRIPT=tests/bpf/probe
 PREFIX="bpf probe: "
+LOG_PIN=$BPF_FS/test_log
+LOGGED="bpf/log: a syscall program logs through bpf_luabpf_log, within its size and rate limit"
 
 bpftool map show > /dev/null 2>&1 || skip_script "bpf: bpftool unavailable"
 
@@ -49,6 +60,7 @@ cleanup()
 	lunatik stop "$SOFTIRQ_SCRIPT" 2>/dev/null
 	lunatik stop "$PROBE_SCRIPT" 2>/dev/null
 	rm -f "$MAP" "$ARRAY_MAP" "$LRU_MAP" "$TBL_MAP" "$PERCPU_MAP" "$QUEUE_MAP" "$STACK_MAP" "$FULL_MAP"
+	rm -f "$LOG_PIN"
 }
 
 trap cleanup EXIT
@@ -71,7 +83,7 @@ create_map "$FULL_MAP" type hash key 4 value 4 entries 2 name test_full
 bpftool map update pinned "$MAP" key hex 66 6f 6f value hex 62 61 72 || skip_script "bpf: cannot seed the pinned map"
 
 TESTS="map_values array lru queue stack map"
-TOTAL=$(($(echo $TESTS | wc -w) + 3))
+TOTAL=$(($(echo $TESTS | wc -w) + 4))
 
 ktap_header
 ktap_plan $TOTAL
@@ -97,6 +109,14 @@ if bpftool map lookup pinned "$MAP" key hex 61 62 63 | grep -q "78 79 7a"; then
 	ktap_pass "bpf/interop: bpftool reads Lua-written value"
 else
 	ktap_fail "bpf/interop: bpftool reads Lua-written value"
+fi
+
+if ! command -v clang > /dev/null 2>&1; then
+	ktap_skip "$LOGGED: clang not available"
+elif ! make -C "$DIR" > /dev/null; then
+	ktap_fail "$LOGGED: the program did not build"
+else
+	luabpf_logs "$DIR/log.bpf.o" "$LOG_PIN" "bpf log: a line from a syscall program" "$LOGGED" repeat 0
 fi
 
 ktap_totals

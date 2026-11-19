@@ -91,18 +91,22 @@ nsim_del() {
 # builds the C peer <source> into <binary>; fails where there is no gcc or it does not build
 build_peer() { command -v gcc > /dev/null 2>&1 && gcc -O2 -o "$2" "$1" 2>/dev/null; }
 
-# lunatik_logs <object> <pin> <line> <title> [<argument>...]: bpf_lunatik_log called by the one
+# luabpf_logs <object> <pin> <line> <title> [<argument>...]: bpf_luabpf_log called by the one
 # program of <object>, which hands it <line> and keeps bytes of its own past the size it passes, the
 # program pinned at <pin> and run by bpftool prog run with the <argument>s, or over a frame where
 # none is given. The case first waits out the five seconds of the kfunc's rate limit, so no earlier
-# call spends its burst; then one run logs "lunatik: <line>" once and nothing past the size, and 30
-# runs more bring the line to the burst of 10 the limit lets through. It skips where lunatik.ko
-# carries no BTF, which leaves the kfunc unregistered.
-lunatik_logs() {
+# call spends its burst; then one run logs "luabpf: <line>" once and nothing past the size, and 30
+# runs more bring the line to the burst of 10 the limit lets through. It skips where luabpf is not
+# loaded, as lunatik test loads it, or carries no BTF, which leaves the kfunc unregistered.
+luabpf_logs() {
 	local object="$1" pin="$2" line="$3" title="$4" frame output once burst
 	shift 4
-	if [ ! -f /sys/kernel/btf/lunatik ]; then
-		ktap_skip "$title: lunatik built without BTF (make btf_install, rebuild)"
+	if [ ! -d /sys/module/luabpf ]; then
+		ktap_skip "$title: luabpf not loaded"
+		return 0
+	fi
+	if [ ! -f /sys/kernel/btf/luabpf ]; then
+		ktap_skip "$title: luabpf built without BTF (make btf_install, rebuild)"
 		return 0
 	fi
 	output=$(bpftool prog load "$object" "$pin" 2>&1) ||
@@ -114,9 +118,9 @@ lunatik_logs() {
 	sleep 6
 	mark_dmesg
 	output=$(bpftool prog run pinned "$pin" "$@" 2>&1) || comment "$output"
-	once=$(dmesg_since | grep -c "lunatik: $line\$")
+	once=$(dmesg_since | grep -c "luabpf: $line\$")
 	for _ in $(seq 30); do bpftool prog run pinned "$pin" "$@" > /dev/null 2>&1; done
-	burst=$(dmesg_since | grep -c "lunatik: $line\$")
+	burst=$(dmesg_since | grep -c "luabpf: $line\$")
 	rm -f "$pin" "$frame"
 
 	check_dmesg || { ktap_fail "$title: the kfunc raised a kernel complaint"; return 1; }
