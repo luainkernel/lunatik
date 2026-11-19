@@ -6,7 +6,7 @@
 
 local corpus  = require("tests.luaebpf.corpus")
 local packets = require("tests.luaebpf.packets")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local tc      = require("bpf.tc")
 local map     = require("bpf.map")
 local lunatik = require("lunatik")

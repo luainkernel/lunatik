@@ -22,7 +22,7 @@ reads.
 local map     = require("bpf.map")
 local xdp     = require("bpf.xdp")
 local struct  = require("struct")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local action  = require("linux.xdp").action
 local eth     = require("linux.eth")
 
@@ -256,7 +256,7 @@ view of the kernel's own struct:
 
 ```Lua
 local struct  = require("struct")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local eth     = require("linux.eth")
 
 local iphdr = struct(vmlinux.layout("iphdr")) -- in the body
@@ -265,7 +265,7 @@ local ip = iphdr:view(p, eth.HLEN) -- in the function
 local length = ip.tot_len --> 28
 ```
 
-The body builds a `struct` codec of the struct `luaebpf.vmlinux.layout` reads from the kernel's
+The body builds a `struct` codec of the struct `bpf.vmlinux.layout` reads from the kernel's
 BTF, and `codec:view(p, at)` is that struct as it lies in the packet from `at`. Each field read
 is one read of the packet at `at` plus the field's offset, of its width and sign: a field the
 layout marks `bigendian`, as it marks a `__be16`, reads most significant byte first, so
@@ -308,7 +308,7 @@ In a compiled function a map reads as a table.
   map refuses: an update of a full hash map, an index past an array's entries, a delete from an
   array. One the compiler knows is refused: "the map key -1 does not fit 'I4'".
 * A `struct` value is read-only and read by field name, `v.ttl`, as its codec decodes it: a field
-  the layout marks `bigendian`, as `luaebpf.vmlinux.layout` marks a `__be16`, reads most
+  the layout marks `bigendian`, as `bpf.vmlinux.layout` marks a `__be16`, reads most
   significant byte first, so `v.tot_len` of an IPv4 header whose total length is 28 is 28, and a
   bitfield the layout lists, `v.ihl`, is taken out of the load that covers it, as the codec's view
   takes it. A field wider than a byte, or a bitfield whose load is, is refused on a kernel without
@@ -347,7 +347,7 @@ port 53 longer than 512 bytes:
 local xdp     = require("bpf.xdp")
 local lunatik = require("lunatik")
 local struct  = require("struct")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local action  = require("linux.xdp").action
 local eth     = require("linux.eth")
 local ipproto = require("linux.socket").ipproto

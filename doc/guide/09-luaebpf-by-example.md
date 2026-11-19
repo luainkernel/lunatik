@@ -161,7 +161,7 @@ options or a packet longer than 1500 bytes:
 
 ```Lua
 local struct  = require("struct")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local xdp     = require("bpf.xdp")
 local action  = require("linux.xdp").action
 local eth     = require("linux.eth")
@@ -180,7 +180,7 @@ return xdp.program(function(ctx)
 end, {default = action.PASS})
 ```
 
-`luaebpf.vmlinux.layout` reads `iphdr` from the kernel's BTF: `ihl` is the low four bits of byte 0
+`bpf.vmlinux.layout` reads `iphdr` from the kernel's BTF: `ihl` is the low four bits of byte 0
 on a little-endian kernel, and `tot_len` two bytes at 2, a `__be16` the layout marks `bigendian`.
 The view is one register, `r8`, which holds the offset it starts at; a field is read through the
 context, `r6`, as `p:getbyte(n)` reads, at that offset plus the field's.
@@ -505,7 +505,7 @@ refused.
 
 ```Lua
 local struct  = require("struct")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local xdp     = require("bpf.xdp")
 local action  = require("linux.xdp").action
 local eth     = require("linux.eth")
@@ -671,7 +671,7 @@ and returns 2, `TC_ACT_SHOT`, so the packet is dropped and its priority stays wh
 ```Lua
 local map     = require("bpf.map")
 local struct  = require("struct")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local xdp     = require("bpf.xdp")
 local action  = require("linux.xdp").action
 local eth     = require("linux.eth")
@@ -1032,7 +1032,7 @@ compiled".
 
 ```Lua
 local struct  = require("struct")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local xdp     = require("bpf.xdp")
 local lunatik = require("lunatik")
 local action  = require("linux.xdp").action

@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Tests luaebpf.vmlinux, which reads a kernel struct's layout out of the kernel's BTF,
+# Tests bpf.vmlinux, which reads a kernel struct's layout out of the kernel's BTF,
 # /sys/kernel/btf/vmlinux or the raw BTF file `lunatik bpf --btf` names. A program file's body asks
 # it for five structs and writes what it answered beside the object; the case compares that with
 # `bpftool btf dump file /sys/kernel/btf/vmlinux format raw`, the same BTF read by a different
@@ -278,7 +278,7 @@ crossing "$LUAEBPF_WORK/crossing.btf" \
 cat > "$LUAEBPF_WORK/crossing.bpf.lua" <<'LUA'
 require("luaebpf.emit").bigendian = false
 
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local xdp     = require("bpf.xdp")
 local action  = require("linux.xdp").action
 

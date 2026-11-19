@@ -10,7 +10,7 @@
 #     with `bpftool map update` and each program keeps one field, so a wrong offset, width, sign
 #     extension or byte order changes the number, and a BPF_END of the byte, which has no order to
 #     swap, is one the verifier refuses
-#   - a layout `luaebpf.vmlinux` read out of the running kernel's BTF as the value spec, seeded
+#   - a layout `bpf.vmlinux` read out of the running kernel's BTF as the value spec, seeded
 #     with an IPv4 header: that ties the reader to the map path, since a field read at a wrong
 #     offset answers a different byte of the same twenty, tot_len, a __be16 the layout marks,
 #     reads the total length the header carries, and ihl and version, the bitfields of its first

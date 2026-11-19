@@ -30,20 +30,26 @@
 -- local object = luaebpf.compile("filter.bpf.lua")
 -- local image = luaebpf.compile("filter.bpf.lua", "build/vmlinux.btf", "staging/lib/modules/lua")
 
+local LIBPATH <const> = select(2, ...):match("^(.*/)") .. "lib/?.lua"
+
+-- compile opens the BTF a body reads its layouts from, so both reach one bpf.vmlinux, loaded from LIBPATH
+local function fromlib(name)
+	return dofile(assert(package.searchpath(name, LIBPATH)))
+end
+package.preload["bpf.vmlinux"] = fromlib
+
 local maps     = require("luaebpf.maps")
 local programs = require("luaebpf.programs")
 local proto    = require("luaebpf.proto")
 local emit     = require("luaebpf.emit")
 local writer   = require("luaebpf.writer")
-local vmlinux  = require("luaebpf.vmlinux")
+local vmlinux  = require("bpf.vmlinux")
 
 local insert = table.insert
 local format = string.format
 local getenv = os.getenv
 
-local DROP    <const> = "LUAEBPF_DROP"
-
-local LIBPATH <const> = select(2, ...):match("^(.*/)") .. "lib/?.lua"
+local DROP <const> = "LUAEBPF_DROP"
 
 -- the host's path, through which a body still reaches the compiler's own modules
 local HOSTPATH <const> = package.path

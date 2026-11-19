@@ -9,7 +9,7 @@
 -- @module luaebpf.emit.context
 
 local insn    = require("luaebpf.insn")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local frame   = require("luaebpf.emit.frame")
 
 local reg = insn.reg

@@ -9,7 +9,7 @@
 #   - an XDP program reads ctx:ingress() and ctx:queue(), the kernel's XDP ctx
 #     object's own spelling, and a TC program reads #skb, skb:ifindex() and skb:priority(), the
 #     kernel's skb object's: each answers what prog run was told to build the context from. The
-#     program file's body writes those bytes at the offsets luaebpf.vmlinux reports, so a wrong
+#     program file's body writes those bytes at the offsets bpf.vmlinux reports, so a wrong
 #     offset fills a field the program does not read and the program keeps the other number, or
 #     prog run refuses the context outright
 #   - skb:hash() compiles and answers 0 on both sides, prog run building its skb with no hash;
