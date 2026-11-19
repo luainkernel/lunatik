@@ -13,10 +13,11 @@
 # it away; a `# env: <name>=<value>` line sets that variable for the guard in the cases after it, as a
 # session's settings set LUNATIK_CONSUMERS, a relative path in it read from the fixture's directory; a
 # `# transcript: <path>` line gives them the transcript_path of the session's calls, read from there too,
-# and `# transcript:` takes it away.
-# Only the guards whose verdict the command decides, alone or with the repository it runs in or the
-# processes beside it, have cases, and no case asks GitHub, which a gh the fixture writes on PATH
-# answers for; <guard>.fixture.sh, beside the cases of one that reads the repository, builds it in a
+# and `# transcript:` takes it away; a `# cwd: <path>` line gives them that cwd, the directory a
+# session's cd left, in place of the fixture's directory, and `# cwd:` takes it away.
+# Only the guards whose verdict the command decides, alone or with the repository it runs in, the
+# directory the session's cd left or the processes beside it, have cases, and no case asks GitHub,
+# which a gh the fixture writes on PATH answers for; <guard>.fixture.sh, beside the cases of one that reads the repository, builds it in a
 # scratch directory the cases run in, and beside one that reads the process table, starts there a
 # process that ends with the directory.
 # Prints each wrong verdict and a count, and exits 1 when one is wrong.
@@ -41,12 +42,14 @@ for cases in "$@"; do
 	tool=Bash
 	agent=
 	transcript=
+	casecwd=
 	envs=()
 	while IFS=$'\t' read -r want value description; do
 		case "$want" in
 			"# tool: "*) tool=${want#\# tool: }; continue ;;
 			"# agent:"*) agent=${want#\# agent:}; agent=${agent# }; continue ;;
 			"# transcript:"*) transcript=${want#\# transcript:}; transcript=${transcript# }; continue ;;
+			"# cwd:"*) casecwd=${want#\# cwd:}; casecwd=${casecwd# }; continue ;;
 			"# env: "*) envs+=("${want#\# env: }"); continue ;;
 			""|"#"*) continue ;;
 		esac
@@ -57,7 +60,7 @@ for cases in "$@"; do
 			*) field=command ;;
 		esac
 		[ -z "$field" ] || value=${value//\\n/$'\n'}
-		jq -nc --arg tool "$tool" --arg field "$field" --arg value "$value" --arg description "$description" --arg agent "$agent" --arg transcript "$transcript" --arg cwd "$cwd" \
+		jq -nc --arg tool "$tool" --arg field "$field" --arg value "$value" --arg description "$description" --arg agent "$agent" --arg transcript "$transcript" --arg cwd "${casecwd:-$cwd}" \
 			'{tool_name: $tool, tool_input: ((if $field == "" then $value | fromjson else {($field): $value} end)
 			+ if $description == "" then {} else {description: $description} end)}
 			+ if $agent == "" then {} else {agent_id: $agent} end
