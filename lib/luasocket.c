@@ -377,7 +377,7 @@ static int luasocket_receivefrom(lua_State *L)
 *     Use `0` (or `net.aton("0.0.0.0")`) to bind to all available interfaces.
 *     The `port` argument is also required.
 *   - `AF_PACKET`: An integer representing the ethernet protocol in host byte order
-*     (e.g., `0x0003` for `ETH_P_ALL`, `0x88CC` for `ETH_P_LLDP`)
+*     (e.g., `eth.ALL` for `ETH_P_ALL`, `eth.LLDP` for `ETH_P_LLDP`, from `linux.eth`'s `proto`)
 *     The `port` argument is also required.
 *   - `AF_NETLINK`: The port id, 0 to let the kernel pick one; `port` carries the multicast groups.
 *   - `AF_UNIX`: A filesystem path, or, when its first byte is NUL (e.g. `"\0name"`), a name in the
@@ -397,7 +397,8 @@ static int luasocket_receivefrom(lua_State *L)
 *   tcp_server_sock:bind(net.aton("127.0.0.1"), 8080)
 *
 *   -- Bind AF_PACKET socket to protocol `ETH_P_LLDP` on a specific interface
-*   af_packet_sock:bind(0x88CC, linux.ifindex("eth0"))
+*   local eth = require("linux.eth").proto
+*   af_packet_sock:bind(eth.LLDP, linux.ifindex("eth0"))
 * @see net.aton
 * @see linux.ifindex
 */
