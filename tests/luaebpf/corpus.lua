@@ -12,7 +12,7 @@
 -- lunatic, which makes that answer the one the kernel computes; nothing runs it in the kernel.
 
 local class   = require("class")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local packets = require("tests.luaebpf.packets")
 local map     = require("bpf.map")
 local xdp     = require("bpf.xdp")

@@ -5,7 +5,7 @@
 -- Program file of the ctx case (see ctx.sh).
 
 local corpus  = require("tests.luaebpf.corpus")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local tc      = require("bpf.tc")
 local PASS    <const> = require("linux.xdp").action.PASS
 local OK      <const> = require("linux.tc").action.OK

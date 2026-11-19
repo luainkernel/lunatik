@@ -54,7 +54,8 @@ it: while the body runs, `package.path` is the compile-time modules in `bin/luae
 the host's path, and the last one, which `proto.lua` adds, loads a module under `/lib/modules/lua/`,
 or the directory `lunatik bpf --scripts=` names, through `lunatic`, as the program file is loaded.
 `linux.xdp` and `struct` come from there, and a function a kernel script defines is compiled as one
-the program file defines.
+the program file defines. `bpf.vmlinux` is the one `init.lua` loads before the body runs, so the
+layouts the body reads come from the BTF `compile` opened.
 
 ### Programs and maps
 
@@ -111,8 +112,8 @@ the byte order of the kernel `lunatik.config` describes:
 
 ### The kernel it compiles for
 
-`vmlinux.lua` reads the kernel's BTF, the file `lunatik bpf --btf=` names or else
-`/sys/kernel/btf/vmlinux`, for the offset and the width of each context field a program reads, so
+`bpf.vmlinux`, in `lib/bpf/vmlinux.lua`, reads the kernel's BTF, the file `lunatik bpf --btf=` names or
+else `/sys/kernel/btf/vmlinux`, for the offset and the width of each context field a program reads, so
 no offset is copied from a header; it reads the file in the byte order its magic says and refuses
 one whose order is not the object's. Three facts come from `lunatik.config`, which `make` writes
 from the kernel tree Lunatik is built against: the kernel's version, which says whether a loop

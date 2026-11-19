@@ -7,7 +7,7 @@
 local corpus  = require("tests.luaebpf.corpus")
 local map     = require("bpf.map")
 local struct  = require("struct")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local xdp     = require("bpf.xdp")
 local action  = require("linux.xdp").action
 

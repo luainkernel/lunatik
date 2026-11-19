@@ -5,7 +5,7 @@
 #
 # Tests a view of a struct over the packet, `codec:view(p, at)` in a compiled function, which reads a
 # field by name as one packet read at the view's offset plus the field's.
-#   - views of the kernel's own ethhdr, iphdr and tcphdr, laid out by luaebpf.vmlinux, over every
+#   - views of the kernel's own ethhdr, iphdr and tcphdr, laid out by bpf.vmlinux, over every
 #     packet of the corpus through ctx:packet() and through skb:data(), against the interpreted twin,
 #     lib/struct.lua's codec:view over the same bytes: h_proto and tot_len, which the layout marks
 #     bigendian, ttl, a byte, check, a __sum16 read in the kernel's order, version and ihl, bitfields
@@ -55,7 +55,7 @@ row() {
 	local name="$1" line="$2" message="$3" body="$4" preamble="${5:-}"
 	{
 		echo 'local struct = require("struct")'
-		echo 'local vmlinux = require("luaebpf.vmlinux")'
+		echo 'local vmlinux = require("bpf.vmlinux")'
 		echo 'local xdp = require("bpf.xdp")'
 		echo 'local action = require("linux.xdp").action'
 		echo 'local iphdr = struct(vmlinux.layout("iphdr"))'
@@ -113,7 +113,7 @@ row unalignedbits 12 "field 'doff' reads more than a byte, and this kernel lacks
 cat > "$LUAEBPF_WORK/tcwide.bpf.lua" <<'LUA'
 require("luaebpf.emit").unaligned = false
 local struct  = require("struct")
-local vmlinux = require("luaebpf.vmlinux")
+local vmlinux = require("bpf.vmlinux")
 local tc      = require("bpf.tc")
 local action  = require("linux.tc").action
 

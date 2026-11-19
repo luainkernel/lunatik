@@ -12,9 +12,9 @@
 -- header. BTF records no member's byte offset directly: the file is a flat stream of
 -- variable-length records naming each other by type id, so one pass records where every id
 -- starts and a struct's members resolve in constant time afterwards.
--- @module luaebpf.vmlinux
+-- @module bpf.vmlinux
 -- @usage
--- local vmlinux = require("luaebpf.vmlinux")
+-- local vmlinux = require("bpf.vmlinux")
 -- local struct  = require("struct")
 --
 -- local skb = struct(vmlinux.layout("__sk_buff"))
@@ -226,7 +226,7 @@ end
 -- Reads the layouts from the raw BTF file at `path` from then on, the bytes
 -- `/sys/kernel/btf/vmlinux` serves, in the byte order its magic is written in. The file is read
 -- when a layout is first asked for.
--- @function luaebpf.vmlinux.open
+-- @function bpf.vmlinux.open
 -- @tparam[opt] string path the file, `/sys/kernel/btf/vmlinux` when absent
 function vmlinux.open(path)
 	path = path or VMLINUX
@@ -238,7 +238,7 @@ end
 ---
 -- Refuses the BTF a layout was read from when it is not in the object's byte order, since it then
 -- describes another kernel than the one the object is for.
--- @function luaebpf.vmlinux.check
+-- @function bpf.vmlinux.check
 -- @tparam boolean bigendian whether the object is big-endian
 -- @raise `<path> is a <order>-endian BTF, for a <order>-endian object`
 function vmlinux.check(bigendian)
@@ -260,7 +260,7 @@ end
 -- it out of that load, for the BTF's byte order; one no load of eight bytes covers is absent. A
 -- union such as `__sk_buff`'s `__bpf_md_ptr` members, and a nested struct, are absent, and `struct`
 -- reads the gap they and the bitfields leave as padding.
--- @function luaebpf.vmlinux.layout
+-- @function bpf.vmlinux.layout
 -- @tparam string what the struct's name, as `bpftool btf dump` prints it
 -- @treturn table `{size = bytes, fields = {{name, offset, size, signed, bigendian}, ...},
 --   bitfields = {{name, offset, size, signed, shift, mask}, ...}}`, offsets and sizes in bytes

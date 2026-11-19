@@ -1348,7 +1348,7 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   `FUNC` per subprogram; five arguments, since the fifth register carries the
   abort pointer, a call short of an argument the callee declares, and
   recursion refused with their lines.
-- **btfview**: `luaebpf.vmlinux` against `bpftool btf dump file
+- **btfview**: `bpf.vmlinux` against `bpftool btf dump file
   /sys/kernel/btf/vmlinux format raw`: the size of `xdp_md` and `__sk_buff` and
   the byte offset and four-byte width of every field the context proxies
   expose, `iphdr`'s whole-byte members, its bitfields no field of the layout
@@ -1383,7 +1383,7 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   ones `#skb`, `skb:ifindex()`, `skb:hash()` and `skb:priority()`, the kernel's
   skb object's, each answering what `prog run` was told to build the context
   from, the hash 0 since `prog run` sets none, the body having written those
-  bytes at the offsets `luaebpf.vmlinux` reports; `skb:priority(v)`, of a
+  bytes at the offsets `bpf.vmlinux` reports; `skb:priority(v)`, of a
   constant, of `U32_MAX` and of a value computed from `#skb` with the field's
   top bit set, answers `v` back through the kernel's own context, the constant
   in `ctx_out` too, and a value the program computes past 32 bits or below zero
@@ -1476,7 +1476,7 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   time: one field of every width and signedness with a gap the codec reads as
   padding and a field marked `bigendian` of each width, a signed one and a
   byte, which a compiled read does not swap, among them, and a layout
-  `luaebpf.vmlinux` read out of the running kernel's BTF seeded with an IPv4
+  `bpf.vmlinux` read out of the running kernel's BTF seeded with an IPv4
   header, whose `tot_len` the layout marks `bigendian` and whose `ihl` and
   `version` are bitfields, each answering what the same codec, or for a
   bitfield its view, reads off the bytes the case seeded. A write to a field or to
@@ -1494,7 +1494,7 @@ compiled program keeps nothing and owes the error verdict of its type instead,
   one packet read at the view's offset plus the field's, over the five packets
   of `packets.lua` through `ctx:packet()` and through `skb:data()`, against the
   interpreted view of `lib/struct.lua` reading the same bytes: of the kernel's
-  `ethhdr`, `iphdr` and `tcphdr` as `luaebpf.vmlinux` lays them out, the
+  `ethhdr`, `iphdr` and `tcphdr` as `bpf.vmlinux` lays them out, the
   big-endian `h_proto`, `tot_len`, `dest` and `seq`, the byte `ttl`, the
   `__sum16` `check` in the kernel's order, the bitfields `version`, `ihl`, `doff`
   and `psh`, and the TCP header at the offset `ihl` gives, and of a codec the

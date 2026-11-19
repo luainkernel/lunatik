@@ -14,7 +14,7 @@
 -- local xdp     = require("bpf.xdp")
 -- local lunatik = require("lunatik")
 -- local struct  = require("struct")
--- local vmlinux = require("luaebpf.vmlinux")
+-- local vmlinux = require("bpf.vmlinux")
 -- local action  = require("linux.xdp").action
 -- local eth     = require("linux.eth")
 --
