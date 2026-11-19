@@ -113,29 +113,17 @@ void lunatik_pusherrname(lua_State *L, int err)
 }
 EXPORT_SYMBOL(lunatik_pusherrname);
 
-static void lunatik_vprintk(bool deferred, const char *fmt, va_list args)
+void lunatik_printk(const char *fmt, ...)
 {
 #ifdef CONFIG_PRINTK /* vprintk_emit has no stub without it */
-	if (deferred)
-		vprintk_emit(0, LOGLEVEL_SCHED, NULL, fmt, args); /* printk_deferred's call, which is not exported */
-	else
-		vprintk(fmt, args);
+	va_list args;
+
+	va_start(args, fmt);
+	vprintk_emit(0, LOGLEVEL_SCHED, NULL, fmt, args); /* printk_deferred's call, which is not exported */
+	va_end(args);
 #endif
 }
-
-#define LUNATIK_PRINTK(name, deferred)		\
-void name(const char *fmt, ...)			\
-{						\
-	va_list args;				\
-						\
-	va_start(args, fmt);			\
-	lunatik_vprintk((deferred), fmt, args);	\
-	va_end(args);				\
-}						\
-EXPORT_SYMBOL(name)
-
-LUNATIK_PRINTK(lunatik_printk, lunatik_isrunqueue());
-LUNATIK_PRINTK(lunatik_printkdeferred, true);
+EXPORT_SYMBOL(lunatik_printk);
 
 #ifdef MODULE /* see https://lwn.net/Articles/813350/ */
 #include <linux/kprobes.h>

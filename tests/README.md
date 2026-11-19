@@ -108,10 +108,10 @@ Tests for the `bpf` module (pinned eBPF map access). Requires
   `luabpf: bpf log: a line from a syscall program` once and none of the bytes
   the program keeps past the size it passes, and 30 runs more bring the line to
   the burst of 10 the limit lets through. That the kfunc writes deferred, as
-  `printk_deferred` does, for a program that runs under the runqueue lock, is
-  unproved by a case: its failure is a deadlock, and a program on a scheduler
-  hook would risk it on the host. Skipped without `clang`, or where `luabpf`
-  is not loaded or carries no BTF.
+  `lunatik_printk` writes every line, which a program that runs under the
+  runqueue lock needs, is unproved by a case: its failure is a deadlock, and a
+  program on a scheduler hook would risk it on the host. Skipped without
+  `clang`, or where `luabpf` is not loaded or carries no BTF.
 - The harness also cross-checks a Lua-written value with
   `bpftool map lookup` (kernel-to-userspace interop).
 

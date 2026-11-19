@@ -27,9 +27,9 @@
 * `void bpf_luabpf_log(char *msg, size_t msg__sz)`: it writes the `msg__sz` bytes at `msg`, up to a
 * NUL among them, to the kernel log as `luabpf: <msg>`, at the error level and rate limited as the
 * error of a callback that raised is, and reads nothing past them. `msg` is memory the program may
-* write, its stack or a map value. It writes as `printk_deferred` does, storing the line at once and
-* leaving the console to an irq_work, since a program may run under the runqueue lock, as a tracing
-* program on `sched_switch` or a `struct_ops` scheduler does. The program declares it as a `__ksym`,
+* write, its stack or a map value. The line reaches the log buffer at once and a legacy console from
+* the irq_work that follows, so a program that runs under the runqueue lock, a tracing program on
+* `sched_switch` or a `struct_ops` scheduler, may call it. The program declares it as a `__ksym`,
 * and loads where `luabpf.ko` is loaded and was built after `make btf_install`.
 *
 * @module bpf
@@ -525,8 +525,7 @@ __bpf_kfunc void bpf_luabpf_log(char *msg, size_t msg__sz)
 {
 	int len = min_t(size_t, msg__sz, S16_MAX); /* vsnprintf warns of a precision past S16_MAX */
 
-	/* the msg__sz bytes the verifier proves, deferred: a tracing or struct_ops program may hold the runqueue lock */
-	luakfunc_ratelimited(lunatik_printkdeferred, KERN_ERR pr_fmt("%.*s\n"), len, msg);
+	luakfunc_err("%.*s\n", len, msg); /* the msg__sz bytes the verifier proves */
 }
 
 LUAKFUNC_END();

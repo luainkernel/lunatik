@@ -25,10 +25,10 @@
 # type other than XDP and TC: a syscall program calls it and loads, and runs under bpftool prog run,
 # attached nowhere, as luabpf_logs in tests/lib.sh runs the xdp and tc log cases: one run logs its
 # line once and none of the bytes past the size it passes, and 30 runs more stop at the rate
-# limit's burst. That the kfunc defers its write, which a program under the runqueue lock needs, is
-# unproved by a case: its failure is a deadlock, which a program on a scheduler hook would risk on
-# the host. BPF_PROG_TEST_RUN of a syscall program takes no data and refuses a repeat, which
-# bpftool sets to 1 unless told 0. Skips without clang.
+# limit's burst. That the kfunc writes deferred, as lunatik_printk writes every line, which a
+# program under the runqueue lock needs, is unproved by a case: its failure is a deadlock, which a
+# program on a scheduler hook would risk on the host. BPF_PROG_TEST_RUN of a syscall program takes
+# no data and refuses a repeat, which bpftool sets to 1 unless told 0. Skips without clang.
 #
 # Usage: sudo bash tests/bpf/run.sh
 
