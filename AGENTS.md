@@ -606,6 +606,13 @@ named, not one discovered at that consumer's build.
   "the fixups are on the pull request" is said after `gh api repos/.../pulls/<n>/commits` lists them,
   not before. The same holds for work handed to a reviewing agent: telling it not to push leaves the
   push owed by whoever gave the instruction.
+* Each comment the maintainer leaves on a pull request is answered on the pull request, an inline one
+  in its thread and one of the conversation by a comment that quotes its first line outside a quote,
+  with the fixup that meets it or the answer itself, as that fixup is pushed: an answer given in the
+  session's chat is one the pull request does not carry. #2630's review asked whether the collector
+  could be stopped in an `scx` callback, and the answer reached the chat alone.
+  `tools/checks/unanswered.sh <pr>` names each comment no reply answers, and the pull request goes back
+  to him only once it names none.
 * Work an agent does for a workflow outlives the agent. Its branch is pushed at each commit, pull
   request or not, and what it measured and decided goes to a checkpoint file, a line per step, that
   the agent relaunched in its place reads before anything else; the workflow then resumes with the
