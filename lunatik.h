@@ -20,7 +20,7 @@
 #include <linux/sched.h>
 #include <linux/jiffies.h>
 #include <linux/version.h>
-#include <linux/irq_work.h>
+#include <linux/llist.h>
 #include <linux/workqueue.h>
 
 #include <lua.h>
@@ -109,28 +109,13 @@ do {										\
 
 typedef void (*lunatik_release_t)(void *);
 
-typedef struct lunatik_defer_s {
-	struct irq_work irq;
-	struct work_struct work;
-} lunatik_defer_t;
+typedef struct lunatik_defer_s lunatik_defer_t;
+typedef void (*lunatik_finalize_t)(lunatik_defer_t *defer);
 
-void lunatik_deferirq(struct irq_work *irq);
-
-#define lunatik_initdefer(defer, func)					\
-do {									\
-	init_irq_work(&(defer)->irq, lunatik_deferirq);			\
-	INIT_WORK(&(defer)->work, (func));				\
-} while (0)
-
-#define lunatik_defer(defer)	irq_work_queue(&(defer)->irq)
-
-static inline lunatik_defer_t *lunatik_syncdefer(struct work_struct *work)
-{
-	lunatik_defer_t *defer = container_of(work, lunatik_defer_t, work);
-
-	irq_work_sync(&defer->irq); /* the first hop writes the item after it queues this work */
-	return defer;
-}
+struct lunatik_defer_s {
+	struct llist_node node;
+	lunatik_finalize_t finalize;
+};
 
 typedef struct lunatik_class_s {
 	const char *name;
@@ -153,7 +138,10 @@ typedef struct lunatik_object_s {
 	gfp_t gfp;
 	unsigned long flags;
 	struct rcu_head rcu;
-	lunatik_defer_t defer;
+	union {
+		lunatik_defer_t defer;
+		struct work_struct work;
+	};
 } lunatik_object_t;
 
 typedef struct lunatik_runtime_s {

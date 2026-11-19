@@ -9,6 +9,7 @@
 
 #include "lunatik.h"
 #include "lunatik_core.h"
+#include "lunatik_defer.h"
 
 #define lunatik_iswrapped(reg)			\
 	(!strcmp((reg)->name, "__tostring") ||	\
@@ -142,17 +143,23 @@ static void lunatik_freeobject(lunatik_object_t *object)
 
 static void lunatik_freedeferred(struct work_struct *work)
 {
-	lunatik_freeobject(container_of(lunatik_syncdefer(work), lunatik_object_t, defer));
+	lunatik_freeobject(container_of(work, lunatik_object_t, work));
+}
+
+static void lunatik_queuefree(lunatik_defer_t *defer)
+{
+	lunatik_object_t *object = container_of(defer, lunatik_object_t, defer);
+
+	INIT_WORK(&object->work, lunatik_freedeferred);
+	queue_work(lunatik_wq, &object->work); /* a release may sleep, which would stall lunatik_deferwork */
 }
 
 void lunatik_releaseobject(struct kref *kref)
 {
 	lunatik_object_t *object = container_of(kref, lunatik_object_t, kref);
 
-	if (lunatik_isatomic()) {
-		lunatik_initdefer(&object->defer, lunatik_freedeferred);
-		lunatik_defer(&object->defer);
-	}
+	if (lunatik_isatomic())
+		lunatik_defer(&object->defer, lunatik_queuefree);
 	else
 		lunatik_freeobject(object);
 }

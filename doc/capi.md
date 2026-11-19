@@ -39,8 +39,8 @@ Describes a Lunatik object class.
   [`lunatik_closeprivate`](#lunatik_closeprivate), which an object's `close` or `stop` and
   `lunatik_stop` run, and the drop of the last reference; Lunatik then frees the private, unless
   the class is `LUNATIK_OPT_EXTERNAL`. It runs on the task that closed the object or dropped that
-  reference, or, when that drop runs in atomic context, on a kernel worker through
-  [`lunatik_defer`](#lunatik_defer), so a release may sleep. May be `NULL`.
+  reference, or, when that drop runs in atomic context, on a kernel worker, so a release may sleep.
+  May be `NULL`.
 - `opt`: bitmask of `LUNATIK_OPT_*` flags controlling class behaviour. Flags are inherited by
   every instance via `object->opt = opt | class->opt` (see `lunatik_newobject`). Flags differ
   in whether they act as **constraints** or **capabilities**:
@@ -102,7 +102,10 @@ typedef struct lunatik_object_s {
 	gfp_t gfp;
 	unsigned long flags;
 	struct rcu_head rcu;
-	lunatik_defer_t defer;
+	union {
+		lunatik_defer_t defer;
+		struct work_struct work;
+	};
 } lunatik_object_t;
 ```
 A Lunatik object. A binding reads `class`, `private` and `opt`, and `gfp` through
@@ -133,8 +136,9 @@ A Lunatik object. A binding reads `class`, `private` and `opt`, and `gfp` throug
   the lock and `lunatik_unlock` restores.
 - `rcu`: the head the release frees the object through, after a grace period, so a reader that
   found it under `rcu_read_lock()` can still read its count.
-- `defer`: the item the release runs on a kernel worker through, when the last reference drops in
-  atomic context, as [`lunatik_putobject`](#lunatik_putobject) says.
+- `defer` and `work`: the item and the work the release runs on a kernel worker through, when the
+  last reference drops in atomic context, as [`lunatik_putobject`](#lunatik_putobject) says; they
+  share their memory, since the item is done with before the work is set up.
 
 ### lunatik\_opt\_t
 ```C
@@ -827,36 +831,8 @@ int lunatik_putobject(lunatik_object_t *object);
 Decrements the [reference counter](https://docs.kernel.org/core-api/kref.html) of `object`.
 Returns `1` when it dropped the last reference, and `0` otherwise. The release runs at once, on the
 calling task, unless [`lunatik_isatomic`](#lunatik_isatomic) holds there: it then runs on a kernel
-worker, through the object's `defer`. The object's memory is freed after an RCU grace period once
-the release has run.
-
-### lunatik\_defer
-```C
-typedef struct lunatik_defer_s {
-	struct irq_work irq;
-	struct work_struct work;
-} lunatik_defer_t;
-
-void lunatik_initdefer(lunatik_defer_t *defer, work_func_t func);
-bool lunatik_defer(lunatik_defer_t *defer);
-lunatik_defer_t *lunatik_syncdefer(struct work_struct *work);
-```
-Runs `func` on a kernel worker, in process context, for a caller that cannot: one in softirq or
-hardirq context, with bottom halves or interrupts off, or in a probe handler on code the scheduler
-runs under its runqueue lock. `lunatik_defer` queues `irq`, an irq_work the CPU raises on itself
-without a lock, whose handler queues `work` on the core's
-[workqueue](https://docs.kernel.org/core-api/workqueue.html), unbound, allocated when `lunatik`
-loads and drained when it unloads: queuing `work` directly wakes a kworker, and the wakeup takes the
-runqueue lock. It may be called from any context and returns `false` when the item was already
-queued.
-
-The item lives in what defers, so deferring allocates nothing: `lunatik_initdefer` sets it up before
-the first `lunatik_defer`, and `func` takes it from `work` through `lunatik_syncdefer`, which waits
-for the first hop, since it still writes the item after queuing `work`, and reaches what defers
-through `container_of` on it. Calls made before `func` starts run it once, and one made while it runs
-runs it again after it returns, so what each call hands `func` goes on a list `func` drains.
-`lunatik_initdefer` and `lunatik_defer` are macros, and the first gives each call site a lockdep
-class of its own, as `INIT_WORK` does.
+worker, on the object's own `work`, so a release that sleeps holds no other deferred release. The
+object's memory is freed after an RCU grace period once the release has run.
 
 ### lunatik\_isatomic
 ```C
@@ -1588,9 +1564,8 @@ void lunatik_free(const void *ptr);
 ```
 Frees memory allocated by `lunatik_malloc` or `lunatik_realloc`, at once, as `kvfree` does, unless
 the block came from `vmalloc` and [`lunatik_isatomic`](#lunatik_isatomic) holds, where `vfree` may
-sleep and, in NMI, BUGs: the block then goes back on a kernel worker, through
-[`lunatik_defer`](#lunatik_defer), its first bytes holding the item, which a block past a page has
-room for. `lunatik_realloc` frees the same way, at size zero and when it moves a block.
+sleep and, in NMI, BUGs: the block then goes back on a kernel worker. `lunatik_realloc` frees the
+same way, at size zero and when it moves a block.
 
 ### lunatik\_checkalloc
 ```C
