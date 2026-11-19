@@ -23,6 +23,11 @@ paths:
   says. State the why; the what and the how are the code's job. A second clause defending the choice,
   or walking the mechanism a second time, is neither and reads as doubt: `/* a bottom-half unlock with
   IRQs off runs the pending softirqs inline, inside a kprobe handler */` gives the reason and stops.
+* A trailing comment whose reason does not fit its line in plain words moves to a line of its own above
+  the code; it is not cut down until it fits. #2634's `srcu_barrier(&luarcu_srcu); /* initializes it
+  now, not in a writer's call_srcu, where it allocates */` fit the column and named neither what "it"
+  was nor why allocating there breaks, and the maintainer called it badly written; above the call,
+  `/* set SRCU up at load, so no call_srcu allocates under an scx callback's runqueue lock */` says both.
 * A comment is read by someone who has that line and the code around it and nothing else, so each
   thing it names is a name that code carries, a function, a variable, a metamethod, and its reason
   says what runs and what that would break. A label the writer coined is a word the reader cannot

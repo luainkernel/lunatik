@@ -100,7 +100,7 @@ for file in "$@"; do
 			if (seen_code && t ~ reader)
 				flag(NR, "names who reads it; the reader is the code, and the list rots with the next one")
 			if (!whole(line) && length(line) > width)
-				flag(NR, "trailing comment past " width " columns; one reason, shorter, or on its own line")
+				flag(NR, "trailing comment past " width " columns; one reason, and if it still does not fit, on its own line above the code, not cut until it fits")
 		}
 
 		# a release named above the opening of a table belongs above the entry it applies to
