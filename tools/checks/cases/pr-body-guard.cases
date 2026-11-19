@@ -57,6 +57,9 @@ block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --ba
 # transcript:
 block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file named.md
 # transcript: session.jsonl
+# BODY_OK=1 posts a text the maintainer approved past the reader, and past no other refusal
+pass	BODY_OK=1 gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file read/failed.md
+block	BODY_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@long.md
 # an issue edit is read against the body its issue has in the repository the write targets, which the
 # gh on stub/ answers, with no post held
 # env: PATH=stub:/usr/local/bin:/usr/bin:/bin

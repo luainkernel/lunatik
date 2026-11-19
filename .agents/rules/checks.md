@@ -282,6 +282,9 @@ the command that recorded one, as "Undermining Oversight", and the guard then re
 reader had passed. A subagent's post waits for the same pass: its hook input carries the session's
 `transcript_path` beside its own `agent_id`, so the guard reads the same runs, and implement-issue's
 opening posts the file its last reader left, the sentences its build adds read with the rest (#2543).
+`BODY_OK=1` posts a body whose text the maintainer read and approved in his own words: on 2026-11-19 the
+reader failed five texts in a row of the pull request split out of #2630, each time on points the last
+one had not raised, and the maintainer approved the sixth.
 
 `title.sh` holds a pull request title or a commit subject to the shape AGENTS.md, *Patches and
 commits*, gives a subject, `<area>: <what changes for whoever uses it>` in one plain clause, which the
