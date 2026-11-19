@@ -16,9 +16,9 @@
 # that name against /proc/kallsyms rather than against a copy of the preference
 # order, so a case cannot pass by agreeing with the bug. It then sends BATCH
 # datagrams to a closed UDP port, which udp_rcv drops with NO_SOCKET, and the
-# script reports only once it has counted BATCH of them: one stray NO_SOCKET from
-# the rest of the host is likely, BATCH inside the window is not, and a handler
-# reading the wrong argument counts none.
+# script prints each of them it counts, up to BATCH: one stray NO_SOCKET from the
+# rest of the host is likely, BATCH inside the window is not, and a handler
+# reading the wrong argument counts none. A failure gives the count it reached.
 #
 # examples/dropreason/monitor.lua picks its target the same way.
 #
@@ -75,8 +75,9 @@ symbol=$(dmesg_since | sed -n 's/.*probe dropreason: symbol //p' | tail -1)
 grep -qE " [Tt] $symbol\$" /proc/kallsyms || fail "$symbol is not a text symbol of the running kernel"
 ktap_pass "the probe goes on a drop path symbol this kernel carries"
 
-dmesg_since | grep -qF "probe dropreason: reason" ||
-	fail "the handler never read NO_SOCKET off $BATCH datagrams to a closed port"
+counted=$(dmesg_since | sed -n 's/.*probe dropreason: drop //p' | tail -1)
+[ "$counted" = "$BATCH" ] ||
+	fail "the handler read NO_SOCKET off ${counted:-none} of $BATCH datagrams to a closed port"
 ktap_pass "the handler reads the drop reason from the argument that carries it"
 
 ktap_totals
