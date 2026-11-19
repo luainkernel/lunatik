@@ -20,7 +20,7 @@
 # when the host is taken. The holder's command and pid are printed while
 # waiting, so a stuck session is named rather than guessed.
 #
-# A host whose modules keep references nothing can drop (checks/pinned.sh) runs no cycle: it says
+# A host whose modules keep references Lunatik cannot drop (checks/pinned.sh) runs no cycle: it says
 # so and exits 1, since every cycle there only adds references, and it names a cycle that leaves
 # the host that way. LUNATIK_PINNED_OK=1 runs one anyway, for a recovery that knows the state.
 #
@@ -49,7 +49,7 @@ echo "pid $$ ($USER): $*" > "$LOCK.holder"
 trap 'rm -f "$LOCK.holder"' EXIT
 bash "$(dirname "$0")/checks/disk.sh" >&2 # a warning: a suite needs no space, an install and a build do
 if ! bash "$(dirname "$0")/checks/pinned.sh" >&2 && [ -z "$LUNATIK_PINNED_OK" ]; then
-	echo "lunatik host is pinned, not running: a cycle only adds references, and a reboot, the maintainer's, clears it once tools/prereboot.sh saved what it erases" >&2
+	echo "lunatik host is pinned, not running: a cycle only adds references; free the eBPF program that holds one, as pinned.sh says, and where no program does, a reboot, the maintainer's, clears it once tools/prereboot.sh saved what it erases" >&2
 	exit 1
 fi
 for arg; do

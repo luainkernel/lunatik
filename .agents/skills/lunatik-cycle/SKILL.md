@@ -41,8 +41,10 @@ needs the maintainer's authorization first, and `CRASH_AB_OK=1` on the command r
 
 `lunatik reload` refuses with `couldn't replace <modules>: loaded from another build` when something
 still holds a module it had to replace, and no suite runs until it passes. The holder is in `lsmod`'s
-`Used by` column or in `lunatik list`; stop it and reload. A module nothing names is pinned until a
-reboot, which is the maintainer's.
+`Used by` column or in `lunatik list`; stop it and reload. A module nothing names there may be held by
+a loaded eBPF program that calls one of its kfuncs, which `sudo bpftool -f prog show` lists with its
+pin and `sudo bpftool net show` with its tc or XDP attachment, and removing what keeps it loaded frees
+it; one no program holds is pinned until a reboot, which is the maintainer's.
 
 A scratch script under `/lib/modules/lua` is written with the editor and copied in with `sudo cp`,
 and its size is read before it runs: a `tee` under a `sudo` that takes its password on stdin gets
@@ -96,7 +98,11 @@ runtime is one way to pin a module, and nothing short of a reboot gets it back, 
 spawns one gives its body work that ends rather than a loop waiting to be stopped. A reference an
 object leaks is another, and every cycle after it adds to the count. `tools/lunatik-host` refuses a cycle on a host
 pinned that way, reading through `tools/checks/pinned.sh` the references a module keeps past its
-holders once `lunatik_run` is gone, and names the cycle that leaves the host so; the state is
+holders once `lunatik_run` is gone, and names the cycle that leaves the host so. Those references
+count an eBPF program that calls the module's kfunc too, which an example's pin left behind keeps
+loaded, as `examples/sniclassify`'s did on 2026-11-17 (#2670): `sudo bpftool -f prog show` and
+`sudo bpftool net show` are read before anything else, and removing what keeps that program loaded,
+its pin, its link or its attachment, frees the module with no reboot. A reference no program holds is
 captured for the maintainer, whose reboot clears it, and `LUNATIK_PINNED_OK=1` runs a recovery that
 knows what it holds. It also names a process a cycle leaves running, an orphan in its cgroup started
 after the command: a `socat ...,fork` stopped with `kill $!` keeps the child it forked for a
@@ -114,7 +120,7 @@ run from a worktree without them, filter fails its attach and sniclassify its se
 measures nothing.
 
 A wedged device — a `lunatik` process that stays in D state, usually below an oops in `dmesg` — is
-cleared only by a reboot, as a pinned module is, and the reboot is the maintainer's to trigger: other
+cleared only by a reboot, as a pinned module no program holds is, and the reboot is the maintainer's to trigger: other
 sessions share the host. Before asking, capture what the reboot erases with `tools/prereboot.sh`,
 which saves the oops, the modules and what holds them, and every session's files under `/tmp` into
 `scratch/reboot-<time>/`, write down which suites were pending and which build was installed, and
