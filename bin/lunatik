@@ -28,6 +28,11 @@ local STARTUP <const> = [[
 	lunatik.runner = lunatik.runner or require("lunatik.runner")
 	lunatik.runner.startup()
 ]]
+local SHUTDOWN <const> = [[
+	if lunatik and lunatik.runner then
+		lunatik.runner.shutdown()
+	end
+]]
 
 local modules = config.modules
 
@@ -146,7 +151,7 @@ end
 local function unload_modules()
 	unload_programs()
 	if probe() then
-		local ok, result = dostring("if lunatik and lunatik.runner then lunatik.runner.shutdown() end")
+		local ok, result = dostring(SHUTDOWN)
 		if not ok then error(result, 0) end
 	end
 	repeat
