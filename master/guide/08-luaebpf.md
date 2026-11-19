@@ -19,20 +19,24 @@ reads.
 `protocols.bpf.lua`:
 
 ```Lua
-local map    = require("bpf.map")
-local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
-local eth    = require("linux.eth").proto
+local map     = require("bpf.map")
+local xdp     = require("bpf.xdp")
+local struct  = require("struct")
+local vmlinux = require("bpf.vmlinux")
+local action  = require("linux.xdp").action
+local eth     = require("linux.eth")
 
-local ETHERTYPE <const> = 12 -- the ethertype, in network order
-local PROTOCOL  <const> = 23 -- the protocol byte of the IPv4 header
+local ethhdr = struct(vmlinux.layout("ethhdr"))
+local iphdr  = struct(vmlinux.layout("iphdr"))
 
 local counts = map.array("counts", {key = "I4", value = "I8", entries = 256})
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
-	if p:getbyte(ETHERTYPE) << 8 | p:getbyte(ETHERTYPE + 1) == eth.IP then
-		local protocol = p:getbyte(PROTOCOL)
+	local frame = ethhdr:view(p, 0)
+	if frame.h_proto == eth.proto.IP then
+		local ip = iphdr:view(p, eth.HLEN)
+		local protocol = ip.protocol
 		local n = counts[protocol]
 		if n then
 			counts[protocol] = n + 1
@@ -43,9 +47,11 @@ end, {default = action.PASS})
 ```
 
 The file has two parts. Its body, every line outside the function, runs once, on the host, when
-the file is compiled: it declares the map `counts` and the program, with the verdict a `return`
-with no value gives. The function is the program: it is compiled to eBPF and runs in the kernel on
-each packet. It returns `XDP_PASS`, so every packet it can read goes on to the network stack.
+the file is compiled: it reads the kernel's Ethernet and IPv4 headers from its BTF, declares the map
+`counts` and the program, with the verdict a `return` with no value gives. The function is the
+program: it is compiled to eBPF and runs in the kernel on each packet, and reads the headers' fields
+by name, each where the kernel's struct puts it ([The packet](#the-packet)). It returns `XDP_PASS`,
+so every packet it can read goes on to the network stack.
 
 Compile it into place and attach it to a device:
 
@@ -65,10 +71,10 @@ local counts <close> = map.array("/sys/fs/bpf/lunatik/protocols/counts", "I4", "
 return counts[ipproto.TCP], counts[ipproto.UDP]'
 ```
 
-A frame that says IPv4 but is shorter than 24 bytes has no byte 23: its read stops the program,
-which returns `XDP_ABORTED`, so the frame is dropped and nothing is counted. The lookup and the
-update are two steps, so two CPUs that count the same protocol at once can lose one of the
-increments.
+A frame that says IPv4 but is too short to hold the IPv4 header's protocol stops the program at the
+read of `ip.protocol`, which returns `XDP_ABORTED`, so the frame is dropped and nothing is counted.
+The lookup and the update are two steps, so two CPUs that count the same protocol at once can lose
+one of the increments.
 
 ```Shell
 sudo lunatik stop protocols
@@ -114,7 +120,7 @@ callback returns on the same hook.
   an XDP program, stops the program, as the kernel's Lua answers a callback returning it with the
   hook's fallback, the answer it gives a callback that raised. One the compiler knows is refused,
   "the verdict 11 is not an XDP action", and so is a boolean, which no action is: `return
-  p:getbyte(23) == ipproto.TCP` gives "the verdict may be a boolean here; return an action".
+  ip.protocol == ipproto.TCP` gives "the verdict may be a boolean here; return an action".
 
 A `return` with no value, or with `nil`, returns the default verdict. A verdict that may be nil is
 refused: "the verdict may be nil here; test it first". The constructor names the default verdict,
@@ -204,11 +210,13 @@ means the program returns `XDP_ABORTED` or `TC_ACT_SHOT`, which drop the packet;
 | [`if v then`, `v == nil`, `v` what `limits:run` answered](09-luaebpf-by-example.md#calls-into-a-kernel-lua-runtime) | the branch Lua takes: `v` is the verdict on one, nil on the other | never | `v` is used before one of these tests reads it; `v` is the answer on one path and another value on another |
 | [`p:getuint16(n)` and the other reads](09-luaebpf-by-example.md#the-packet) | the bytes at `n`, in the kernel's byte order | the read passes the end of the packet | [The packet](#the-packet) says |
 | [`#p`](09-luaebpf-by-example.md#the-packet) | the length of the packet | never | never |
+| [`codec:view(p, at)`](09-luaebpf-by-example.md#views) | the struct the codec lays out, as it lies in `p` from `at` | never | `p` is not the packet; `at` is not a number; another method of the codec |
+| [`h.field`, `h` a view](09-luaebpf-by-example.md#views) | the field at `at` plus its offset, most significant byte first where the layout marks it `bigendian`, or the bitfield taken out of its load | the read passes the end of the packet | the field does not exist; a write; `h` is passed to a function or returned |
 | [`skb:data()`](09-luaebpf-by-example.md#the-context) | the whole packet, linear or not | never | a layer is given |
 | [`skb:priority(v)`](09-luaebpf-by-example.md#the-context) | `v`, stored as the packet's priority | `v` is outside 0 to 4294967295 | a known `v` is outside it |
 | [`m[k]`](09-luaebpf-by-example.md#maps) | the value, or nil | `k` does not fit the key's spec | a known `k` does not fit it; the value is used before `if v then` tests it |
 | [`m[k] = v`, `m[k] = nil`](09-luaebpf-by-example.md#maps) | the entry inserted or replaced, or deleted | the map refuses; `k` or `v` does not fit its spec | a known `k` or `v` does not fit it |
-| [`v.field`, `v` a struct value](09-luaebpf-by-example.md#maps) | the field | never | the field does not exist; a write |
+| [`v.field`, `v` a struct value](09-luaebpf-by-example.md#maps) | the field, or the bitfield taken out of its load | never | the field does not exist; a write |
 | [`return v`, the verdict](09-luaebpf-by-example.md#the-verdict) | `v`, an action of the program's type | `v` is no action of it | `v` may be nil or a boolean; a known `v` is no action |
 
 Besides what the table refuses, these are refused: a table constructor, `..`, a closure, an
@@ -243,11 +251,31 @@ host sends carries its payload there, and `#p` is `#skb`.
 
 A read wider than a byte is in the byte order of the kernel, as the kernel's `data` object reads
 it: little-endian on x86 and arm64, where `p:getuint16(16)` of an IPv4 header whose total length
-is 28 gives 7168. A field in network order is read a byte at a time:
+is 28 gives 7168. A header's field is read by name, in the order the kernel keeps it, through a
+view of the kernel's own struct:
 
 ```Lua
-local length = p:getbyte(16) << 8 | p:getbyte(17) --> 28
+local struct  = require("struct")
+local vmlinux = require("bpf.vmlinux")
+local eth     = require("linux.eth")
+
+local iphdr = struct(vmlinux.layout("iphdr")) -- in the body
+
+local ip = iphdr:view(p, eth.HLEN) -- in the function
+local length = ip.tot_len --> 28
 ```
+
+The body builds a `struct` codec of the struct `bpf.vmlinux.layout` reads from the kernel's
+BTF, and `codec:view(p, at)` is that struct as it lies in the packet from `at`. Each field read
+is one read of the packet at `at` plus the field's offset, of its width and sign: a field the
+layout marks `bigendian`, as it marks a `__be16`, reads most significant byte first, so
+`ip.tot_len` is 28 on every kernel, and a bitfield, `ip.ihl`, is taken out of the load that covers
+it. The offset may be one the program computes: the TCP header past the options of an IPv4 one
+is `tcphdr:view(p, eth.HLEN + ip.ihl * 4)`. A field read past the end of the packet stops the
+program at that field, and on a kernel without efficient unaligned access an XDP field wider than a
+byte, or a bitfield whose load is, is refused as a read is. A view is read in the function that
+made it: one passed to a function is refused, "argument #1 is a view, and a compiled call passes
+numbers and packets", and so is a field the layout lacks, "a view has no field 'flags'".
 
 A read that passes the end of the packet stops the program, and so does an XDP read that starts
 past byte 65535 less its width. There is no `getuint64`, since a Lua integer is signed, and no
@@ -280,9 +308,11 @@ In a compiled function a map reads as a table.
   map refuses: an update of a full hash map, an index past an array's entries, a delete from an
   array. One the compiler knows is refused: "the map key -1 does not fit 'I4'".
 * A `struct` value is read-only and read by field name, `v.ttl`, as its codec decodes it: a field
-  the layout marks `bigendian`, as `luaebpf.vmlinux.layout` marks a `__be16`, reads most
-  significant byte first, so `v.tot_len` of an IPv4 header whose total length is 28 is 28. A field
-  wider than a byte is refused on a kernel without efficient unaligned access, as a packet read is.
+  the layout marks `bigendian`, as `bpf.vmlinux.layout` marks a `__be16`, reads most
+  significant byte first, so `v.tot_len` of an IPv4 header whose total length is 28 is 28, and a
+  bitfield the layout lists, `v.ihl`, is taken out of the load that covers it, as the codec's view
+  takes it. A field wider than a byte, or a bitfield whose load is, is refused on a kernel without
+  efficient unaligned access, as a packet read is.
 
 ## Calls
 
@@ -316,22 +346,27 @@ port 53 longer than 512 bytes:
 ```Lua
 local xdp     = require("bpf.xdp")
 local lunatik = require("lunatik")
+local struct  = require("struct")
+local vmlinux = require("bpf.vmlinux")
 local action  = require("linux.xdp").action
-local eth     = require("linux.eth").proto
+local eth     = require("linux.eth")
 local ipproto = require("linux.socket").ipproto
 
-local ETHERTYPE <const> = 12 -- the ethertype, in network order
-local PROTOCOL  <const> = 23 -- the protocol byte of the IPv4 header
-local PORT      <const> = 36 -- the UDP destination port, past an IPv4 header with no options
+local WORD <const> = 4 -- bytes in a unit of ihl
+
+local ethhdr = struct(vmlinux.layout("ethhdr"))
+local iphdr  = struct(vmlinux.layout("iphdr"))
+local udphdr = struct(vmlinux.layout("udphdr"))
 
 local limits = lunatik.runtime("limits")
 
 return xdp.program(function(ctx)
 	local p = ctx:packet()
-	if p:getbyte(ETHERTYPE) << 8 | p:getbyte(ETHERTYPE + 1) ~= eth.IP or p:getbyte(PROTOCOL) ~= ipproto.UDP then
+	local ip = iphdr:view(p, eth.HLEN)
+	if ethhdr:view(p, 0).h_proto ~= eth.proto.IP or ip.protocol ~= ipproto.UDP then
 		return action.PASS
 	end
-	local port = p:getbyte(PORT) << 8 | p:getbyte(PORT + 1)
+	local port = udphdr:view(p, eth.HLEN + ip.ihl * WORD).dest
 	local verdict = limits:run(port, #p)
 	if verdict then
 		return verdict
@@ -495,6 +530,11 @@ Give the variable one type on every path: `local v = 0`. These are refused too:
   0 and not -1; test it before the paths join". The kernel holds the answer's nil as -1 and every
   other nil as 0, and the word does not say which path it came from. Tested on the path of the
   call, the answer is a verdict or the nil every other path holds, and the paths join as any two do.
+* A variable that holds a view of one struct on one path and of another struct on the other: "a
+  view here is of more than one struct". Which struct it views decides where a field is read.
+* A view read in a function that has assigned the parameter its context or its packet came in: "a
+  view is read through the context or a packet, which no parameter of the function holds here". A
+  view keeps the offset it starts at and no packet, and its fields are read through that parameter.
 * A verdict that may be nil: "the verdict may be nil here; test it first". The kernel would read
   nil as 0, which is an action.
 * A verdict that may be a boolean: "the verdict may be a boolean here; return an action". The
@@ -540,7 +580,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | a number that may be nil cannot be compared with a number here | `==` on a variable nil on one path | `local v = 0` |
 | a number that may be nil has no truth value in a compiled function | `if v then`, `v` nil on one path | `local v = 0`, then `if v ~= 0 then` |
 | the verdict may be nil here; test it first | `return v`, `v` nil on one path | a verdict on every path |
-| the verdict may be a boolean here; return an action | `return p:getbyte(23) == ipproto.TCP` | `if p:getbyte(23) == ipproto.TCP then return action.DROP end` |
+| the verdict may be a boolean here; return an action | `return ip.protocol == ipproto.TCP` | `if ip.protocol == ipproto.TCP then return action.DROP end` |
 | the verdict 11 is not an XDP action | `return 11`, a value no action of the program's type | an action of `linux.xdp.action` or `linux.tc.action` |
 | xdp.program's default verdict is not an XDP action | `{default = 5}` | `{default = action.DROP}` |
 | xdp.program's default verdict is not an integer | `xdp.program(fn)`, `{default = "drop"}` | `xdp.program(fn, {default = action.PASS})`, and `tc.program` alike |

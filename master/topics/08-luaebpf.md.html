@@ -76,6 +76,7 @@
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
   <li><a href="../modules/bpf.tc.html">bpf.tc</a></li>
+  <li><a href="../modules/bpf.vmlinux.html">bpf.vmlinux</a></li>
   <li><a href="../modules/bpf.xdp.html">bpf.xdp</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
   <li><a href="../modules/skb.html">skb</a></li>
@@ -184,7 +185,6 @@
 <h3>Other</h3>
 <ul class="mono">
   <li><a href="../modules/luaebpf.html">luaebpf</a></li>
-  <li><a href="../modules/luaebpf.vmlinux.html">luaebpf.vmlinux</a></li>
   <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
@@ -215,20 +215,24 @@ reads.</p>
 <p><code>protocols.bpf.lua</code>:</p>
 
 <pre>
-<span class="keyword">local</span> map    = <span class="global">require</span>(<span class="string">"bpf.map"</span>)
-<span class="keyword">local</span> xdp    = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
-<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
-<span class="keyword">local</span> eth    = <span class="global">require</span>(<span class="string">"linux.eth"</span>).proto
+<span class="keyword">local</span> map     = <span class="global">require</span>(<span class="string">"bpf.map"</span>)
+<span class="keyword">local</span> xdp     = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+<span class="keyword">local</span> struct  = <span class="global">require</span>(<span class="string">"struct"</span>)
+<span class="keyword">local</span> vmlinux = <span class="global">require</span>(<span class="string">"bpf.vmlinux"</span>)
+<span class="keyword">local</span> action  = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+<span class="keyword">local</span> eth     = <span class="global">require</span>(<span class="string">"linux.eth"</span>)
 
-<span class="keyword">local</span> ETHERTYPE &lt;const&gt; = <span class="number">12</span> <span class="comment">-- the ethertype, in network order
-</span><span class="keyword">local</span> PROTOCOL  &lt;const&gt; = <span class="number">23</span> <span class="comment">-- the protocol byte of the IPv4 header
-</span>
+<span class="keyword">local</span> ethhdr = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"ethhdr"</span>))
+<span class="keyword">local</span> iphdr  = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"iphdr"</span>))
+
 <span class="keyword">local</span> counts = map.<span class="function-name">array</span>(<span class="string">"counts"</span>, {key = <span class="string">"I4"</span>, value = <span class="string">"I8"</span>, entries = <span class="number">256</span>})
 
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
     <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
-    <span class="keyword">if</span> p:<span class="function-name">getbyte</span>(ETHERTYPE) &lt;&lt; <span class="number">8</span> | p:<span class="function-name">getbyte</span>(ETHERTYPE + <span class="number">1</span>) == eth.IP <span class="keyword">then</span>
-        <span class="keyword">local</span> protocol = p:<span class="function-name">getbyte</span>(PROTOCOL)
+    <span class="keyword">local</span> frame = ethhdr:<span class="function-name">view</span>(p, <span class="number">0</span>)
+    <span class="keyword">if</span> frame.h_proto == eth.proto.IP <span class="keyword">then</span>
+        <span class="keyword">local</span> ip = iphdr:<span class="function-name">view</span>(p, eth.HLEN)
+        <span class="keyword">local</span> protocol = ip.protocol
         <span class="keyword">local</span> n = counts[protocol]
         <span class="keyword">if</span> n <span class="keyword">then</span>
             counts[protocol] = n + <span class="number">1</span>
@@ -240,9 +244,11 @@ reads.</p>
 
 
 <p>The file has two parts. Its body, every line outside the function, runs once, on the host, when
-the file is compiled: it declares the map <code>counts</code> and the program, with the verdict a <code>return</code>
-with no value gives. The function is the program: it is compiled to eBPF and runs in the kernel on
-each packet. It returns <code>XDP_PASS</code>, so every packet it can read goes on to the network stack.</p>
+the file is compiled: it reads the kernel&rsquo;s Ethernet and IPv4 headers from its BTF, declares the map
+<code>counts</code> and the program, with the verdict a <code>return</code> with no value gives. The function is the
+program: it is compiled to eBPF and runs in the kernel on each packet, and reads the headers' fields
+by name, each where the kernel&rsquo;s struct puts it (<a href="#the-packet">The packet</a>). It returns <code>XDP_PASS</code>,
+so every packet it can read goes on to the network stack.</p>
 
 <p>Compile it into place and attach it to a device:</p>
 
@@ -264,10 +270,10 @@ return counts[ipproto.TCP], counts[ipproto.UDP]'</span>
 </pre>
 
 
-<p>A frame that says IPv4 but is shorter than 24 bytes has no byte 23: its read stops the program,
-which returns <code>XDP_ABORTED</code>, so the frame is dropped and nothing is counted. The lookup and the
-update are two steps, so two CPUs that count the same protocol at once can lose one of the
-increments.</p>
+<p>A frame that says IPv4 but is too short to hold the IPv4 header&rsquo;s protocol stops the program at the
+read of <code>ip.protocol</code>, which returns <code>XDP_ABORTED</code>, so the frame is dropped and nothing is counted.
+The lookup and the update are two steps, so two CPUs that count the same protocol at once can lose
+one of the increments.</p>
 
 <pre>
 sudo lunatik stop protocols
@@ -316,7 +322,7 @@ the device&rsquo;s tc filters if it has any.</li>
 an XDP program, stops the program, as the kernel&rsquo;s Lua answers a callback returning it with the
 hook&rsquo;s fallback, the answer it gives a callback that raised. One the compiler knows is refused,
 &ldquo;the verdict 11 is not an XDP action&rdquo;, and so is a boolean, which no action is: <code>return
-p:getbyte(23) == ipproto.TCP</code> gives &ldquo;the verdict may be a boolean here; return an action&rdquo;.</li>
+ip.protocol == ipproto.TCP</code> gives &ldquo;the verdict may be a boolean here; return an action&rdquo;.</li>
 </ul>
 
 
@@ -509,6 +515,18 @@ means the program returns <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, 
 <td> never </td>
 </tr>
 <tr>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#views"><code>codec:view(p, at)</code></a> </td>
+<td> the struct the codec lays out, as it lies in <code>p</code> from <code>at</code> </td>
+<td> never </td>
+<td> <code>p</code> is not the packet; <code>at</code> is not a number; another method of the codec </td>
+</tr>
+<tr>
+<td> <a href="../topics/09-luaebpf-by-example.md.html#views"><code>h.field</code>, <code>h</code> a view</a> </td>
+<td> the field at <code>at</code> plus its offset, most significant byte first where the layout marks it <code>bigendian</code>, or the bitfield taken out of its load </td>
+<td> the read passes the end of the packet </td>
+<td> the field does not exist; a write; <code>h</code> is passed to a function or returned </td>
+</tr>
+<tr>
 <td> <a href="../topics/09-luaebpf-by-example.md.html#the-context"><code>skb:data()</code></a> </td>
 <td> the whole packet, linear or not </td>
 <td> never </td>
@@ -534,7 +552,7 @@ means the program returns <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, 
 </tr>
 <tr>
 <td> <a href="../topics/09-luaebpf-by-example.md.html#maps"><code>v.field</code>, <code>v</code> a struct value</a> </td>
-<td> the field </td>
+<td> the field, or the bitfield taken out of its load </td>
 <td> never </td>
 <td> the field does not exist; a write </td>
 </tr>
@@ -624,12 +642,32 @@ host sends carries its payload there, and <code>#p</code> is <code>#skb</code>.<
 
 <p>A read wider than a byte is in the byte order of the kernel, as the kernel&rsquo;s <a href="../modules/data.html#">data</a> object reads
 it: little-endian on x86 and arm64, where <code>p:getuint16(16)</code> of an IPv4 header whose total length
-is 28 gives 7168. A field in network order is read a byte at a time:</p>
+is 28 gives 7168. A header&rsquo;s field is read by name, in the order the kernel keeps it, through a
+view of the kernel&rsquo;s own struct:</p>
 
 <pre>
-<span class="keyword">local</span> length = p:<span class="function-name">getbyte</span>(<span class="number">16</span>) &lt;&lt; <span class="number">8</span> | p:<span class="function-name">getbyte</span>(<span class="number">17</span>) <span class="comment">--&gt; 28</span>
+<span class="keyword">local</span> struct  = <span class="global">require</span>(<span class="string">"struct"</span>)
+<span class="keyword">local</span> vmlinux = <span class="global">require</span>(<span class="string">"bpf.vmlinux"</span>)
+<span class="keyword">local</span> eth     = <span class="global">require</span>(<span class="string">"linux.eth"</span>)
+
+<span class="keyword">local</span> iphdr = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"iphdr"</span>)) <span class="comment">-- in the body
+</span>
+<span class="keyword">local</span> ip = iphdr:<span class="function-name">view</span>(p, eth.HLEN) <span class="comment">-- in the function
+</span><span class="keyword">local</span> length = ip.tot_len <span class="comment">--&gt; 28</span>
 </pre>
 
+
+<p>The body builds a <a href="../modules/struct.html#">struct</a> codec of the struct <a href="../modules/bpf.vmlinux.html#bpf.vmlinux.layout">bpf.vmlinux.layout</a> reads from the kernel&rsquo;s
+BTF, and <code>codec:view(p, at)</code> is that struct as it lies in the packet from <code>at</code>. Each field read
+is one read of the packet at <code>at</code> plus the field&rsquo;s offset, of its width and sign: a field the
+layout marks <code>bigendian</code>, as it marks a <code>__be16</code>, reads most significant byte first, so
+<code>ip.tot_len</code> is 28 on every kernel, and a bitfield, <code>ip.ihl</code>, is taken out of the load that covers
+it. The offset may be one the program computes: the TCP header past the options of an IPv4 one
+is <code>tcphdr:view(p, eth.HLEN + ip.ihl * 4)</code>. A field read past the end of the packet stops the
+program at that field, and on a kernel without efficient unaligned access an XDP field wider than a
+byte, or a bitfield whose load is, is refused as a read is. A view is read in the function that
+made it: one passed to a function is refused, &ldquo;argument #1 is a view, and a compiled call passes
+numbers and packets&rdquo;, and so is a field the layout lacks, &ldquo;a view has no field &lsquo;flags&rsquo;&rdquo;.</p>
 
 <p>A read that passes the end of the packet stops the program, and so does an XDP read that starts
 past byte 65535 less its width. There is no <code>getuint64</code>, since a Lua integer is signed, and no
@@ -665,9 +703,11 @@ does not hold is not an error.</li>
 map refuses: an update of a full hash map, an index past an array&rsquo;s entries, a delete from an
 array. One the compiler knows is refused: &ldquo;the map key -1 does not fit &lsquo;I4&rsquo;&rdquo;.</li>
 <li>A <a href="../modules/struct.html#">struct</a> value is read-only and read by field name, <code>v.ttl</code>, as its codec decodes it: a field
-the layout marks <code>bigendian</code>, as <a href="../modules/luaebpf.vmlinux.html#luaebpf.vmlinux.layout">luaebpf.vmlinux.layout</a> marks a <code>__be16</code>, reads most
-significant byte first, so <code>v.tot_len</code> of an IPv4 header whose total length is 28 is 28. A field
-wider than a byte is refused on a kernel without efficient unaligned access, as a packet read is.</li>
+the layout marks <code>bigendian</code>, as <a href="../modules/bpf.vmlinux.html#bpf.vmlinux.layout">bpf.vmlinux.layout</a> marks a <code>__be16</code>, reads most
+significant byte first, so <code>v.tot_len</code> of an IPv4 header whose total length is 28 is 28, and a
+bitfield the layout lists, <code>v.ihl</code>, is taken out of the load that covers it, as the codec&rsquo;s view
+takes it. A field wider than a byte, or a bitfield whose load is, is refused on a kernel without
+efficient unaligned access, as a packet read is.</li>
 </ul>
 
 
@@ -710,22 +750,27 @@ port 53 longer than 512 bytes:</p>
 <pre>
 <span class="keyword">local</span> xdp     = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
 <span class="keyword">local</span> lunatik = <span class="global">require</span>(<span class="string">"lunatik"</span>)
+<span class="keyword">local</span> struct  = <span class="global">require</span>(<span class="string">"struct"</span>)
+<span class="keyword">local</span> vmlinux = <span class="global">require</span>(<span class="string">"bpf.vmlinux"</span>)
 <span class="keyword">local</span> action  = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
-<span class="keyword">local</span> eth     = <span class="global">require</span>(<span class="string">"linux.eth"</span>).proto
+<span class="keyword">local</span> eth     = <span class="global">require</span>(<span class="string">"linux.eth"</span>)
 <span class="keyword">local</span> ipproto = <span class="global">require</span>(<span class="string">"linux.socket"</span>).ipproto
 
-<span class="keyword">local</span> ETHERTYPE &lt;const&gt; = <span class="number">12</span> <span class="comment">-- the ethertype, in network order
-</span><span class="keyword">local</span> PROTOCOL  &lt;const&gt; = <span class="number">23</span> <span class="comment">-- the protocol byte of the IPv4 header
-</span><span class="keyword">local</span> PORT      &lt;const&gt; = <span class="number">36</span> <span class="comment">-- the UDP destination port, past an IPv4 header with no options
+<span class="keyword">local</span> WORD &lt;const&gt; = <span class="number">4</span> <span class="comment">-- bytes in a unit of ihl
 </span>
+<span class="keyword">local</span> ethhdr = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"ethhdr"</span>))
+<span class="keyword">local</span> iphdr  = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"iphdr"</span>))
+<span class="keyword">local</span> udphdr = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"udphdr"</span>))
+
 <span class="keyword">local</span> limits = lunatik.<span class="function-name">runtime</span>(<span class="string">"limits"</span>)
 
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
     <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
-    <span class="keyword">if</span> p:<span class="function-name">getbyte</span>(ETHERTYPE) &lt;&lt; <span class="number">8</span> | p:<span class="function-name">getbyte</span>(ETHERTYPE + <span class="number">1</span>) ~= eth.IP <span class="keyword">or</span> p:<span class="function-name">getbyte</span>(PROTOCOL) ~= ipproto.UDP <span class="keyword">then</span>
+    <span class="keyword">local</span> ip = iphdr:<span class="function-name">view</span>(p, eth.HLEN)
+    <span class="keyword">if</span> ethhdr:<span class="function-name">view</span>(p, <span class="number">0</span>).h_proto ~= eth.proto.IP <span class="keyword">or</span> ip.protocol ~= ipproto.UDP <span class="keyword">then</span>
         <span class="keyword">return</span> action.PASS
     <span class="keyword">end</span>
-    <span class="keyword">local</span> port = p:<span class="function-name">getbyte</span>(PORT) &lt;&lt; <span class="number">8</span> | p:<span class="function-name">getbyte</span>(PORT + <span class="number">1</span>)
+    <span class="keyword">local</span> port = udphdr:<span class="function-name">view</span>(p, eth.HLEN + ip.ihl * WORD).dest
     <span class="keyword">local</span> verdict = limits:<span class="function-name">run</span>(port, #p)
     <span class="keyword">if</span> verdict <span class="keyword">then</span>
         <span class="keyword">return</span> verdict
@@ -912,6 +957,11 @@ other, tested where the two paths meet: &ldquo;a runtime answer joined another v
 0 and not -1; test it before the paths join&rdquo;. The kernel holds the answer&rsquo;s nil as -1 and every
 other nil as 0, and the word does not say which path it came from. Tested on the path of the
 call, the answer is a verdict or the nil every other path holds, and the paths join as any two do.</li>
+<li>A variable that holds a view of one struct on one path and of another struct on the other: &ldquo;a
+view here is of more than one struct&rdquo;. Which struct it views decides where a field is read.</li>
+<li>A view read in a function that has assigned the parameter its context or its packet came in: &ldquo;a
+view is read through the context or a packet, which no parameter of the function holds here&rdquo;. A
+view keeps the offset it starts at and no packet, and its fields are read through that parameter.</li>
 <li>A verdict that may be nil: &ldquo;the verdict may be nil here; test it first&rdquo;. The kernel would read
 nil as 0, which is an action.</li>
 <li>A verdict that may be a boolean: &ldquo;the verdict may be a boolean here; return an action&rdquo;. The
@@ -1094,8 +1144,8 @@ as the words of 1 and 0, which are actions, so a test of the word cannot tell th
 </tr>
 <tr>
 <td> the verdict may be a boolean here; return an action </td>
-<td> <code>return p:getbyte(23) == ipproto.TCP</code> </td>
-<td> <code>if p:getbyte(23) == ipproto.TCP then return action.DROP end</code> </td>
+<td> <code>return ip.protocol == ipproto.TCP</code> </td>
+<td> <code>if ip.protocol == ipproto.TCP then return action.DROP end</code> </td>
 </tr>
 <tr>
 <td> the verdict 11 is not an XDP action </td>
@@ -1235,7 +1285,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:23:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:28:31</span>
 </div>
 </footer>
 </body>

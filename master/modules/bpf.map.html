@@ -76,6 +76,7 @@
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html" aria-current="page">bpf.map</a></li>
   <li><a href="../modules/bpf.tc.html">bpf.tc</a></li>
+  <li><a href="../modules/bpf.vmlinux.html">bpf.vmlinux</a></li>
   <li><a href="../modules/bpf.xdp.html">bpf.xdp</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
   <li><a href="../modules/skb.html">skb</a></li>
@@ -184,7 +185,6 @@
 <h3>Other</h3>
 <ul class="mono">
   <li><a href="../modules/luaebpf.html">luaebpf</a></li>
-  <li><a href="../modules/luaebpf.vmlinux.html">luaebpf.vmlinux</a></li>
   <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
@@ -636,8 +636,9 @@ print(events:pop())
  delete the map refuses, a full hash map, an index past an array, a delete from an array, stop
  the program, which returns <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>. A <a href="../modules/struct.html#">struct</a> value spec gives a read-only
  value read by field name, <code>v.ttl</code>, as the kernel module decodes such a value into a table keyed by
- the layout&rsquo;s names; an index into it is refused, and so is a field wider than a byte on a kernel
- without efficient unaligned access, as a packet read is.
+ the layout&rsquo;s names, and a bitfield, <code>v.ihl</code>, as the codec&rsquo;s view reads it; an index into it is
+ refused, and so is a field wider than a byte on a kernel without efficient unaligned access, as a
+ packet read is.
           </div>
     <dl class="function">
     <dt id="bpf.map.array"><a name="bpf.map.array"></a><strong>bpf.map.array (name, spec)</strong></dt>
@@ -752,7 +753,7 @@ print(events:pop())
 <a href="../../modules/bpf.map.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.map.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:23:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:28:31</span>
 </div>
 </footer>
 </body>

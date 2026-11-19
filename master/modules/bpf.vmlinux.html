@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>luaebpf.vmlinux · Lunatik</title>
+    <title>bpf.vmlinux · Lunatik</title>
     <meta name="description" content="Lunatik is a framework for scripting the Linux kernel with Lua."/>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 98 100'%3E%3Ccircle cx='36.2' cy='63.8' r='34.7' fill='none' stroke='%238a91a3' stroke-width='3' stroke-dasharray='6 4'/%3E%3Cpath fill='%2313139a' fill-rule='evenodd' d='M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'/%3E%3Ccircle fill='%2313139a' cx='36.2' cy='61.5' r='8.9'/%3E%3C/svg%3E"/>
     <link rel="stylesheet" href="../ldoc.css" type="text/css" />
@@ -22,8 +22,8 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <a href="../../modules/luaebpf.vmlinux.html" title="This page in release 5.1">5.1</a>
-        <a href="../../5.0/modules/luaebpf.vmlinux.html" title="This page in release 5.0">5.0</a>
+        <a href="../../modules/bpf.vmlinux.html" title="This page in release 5.1">5.1</a>
+        <a href="../../5.0/modules/bpf.vmlinux.html" title="This page in release 5.0">5.0</a>
         <span aria-current="page">master</span>
     </nav>
     <div class="search" role="search">
@@ -76,6 +76,7 @@
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
   <li><a href="../modules/bpf.tc.html">bpf.tc</a></li>
+  <li><a href="../modules/bpf.vmlinux.html" aria-current="page">bpf.vmlinux</a></li>
   <li><a href="../modules/bpf.xdp.html">bpf.xdp</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
   <li><a href="../modules/skb.html">skb</a></li>
@@ -184,7 +185,6 @@
 <h3>Other</h3>
 <ul class="mono">
   <li><a href="../modules/luaebpf.html">luaebpf</a></li>
-  <li><a href="../modules/luaebpf.vmlinux.html" aria-current="page">luaebpf.vmlinux</a></li>
   <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
@@ -192,8 +192,8 @@
 
 <main class="content" id="content">
 
-<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-other">Other</a></div>
-<h1>luaebpf.vmlinux<span class="kind">Module</span></h1>
+<div class="crumbs"><a href="../index.html#api-reference">Lua API</a> · <a href="../index.html#api-packets">Packets and eBPF</a></div>
+<h1>bpf.vmlinux<span class="kind">Module</span></h1>
 <p class="lead">The kernel&rsquo;s own type information, read from a raw BTF file: <code>/sys/kernel/btf/vmlinux</code>, the
  running kernel&rsquo;s, unless <a href="../modules/luaebpf.html#compile">luaebpf.compile</a> is handed the BTF of the kernel it compiles for.</p>
  A layout comes back in the shape <code>autogen</code> emits and <a href="../modules/struct.html#">struct</a> consumes, so a kernel struct
@@ -202,7 +202,7 @@
  variable-length records naming each other by type id, so one pass records where every id
  starts and a struct&rsquo;s members resolve in constant time afterwards.
     <h2 id="usage">Usage</h2>
-        <pre class="example">local vmlinux = require(&quot;luaebpf.vmlinux&quot;)
+        <pre class="example">local vmlinux = require(&quot;bpf.vmlinux&quot;)
 local struct  = require(&quot;struct&quot;)
 
 local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
@@ -211,16 +211,16 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
 <h2 id="Functions">Functions</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
-	<td class="name"><a href="#luaebpf.vmlinux.check">luaebpf.vmlinux.check (bigendian)</a></td>
+	<td class="name"><a href="#bpf.vmlinux.check">bpf.vmlinux.check (bigendian)</a></td>
 	<td class="summary">Refuses the BTF a layout was read from when it is not in the object&rsquo;s byte order, since it then
  describes another kernel than the one the object is for.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#luaebpf.vmlinux.layout">luaebpf.vmlinux.layout (what)</a></td>
+	<td class="name"><a href="#bpf.vmlinux.layout">bpf.vmlinux.layout (what)</a></td>
 	<td class="summary">The layout of a kernel struct.</td>
 	</tr>
 	<tr>
-	<td class="name"><a href="#luaebpf.vmlinux.open">luaebpf.vmlinux.open ([path])</a></td>
+	<td class="name"><a href="#bpf.vmlinux.open">bpf.vmlinux.open ([path])</a></td>
 	<td class="summary">Reads the layouts from the raw BTF file at <code>path</code> from then on, the bytes
  <code>/sys/kernel/btf/vmlinux</code> serves, in the byte order its magic is written in.</td>
 	</tr>
@@ -229,7 +229,7 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
 
     <dl class="function">
-    <dt id="luaebpf.vmlinux.check"><a name="luaebpf.vmlinux.check"></a><strong>luaebpf.vmlinux.check (bigendian)</strong></dt>
+    <dt id="bpf.vmlinux.check"><a name="bpf.vmlinux.check"></a><strong>bpf.vmlinux.check (bigendian)</strong></dt>
     <dd>
     Refuses the BTF a layout was read from when it is not in the object&rsquo;s byte order, since it then
  describes another kernel than the one the object is for.
@@ -250,15 +250,18 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
 
 
 </dd>
-    <dt id="luaebpf.vmlinux.layout"><a name="luaebpf.vmlinux.layout"></a><strong>luaebpf.vmlinux.layout (what)</strong></dt>
+    <dt id="bpf.vmlinux.layout"><a name="bpf.vmlinux.layout"></a><strong>bpf.vmlinux.layout (what)</strong></dt>
     <dd>
     The layout of a kernel struct.</p>
 
 <p> A member is reported when its type resolves to an integer of a whole number of bytes at a
  byte-aligned offset, and marked <code>bigendian</code> when its type is a <code>__be16</code>, <code>__be32</code> or <code>__be64</code>,
- which <a href="../modules/struct.html#">struct</a> packs and reads big-endian; a <code>__sum16</code> is not. A bitfield, a union such as
- <code>__sk_buff</code>&rsquo;s <code>__bpf_md_ptr</code> members, and a nested struct are absent, and <a href="../modules/struct.html#">struct</a> reads the gap
- they leave as padding.
+ which <a href="../modules/struct.html#">struct</a> packs and reads big-endian; a <code>__sum16</code> is not. A bitfield of an integer type is
+ reported in <code>bitfields</code>, with the load that covers it, the narrowest naturally aligned one of its
+ type&rsquo;s size or wider, as libbpf&rsquo;s CO-RE relocations read it, and the <code>shift</code> and <code>mask</code> that take
+ it out of that load, for the BTF&rsquo;s byte order; one no load of eight bytes covers is absent. A
+ union such as <code>__sk_buff</code>&rsquo;s <code>__bpf_md_ptr</code> members, and a nested struct, are absent, and <a href="../modules/struct.html#">struct</a>
+ reads the gap they and the bitfields leave as padding.
 
 
     <h3>Parameters</h3>
@@ -273,8 +276,8 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
     <ol>
 
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        <code>{size = bytes, fields = {{name, offset, size, signed, bigendian}, ...}}</code>, offsets
-   and sizes in bytes
+        <code>{size = bytes, fields = {{name, offset, size, signed, bigendian}, ...},
+   bitfields = {{name, offset, size, signed, shift, mask}, ...}}</code>, offsets and sizes in bytes
     </ol>
 
     <h3>Raises</h3>
@@ -284,7 +287,7 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
 
 
 </dd>
-    <dt id="luaebpf.vmlinux.open"><a name="luaebpf.vmlinux.open"></a><strong>luaebpf.vmlinux.open ([path])</strong></dt>
+    <dt id="bpf.vmlinux.open"><a name="bpf.vmlinux.open"></a><strong>bpf.vmlinux.open ([path])</strong></dt>
     <dd>
     Reads the layouts from the raw BTF file at <code>path</code> from then on, the bytes
  <code>/sys/kernel/btf/vmlinux</code> serves, in the byte order its magic is written in.  The file is read
@@ -319,10 +322,10 @@ local skb = struct(vmlinux.layout(&quot;__sk_buff&quot;))
 <footer class="site-footer">
 <div>
 <span>Lunatik master ·
-<a href="../../modules/luaebpf.vmlinux.html">5.1 docs</a> ·
-<a href="../../5.0/modules/luaebpf.vmlinux.html">5.0 docs</a> ·
+<a href="../../modules/bpf.vmlinux.html">5.1 docs</a> ·
+<a href="../../5.0/modules/bpf.vmlinux.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:23:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:28:31</span>
 </div>
 </footer>
 </body>

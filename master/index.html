@@ -128,6 +128,7 @@ kernel threads and more. A command line tool loads and manages them from user sp
   <li><a href="modules/bpf.html">bpf</a></li>
   <li><a href="modules/bpf.map.html">bpf.map</a></li>
   <li><a href="modules/bpf.tc.html">bpf.tc</a></li>
+  <li><a href="modules/bpf.vmlinux.html">bpf.vmlinux</a></li>
   <li><a href="modules/bpf.xdp.html">bpf.xdp</a></li>
   <li><a href="modules/netfilter.html">netfilter</a></li>
   <li><a href="modules/skb.html">skb</a></li>
@@ -236,7 +237,6 @@ kernel threads and more. A command line tool loads and manages them from user sp
 <h3>Other</h3>
 <ul class="mono">
   <li><a href="modules/luaebpf.html">luaebpf</a></li>
-  <li><a href="modules/luaebpf.vmlinux.html">luaebpf.vmlinux</a></li>
   <li><a href="modules/set.image.html">set.image</a></li>
   <li><a href="modules/util.html">util</a></li>
 </ul>
@@ -266,9 +266,9 @@ kernel threads and more. A command line tool loads and manages them from user sp
             <span>bpf</span>
             <span>bpf.map</span>
             <span>bpf.tc</span>
+            <span>bpf.vmlinux</span>
             <span>bpf.xdp</span>
-            <span>netfilter</span>
-            <span class="more">+3</span>
+            <span class="more">+4</span>
         </div>
     </a>
     <a class="area" href="#api-network">
@@ -498,6 +498,11 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 	<tr>
 		<td class="name"><a href="modules/bpf.tc.html">bpf.tc</a></td>
 		<td class="summary">Declares a TC program in a program file.</td>
+	</tr>
+	<tr>
+		<td class="name"><a href="modules/bpf.vmlinux.html">bpf.vmlinux</a></td>
+		<td class="summary">The kernel&rsquo;s own type information, read from a raw BTF file: <code>/sys/kernel/btf/vmlinux</code>, the
+ running kernel&rsquo;s, unless <a href="modules/luaebpf.html#compile">luaebpf.compile</a> is handed the BTF of the kernel it compiles for.</td>
 	</tr>
 	<tr>
 		<td class="name"><a href="modules/bpf.xdp.html">bpf.xdp</a></td>
@@ -865,11 +870,6 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 		<td class="summary">Compiles a Lua program file into a BPF ELF object.</td>
 	</tr>
 	<tr>
-		<td class="name"><a href="modules/luaebpf.vmlinux.html">luaebpf.vmlinux</a></td>
-		<td class="summary">The kernel&rsquo;s own type information, read from a raw BTF file: <code>/sys/kernel/btf/vmlinux</code>, the
- running kernel&rsquo;s, unless <a href="modules/luaebpf.html#compile">luaebpf.compile</a> is handed the BTF of the kernel it compiles for.</td>
-	</tr>
-	<tr>
 		<td class="name"><a href="modules/set.image.html">set.image</a></td>
 		<td class="summary">Builds a <a href="modules/set.html#">set</a> from a set image, a file a tool writes in userspace.</td>
 	</tr>
@@ -893,7 +893,7 @@ For more details, see its <a href="https://github.com/luainkernel/klibc/blob/lun
 <a href="../index.html">5.1 docs</a> ·
 <a href="../5.0/index.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:23:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:28:31</span>
 </div>
 </footer>
 </body>

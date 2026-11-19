@@ -76,6 +76,7 @@
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
   <li><a href="../modules/bpf.tc.html">bpf.tc</a></li>
+  <li><a href="../modules/bpf.vmlinux.html">bpf.vmlinux</a></li>
   <li><a href="../modules/bpf.xdp.html" aria-current="page">bpf.xdp</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
   <li><a href="../modules/skb.html">skb</a></li>
@@ -184,7 +185,6 @@
 <h3>Other</h3>
 <ul class="mono">
   <li><a href="../modules/luaebpf.html">luaebpf</a></li>
-  <li><a href="../modules/luaebpf.vmlinux.html">luaebpf.vmlinux</a></li>
   <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
@@ -207,9 +207,10 @@
 
 <p> The context has the methods of the kernel&rsquo;s XDP <code>ctx</code> object: <code>ctx:packet()</code>, the packet, read
  with <code>getbyte</code>, <code>getint16</code> and the other reads of the kernel&rsquo;s <a href="../modules/data.html#">data</a> object, in the kernel&rsquo;s
- byte order; <code>ctx:ingress()</code>, the index of the device the packet arrived on; and <code>ctx:queue()</code>,
- the receive queue it arrived in, neither writable. Any other method is refused, &ldquo;the context has
- no method &lsquo;<name>&rsquo;&rdquo;.
+ byte order, or a field at a time through the view a <a href="../modules/struct.html#">struct</a> codec makes of it, <code>iphdr:view(p,
+ eth.HLEN).protocol&lt;code&gt;, as &lt;/code&gt;codec:view&lt;code&gt; reads a &lt;/code&gt;data&lt;code&gt; object; &lt;/code&gt;ctx:ingress()</code>, the index of the
+ device the packet arrived on; and <code>ctx:queue()</code>, the receive queue it arrived in, neither
+ writable. Any other method is refused, &ldquo;the context has no method &lsquo;<name>&rsquo;&rdquo;.
  <code>ctx.data</code> and <code>ctx.data_end</code> are the bounds of the packet, not numbers; <code>#p</code> is its length.</p>
 
 <p> A call into a kernel Lua runtime <a href="../modules/lunatik.html#runtime">lunatik.runtime</a> names, <code>r:run(a, b)</code>, lowers to
@@ -217,12 +218,17 @@
  the program tests the answer before it reads it. The kernel loads a program that calls it only under
  a license it counts as GPL-compatible.
     <h2 id="usage">Usage</h2>
-        <pre class="example">local xdp    = require(&quot;bpf.xdp&quot;)
-local action = require(&quot;linux.xdp&quot;).action
+        <pre class="example">local xdp     = require(&quot;bpf.xdp&quot;)
+local struct  = require(&quot;struct&quot;)
+local vmlinux = require(&quot;bpf.vmlinux&quot;)
+local action  = require(&quot;linux.xdp&quot;).action
+local eth     = require(&quot;linux.eth&quot;)
+
+local ethhdr = struct(vmlinux.layout(&quot;ethhdr&quot;))
 
 return xdp.program(function(ctx)
     local p = ctx:packet()
-    if p:getbyte(12) == 0x08 and p:getbyte(13) == 0x00 then -- IPv4
+    if ethhdr:view(p, 0).h_proto == eth.proto.IP then
         return action.DROP
     end
     return action.PASS
@@ -294,7 +300,7 @@ end, {default = action.PASS})
 <a href="../../modules/bpf.xdp.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.xdp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:23:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:28:31</span>
 </div>
 </footer>
 </body>

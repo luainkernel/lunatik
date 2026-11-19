@@ -76,6 +76,7 @@
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
   <li><a href="../modules/bpf.tc.html">bpf.tc</a></li>
+  <li><a href="../modules/bpf.vmlinux.html">bpf.vmlinux</a></li>
   <li><a href="../modules/bpf.xdp.html">bpf.xdp</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
   <li><a href="../modules/skb.html">skb</a></li>
@@ -184,7 +185,6 @@
 <h3>Other</h3>
 <ul class="mono">
   <li><a href="../modules/luaebpf.html">luaebpf</a></li>
-  <li><a href="../modules/luaebpf.vmlinux.html">luaebpf.vmlinux</a></li>
   <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
@@ -331,6 +331,12 @@ else, the compiler emits what lies between:</p>
 <td> the offset tested unsigned against <code>INT_MAX</code>, the helper&rsquo;s own bound, since it takes the low 32 bits, then <code>bpf_skb_load_bytes</code> into the frame, which copies the bytes wherever the skb holds them, a stop where it answers non-zero, and the sign extended alike </td>
 </tr>
 <tr>
+<td> <code>h.field</code>, <code>h</code> a view </td>
+<td> the field <code>codec:view</code> reads at the view&rsquo;s offset plus the field&rsquo;s, most significant byte first where the layout marks it <code>bigendian</code>, a bitfield out of its load; raises past the packet </td>
+<td> a load the verifier refuses until the program tests the end, in the kernel&rsquo;s byte order </td>
+<td> the view&rsquo;s offset, which its register holds, plus the field&rsquo;s, read as <code>p:getint16(n)</code> reads, of the field&rsquo;s width or of the load that covers a bitfield, through the parameter that holds the context or a packet; then what <code>v.field</code> of a struct value emits after its load </td>
+</tr>
+<tr>
 <td> <code>#p</code> </td>
 <td> the bytes the <a href="../modules/data.html#">data</a> object views </td>
 <td> no instruction: the context holds the two bounds </td>
@@ -380,9 +386,9 @@ else, the compiler emits what lies between:</p>
 </tr>
 <tr>
 <td> <code>v.field</code> of a struct value </td>
-<td> the field the codec decodes, most significant byte first where the layout marks it <code>bigendian</code> </td>
+<td> the field the codec decodes, most significant byte first where the layout marks it <code>bigendian</code>, and a bitfield as the codec&rsquo;s view takes it out of its load </td>
 <td> a load the verifier refuses until the program tests the lookup, in the kernel&rsquo;s byte order </td>
-<td> a load at the field&rsquo;s offset and width, a <code>BPF_END</code> to big-endian where the layout marks a field wider than a byte <code>bigendian</code>, and the sign extended where the field is signed </td>
+<td> a load at the field&rsquo;s offset and width, a <code>BPF_END</code> to big-endian where the layout marks a field wider than a byte <code>bigendian</code>, and the sign extended where the field is signed; for a bitfield, the load that covers it shifted right and masked, and the weight of its sign bit taken twice where it is signed, as the view computes it </td>
 </tr>
 <tr>
 <td> <code>return v</code>, the verdict </td>
@@ -525,8 +531,135 @@ instructions 15 and 16 of <a href="#floor-division-and-modulo">Floor division an
 </table>
 
 
-<p>The kernel&rsquo;s Lua reads the same 7168 from <code>p:getuint16(16)</code> on arm64 and x86. Read a byte at a
-time, <code>p:getbyte(16) &lt;&lt; 8 | p:getbyte(17)</code>, the length is 28 on every kernel.</p>
+<p>The kernel&rsquo;s Lua reads the same 7168 from <code>p:getuint16(16)</code> on arm64 and x86. Read through a
+view, as <a href="#views">Views</a> reads it, the length is 28 on every kernel.</p>
+
+<p><a name="Views"></a></p>
+
+<h2 id="views">Views</h2>
+
+<p>A view of the kernel&rsquo;s IPv4 header reads its fields by name, here to drop a header that carries
+options or a packet longer than 1500 bytes:</p>
+
+<pre>
+<span class="keyword">local</span> struct  = <span class="global">require</span>(<span class="string">"struct"</span>)
+<span class="keyword">local</span> vmlinux = <span class="global">require</span>(<span class="string">"bpf.vmlinux"</span>)
+<span class="keyword">local</span> xdp     = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+<span class="keyword">local</span> action  = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+<span class="keyword">local</span> eth     = <span class="global">require</span>(<span class="string">"linux.eth"</span>)
+
+<span class="keyword">local</span> LONGEST &lt;const&gt; = <span class="number">1500</span>
+
+<span class="keyword">local</span> iphdr = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"iphdr"</span>))
+
+<span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
+    <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
+    <span class="keyword">local</span> ip = iphdr:<span class="function-name">view</span>(p, eth.HLEN)
+    <span class="keyword">if</span> ip.ihl &gt; <span class="number">5</span> <span class="keyword">or</span> ip.tot_len &gt; LONGEST <span class="keyword">then</span>
+        <span class="keyword">return</span> action.DROP
+    <span class="keyword">end</span>
+    <span class="keyword">return</span> action.PASS
+<span class="keyword">end</span>, {default = action.PASS})
+</pre>
+
+
+<p><a href="../modules/bpf.vmlinux.html#bpf.vmlinux.layout">bpf.vmlinux.layout</a> reads <code>iphdr</code> from the kernel&rsquo;s BTF: <code>ihl</code> is the low four bits of byte 0
+on a little-endian kernel, and <code>tot_len</code> two bytes at 2, a <code>__be16</code> the layout marks <code>bigendian</code>.
+The view is one register, <code>r8</code>, which holds the offset it starts at; a field is read through the
+context, <code>r6</code>, as <code>p:getbyte(n)</code> reads, at that offset plus the field&rsquo;s.</p>
+
+<pre><code>      line 11: return xdp.program(function(ctx)
+   0  r6 = r1                       ctx
+      line 12: local p = ctx:packet()
+   1  r8 = r6                       the packet: the context register
+   2  r7 = r8                       p
+      line 13: local ip = iphdr:view(p, eth.HLEN)
+   3  *(u64 *)(r10 -40) = r7        p, the argument
+   4  r1 = 14                       eth.HLEN, read at compile time
+   5  *(u64 *)(r10 -48) = r1
+   6  r1 = *(u64 *)(r10 -48)
+   7  r8 = r1                       ip: the offset it starts at
+      line 14: if ip.ihl &gt; 5 or ip.tot_len &gt; LONGEST then
+   8  r4 = r8                       14, plus ihl's offset, 0
+   9  r1 = *(u32 *)(r6 +0)          xdp_md.data, through ctx
+  10  r2 = *(u32 *)(r6 +4)          xdp_md.data_end
+  11  if r4 &gt; 65534 goto 45         past 65535 less the width: stops
+  12  r1 += r4
+  13  r4 = r1
+  14  r4 += 1
+  15  if r4 &gt; r2 goto 45            past the end of the packet: stops
+  16  r1 = *(u8 *)(r1 +0)           the byte that holds ihl
+  17  r5 = 15                       ihl's mask; its shift is 0
+  18  r1 &amp;= r5
+  19  r9 = r1                       ip.ihl
+  20  r1 = r9
+  21  r2 = 5
+  22  if r1 s&gt; r2 goto 39
+  23  r4 = r8
+  24  r4 += 2                       14, plus tot_len's offset, 2
+  25  to 31: the tests of 9 to 15, for two bytes
+  32  r1 = *(u16 *)(r1 +0)          two bytes, in the kernel byte order
+  33  r1 = be16 r1                  BPF_END: tot_len is marked bigendian
+  34  r9 = r1                       ip.tot_len
+  35  r1 = 1500                     LONGEST
+  36  *(u64 *)(r10 -40) = r1
+  37  r1 = *(u64 *)(r10 -40)
+  38  if r1 s&gt;= r9 goto 42          tot_len is not past LONGEST
+      line 15: return action.DROP
+  39  r9 = 1                        XDP_DROP
+  40  r0 = r9
+  41  exit
+      line 17: return action.PASS
+  42  r9 = 2                        XDP_PASS
+  43  r0 = r9
+  44  exit
+      line 18: end, {default = action.PASS})
+  45  r0 = 0                        XDP_ABORTED, where the program stops
+  46  exit
+</code></pre>
+
+<p>Instructions 8 to 16 are the read <a href="#the-packet">The packet</a> lists, at the view&rsquo;s offset plus the
+field&rsquo;s, so a field past the end stops the program as a read does, at that field. Instruction 33
+swaps the two bytes on a little-endian kernel and keeps them on a big-endian one, where they are
+already in order. A bitfield at a shift past 0, <code>ip.version</code>, is shifted right before the mask, and
+a signed one has the weight of its sign bit taken twice after it, an exclusive or and a
+subtraction. On TC the read is <code>bpf_skb_load_bytes</code>, as <a href="#the-context">The context</a> lists it.</p>
+
+<table>
+<thead>
+<tr>
+<th> Frame </th>
+<th> Instructions </th>
+<th> What they compute </th>
+<th> The program returns </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> 34 bytes, IPv4, <code>45</code>, total length <code>00 1c</code> </td>
+<td> 16 to 22, 32 to 38 </td>
+<td> ihl is 5, not past 5; <code>00 1c</code> swapped is 28, not past 1500 </td>
+<td> 2, <code>XDP_PASS</code> </td>
+</tr>
+<tr>
+<td> the same, <code>46</code> </td>
+<td> 16 to 22 </td>
+<td> ihl is 6, past 5 </td>
+<td> 1, <code>XDP_DROP</code> </td>
+</tr>
+<tr>
+<td> 14 bytes, an Ethernet header alone </td>
+<td> 15 </td>
+<td> 15 is past 14 </td>
+<td> 0, <code>XDP_ABORTED</code> </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>A view holds no packet of its own: it is read through the parameter that holds the function&rsquo;s
+context or a packet, and refused where the function has assigned it, since a copy in another
+register may be one a single path wrote; it is not passed to a function nor returned.</p>
 
 <p><a name="Arithmetic"></a></p>
 
@@ -909,14 +1042,19 @@ refused.</p>
 <h2 id="values-of-the-body">Values of the body</h2>
 
 <pre>
-<span class="keyword">local</span> xdp    = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
-<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+<span class="keyword">local</span> struct  = <span class="global">require</span>(<span class="string">"struct"</span>)
+<span class="keyword">local</span> vmlinux = <span class="global">require</span>(<span class="string">"bpf.vmlinux"</span>)
+<span class="keyword">local</span> xdp     = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+<span class="keyword">local</span> action  = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+<span class="keyword">local</span> eth     = <span class="global">require</span>(<span class="string">"linux.eth"</span>)
 
 <span class="keyword">local</span> protocols = <span class="global">require</span>(<span class="string">"linux.socket"</span>).ipproto
 
+<span class="keyword">local</span> iphdr = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"iphdr"</span>))
+
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
     <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
-    <span class="keyword">local</span> protocol = p:<span class="function-name">getbyte</span>(<span class="number">23</span>)
+    <span class="keyword">local</span> protocol = iphdr:<span class="function-name">view</span>(p, eth.HLEN).protocol
     <span class="keyword">if</span> protocol == protocols.UDP <span class="keyword">then</span>
         <span class="keyword">return</span> action.DROP
     <span class="keyword">end</span>
@@ -927,27 +1065,28 @@ refused.</p>
 
 <p><code>protocols</code> is a table the body required, <a href="../modules/linux.socket.html#ipproto">linux.socket.ipproto</a>, which autogen generates from the
 kernel&rsquo;s <code>IPPROTO_</code> names. The function reads <code>protocols.UDP</code> when it is compiled, and the program
-holds its value, 17. Instructions 0 to 15 read byte 23 into <code>r8</code>.</p>
+holds its value, 17. Instructions 0 to 18 read the IPv4 header&rsquo;s protocol into <code>r8</code>, as
+<a href="#views">Views</a> reads a field.</p>
 
-<pre><code>      line 9: if protocol == protocols.UDP then
-  16  r9 = 17                       protocols.UDP, read at compile time
-  17  r1 = r8                       protocol
-  18  if r1 != r9 goto 22
-      line 10: return action.DROP
-  19  r9 = 1                        XDP_DROP
-  20  r0 = r9
-  21  exit
-      line 12: return action.PASS
-  22  r9 = 2                        XDP_PASS
+<pre><code>      line 14: if protocol == protocols.UDP then
+  19  r9 = 17                       protocols.UDP, read at compile time
+  20  r1 = r8                       protocol
+  21  if r1 != r9 goto 25
+      line 15: return action.DROP
+  22  r9 = 1                        XDP_DROP
   23  r0 = r9
   24  exit
-      line 13: end, {default = action.PASS})
-  25  r0 = 0                        XDP_ABORTED, where Lua would raise
-  26  exit
+      line 17: return action.PASS
+  25  r9 = 2                        XDP_PASS
+  26  r0 = r9
+  27  exit
+      line 18: end, {default = action.PASS})
+  28  r0 = 0                        XDP_ABORTED, where Lua would raise
+  29  exit
 </code></pre>
 
-<p>An IPv4 frame whose byte 23 is 17, UDP, returns 1, <code>XDP_DROP</code>; one whose byte 23 is 6, TCP, returns
-2, and a 14-byte frame stops at the read and returns 0, <code>XDP_ABORTED</code>. An index the program
+<p>An IPv4 frame whose protocol is 17, UDP, returns 1, <code>XDP_DROP</code>; one whose protocol is 6, TCP,
+returns 2, and a 14-byte frame stops at the read and returns 0, <code>XDP_ABORTED</code>. An index the program
 computes, <code>protocols[name]</code> with <code>name</code> read from the packet, has no value the compiler can read,
 and is refused; so are <code>#protocols</code> and a write to the table.</p>
 
@@ -1092,15 +1231,20 @@ and returns 2, <code>TC_ACT_SHOT</code>, so the packet is dropped and its priori
 <h2 id="maps">Maps</h2>
 
 <pre>
-<span class="keyword">local</span> map    = <span class="global">require</span>(<span class="string">"bpf.map"</span>)
-<span class="keyword">local</span> xdp    = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
-<span class="keyword">local</span> action = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+<span class="keyword">local</span> map     = <span class="global">require</span>(<span class="string">"bpf.map"</span>)
+<span class="keyword">local</span> struct  = <span class="global">require</span>(<span class="string">"struct"</span>)
+<span class="keyword">local</span> vmlinux = <span class="global">require</span>(<span class="string">"bpf.vmlinux"</span>)
+<span class="keyword">local</span> xdp     = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
+<span class="keyword">local</span> action  = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+<span class="keyword">local</span> eth     = <span class="global">require</span>(<span class="string">"linux.eth"</span>)
+
+<span class="keyword">local</span> iphdr = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"iphdr"</span>))
 
 <span class="keyword">local</span> seen = map.<span class="function-name">hash</span>(<span class="string">"seen"</span>, {key = <span class="string">"I4"</span>, value = <span class="string">"I8"</span>, entries = <span class="number">256</span>})
 
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
     <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
-    <span class="keyword">local</span> proto = p:<span class="function-name">getbyte</span>(<span class="number">23</span>)
+    <span class="keyword">local</span> proto = iphdr:<span class="function-name">view</span>(p, eth.HLEN).protocol
     <span class="keyword">local</span> n = seen[proto]
     <span class="keyword">if</span> n <span class="keyword">then</span>
         seen[proto] = n + <span class="number">1</span>
@@ -1115,44 +1259,44 @@ and returns 2, <code>TC_ACT_SHOT</code>, so the packet is dropped and its priori
 <p><code>seen[proto]</code> is a lookup, whose value is a number or nil until <code>if n then</code> tests it. The helpers
 are called by number: 1 is <code>bpf_map_lookup_elem</code>, 2 <code>bpf_map_update_elem</code>. <code>llvm-objdump -r</code>
 prints the map as a relocation, which libbpf fills in when it loads the object. Instructions 0 to
-15 read byte 23 into <code>r8</code>.</p>
+18 read the IPv4 header&rsquo;s protocol into <code>r8</code>, as <a href="#views">Views</a> reads a field.</p>
 
-<pre><code>      line 10: local n = seen[proto]
-  16  r5 = r8                       proto
-  17  r5 &gt;&gt;= 32
-  18  if r5 != 0 goto 76            wider than I4: stops
-  19  *(u64 *)(r10 -24) = 0
-  20  *(u32 *)(r10 -24) = r8        the key, four bytes
-  21  r1 = map seen                 two slots, relocated by libbpf
-  23  r2 = r10
-  24  r2 += -24                     the key, by address
-  25  call 1                        bpf_map_lookup_elem
-  26  r9 = r0                       a pointer to the value, or NULL
-      line 11: if n then
-  27  if r9 == 0 goto 31            NULL: n is nil
-  28  r1 = *(u64 *)(r9 +0)          found: the value, eight bytes
-  29  r9 = r1                       n
-  30  goto 32
-  31  goto 54                       the else branch
-      line 12: seen[proto] = n + 1
-  32  to 35: n + 1, kept in Lua register 5
-  36  to 38: the key held to I4 again
-  39  to 43: the key at r10 -24, the value at r10 -32
-  44  to 49: r1 the map, r2 and r3 the key and the value, by address
-  50  r4 = 0                        BPF_ANY: insert or replace
-  51  call 2                        bpf_map_update_elem
-  52  if r0 != 0 goto 76            the map refuses: stops
-  53  goto 71
-      line 14: seen[proto] = 1
-  54  to 70: the same update, with the value 1
-      line 16: return action.PASS
-  71  to 75: r0 is 2, and the exit
-      line 17: end, {default = action.PASS})
-  76  r0 = 0                        XDP_ABORTED, where Lua would raise
-  77  exit
+<pre><code>      line 15: local n = seen[proto]
+  19  r5 = r8                       proto
+  20  r5 &gt;&gt;= 32
+  21  if r5 != 0 goto 79            wider than I4: stops
+  22  *(u64 *)(r10 -24) = 0
+  23  *(u32 *)(r10 -24) = r8        the key, four bytes
+  24  r1 = map seen                 two slots, relocated by libbpf
+  26  r2 = r10
+  27  r2 += -24                     the key, by address
+  28  call 1                        bpf_map_lookup_elem
+  29  r9 = r0                       a pointer to the value, or NULL
+      line 16: if n then
+  30  if r9 == 0 goto 34            NULL: n is nil
+  31  r1 = *(u64 *)(r9 +0)          found: the value, eight bytes
+  32  r9 = r1                       n
+  33  goto 35
+  34  goto 57                       the else branch
+      line 17: seen[proto] = n + 1
+  35  to 38: n + 1, kept in Lua register 5
+  39  to 41: the key held to I4 again
+  42  to 46: the key at r10 -24, the value at r10 -32
+  47  to 52: r1 the map, r2 and r3 the key and the value, by address
+  53  r4 = 0                        BPF_ANY: insert or replace
+  54  call 2                        bpf_map_update_elem
+  55  if r0 != 0 goto 79            the map refuses: stops
+  56  goto 74
+      line 19: seen[proto] = 1
+  57  to 73: the same update, with the value 1
+      line 21: return action.PASS
+  74  to 78: r0 is 2, and the exit
+      line 22: end, {default = action.PASS})
+  79  r0 = 0                        XDP_ABORTED, where Lua would raise
+  80  exit
 </code></pre>
 
-<p>Instruction 28 reads the value only past instruction 27: the verifier refuses a read through a
+<p>Instruction 31 reads the value only past instruction 30: the verifier refuses a read through a
 pointer that may be NULL, and the compiler refuses to use <code>n</code> before <code>if n then</code> tests it. Four
 frames, one after the other, over a map that starts empty:</p>
 
@@ -1160,7 +1304,7 @@ frames, one after the other, over a map that starts empty:</p>
 <thead>
 <tr>
 <th> Frame </th>
-<th> Byte 23 </th>
+<th> <code>proto</code> </th>
 <th> Path </th>
 <th> <code>seen</code> after </th>
 </tr>
@@ -1169,25 +1313,25 @@ frames, one after the other, over a map that starts empty:</p>
 <tr>
 <td> IPv4, TCP </td>
 <td> 6 </td>
-<td> 27 jumps: nil, so 54 to 70 store 1 </td>
+<td> 30 jumps: nil, so 57 to 73 store 1 </td>
 <td> <code>{[6] = 1}</code> </td>
 </tr>
 <tr>
 <td> the same again </td>
 <td> 6 </td>
-<td> 27 goes on: 1, so 32 to 52 store 2 </td>
+<td> 30 goes on: 1, so 35 to 55 store 2 </td>
 <td> <code>{[6] = 2}</code> </td>
 </tr>
 <tr>
 <td> ARP, 42 bytes </td>
-<td> 0 </td>
+<td> 0, the byte where IPv4 keeps its protocol </td>
 <td> nil, so 1 is stored </td>
 <td> <code>{[6] = 2, [0] = 1}</code> </td>
 </tr>
 <tr>
 <td> 14 bytes </td>
 <td> none </td>
-<td> the read of 23 jumps to 76 before the lookup </td>
+<td> the read of the protocol jumps to 79 before the lookup </td>
 <td> unchanged </td>
 </tr>
 </tbody>
@@ -1198,7 +1342,9 @@ frames, one after the other, over a map that starts empty:</p>
 the same map with the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a>, as <code>map.hash("/sys/fs/bpf/lunatik/&lt;script&gt;/seen", "I4",
 "I8")&lt;code&gt;. A &lt;/code&gt;struct</code> value is read a field at a time, by a load at the field&rsquo;s offset and width,
 which a field wider than a byte that the layout marks <code>bigendian</code> follows with <code>BPF_END</code>: a byte
-swap on a little-endian kernel, so the field reads as the codec decodes it.</p>
+swap on a little-endian kernel, so the field reads as the codec decodes it. A bitfield is the load
+that covers it, shifted right by its shift and masked by its mask, <code>ihl</code> of an IPv4 header the low
+nibble of its first byte on a little-endian kernel.</p>
 
 <p><a name="Loops"></a></p>
 
@@ -1517,15 +1663,24 @@ compiled&rdquo;.</p>
 <h2 id="calls-into-a-kernel-lua-runtime">Calls into a kernel Lua runtime</h2>
 
 <pre>
+<span class="keyword">local</span> struct  = <span class="global">require</span>(<span class="string">"struct"</span>)
+<span class="keyword">local</span> vmlinux = <span class="global">require</span>(<span class="string">"bpf.vmlinux"</span>)
 <span class="keyword">local</span> xdp     = <span class="global">require</span>(<span class="string">"bpf.xdp"</span>)
 <span class="keyword">local</span> lunatik = <span class="global">require</span>(<span class="string">"lunatik"</span>)
 <span class="keyword">local</span> action  = <span class="global">require</span>(<span class="string">"linux.xdp"</span>).action
+<span class="keyword">local</span> eth     = <span class="global">require</span>(<span class="string">"linux.eth"</span>)
+
+<span class="keyword">local</span> WORD &lt;const&gt; = <span class="number">4</span> <span class="comment">-- bytes in a unit of ihl
+</span>
+<span class="keyword">local</span> iphdr  = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"iphdr"</span>))
+<span class="keyword">local</span> udphdr = <span class="function-name">struct</span>(vmlinux.<span class="function-name">layout</span>(<span class="string">"udphdr"</span>))
 
 <span class="keyword">local</span> limits = lunatik.<span class="function-name">runtime</span>(<span class="string">"limits"</span>)
 
 <span class="keyword">return</span> xdp.<span class="function-name">program</span>(<span class="keyword">function</span>(ctx)
     <span class="keyword">local</span> p = ctx:<span class="function-name">packet</span>()
-    <span class="keyword">local</span> port = p:<span class="function-name">getbyte</span>(<span class="number">36</span>) &lt;&lt; <span class="number">8</span> | p:<span class="function-name">getbyte</span>(<span class="number">37</span>)
+    <span class="keyword">local</span> ip = iphdr:<span class="function-name">view</span>(p, eth.HLEN)
+    <span class="keyword">local</span> port = udphdr:<span class="function-name">view</span>(p, eth.HLEN + ip.ihl * WORD).dest
     <span class="keyword">local</span> verdict = limits:<span class="function-name">run</span>(port, #p)
     <span class="keyword">if</span> verdict <span class="keyword">then</span>
         <span class="keyword">return</span> verdict
@@ -1542,59 +1697,64 @@ reads the runtime&rsquo;s one method, which emits nothing: the runtime is a valu
 register holds no word. The call lowers to the kfunc of an XDP program, <code>bpf_luaxdp_run</code>: <code>r1</code> the
 address of the name, <code>r2</code> its length with the NUL, <code>r3</code> the context, <code>r4</code> the address of the
 arguments and <code>r5</code> their size. The name and the arguments go below the frame&rsquo;s deepest word,
-<code>r10 - 56</code> here, where nothing outlives the call. <code>TX</code> on the nil branch tells that branch from the
-callback&rsquo;s verdict and from the <code>XDP_ABORTED</code> a stop returns. Instructions 0 to 45 take <code>ctx</code> and
-<code>p</code> and read bytes 36 and 37 into <code>port</code>, in <code>r8</code>.</p>
+<code>r10 - 64</code> here, where nothing outlives the call. <code>TX</code> on the nil branch tells that branch from the
+callback&rsquo;s verdict and from the <code>XDP_ABORTED</code> a stop returns. Instructions 0 to 44 take <code>ctx</code> and
+<code>p</code>, and read <code>ip.ihl</code> and the UDP header&rsquo;s <code>dest</code>, past the IPv4 header by <code>ihl</code>, into <code>port</code>, in
+<code>r9</code>, as <a href="#views">Views</a> reads a field.</p>
 
-<pre><code>      line 10: local verdict = limits:run(port, #p)
-  46  *(u64 *)(r10 -48) = r8        port, in Lua register 5, past the method and limits
-  47  r1 = *(u32 *)(r7 +0)          xdp_md.data
-  48  r2 = *(u32 *)(r7 +4)          xdp_md.data_end
-  49  r2 -= r1                      #p
-  50  *(u64 *)(r10 -56) = r2        #p, in Lua register 6
-  51  r1 = 126943822178668 ll       the name: two slots, decoded below
-  53  *(u64 *)(r10 -80) = r1        the name, below the frame
-  54  to 57: port at r10 -72 and #p at r10 -64, the arguments in order
-  58  r1 = r10
-  59  r1 += -80                     r1: the name, by address
-  60  r2 = 7                        r2: "limits" and its NUL
-  61  r3 = r6                       r3: the context
-  62  r4 = r10
-  63  r4 += -72                     r4: the arguments, by address
-  64  r5 = 16                       r5: their size, two words
-  65  call -1                       bpf_luaxdp_run: decoded below
-  66  r0 &lt;&lt;= 32                     the int's 32 bits, the only ones defined
-  67  r0 s&gt;&gt;= 32                    sign-extended, so -1 stays -1
-  68  r9 = r0                       verdict
-      line 11: if verdict then
-  69  if r9 == -1 goto 71           the kfunc's -1: nil
-  70  goto 73                       a verdict: the number branch
-  71  r9 = 0                        nil, the zero word it is everywhere else
-  72  goto 77                       the nil branch
-      line 12: return verdict
-  73  r0 = r9
-  74  if r0 s&lt; 0 goto 82            not an XDP action: stops
-  75  if r0 s&gt; 4 goto 82
-  76  exit
-      line 14: return action.TX
-  77  r1 = 3                        XDP_TX, read from linux.xdp
-  78  to 81: r0 is 3, and the exit
-      line 15: end, {default = action.PASS})
-  82  r0 = 0                        XDP_ABORTED, where the program stops
-  83  exit
+<pre><code>      line 19: local verdict = limits:run(port, #p)
+  45  *(u64 *)(r10 -56) = r9        port, in Lua register 6, past the method and limits
+  46  r1 = *(u32 *)(r7 +0)          xdp_md.data
+  47  r2 = *(u32 *)(r7 +4)          xdp_md.data_end
+  48  r2 -= r1                      #p
+  49  *(u64 *)(r10 -64) = r2        #p, in Lua register 7
+  50  r1 = 126943822178668 ll       the name: two slots, decoded below
+  52  *(u64 *)(r10 -88) = r1        the name, below the frame
+  53  to 56: port at r10 -80 and #p at r10 -72, the arguments in order
+  57  r1 = r10
+  58  r1 += -88                     r1: the name, by address
+  59  r2 = 7                        r2: "limits" and its NUL
+  60  r3 = r6                       r3: the context
+  61  r4 = r10
+  62  r4 += -80                     r4: the arguments, by address
+  63  r5 = 16                       r5: their size, two words
+  64  call -1                       bpf_luaxdp_run: decoded below
+  65  r0 &lt;&lt;= 32                     the int's 32 bits, the only ones defined
+  66  r0 s&gt;&gt;= 32                    sign-extended, so -1 stays -1
+  67  *(u64 *)(r10 -40) = r0        verdict, in Lua register 4
+      line 20: if verdict then
+  68  r1 = *(u64 *)(r10 -40)
+  69  if r1 == -1 goto 71           the kfunc's -1: nil
+  70  goto 74                       a verdict: the number branch
+  71  r1 = 0                        nil, the zero word it is everywhere else
+  72  *(u64 *)(r10 -40) = r1
+  73  goto 79                       the nil branch
+      line 21: return verdict
+  74  r0 = *(u64 *)(r10 -40)
+  75  r0 = r0
+  76  if r0 s&lt; 0 goto 84            not an XDP action: stops
+  77  if r0 s&gt; 4 goto 84
+  78  exit
+      line 23: return action.TX
+  79  r1 = 3                        XDP_TX, read from linux.xdp
+  80  to 83: r0 is 3, and the exit
+      line 24: end, {default = action.PASS})
+  84  r0 = 0                        XDP_ABORTED, where the program stops
+  85  exit
 </code></pre>
 
 <p><code>llvm-objdump</code> prints two of these instructions by what their bytes hold before libbpf has read
-the object. Instruction 51 is <code>18 01 00 00 6c 69 6d 69 00 00 00 00 74 73 00 00</code>, an <code>LD_IMM64</code>
+the object. Instruction 50 is <code>18 01 00 00 6c 69 6d 69 00 00 00 00 74 73 00 00</code>, an <code>LD_IMM64</code>
 whose two immediates are the bytes <code>6c 69 6d 69</code> and <code>74 73 00 00</code>: <code>limits</code> and its NUL, padded to
-a word, in the kernel&rsquo;s byte order, which LLVM prints as the integer they make. Instruction 65 is
+a word, in the kernel&rsquo;s byte order, which LLVM prints as the integer they make. Instruction 64 is
 <code>85 00 00 00 ff ff ff ff</code>, a call whose source register is 0 and whose immediate is -1, on which
 <code>llvm-objdump -r</code> prints the relocation <code>R_BPF_64_32 bpf_luaxdp_run</code>: libbpf, as it loads the
 object, writes there the source register 2, <code>BPF_PSEUDO_KFUNC_CALL</code>, the kfunc&rsquo;s id in <code>luaxdp</code>&rsquo;s
 BTF as the immediate, and which BTF that is as the offset. <code>bpftool prog dump xlated</code> of the loaded
 program prints it <code>call bpf_luaxdp_run</code>.</p>
 
-<p>A frame of 600 bytes whose bytes 36 and 37 are <code>00 35</code>, with the runtime <code>limits</code> running:</p>
+<p>A frame of 600 bytes, an IPv4 header of 20 and a UDP one whose destination port is <code>00 35</code>, with the
+runtime <code>limits</code> running:</p>
 
 <table>
 <thead>
@@ -1606,37 +1766,37 @@ program prints it <code>call bpf_luaxdp_run</code>.</p>
 </thead>
 <tbody>
 <tr>
-<td> 3 to 45 </td>
-<td> bytes 36 and 37, <code>00 35</code>, joined </td>
+<td> 3 to 44 </td>
+<td> <code>ihl</code>, 5, and the UDP header&rsquo;s <code>dest</code>, the two bytes at 14 + 5 * 4 + 2, <code>00 35</code>, swapped </td>
 <td> <code>port</code> is 53 </td>
 </tr>
 <tr>
-<td> 47 to 49 </td>
+<td> 46 to 48 </td>
 <td> <code>data_end</code> less <a href="../modules/data.html#">data</a> </td>
 <td> <code>#p</code> is 600 </td>
 </tr>
 <tr>
-<td> 51 to 64 </td>
+<td> 50 to 63 </td>
 <td> the name, 53 and 600 below the frame, and their addresses and sizes </td>
 <td> </td>
 </tr>
 <tr>
-<td> 65 </td>
+<td> 64 </td>
 <td> the callback reads 53 with <code>getint64(0)</code> and 600 with <code>getint64(8)</code>: 600 is over 512 </td>
 <td> <code>r0</code> is 1, <code>XDP_DROP</code> </td>
 </tr>
 <tr>
-<td> 66 to 68 </td>
+<td> 65 to 67 </td>
 <td> 1, sign-extended </td>
 <td> <code>verdict</code> is 1 </td>
 </tr>
 <tr>
-<td> 69, 70 </td>
+<td> 68 to 70 </td>
 <td> 1 is not -1 </td>
-<td> jump to 73 </td>
+<td> jump to 74 </td>
 </tr>
 <tr>
-<td> 73 to 76 </td>
+<td> 74 to 78 </td>
 <td> <code>r0</code> is 1, within 0 to 4 </td>
 <td> the program returns 1, <code>XDP_DROP</code> </td>
 </tr>
@@ -1647,9 +1807,10 @@ program prints it <code>call bpf_luaxdp_run</code>.</p>
 <p>A frame of 100 bytes to port 53, or one of 600 to port 80, makes the callback return nothing: the
 kfunc answers -1, instruction 69 jumps to 71, and the program returns 3, <code>XDP_TX</code>, as it does for
 every frame that reaches the call while no runtime <code>limits</code> runs. A frame of 30 bytes stops at the
-read of byte 36 and returns 0, <code>XDP_ABORTED</code>. <code>bpftool prog run</code> returned these for the object
-loaded on Linux 6.8, arm64, with the runtime started by <code>lunatik run --context=softirq limits</code>. In a
-TC program the call is the same over <code>bpf_luatc_run</code>, and <code>r3</code> holds the <code>__sk_buff</code>.</p>
+read of the port, past its end, and returns 0, <code>XDP_ABORTED</code>. <code>bpftool prog run</code> returned these for
+the object loaded on Linux 6.8, arm64, with the runtime started by
+<code>lunatik run --context=softirq limits</code>. In a TC program the call is the same over <code>bpf_luatc_run</code>,
+and <code>r3</code> holds the <code>__sk_buff</code>.</p>
 <nav class="pager" aria-label="Guide pages">
     <a class="prev" href="../topics/08-luaebpf.md.html"><span>Previous</span>Compiling Lua to eBPF</a>
     <a class="next" href="../topics/capi.md.html"><span>Next</span>Lunatik C API</a>
@@ -1670,7 +1831,7 @@ TC program the call is the same over <code>bpf_luatc_run</code>, and <code>r3</c
 <a href="../../topics/09-luaebpf-by-example.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/09-luaebpf-by-example.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:23:41</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 15:28:31</span>
 </div>
 </footer>
 </body>
