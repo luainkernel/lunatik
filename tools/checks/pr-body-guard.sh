@@ -23,7 +23,8 @@
 # request review-post-guard held a post on in the same session waits for the same
 # REVIEW_POST_OK, as the held post by another route. A pull request body is read against the
 # files its change carries, and one the session or its agents post to this repository only once a reader
-# with none of the change's history passed its text (body-read.sh). A title a pull request of this
+# with none of the change's history passed its text (body-read.sh), or the maintainer approved that text in
+# his own words, which BODY_OK=1 says. A title a pull request of this
 # repository is given, opened or edited, is posted only when title.sh passes on it.
 
 input=$(cat)
@@ -297,7 +298,7 @@ reader() {
 			file=$tmp/read
 		fi
 		bash "$(dirname "$0")/body-read.sh" "$file" "$transcript" 2> /dev/null && continue
-		echo "pr-body-guard: no reader of this session's workflow runs passed this body. Run the reader over it as the pr-prep skill says, review.js with reviewer and build false, which reads it with none of the change's history, and post the file it leaves; a text changed after the read is read again." >&2
+		echo "pr-body-guard: no reader of this session's workflow runs passed this body. Run the reader over it as the pr-prep skill says, review.js with reviewer and build false, which reads it with none of the change's history, and post the file it leaves; a text changed after the read is read again. BODY_OK=1 posts a text the maintainer approved in his own words." >&2
 		exit 2
 	done <<< "$1"
 }
@@ -365,7 +366,10 @@ case "$(command_text "$input")" in
 	*EXAMPLES_OK=1*) ;;
 	*) examples "$(ours "$(gh_writes "$cmds" 'pr (create|new)' "$repo/pulls\$")")" ;;
 esac
-reader "$(ours "$(gh_writes "$cmds" 'pr (create|new|edit)' "$repo/pulls(/[0-9]+)?\$")")"
+case "$(command_text "$input")" in
+	*BODY_OK=1*) ;;
+	*) reader "$(ours "$(gh_writes "$cmds" 'pr (create|new|edit)' "$repo/pulls(/[0-9]+)?\$")")" ;;
+esac
 check "$(gh_writes "$cmds" 'issue (create|new|edit)' "$repo/issues(/[0-9]+)?\$")" untraced.sh added
 check "$(gh_writes "$cmds" 'issue (create|new|edit)' "$repo/issues(/[0-9]+)?\$")" decision.sh added
 # a new issue is a finding, read for a stimulus out of contract; an edit or a comment may argue about one
