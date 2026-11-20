@@ -15,10 +15,6 @@
 local class  = require("lunatik.class")
 local strtab = require("luaebpf.strtab")
 
-local pack   = string.pack
-local concat = table.concat
-local insert = table.insert
-
 local MAGIC   <const> = 0xeb9f
 local VERSION <const> = 1
 local HDRLEN  <const> = 24
@@ -84,7 +80,7 @@ end
 -- @tparam string record
 -- @treturn integer its type id
 function types:add(record)
-	insert(self.records, record)
+	table.insert(self.records, record)
 	self.n = self.n + 1
 	return self.n
 end
@@ -97,7 +93,7 @@ end
 -- @tparam integer bits
 -- @treturn integer its type id
 function types:integer(name, size, bits)
-	return self:add(pack(self.order .. "I4I4I4I4", self:string(name), typeinfo(KIND_INT, 0), size,
+	return self:add(string.pack(self.order .. "I4I4I4I4", self:string(name), typeinfo(KIND_INT, 0), size,
 		(SIGNED << 24) | bits))
 end
 
@@ -112,11 +108,11 @@ end
 function types:func(name, linkage, signature)
 	local params = {}
 	for i, id in ipairs(signature.params) do
-		insert(params, pack(self.order .. "I4I4", self:string("a" .. i), id))
+		table.insert(params, string.pack(self.order .. "I4I4", self:string("a" .. i), id))
 	end
-	local proto = self:add(pack(self.order .. "I4I4I4", 0, typeinfo(KIND_FUNC_PROTO, #params), signature.result)
-		.. concat(params))
-	return self:add(pack(self.order .. "I4I4I4", self:string(name), typeinfo(KIND_FUNC, linkage), proto))
+	local proto = self:add(string.pack(self.order .. "I4I4I4", 0, typeinfo(KIND_FUNC_PROTO, #params), signature.result)
+		.. table.concat(params))
+	return self:add(string.pack(self.order .. "I4I4I4", self:string(name), typeinfo(KIND_FUNC, linkage), proto))
 end
 
 ---
@@ -125,7 +121,7 @@ end
 -- @tparam integer id
 -- @treturn integer its type id
 function types:pointer(id)
-	return self:add(pack(self.order .. "I4I4I4", 0, typeinfo(KIND_PTR, 0), id))
+	return self:add(string.pack(self.order .. "I4I4I4", 0, typeinfo(KIND_PTR, 0), id))
 end
 
 ---
@@ -136,8 +132,8 @@ end
 -- @tparam integer n
 -- @treturn integer its type id
 function types:array(id, n)
-	return self:add(pack(self.order .. "I4I4I4", 0, typeinfo(KIND_ARRAY, 0), 0)
-		.. pack(self.order .. "I4I4I4", id, self.int, n))
+	return self:add(string.pack(self.order .. "I4I4I4", 0, typeinfo(KIND_ARRAY, 0), 0)
+		.. string.pack(self.order .. "I4I4I4", id, self.int, n))
 end
 
 ---
@@ -150,11 +146,11 @@ end
 function types:struct(name, members)
 	local fields, size = {}, #members * WORD
 	for i, member in ipairs(members) do
-		insert(fields, pack(self.order .. "I4I4I4", self:string(member.name), member.type,
+		table.insert(fields, string.pack(self.order .. "I4I4I4", self:string(member.name), member.type,
 			(i - 1) * WORD * BYTE))
 	end
-	return self:add(pack(self.order .. "I4I4I4", self:string(name), typeinfo(KIND_STRUCT, #members), size)
-		.. concat(fields)), size
+	return self:add(string.pack(self.order .. "I4I4I4", self:string(name), typeinfo(KIND_STRUCT, #members), size)
+		.. table.concat(fields)), size
 end
 
 ---
@@ -164,8 +160,8 @@ end
 -- @tparam integer id
 -- @treturn integer its type id
 function types:var(name, id)
-	return self:add(pack(self.order .. "I4I4I4", self:string(name), typeinfo(KIND_VAR, 0), id)
-		.. pack(self.order .. "I4", ALLOCATED))
+	return self:add(string.pack(self.order .. "I4I4I4", self:string(name), typeinfo(KIND_VAR, 0), id)
+		.. string.pack(self.order .. "I4", ALLOCATED))
 end
 
 ---
@@ -177,11 +173,11 @@ end
 function types:datasec(name, entries)
 	local records, size = {}, 0
 	for _, entry in ipairs(entries) do
-		insert(records, pack(self.order .. "I4I4I4", entry.type, entry.offset, entry.size))
+		table.insert(records, string.pack(self.order .. "I4I4I4", entry.type, entry.offset, entry.size))
 		size = size + entry.size
 	end
-	return self:add(pack(self.order .. "I4I4I4", self:string(name), typeinfo(KIND_DATASEC, #entries), size)
-		.. concat(records))
+	return self:add(string.pack(self.order .. "I4I4I4", self:string(name), typeinfo(KIND_DATASEC, #entries), size)
+		.. table.concat(records))
 end
 
 ---
@@ -189,23 +185,23 @@ end
 -- @function luaebpf.btf.types:pack
 -- @treturn string
 function types:pack()
-	local body, strings = concat(self.records), self.names:pack()
-	return pack(self.order .. "I2I1I1I4I4I4I4I4", MAGIC, VERSION, 0, HDRLEN, 0, #body, #body, #strings)
+	local body, strings = table.concat(self.records), self.names:pack()
+	return string.pack(self.order .. "I2I1I1I4I4I4I4I4", MAGIC, VERSION, 0, HDRLEN, 0, #body, #body, #strings)
 		.. body .. strings
 end
 
 local function segment(self, sections, recsize, field)
-	local out = {pack(self.order .. "I4", recsize)}
+	local out = {string.pack(self.order .. "I4", recsize)}
 	for _, section in ipairs(sections) do
 		local records = section[field]
 		if #records > 0 then
-			insert(out, pack(self.order .. "I4I4", self:string(section.name), #records))
+			table.insert(out, string.pack(self.order .. "I4I4", self:string(section.name), #records))
 			for _, record in ipairs(records) do
-				insert(out, record)
+				table.insert(out, record)
 			end
 		end
 	end
-	return concat(out)
+	return table.concat(out)
 end
 
 ---
@@ -215,7 +211,7 @@ end
 -- @tparam integer id
 -- @treturn string
 function types:funcinfo(at, id)
-	return pack(self.order .. "I4I4", at, id)
+	return string.pack(self.order .. "I4I4", at, id)
 end
 
 ---
@@ -228,7 +224,7 @@ end
 -- @tparam integer column
 -- @treturn string
 function types:lineinfo(at, file, text, line, column)
-	return pack(self.order .. "I4I4I4I4", at, file, text, (line << 10) | column)
+	return string.pack(self.order .. "I4I4I4I4", at, file, text, (line << 10) | column)
 end
 
 ---
@@ -239,7 +235,7 @@ end
 function types:ext(sections)
 	local funcs = segment(self, sections, FUNCREC, "funcs")
 	local lines = segment(self, sections, LINEREC, "lines")
-	return pack(self.order .. "I2I1I1I4I4I4I4I4I4I4", MAGIC, VERSION, 0, EXTLEN, 0, #funcs, #funcs, #lines,
+	return string.pack(self.order .. "I2I1I1I4I4I4I4I4I4I4", MAGIC, VERSION, 0, EXTLEN, 0, #funcs, #funcs, #lines,
 		#funcs + #lines, 0) .. funcs .. lines
 end
 

@@ -17,13 +17,6 @@ local kernel = require("luaebpf.bytecode.kernel")
 local host   = require("luaebpf.bytecode.host")
 local undump = require("luaebpf.undump")
 
-local format     = string.format
-local dump       = string.dump
-local insert     = table.insert
-local getinfo    = debug.getinfo
-local popen      = io.popen
-local searchpath = package.searchpath
-
 local LUNATIC   <const> = "lunatic -o - -- "
 local SCRIPTS   <const> = "/lib/modules/lua" -- the kernel's LUA_ROOT
 local MODULES   <const> = "%s/?.lua;%s/?/init.lua" -- the kernel's LUA_PATH_DEFAULT, under a root
@@ -36,7 +29,7 @@ local proto = {}
 -- The opcode numbers of the kernel's Lua, by name; a name the kernel's Lua lacks raises.
 -- @table luaebpf.proto.opcodes
 proto.opcodes = setmetatable({}, {__index = function(_, name)
-	error(format("luaebpf.proto: no opcode '%s' in the kernel's Lua", name), 2)
+	error(string.format("luaebpf.proto: no opcode '%s' in the kernel's Lua", name), 2)
 end})
 for name, opcode in pairs(kernel.opcodes) do
 	rawset(proto.opcodes, name, opcode.op)
@@ -63,16 +56,16 @@ end
 -- @raise `<path>: lunatic could not compile it`, after `lunatic`'s own message, or the error
 --   `load` gives a chunk it refuses
 function proto.load(path)
-	local pipe = popen(LUNATIC .. quote(path), "r")
+	local pipe = io.popen(LUNATIC .. quote(path), "r")
 	local bytes = pipe:read("a")
 	if not pipe:close() then
-		error(format("%s: lunatic could not compile it", path), 0)
+		error(string.format("%s: lunatic could not compile it", path), 0)
 	end
 	local chunk, err = load(undump.rewrite(bytes, path, kernel, host), "=" .. path, "b")
 	if chunk == nil then
 		error(err, 0)
 	end
-	local source = getinfo(chunk, "S").source
+	local source = debug.getinfo(chunk, "S").source
 	if source:sub(1, 1) == "@" then -- a stripped chunk names no file and no line to refuse by
 		loaded[source] = true
 	end
@@ -89,13 +82,13 @@ function proto.scripts(dir)
 end
 
 local function search(name)
-	local path, err = searchpath(name, format(MODULES, root, root))
+	local path, err = package.searchpath(name, string.format(MODULES, root, root))
 	if path == nil then
 		return err
 	end
 	return proto.load(path), path
 end
-insert(package.searchers, search) -- last: a module package.path finds is the CLI's Lua and shadows the kernel's
+table.insert(package.searchers, search) -- last: a module package.path finds is the CLI's Lua and shadows the kernel's
 
 ---
 -- Loads the kernel script named `name`, from `/lib/modules/lua` or the directory `luaebpf.proto.scripts`
@@ -130,14 +123,14 @@ end
 -- @raise `<file>:<line>: a compiled function is defined in the program file or a kernel script it
 --   requires, installed as source`
 function proto.read(fn)
-	local info = getinfo(fn, "S")
+	local info = debug.getinfo(fn, "S")
 	if info.what == "C" then
 		error("bad argument #1 to 'read' (Lua function expected)", 2)
 	end
 	if not loaded[info.source] then
-		error(format("%s:%d: %s", info.short_src, info.linedefined, ELSEWHERE), 0)
+		error(string.format("%s:%d: %s", info.short_src, info.linedefined, ELSEWHERE), 0)
 	end
-	return renumber(undump.read(dump(fn), format("%s:%d", info.source:sub(2), info.linedefined), host))
+	return renumber(undump.read(string.dump(fn), string.format("%s:%d", info.source:sub(2), info.linedefined), host))
 end
 
 return proto

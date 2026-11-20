@@ -21,9 +21,6 @@ local insn = require("luaebpf.insn")
 local elf  = require("luaebpf.elf")
 local btf  = require("luaebpf.btf")
 
-local insert = table.insert
-local concat = table.concat
-
 local TEXT    <const> = ".text"
 local MAPS    <const> = ".maps"
 local KSYMS   <const> = ".ksyms"
@@ -38,7 +35,7 @@ local function readlines(path)
 	end
 	local lines = {}
 	for line in file:lines("l") do
-		insert(lines, line)
+		table.insert(lines, line)
 	end
 	file:close()
 	return lines
@@ -69,7 +66,7 @@ local function lineinfo(types, frame, at, cache)
 	local text = sources(frame.chunk, cache)
 	for i = 1, #lines do
 		if lines[i] ~= previous then
-			insert(records, types:lineinfo(at + (i - 1) * insn.SIZE, file,
+			table.insert(records, types:lineinfo(at + (i - 1) * insn.SIZE, file,
 				types:string(text[lines[i]] or ""), lines[i], 1))
 			previous = lines[i]
 		end
@@ -89,7 +86,7 @@ local function section(units, sections, name)
 	if unit == nil then
 		unit = blob(name)
 		sections[name] = unit
-		insert(units, unit)
+		table.insert(units, unit)
 	end
 	return unit
 end
@@ -101,10 +98,10 @@ local relocated = {{kind = "call", type = elf.relocation.IMM32}, {kind = "map", 
 
 local function place(types, unit, frame, cache, subprograms)
 	local at = unit.at
-	insert(unit.code, frame.code:pack(emit.bigendian))
-	insert(unit.funcs, funcinfo(types, frame, at))
+	table.insert(unit.code, frame.code:pack(emit.bigendian))
+	table.insert(unit.funcs, funcinfo(types, frame, at))
 	for _, record in ipairs(lineinfo(types, frame, at, cache)) do
-		insert(unit.lines, record)
+		table.insert(unit.lines, record)
 	end
 	for _, reloc in ipairs(relocated) do
 		for _, use in ipairs(frame.code:relocations(reloc.kind)) do
@@ -114,7 +111,7 @@ local function place(types, unit, frame, cache, subprograms)
 	end
 	unit.at = at + frame.code:len() * insn.SIZE
 	if not frame.isprogram then
-		insert(subprograms, {name = frame.name, section = TEXT, value = at,
+		table.insert(subprograms, {name = frame.name, section = TEXT, value = at,
 			size = frame.code:len() * insn.SIZE, bind = elf.bind.LOCAL, type = elf.type.FUNC})
 	end
 	return at
@@ -141,12 +138,12 @@ local function maplayout(object, types, declared)
 	for _, map in ipairs(declared) do
 		local members = {}
 		for _, attribute in ipairs(attributes(map)) do
-			insert(members, {name = attribute.name,
+			table.insert(members, {name = attribute.name,
 				type = types:pointer(types:array(types.int, attribute.value))})
 		end
 		local id, size = types:struct(map.name, members)
-		insert(entries, {type = types:var(map.name, id), offset = at, size = size})
-		insert(symbols, {name = map.name, section = MAPS, value = at, size = size,
+		table.insert(entries, {type = types:var(map.name, id), offset = at, size = size})
+		table.insert(symbols, {name = map.name, section = MAPS, value = at, size = size,
 			bind = elf.bind.GLOBAL, type = elf.type.OBJECT})
 		at = at + size
 	end
@@ -168,7 +165,7 @@ local function constants(strings, kept, frame)
 	for _, use in ipairs(frame.code:relocations("data")) do
 		if not kept[use.name] then
 			kept[use.name] = true
-			insert(strings, use.name)
+			table.insert(strings, use.name)
 		end
 	end
 end
@@ -179,13 +176,13 @@ end
 local function datalayout(object, strings)
 	local symbols, at = {}, 0
 	for _, bytes in ipairs(strings) do
-		insert(symbols, {name = bytes, section = DATA, value = at, size = #bytes, bind = elf.bind.LOCAL,
+		table.insert(symbols, {name = bytes, section = DATA, value = at, size = #bytes, bind = elf.bind.LOCAL,
 			type = elf.type.OBJECT})
 		at = at + #bytes
 	end
 	if at > 0 then
 		object:section{name = DATA, type = elf.section.PROGBITS, flags = elf.flags.ALLOC | elf.flags.WRITE,
-			data = concat(strings), align = 8}
+			data = table.concat(strings), align = 8}
 	end
 	return symbols
 end
@@ -297,7 +294,7 @@ function writer.write(declared, hook)
 			extern(externs, called, program, frame)
 			constants(strings, kept, frame)
 			if i == 1 then
-				insert(order, {name = frame.name, section = program.section, value = at,
+				table.insert(order, {name = frame.name, section = program.section, value = at,
 					size = frame.code:len() * insn.SIZE, bind = elf.bind.GLOBAL,
 					type = elf.type.FUNC})
 			end
@@ -308,7 +305,7 @@ function writer.write(declared, hook)
 	for _, unit in ipairs(units) do
 		if unit.at > 0 then
 			object:section{name = unit.name, type = elf.section.PROGBITS,
-				flags = elf.flags.ALLOC | elf.flags.EXEC, data = concat(unit.code), align = 8}
+				flags = elf.flags.ALLOC | elf.flags.EXEC, data = table.concat(unit.code), align = 8}
 		end
 	end
 	local mapsymbols = maplayout(object, types, maps.declared())
@@ -323,7 +320,7 @@ function writer.write(declared, hook)
 	for _, unit in ipairs(units) do
 		local records = {}
 		for _, call in ipairs(unit.relocations) do
-			insert(records, {at = call.at, symbol = indexes[call.name], type = call.type})
+			table.insert(records, {at = call.at, symbol = indexes[call.name], type = call.type})
 		end
 		if #records > 0 then
 			object:relocations(unit.name, records)
@@ -335,7 +332,7 @@ function writer.write(declared, hook)
 	local described = {}
 	for _, unit in ipairs(units) do
 		if unit.at > 0 then
-			insert(described, {name = unit.name, funcs = unit.funcs,
+			table.insert(described, {name = unit.name, funcs = unit.funcs,
 				lines = hook ~= "lineinfo" and unit.lines or {}})
 		end
 	end

@@ -30,12 +30,6 @@ local branch     = require("luaebpf.emit.branch")
 local forloop    = require("luaebpf.emit.forloop")
 local call       = require("luaebpf.emit.call")
 
-local reg     = insn.reg
-local opcodes = proto.opcodes
-local format  = string.format
-local insert  = table.insert
-local copy, reach, refuse, setreg = frame.copy, frame.reach, frame.refuse, frame.setreg
-
 local ROUNDS   <const> = 16
 local NAMELEN  <const> = 15  -- BPF_OBJ_NAME_LEN - 1
 local MAYGOTO  <const> = 6 << 16 | 9 << 8 -- KERNEL_VERSION(6, 9, 0): v6.9 and later take may_goto
@@ -43,10 +37,8 @@ local MAYGOTO  <const> = 6 << 16 | 9 << 8 -- KERNEL_VERSION(6, 9, 0): v6.9 and l
 local CALLER   <const> = frame.CALLER
 local CTX      <const> = context.CTX
 
-local typenames = frame.typenames
-
 local opnames = {}
-for name, op in pairs(opcodes) do
+for name, op in pairs(proto.opcodes) do
 	opnames[op] = name
 end
 
@@ -101,7 +93,7 @@ local refusals = {
 }
 
 local handlers = {}
-for name, op in pairs(opcodes) do
+for name, op in pairs(proto.opcodes) do
 	handlers[op] = loads[name] or arithmetic[name] or branch[name] or forloop[name] or call[name]
 end
 
@@ -121,26 +113,26 @@ local function walk(f)
 	f.entry[1] = start
 	code:source(f.proto.linedefined)
 	if not f.isprogram then
-		code:store(reg.FP, CALLER, reg.R1 + #f.params)
+		code:store(insn.reg.FP, CALLER, insn.reg.R1 + #f.params)
 	end
 	for i = 0, f.proto.numparams - 1 do
-		setreg(f, i, reg.R1 + i)
+		frame.setreg(f, i, insn.reg.R1 + i)
 		start[i] = {t = f.params[i + 1]}
 	end
 	for pc = 1, #f.proto.code do
 		local entry = f.entry[pc]
 		frame.within(f, pc)
 		if entry ~= nil then
-			local state, ins = copy(entry), f.proto.code[pc]
+			local state, ins = frame.copy(entry), f.proto.code[pc]
 			local handler = handlers[ins.op]
 			code:place(f.labels[pc])
 			code:source(f.proto.lines[pc])
 			if handler == nil then
 				local opname = opnames[ins.op]
-				refuse(f, pc, "%s", refusals[opname] or opname .. " cannot be compiled")
+				frame.refuse(f, pc, "%s", refusals[opname] or opname .. " cannot be compiled")
 			end
 			if handler(f, pc, ins, state) ~= false then
-				reach(f, pc + 1, state)
+				frame.reach(f, pc + 1, state)
 			end
 		end
 	end
@@ -150,13 +142,13 @@ local function walk(f)
 		code:place(f.aborted)
 		if f.isprogram then
 			if f.drop ~= "verdict" then
-				code:set(reg.R0, f.unit.error)
+				code:set(insn.reg.R0, f.unit.error)
 			end
 		else
-			code:load(reg.R1, reg.FP, CALLER)
-			code:storei(reg.R1, 0, 1)
+			code:load(insn.reg.R1, insn.reg.FP, CALLER)
+			code:storei(insn.reg.R1, 0, 1)
 			-- the verifier cannot pair the flag with the path, so R0 is read on the fall-through too
-			code:set(reg.R0, 0)
+			code:set(insn.reg.R0, 0)
 		end
 		code:exit()
 	end
@@ -173,7 +165,7 @@ end
 local function lower(f)
 	frame.stack(f, 1, frame.depth(f))
 	if f.proto.isvararg then
-		refuse(f, 1, "a vararg function cannot be compiled")
+		frame.refuse(f, 1, "a vararg function cannot be compiled")
 	end
 	f.entry = {}
 	f.bounded = {}
@@ -185,7 +177,7 @@ local function lower(f)
 			return
 		end
 	end
-	refuse(f, 1, "the compiler did not settle on the types of this function")
+	frame.refuse(f, 1, "the compiler did not settle on the types of this function")
 end
 
 --- @section the program
@@ -210,7 +202,7 @@ local function compile(unit, fn, read, name, params, isprogram)
 	f.chunk = f.proto.source:gsub("^@", "")
 	unit.lowering[fn] = true
 	unit.functions[fn] = f
-	insert(unit.order, f)
+	table.insert(unit.order, f)
 	lower(f)
 	unit.lowering[fn] = nil
 	return f
@@ -232,18 +224,18 @@ end
 local function subprogram(f, pc, fn, name, params)
 	local unit = f.unit
 	if unit.lowering[fn] then
-		refuse(f, pc, "recursion through '%s'", name or "a function")
+		frame.refuse(f, pc, "recursion through '%s'", name or "a function")
 	end
 	local compiled = unit.functions[fn]
 	if compiled ~= nil then
 		if #compiled.params ~= #params then
-			refuse(f, pc, "'%s' is called with %d arguments and compiled with %d",
+			frame.refuse(f, pc, "'%s' is called with %d arguments and compiled with %d",
 				compiled.name, #params, #compiled.params)
 		end
 		for i = 1, #params do
 			if compiled.params[i] ~= params[i] then
-				refuse(f, pc, "'%s' is called with a %s and compiled with a %s", compiled.name,
-					typenames[params[i]], typenames[compiled.params[i]])
+				frame.refuse(f, pc, "'%s' is called with a %s and compiled with a %s", compiled.name,
+					frame.typenames[params[i]], frame.typenames[compiled.params[i]])
 			end
 		end
 		return compiled
@@ -251,7 +243,7 @@ local function subprogram(f, pc, fn, name, params)
 	local read = proto.read(fn)
 	-- without this the prologue reads a register the call never set, and the verifier names it
 	if read.numparams > #params then
-		refuse(f, pc, "'%s' takes %d arguments and is called with %d", name or "a function",
+		frame.refuse(f, pc, "'%s' takes %d arguments and is called with %d", name or "a function",
 			read.numparams, #params)
 	end
 	return compile(unit, fn, read, name, params, false)
@@ -277,7 +269,7 @@ function emit.program(program)
 	}
 	local read = proto.read(program.fn)
 	if read.numparams > 1 then
-		error(format("%s:%d: a program takes one argument, the context",
+		error(string.format("%s:%d: a program takes one argument, the context",
 			(read.source:gsub("^@", "")), read.linedefined), 0)
 	end
 	compile(unit, program.fn, read, program.name, {CTX}, true)

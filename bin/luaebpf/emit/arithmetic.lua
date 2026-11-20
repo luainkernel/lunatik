@@ -11,11 +11,6 @@
 local insn  = require("luaebpf.insn")
 local frame = require("luaebpf.emit.frame")
 
-local alu, jump, reg = insn.alu, insn.jump, insn.reg
-local constant, into, isinteger = frame.constant, frame.into, frame.isinteger
-local refuse, resolve, setreg, typename = frame.refuse, frame.resolve, frame.setreg, frame.typename
-local classes = frame.classes
-
 local BOOL  <const> = frame.BOOL
 local INT   <const> = frame.INT
 local NBITS <const> = frame.NBITS
@@ -26,7 +21,7 @@ local arithmetic = {}
 -- negated, math.mininteger is itself, which BPF_DIV and BPF_MOD read as 2^63, its magnitude
 local function negate(code, r, sign)
 	local skip = code:label()
-	code:branchi(jump.JSGE, sign, 0, skip)
+	code:branchi(insn.jump.JSGE, sign, 0, skip)
 	code:neg(r)
 	code:place(skip)
 end
@@ -38,19 +33,19 @@ local function floordiv(f, pc)
 	local code = f.code
 	local done = code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, frame.stop(f, pc, "attempt to divide by zero"))
+		code:branchi(insn.jump.JEQ, insn.reg.R2, 0, frame.stop(f, pc, "attempt to divide by zero"))
 	end
-	code:alu(alu.MOV, reg.R3, reg.R1)
-	code:alu(alu.XOR, reg.R3, reg.R2)
-	negate(code, reg.R1, reg.R1)
-	negate(code, reg.R2, reg.R2)
-	code:alu(alu.MOV, reg.R4, reg.R1)
-	code:alu(alu.MOD, reg.R4, reg.R2)
-	code:alu(alu.DIV, reg.R1, reg.R2)
-	code:branchi(jump.JSGE, reg.R3, 0, done)
-	code:neg(reg.R1)
-	code:branchi(jump.JEQ, reg.R4, 0, done)
-	code:alui(alu.ADD, reg.R1, -1)
+	code:alu(insn.alu.MOV, insn.reg.R3, insn.reg.R1)
+	code:alu(insn.alu.XOR, insn.reg.R3, insn.reg.R2)
+	negate(code, insn.reg.R1, insn.reg.R1)
+	negate(code, insn.reg.R2, insn.reg.R2)
+	code:alu(insn.alu.MOV, insn.reg.R4, insn.reg.R1)
+	code:alu(insn.alu.MOD, insn.reg.R4, insn.reg.R2)
+	code:alu(insn.alu.DIV, insn.reg.R1, insn.reg.R2)
+	code:branchi(insn.jump.JSGE, insn.reg.R3, 0, done)
+	code:neg(insn.reg.R1)
+	code:branchi(insn.jump.JEQ, insn.reg.R4, 0, done)
+	code:alui(insn.alu.ADD, insn.reg.R1, -1)
 	code:place(done)
 end
 
@@ -59,18 +54,18 @@ local function floormod(f, pc)
 	local code = f.code
 	local done = code:label()
 	if f.drop ~= "divisor" then
-		code:branchi(jump.JEQ, reg.R2, 0, frame.stop(f, pc, "attempt to perform 'n%%0'"))
+		code:branchi(insn.jump.JEQ, insn.reg.R2, 0, frame.stop(f, pc, "attempt to perform 'n%%0'"))
 	end
-	code:alu(alu.MOV, reg.R3, reg.R1)
-	code:alu(alu.MOV, reg.R4, reg.R2)
-	negate(code, reg.R1, reg.R1)
-	negate(code, reg.R4, reg.R4)
-	code:alu(alu.MOD, reg.R1, reg.R4)
-	negate(code, reg.R1, reg.R3)
-	code:branchi(jump.JEQ, reg.R1, 0, done)
-	code:alu(alu.XOR, reg.R3, reg.R2) -- r3 is the dividend, whose sign the remainder takes
-	code:branchi(jump.JSGE, reg.R3, 0, done)
-	code:alu(alu.ADD, reg.R1, reg.R2)
+	code:alu(insn.alu.MOV, insn.reg.R3, insn.reg.R1)
+	code:alu(insn.alu.MOV, insn.reg.R4, insn.reg.R2)
+	negate(code, insn.reg.R1, insn.reg.R1)
+	negate(code, insn.reg.R4, insn.reg.R4)
+	code:alu(insn.alu.MOD, insn.reg.R1, insn.reg.R4)
+	negate(code, insn.reg.R1, insn.reg.R3)
+	code:branchi(insn.jump.JEQ, insn.reg.R1, 0, done)
+	code:alu(insn.alu.XOR, insn.reg.R3, insn.reg.R2) -- r3 is the dividend, whose sign the remainder takes
+	code:branchi(insn.jump.JSGE, insn.reg.R3, 0, done)
+	code:alu(insn.alu.ADD, insn.reg.R1, insn.reg.R2)
 	code:place(done)
 end
 
@@ -79,35 +74,35 @@ end
 local function shiftl(f)
 	local code = f.code
 	local right, zero, done = code:label(), code:label(), code:label()
-	code:branchi(jump.JSLT, reg.R2, 0, right)
-	code:branchi(jump.JSGE, reg.R2, NBITS, zero)
-	code:alu(alu.LSH, reg.R1, reg.R2)
+	code:branchi(insn.jump.JSLT, insn.reg.R2, 0, right)
+	code:branchi(insn.jump.JSGE, insn.reg.R2, NBITS, zero)
+	code:alu(insn.alu.LSH, insn.reg.R1, insn.reg.R2)
 	code:jump(done)
 	code:place(right)
-	code:branchi(jump.JSLE, reg.R2, -NBITS, zero)
-	code:neg(reg.R2)
-	code:alu(alu.RSH, reg.R1, reg.R2)
+	code:branchi(insn.jump.JSLE, insn.reg.R2, -NBITS, zero)
+	code:neg(insn.reg.R2)
+	code:alu(insn.alu.RSH, insn.reg.R1, insn.reg.R2)
 	code:jump(done)
 	code:place(zero)
-	code:set(reg.R1, 0)
+	code:set(insn.reg.R1, 0)
 	code:place(done)
 end
 
 -- every binary operator over R1 and R2, leaving the result in R1
 local binops = {}
 
-function binops.ADD(f) f.code:alu(alu.ADD, reg.R1, reg.R2) end
-function binops.SUB(f) f.code:alu(alu.SUB, reg.R1, reg.R2) end
-function binops.MUL(f) f.code:alu(alu.MUL, reg.R1, reg.R2) end
-function binops.BAND(f) f.code:alu(alu.AND, reg.R1, reg.R2) end
-function binops.BOR(f) f.code:alu(alu.OR, reg.R1, reg.R2) end
-function binops.BXOR(f) f.code:alu(alu.XOR, reg.R1, reg.R2) end
+function binops.ADD(f) f.code:alu(insn.alu.ADD, insn.reg.R1, insn.reg.R2) end
+function binops.SUB(f) f.code:alu(insn.alu.SUB, insn.reg.R1, insn.reg.R2) end
+function binops.MUL(f) f.code:alu(insn.alu.MUL, insn.reg.R1, insn.reg.R2) end
+function binops.BAND(f) f.code:alu(insn.alu.AND, insn.reg.R1, insn.reg.R2) end
+function binops.BOR(f) f.code:alu(insn.alu.OR, insn.reg.R1, insn.reg.R2) end
+function binops.BXOR(f) f.code:alu(insn.alu.XOR, insn.reg.R1, insn.reg.R2) end
 function binops.IDIV(f, pc) floordiv(f, pc) end
 function binops.MOD(f, pc) floormod(f, pc) end
 function binops.SHL(f) shiftl(f) end
 
 function binops.SHR(f)
-	f.code:neg(reg.R2)
+	f.code:neg(insn.reg.R2)
 	shiftl(f)
 end
 
@@ -115,9 +110,10 @@ end
 -- message calls one type a value, and a join reads as what else it may be
 local function numbers(f, pc, ...)
 	for _, value in ipairs({...}) do
-		if not isinteger(value) then
-			local name = typename(value)
-			refuse(f, pc, "attempt to perform arithmetic on a %s", frame.exact(value) and name .. " value" or name)
+		if not frame.isinteger(value) then
+			local name = frame.typename(value)
+			frame.refuse(f, pc, "attempt to perform arithmetic on a %s",
+				frame.exact(value) and name .. " value" or name)
 		end
 	end
 end
@@ -125,26 +121,26 @@ end
 -- R[A] := R[B] op R[C], and R[A] := R[B] op <constant>; a constant takes a register too, since
 -- eBPF's immediate is 32 bits and Lua's constants are not
 local function register(f, pc, ins, state, op)
-	into(f, pc, state, ins.b, reg.R1)
-	into(f, pc, state, ins.c, reg.R2)
+	frame.into(f, pc, state, ins.b, insn.reg.R1)
+	frame.into(f, pc, state, ins.c, insn.reg.R2)
 	numbers(f, pc, state[ins.b], state[ins.c])
 	binops[op](f, pc)
-	setreg(f, ins.a, reg.R1)
+	frame.setreg(f, ins.a, insn.reg.R1)
 	state[ins.a] = {t = INT}
 end
 
 local function immediate(f, pc, ins, state, op, value)
-	into(f, pc, state, ins.b, reg.R1)
+	frame.into(f, pc, state, ins.b, insn.reg.R1)
 	numbers(f, pc, state[ins.b])
-	f.code:set(reg.R2, value)
+	f.code:set(insn.reg.R2, value)
 	binops[op](f, pc)
-	setreg(f, ins.a, reg.R1)
+	frame.setreg(f, ins.a, insn.reg.R1)
 	state[ins.a] = {t = INT}
 end
 
 local function numeric(f, pc, value)
 	if type(value) ~= "number" then
-		refuse(f, pc, "attempt to perform arithmetic on a %s constant", type(value))
+		frame.refuse(f, pc, "attempt to perform arithmetic on a %s constant", type(value))
 	end
 	return value
 end
@@ -161,35 +157,35 @@ function arithmetic.SHL(f, pc, ins, state) register(f, pc, ins, state, "SHL") en
 function arithmetic.SHR(f, pc, ins, state) register(f, pc, ins, state, "SHR") end
 
 function arithmetic.ADDK(f, pc, ins, state)
-	immediate(f, pc, ins, state, "ADD", numeric(f, pc, constant(f, pc, ins.c)))
+	immediate(f, pc, ins, state, "ADD", numeric(f, pc, frame.constant(f, pc, ins.c)))
 end
 
 function arithmetic.SUBK(f, pc, ins, state)
-	immediate(f, pc, ins, state, "SUB", numeric(f, pc, constant(f, pc, ins.c)))
+	immediate(f, pc, ins, state, "SUB", numeric(f, pc, frame.constant(f, pc, ins.c)))
 end
 
 function arithmetic.MULK(f, pc, ins, state)
-	immediate(f, pc, ins, state, "MUL", numeric(f, pc, constant(f, pc, ins.c)))
+	immediate(f, pc, ins, state, "MUL", numeric(f, pc, frame.constant(f, pc, ins.c)))
 end
 
 function arithmetic.MODK(f, pc, ins, state)
-	immediate(f, pc, ins, state, "MOD", numeric(f, pc, constant(f, pc, ins.c)))
+	immediate(f, pc, ins, state, "MOD", numeric(f, pc, frame.constant(f, pc, ins.c)))
 end
 
 function arithmetic.IDIVK(f, pc, ins, state)
-	immediate(f, pc, ins, state, "IDIV", numeric(f, pc, constant(f, pc, ins.c)))
+	immediate(f, pc, ins, state, "IDIV", numeric(f, pc, frame.constant(f, pc, ins.c)))
 end
 
 function arithmetic.BANDK(f, pc, ins, state)
-	immediate(f, pc, ins, state, "BAND", numeric(f, pc, constant(f, pc, ins.c)))
+	immediate(f, pc, ins, state, "BAND", numeric(f, pc, frame.constant(f, pc, ins.c)))
 end
 
 function arithmetic.BORK(f, pc, ins, state)
-	immediate(f, pc, ins, state, "BOR", numeric(f, pc, constant(f, pc, ins.c)))
+	immediate(f, pc, ins, state, "BOR", numeric(f, pc, frame.constant(f, pc, ins.c)))
 end
 
 function arithmetic.BXORK(f, pc, ins, state)
-	immediate(f, pc, ins, state, "BXOR", numeric(f, pc, constant(f, pc, ins.c)))
+	immediate(f, pc, ins, state, "BXOR", numeric(f, pc, frame.constant(f, pc, ins.c)))
 end
 
 function arithmetic.ADDI(f, pc, ins, state)
@@ -198,11 +194,11 @@ end
 
 -- the constant is the left operand of a SHLI, and a SHRI's count is negated into a shift left
 function arithmetic.SHLI(f, pc, ins, state)
-	into(f, pc, state, ins.b, reg.R2)
+	frame.into(f, pc, state, ins.b, insn.reg.R2)
 	numbers(f, pc, state[ins.b])
-	f.code:set(reg.R1, ins.sc)
+	f.code:set(insn.reg.R1, ins.sc)
 	shiftl(f)
-	setreg(f, ins.a, reg.R1)
+	frame.setreg(f, ins.a, insn.reg.R1)
 	state[ins.a] = {t = INT}
 end
 
@@ -211,19 +207,19 @@ function arithmetic.SHRI(f, pc, ins, state)
 end
 
 function arithmetic.UNM(f, pc, ins, state)
-	into(f, pc, state, ins.b, reg.R2)
+	frame.into(f, pc, state, ins.b, insn.reg.R2)
 	numbers(f, pc, state[ins.b])
-	f.code:set(reg.R1, 0)
-	f.code:alu(alu.SUB, reg.R1, reg.R2)
-	setreg(f, ins.a, reg.R1)
+	f.code:set(insn.reg.R1, 0)
+	f.code:alu(insn.alu.SUB, insn.reg.R1, insn.reg.R2)
+	frame.setreg(f, ins.a, insn.reg.R1)
 	state[ins.a] = {t = INT}
 end
 
 function arithmetic.BNOT(f, pc, ins, state)
-	into(f, pc, state, ins.b, reg.R1)
+	frame.into(f, pc, state, ins.b, insn.reg.R1)
 	numbers(f, pc, state[ins.b])
-	f.code:alui(alu.XOR, reg.R1, -1)
-	setreg(f, ins.a, reg.R1)
+	f.code:alui(insn.alu.XOR, insn.reg.R1, -1)
+	frame.setreg(f, ins.a, insn.reg.R1)
 	state[ins.a] = {t = INT}
 end
 
@@ -238,8 +234,8 @@ local function truth(f, pc, state, i)
 	if mask == NIL then
 		return false
 	end
-	if mask == 0 or (mask & ~(BOOL | NIL | classes.untested)) ~= 0 then
-		refuse(f, pc, "a %s has no truth value in a compiled function", typename(value))
+	if mask == 0 or (mask & ~(BOOL | NIL | frame.classes.untested)) ~= 0 then
+		frame.refuse(f, pc, "a %s has no truth value in a compiled function", frame.typename(value))
 	end
 	return nil
 end
@@ -248,18 +244,18 @@ arithmetic.truth = truth
 function arithmetic.NOT(f, pc, ins, state)
 	local known = truth(f, pc, state, ins.b)
 	if known ~= nil then
-		resolve(f, pc, state, ins.a, not known)
+		frame.resolve(f, pc, state, ins.a, not known)
 		return
 	end
 	local one, done = f.code:label(), f.code:label()
-	into(f, pc, state, ins.b, reg.R1)
-	f.code:branchi(jump.JEQ, reg.R1, 0, one)
-	f.code:set(reg.R2, 0)
+	frame.into(f, pc, state, ins.b, insn.reg.R1)
+	f.code:branchi(insn.jump.JEQ, insn.reg.R1, 0, one)
+	f.code:set(insn.reg.R2, 0)
 	f.code:jump(done)
 	f.code:place(one)
-	f.code:set(reg.R2, 1)
+	f.code:set(insn.reg.R2, 1)
 	f.code:place(done)
-	setreg(f, ins.a, reg.R2)
+	frame.setreg(f, ins.a, insn.reg.R2)
 	state[ins.a] = {t = BOOL}
 end
 

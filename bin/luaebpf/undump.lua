@@ -15,20 +15,13 @@
 
 local class = require("lunatik.class")
 
-local unpack = string.unpack
-local pack   = string.pack
-local char   = string.char
-local format = string.format
-local insert = table.insert
-local concat = table.concat
-
 local VARINT <const> = 0x7f
 local MORE   <const> = 0x80
 
 local reader = class{}
 
 local function fail(self, why)
-	error(format("%s: bad binary format (%s)", self.name, why), 0)
+	error(string.format("%s: bad binary format (%s)", self.name, why), 0)
 end
 
 function reader:take(n)
@@ -45,7 +38,7 @@ function reader:byte()
 end
 
 function reader:unpack(spec, size)
-	return (unpack("=" .. spec, self:take(size)))
+	return (string.unpack("=" .. spec, self:take(size)))
 end
 
 function reader:signed(size)
@@ -90,7 +83,7 @@ function reader:string()
 		return self.saved[index] or fail(self, "invalid string index")
 	end
 	local s = self:take(size):sub(1, size - 1)
-	insert(self.saved, s)
+	table.insert(self.saved, s)
 	return s
 end
 
@@ -333,11 +326,11 @@ function undump.read(bytes, name, tables)
 end
 
 local function header(fmt)
-	return fmt.SIGNATURE .. char(fmt.LUAC_VERSION, fmt.LUAC_FORMAT) .. fmt.DATA ..
-		pack("=Bi" .. fmt.INT, fmt.INT, fmt.LUAC_INT) ..
-		pack("=BI" .. fmt.INSTRUCTION, fmt.INSTRUCTION, fmt.LUAC_INST) ..
-		pack("=Bi" .. fmt.INTEGER, fmt.INTEGER, fmt.LUAC_INT) ..
-		pack("=Bn", fmt.NUMBER, fmt.LUAC_NUM)
+	return fmt.SIGNATURE .. string.char(fmt.LUAC_VERSION, fmt.LUAC_FORMAT) .. fmt.DATA ..
+		string.pack("=Bi" .. fmt.INT, fmt.INT, fmt.LUAC_INT) ..
+		string.pack("=BI" .. fmt.INSTRUCTION, fmt.INSTRUCTION, fmt.LUAC_INST) ..
+		string.pack("=Bi" .. fmt.INTEGER, fmt.INTEGER, fmt.LUAC_INT) ..
+		string.pack("=Bn", fmt.NUMBER, fmt.LUAC_NUM)
 end
 
 local function setfield(i, pos, size, value)
@@ -351,15 +344,15 @@ local carriesevent = {MMBIN = true, MMBINI = true, MMBINK = true}
 local function renumber(rewrite, p, pieces)
 	local to, layout = rewrite.to, rewrite.to.layout
 	local spec = "=I" .. rewrite.from.format.INSTRUCTION
-	insert(pieces, rewrite.bytes:sub(rewrite.at, p.at - 1))
+	table.insert(pieces, rewrite.bytes:sub(rewrite.at, p.at - 1))
 	for pc, ins in ipairs(p.code) do
 		local name = rewrite.opnames[ins.op]
-		local i = setfield(unpack(spec, rewrite.bytes, p.at + (pc - 1) * rewrite.size), layout.POS_OP,
+		local i = setfield(string.unpack(spec, rewrite.bytes, p.at + (pc - 1) * rewrite.size), layout.POS_OP,
 			layout.SIZE_OP, to.opcodes[name].op)
 		if carriesevent[name] then
 			i = setfield(i, layout.POS_C, layout.SIZE_C, to.events[rewrite.events[ins.c]])
 		end
-		insert(pieces, pack(spec, i))
+		table.insert(pieces, string.pack(spec, i))
 	end
 	rewrite.at = p.at + #p.code * rewrite.size
 	for _, nested in ipairs(p.protos) do
@@ -396,8 +389,8 @@ function undump.rewrite(bytes, name, from, to)
 	self:byte()
 	local pieces = {head}
 	renumber(rewrite, self:load(), pieces)
-	insert(pieces, bytes:sub(rewrite.at))
-	return concat(pieces)
+	table.insert(pieces, bytes:sub(rewrite.at))
+	return table.concat(pieces)
 end
 
 return undump

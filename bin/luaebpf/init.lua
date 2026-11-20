@@ -45,10 +45,6 @@ local emit     = require("luaebpf.emit")
 local writer   = require("luaebpf.writer")
 local vmlinux  = require("bpf.vmlinux")
 
-local insert = table.insert
-local format = string.format
-local getenv = os.getenv
-
 local DROP <const> = "LUAEBPF_DROP"
 
 -- the host's path, through which a body still reaches the compiler's own modules
@@ -63,7 +59,8 @@ local function own(name)
 		return assert(loadfile(path)), path
 	end
 end
-insert(package.searchers, #package.searchers, own) -- the compiler's luaebpf.*, ahead of the kernel scripts' searcher
+-- the compiler's luaebpf.*, ahead of the kernel scripts' searcher
+table.insert(package.searchers, #package.searchers, own)
 
 local luaebpf = {}
 
@@ -121,12 +118,12 @@ function luaebpf.compile(path, btffile, scripts)
 	end
 	local declared = programs.declared()
 	if #declared == 0 then
-		error(format("%s: no program declared", path), 0)
+		error(string.format("%s: no program declared", path), 0)
 	end
 	for _, program in ipairs(declared) do
 		program.name = name(program, path)
 	end
-	local object, calls = writer.write(declared, getenv(DROP))
+	local object, calls = writer.write(declared, os.getenv(DROP))
 	vmlinux.check(emit.bigendian)
 	return object, calls
 end

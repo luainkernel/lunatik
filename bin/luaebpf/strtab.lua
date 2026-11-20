@@ -10,9 +10,6 @@
 
 local class = require("lunatik.class")
 
-local insert = table.insert
-local concat = table.concat
-
 local strtab = {}
 
 ---
@@ -39,7 +36,7 @@ function strings:intern(name)
 		return at
 	end
 	at = self.length
-	insert(self.list, name .. "\0")
+	table.insert(self.list, name .. "\0")
 	self.offsets[name] = at
 	self.length = at + #name + 1
 	return at
@@ -50,7 +47,7 @@ end
 -- @function luaebpf.strtab.strings:pack
 -- @treturn string
 function strings:pack()
-	return concat(self.list)
+	return table.concat(self.list)
 end
 
 return strtab

@@ -14,10 +14,6 @@
 local class  = require("lunatik.class")
 local strtab = require("luaebpf.strtab")
 
-local pack   = string.pack
-local concat = table.concat
-local insert = table.insert
-
 local EHSIZE      <const> = 64
 local SHENTSIZE   <const> = 64
 local SYMSIZE     <const> = 24
@@ -64,7 +60,7 @@ local object = class{}
 function elf.new(bigendian)
 	local order = bigendian and ">" or "<"
 	return object:new{sections = {{name = "", data = ""}}, indexes = {}, nlocals = 1, order = order,
-		symbols = {pack(order .. "I4I1I1I2I8I8", 0, 0, 0, 0, 0, 0)}, names = strtab.new()}
+		symbols = {string.pack(order .. "I4I1I1I2I8I8", 0, 0, 0, 0, 0, 0)}, names = strtab.new()}
 end
 
 ---
@@ -84,7 +80,7 @@ end
 -- @treturn integer the section's index
 function object:section(section)
 	self:string(section.name)
-	insert(self.sections, section)
+	table.insert(self.sections, section)
 	self.indexes[section.name] = #self.sections - 1
 	return #self.sections - 1
 end
@@ -104,7 +100,7 @@ function object:symbol(symbol)
 		self.nlocals = self.nlocals + 1
 	end
 	local shndx = symbol.section == nil and SHN_UNDEF or self.indexes[symbol.section]
-	insert(self.symbols, pack(self.order .. "I4I1I1I2I8I8", self:string(symbol.name),
+	table.insert(self.symbols, string.pack(self.order .. "I4I1I1I2I8I8", self:string(symbol.name),
 		(symbol.bind << 4) | symbol.type, 0, shndx, symbol.value, symbol.size))
 	return #self.symbols - 1
 end
@@ -118,9 +114,9 @@ end
 function object:relocations(name, entries)
 	local records = {}
 	for _, entry in ipairs(entries) do
-		insert(records, pack(self.order .. "I8I8", entry.at, (entry.symbol << 32) | entry.type))
+		table.insert(records, string.pack(self.order .. "I8I8", entry.at, (entry.symbol << 32) | entry.type))
 	end
-	self:section{name = ".rel" .. name, type = elf.section.REL, flags = 0, data = concat(records),
+	self:section{name = ".rel" .. name, type = elf.section.REL, flags = 0, data = table.concat(records),
 		link = ".symtab", info = name, align = 8, entsize = RELSIZE}
 end
 
@@ -137,16 +133,16 @@ local function place(self)
 end
 
 local function headers(self)
-	local out = {pack(self.order .. "I4I4I8I8I8I8I4I4I8I8", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)}
+	local out = {string.pack(self.order .. "I4I4I8I8I8I8I4I4I8I8", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)}
 	for i = 2, #self.sections do
 		local section = self.sections[i]
 		local link = section.link ~= nil and self.indexes[section.link] or 0
 		local info = type(section.info) == "string" and self.indexes[section.info] or (section.info or 0)
-		insert(out, pack(self.order .. "I4I4I8I8I8I8I4I4I8I8", self:string(section.name), section.type,
+		table.insert(out, string.pack(self.order .. "I4I4I8I8I8I8I4I4I8I8", self:string(section.name), section.type,
 			section.flags, 0, section.offset, #section.data, link, info,
 			section.align or 1, section.entsize or 0))
 	end
-	return concat(out)
+	return table.concat(out)
 end
 
 ---
@@ -155,7 +151,7 @@ end
 -- @function luaebpf.elf.object:pack
 -- @treturn string
 function object:pack()
-	self:section{name = ".symtab", type = elf.section.SYMTAB, flags = 0, data = concat(self.symbols),
+	self:section{name = ".symtab", type = elf.section.SYMTAB, flags = 0, data = table.concat(self.symbols),
 		link = ".strtab", info = self.nlocals, align = 8, entsize = SYMSIZE}
 	local shstrndx = self:section{name = ".strtab", type = elf.section.STRTAB, flags = 0, align = 1}
 	self.sections[shstrndx + 1].data = self.names:pack()
@@ -163,19 +159,19 @@ function object:pack()
 	local shoff = place(self)
 	shoff = shoff + (8 - shoff % 8) % 8
 	local data = self.order == ">" and ELFDATA2MSB or ELFDATA2LSB
-	local out = {"\x7fELF", pack("=I1I1I1I1I1", 2, data, 1, 0, 0), ("\0"):rep(7),
-		pack(self.order .. "I2I2I4I8I8I8I4I2I2I2I2I2I2", ET_REL, EM_BPF, 1, 0, 0, shoff, 0,
+	local out = {"\x7fELF", string.pack("=I1I1I1I1I1", 2, data, 1, 0, 0), ("\0"):rep(7),
+		string.pack(self.order .. "I2I2I4I8I8I8I4I2I2I2I2I2I2", ET_REL, EM_BPF, 1, 0, 0, shoff, 0,
 			EHSIZE, 0, 0, SHENTSIZE, #self.sections, shstrndx)}
 	local at = EHSIZE
 	for i = 2, #self.sections do
 		local section = self.sections[i]
-		insert(out, ("\0"):rep(section.offset - at))
-		insert(out, section.data)
+		table.insert(out, ("\0"):rep(section.offset - at))
+		table.insert(out, section.data)
 		at = section.offset + #section.data
 	end
-	insert(out, ("\0"):rep(shoff - at))
-	insert(out, headers(self))
-	return concat(out)
+	table.insert(out, ("\0"):rep(shoff - at))
+	table.insert(out, headers(self))
+	return table.concat(out)
 end
 
 return elf

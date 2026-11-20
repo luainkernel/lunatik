@@ -14,10 +14,6 @@
 
 local class = require("lunatik.class")
 
-local pack   = string.pack
-local concat = table.concat
-local insert = table.insert
-
 -- instruction classes and fields: uapi/linux/bpf.h, uapi/linux/bpf_common.h
 local LD    <const> = 0x00
 local LDX   <const> = 0x01
@@ -293,7 +289,7 @@ function code:relocations(kind)
 	for i = 1, self.n do
 		local name = self.records[i][kind]
 		if name ~= nil then
-			insert(found, {at = i, name = name})
+			table.insert(found, {at = i, name = name})
 		end
 	end
 	return found
@@ -316,9 +312,10 @@ function code:pack(bigendian)
 		if record.target ~= nil then
 			off = self.labels[record.target] - i
 		end
-		insert(bytes, pack(format, record.code, (record.dst << dstshift) | (record.src << srcshift), off, record.imm))
+		table.insert(bytes, string.pack(format, record.code,
+			(record.dst << dstshift) | (record.src << srcshift), off, record.imm))
 	end
-	return concat(bytes)
+	return table.concat(bytes)
 end
 
 return insn
