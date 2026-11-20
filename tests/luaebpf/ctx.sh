@@ -21,7 +21,7 @@
 #   - a value the program computes past 32 bits or below zero, where the kernel's skb:priority
 #     raises, returns TC_ACT_SHOT, and ctx_out carries the priority prog run was given; one run of
 #     each writes into the trace ring "out of bounds", as lunatik_checkbounds raises it, at its line,
-#     once and alone
+#     once and alone, and counts one stop at that line's place and none at another
 #   - a TC program declared with {egress = true} loads from its own section and reads #skb as
 #     the ingress one does
 #   - neither context has a field, read or assigned, the xdp_md and __sk_buff fields the proxies

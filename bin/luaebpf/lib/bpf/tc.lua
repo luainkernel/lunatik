@@ -14,9 +14,10 @@
 -- the packet or a division by 0, the program stops and returns `TC_ACT_SHOT`, which drops the
 -- packet, since TC has no verdict for a program error, and logs the error Lua raises there,
 -- `<file>:<line>: <reason>`, to the kernel's trace ring through `bpf_trace_printk`, ten lines every
--- five seconds at most; where it returns no value, it returns the default verdict its constructor
--- names. A verdict the compiler holds that is no action, and a boolean, are refused, "the verdict 9
--- is not a TC action" and "the verdict may be a boolean here; return an action".
+-- five seconds at most, and counts every stop at that line, which `lunatik bpf --errors` reports;
+-- where it returns no value, it returns the default verdict its constructor names. A verdict the
+-- compiler holds that is no action, and a boolean, are refused, "the verdict 9 is not a TC action"
+-- and "the verdict may be a boolean here; return an action".
 --
 -- The program's argument is spelled as the kernel's `skb` object: `#skb` is the packet's length,
 -- `skb:ifindex()` its device's index, `skb:hash()` its flow hash and `skb:priority()` its

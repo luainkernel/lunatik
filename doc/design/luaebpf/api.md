@@ -116,8 +116,10 @@ program error, which drops the packet and, in the generic path and in most drive
 packet. A stop logs what the interpreter would raise there, `<file>:<line>: <reason>`, through
 `bpf_trace_printk`, to the kernel's trace ring, which `bpftool prog tracelog` reads, under the rate
 limit of the kernel's own log, ten lines every five seconds, which the program keeps in its
-object's `.data` since the helper keeps none. The **default verdict**, which the program file names
-in the constructor, is what the
+object's `.data` since the helper keeps none, and counts every stop at its line, in the map
+`luaebpf_errors` the object declares, an entry per line a stop logs and CPU, which
+`lunatik bpf --errors <script>` reads back as the program's errors, `<n> <file>:<line>: <reason>`.
+The **default verdict**, which the program file names in the constructor, is what the
 program returns where its function returns no value, `return` or `return nil`, and never where it
 stops; a constructor that names none is refused at the line of its function:
 

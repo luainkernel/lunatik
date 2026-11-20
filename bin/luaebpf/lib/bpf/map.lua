@@ -93,6 +93,9 @@ local function named(kind, name, spec)
 	if not name:match(IDENTIFIER) then
 		error(("a map name is a C identifier, not '%s'"):format(name), CHECK)
 	end
+	if name == emit.ERRORS then
+		error(("'%s' is the map a program's errors are counted in"):format(name), CHECK)
+	end
 end
 
 local function codecs(spec)
@@ -147,7 +150,8 @@ end
 -- the object carries. A map needs a name whether or not a compiled function references it:
 -- `lunatik run` creates the map and pins it at `/sys/fs/bpf/lunatik/<script>/<name>`, where a
 -- kernel script opens it with the kernel's constructor of the same name, which takes the path and
--- the two specs, `map.hash(path, keyspec, valuespec)`.
+-- the two specs, `map.hash(path, keyspec, valuespec)`. The name `luaebpf_errors` is the
+-- compiler's, the map it counts a program's errors in.
 --
 -- In a compiled function a map reads as a table: `m[k]` gives the value or nil, `m[k] = v`
 -- inserts or replaces, `m[k] = nil` deletes. A lookup's value is used only after `if v then` tests
@@ -172,8 +176,8 @@ end
 -- @raise `map.hash takes a name and a spec`, `a map name is a C identifier, not '<name>'`, `a
 --   map key spec packs one value`, `a map value spec packs one value or is a struct codec`, `a
 --   map is read in the kernel's byte order, not '<spec>'`, `a map reads 1, 2, 4 or 8 bytes at a
---   time, not <n>`, `a map holds between 1 and 4294967295 entries, not <n>`, or `'<name>' is
---   declared twice`
+--   time, not <n>`, `a map holds between 1 and 4294967295 entries, not <n>`, `'<name>' is
+--   declared twice`, or `'luaebpf_errors' is the map a program's errors are counted in`
 function map.hash(name, spec)
 	return declare("hash", name, spec)
 end

@@ -13,6 +13,7 @@ usage: lunatik [-h | -V]
        lunatik test [<suite>]
        lunatik compile [<lunatic argument>...]
        lunatik bpf [--btf=<file>] [--scripts=<dir>] [-o <object>] <program>
+       lunatik bpf --errors <script>
 ```
 
 * `-h`, `--help`: print the usage
@@ -29,6 +30,7 @@ usage: lunatik [-h | -V]
   (see [Program files](#program-files))
 * `--scripts=<dir>`: the directory `bpf` reads the kernel scripts a program file requires from,
   `/lib/modules/lua` by default (see [Program files](#program-files))
+* `--errors`: `bpf` reports the errors of the script's compiled program, and takes no other option
 
 * <code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
   `modprobe` prints its error on stderr and the load goes on, so read `lunatik status` and the kernel log
@@ -44,6 +46,10 @@ usage: lunatik [-h | -V]
 * `compile <arguments>`: run `lunatic` with the given arguments (see [lunatic](#lunatic))
 * `bpf [--btf=<file>] [--scripts=<dir>] [-o <object>] <program>`: compile a program file into a
   BPF object (see [Program files](#program-files))
+* `bpf --errors <script>`: print the errors of the compiled program a `run` of the script attached,
+  a line for each place it stopped at, `<n> <file>:<line>: <reason>`, failing on a script with
+  nothing pinned under its root (see
+  [When a program cannot be compiled or computed](08-luaebpf.md#when-a-program-cannot-be-compiled-or-computed))
 * `list`: show which runtime environments are currently running, one script a line, in order of name
 * `run [-c softirq | hardirq] [-p] [--dev=<ifname>] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md). Where `/usr/local/lib/bpf/luaebpf/<script>.bpf.o` exists, `run` also loads and attaches that program: see [Compiled programs](#compiled-programs)
 * `spawn <script>`: create a new runtime environment for the script `/lib/modules/lua/<script>.lua`,
@@ -215,7 +221,9 @@ When `/usr/local/lib/bpf/luaebpf/<script>.bpf.o` exists, the object compiled fro
 `<script>.bpf.lua`, `lunatik run --dev=<ifname> <script>`:
 
 1. takes down what a previous run of the script left under `/sys/fs/bpf/lunatik/<script>/`, then
-   creates the maps the program file declares and pins each there under its name;
+   creates the maps the program file declares and pins each there under its name, beside
+   `luaebpf_errors`, the map a program that may stop counts its errors in, and
+   `luaebpf_errors-lines`, the lines of their places;
 2. starts the runtime for `<script>.lua`, when there is one, whose script opens those maps by that
    path;
 3. attaches every program the object declares to `<ifname>`, an XDP program to the device and a TC
@@ -257,8 +265,9 @@ The maps exist before the script opens them, and the programs attach once the ru
 failure at any step undoes the steps before it and exits 1 with that step's message, the verifier's
 own log when the kernel rejects a program, which quotes the Lua line; libbpf's own warnings, which
 name what failed where the kernel logs nothing, print on stderr before it. Once attached, a program
-drops a packet it cannot compute, with `XDP_ABORTED` or `TC_ACT_SHOT`, and logs the error Lua raises
-there to the kernel's trace ring, as
+drops a packet it cannot compute, with `XDP_ABORTED` or `TC_ACT_SHOT`, logs the error Lua raises
+there to the kernel's trace ring and counts the stop at its line, which
+`lunatik bpf --errors <script>` reports, as
 [When a program cannot be compiled or computed](08-luaebpf.md#when-a-program-cannot-be-compiled-or-computed)
 says. `lunatik stop <script>`
 runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each

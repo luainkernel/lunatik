@@ -12,8 +12,9 @@
 -- script's xdp callback does. Where it computes a verdict that is no action, and where Lua would
 -- raise, at a read past the packet or a division by 0, the program stops and returns `XDP_ABORTED`,
 -- the kernel's verdict for a program error, which drops the packet, and logs the error Lua raises
--- there, `<file>:<line>: <reason>`, to the kernel's trace ring through `bpf_trace_printk`, ten lines
--- every five seconds at most; where it returns no value, it returns the default verdict its
+-- there, `<file>:<line>: <reason>`, to the kernel's trace ring through `bpf_trace_printk`, ten
+-- lines every five seconds at most, and counts every stop at that line, which
+-- `lunatik bpf --errors` reports; where it returns no value, it returns the default verdict its
 -- constructor names. A verdict the compiler holds that is no action, and a boolean, are refused,
 -- "the verdict 11 is not an XDP action" and "the verdict may be a boolean here; return an action".
 --

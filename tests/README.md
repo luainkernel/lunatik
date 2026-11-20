@@ -1211,10 +1211,13 @@ the object, and the case compares that with the 64 bits the compiled program
 kept, and its verdict with the default. Where the interpreter raises, the
 compiled program keeps nothing and owes the error verdict of its type instead,
 `XDP_ABORTED` or `TC_ACT_SHOT`, and a stop writes the interpreter's error into
-the kernel's trace ring, `<file>:<line>: <reason>`. A case that reads that
-line skips where no trace ring is mounted at `/sys/kernel/tracing` or tracing
-is off, and reads it from an object whose rate limit, ten lines every five
-seconds, the stops before it have not spent.
+the kernel's trace ring, `<file>:<line>: <reason>`, and counts one stop at the
+place of that line in the map `luaebpf_errors` the object declares. A case
+that reads that line skips where no trace ring is mounted at
+`/sys/kernel/tracing` or tracing is off, and reads it from an object whose
+rate limit, ten lines every five seconds, the stops before it have not spent;
+it reads the counts beside it through `luaebpf.errors`, the reader of
+`lunatik bpf --errors`.
 
 - **host**: the body runs from the chunk `lunatic` compiles, rewritten for
   the CLI's Lua, and computes as the kernel does: `10 / 4` is the integer 2,
@@ -1302,10 +1305,12 @@ seconds, the stops before it have not spent.
 - **divzero**: `// 0` and `% 0`, by a constant divisor and by one the program
   computes, return `XDP_ABORTED` and not the default the file names, and keep
   nothing, and one run of each logs "attempt to divide by zero" or "attempt to
-  perform 'n%0'" at its file and line, once and alone, past twenty runs of
-  `mininteger // -1`, which log nothing and spend none of the rate limit;
-  twenty runs of one, in the object loaded again, log ten lines, a run of
-  another of its programs none after them, and a run six seconds later one more;
+  perform 'n%0'" at its file and line, once and alone, and counts one stop at
+  its place and none at another, past twenty runs of `mininteger // -1`, which
+  log and count nothing and spend none of the rate limit; twenty runs of one,
+  in the object loaded again, log ten lines and count twenty, a run of another
+  of its programs logs none after them and counts one, and a run six seconds
+  later logs one more;
   `mininteger // -1` and `x % -1` match the interpreter; with
   `LUAEBPF_DROP=divisor` the programs keep the raw eBPF answers instead.
 - **verdict**: a verdict the program computes at either end of its type's
@@ -1357,8 +1362,8 @@ seconds, the stops before it have not spent.
   the file names, a row past such a call adding one so that a caller that went
   on past the flag is not read as `XDP_ABORTED`, and a callee that reaches
   nothing but its abort tail still loads; one run of a division by zero six
-  frames down, two and one logs the callee's line once, and its callers
-  nothing; one static BTF
+  frames down, two and one logs the callee's line once and counts one stop at
+  its place, and its callers log and count nothing; one static BTF
   `FUNC` per subprogram; five arguments, since the fifth register carries the
   abort pointer, a call short of an argument the callee declares, and
   recursion refused with their lines.
@@ -1476,8 +1481,9 @@ seconds, the stops before it have not spent.
   messages and lines, and so is a declaration the
   object cannot carry: a key spec of two values, one that pads its integer, a
   value spec Lua cannot read back or reads as a float, a width no load covers,
-  no entries, a name BTF cannot spell, an array keyed by eight bytes, a foreign
-  byte order, a name declared twice and a constructor without a name.
+  no entries, a name BTF cannot spell, `luaebpf_errors`, the map the compiler
+  counts the errors in, an array keyed by eight bytes, a foreign byte order, a
+  name declared twice and a constructor without a name.
 - **mapset**: the programs run first and the shell reads the pinned maps
   afterwards, so what is asserted is what the kernel kept: an update under a key
   the compiler folded in and one the program computed from the packet, a delete
@@ -1555,6 +1561,28 @@ seconds, the stops before it have not spent.
   pack, in a register and as a `GETI` index, a value it does not pack, and
   `xdp.program` and `tc.program` called with no default verdict, with options
   and with none, at the line of the program's function, among them.
+- **count**: a thousand stops on each of two CPUs at once sum to two thousand,
+  skipped on a host of one CPU; the places of a program file are its lines a
+  stop logs, each once in the order the compiler met them: two reads of one
+  line are one place, which a stop at either counts, and a division and a
+  modulo on one line two; a function two programs call is one place, which a
+  stop of each counts, and the file names it `luaebpf_errors`, which the
+  object keeps for the map and names the function otherwise; and a program
+  file that stops nowhere declares no `luaebpf_errors` and carries no lines,
+  and in one that names its program and the function it calls
+  `luaebpf_errors`, the object keeps the name all the same: the program takes
+  `luaebpf_error_2` and the function `luaebpf_error_3`, as a second and a
+  third function of one name do, the run pins the link as
+  `luaebpf_error_2-link`, and `lunatik bpf --errors` prints nothing and exits
+  0. Then a loader case over
+  `stopper.bpf.lua`: the run pins `luaebpf_errors` and `luaebpf_errors-lines`
+  beside the link, `lunatik bpf --errors` prints nothing before a stop, then
+  `1 <file>:<line>: out of bounds` and `2 <file>:<line>: out of bounds` for the
+  read a frame of the Ethernet header alone stops at, which the case runs by
+  the id the device carries, and nothing for the division no frame stops at; a
+  second run starts at zero, a stop takes the pins down with the root, after
+  which `--errors` exits 1, and `--errors` with `-o`, `--btf` or `--scripts`,
+  with a second script, or with no script, exits 2 with the usage.
 - **budget**: the "processed N insns" figure the verifier prints for the
   worst program of each corpus, reported as a comment and asserted under a
   ceiling; the calls into the kernel Lua runtime are counted where the kernel
@@ -1567,7 +1595,9 @@ file the case compiles and puts at the script's path under
 suite's own; each tears down before it reads its verdict.
 
 - **load**: the run pins the map the program file declares under
-  `/sys/fs/bpf/lunatik/<script>/`, registers the runtime, and pins the link
+  `/sys/fs/bpf/lunatik/<script>/`, beside `luaebpf_errors`, the map its errors
+  count in, and `luaebpf_errors-lines`, the lines of their places, registers
+  the runtime, and pins the link
   whose program the device then carries. The kernel script opens the map by
   its pin path, which it can only do if the map was pinned before the runtime
   started, so its line is the order. A script with an object and no `.lua`

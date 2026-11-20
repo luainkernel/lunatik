@@ -19,7 +19,8 @@
 #     program's own frame through the context: a read past the end of the packet, the TCP header's
 #     doff on the ICMP echo, stops the program at that field, after what an earlier field of the same
 #     view kept, as the twin raises there, and one run of it writes "out of bounds" into the trace
-#     ring at the line of the read, the callee's, once and alone, on XDP and on TC; and a view each
+#     ring at the line of the read, the callee's, once and alone, on XDP and on TC, and counts one
+#     stop at that line's place and none at another; and a view each
 #     arm of a branch makes of the one struct, at an offset of its own, is read where the arms meet,
 #     by the struct both arms agree on
 #   - a view made with no offset, where an earlier call left a number in the register the offset

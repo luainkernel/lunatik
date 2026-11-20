@@ -43,6 +43,7 @@ local programs = require("luaebpf.programs")
 local proto    = require("luaebpf.proto")
 local emit     = require("luaebpf.emit")
 local writer   = require("luaebpf.writer")
+local errors   = require("luaebpf.errors")
 local vmlinux  = require("bpf.vmlinux")
 
 local DROP <const> = "LUAEBPF_DROP"
@@ -127,6 +128,22 @@ function luaebpf.compile(path, btffile, scripts)
 	vmlinux.check(emit.bigendian)
 	return object, calls
 end
+
+---
+-- Reads back the errors of a compiled program `lunatik run` attached, from the maps it pinned under
+-- the script's root: how many times the program stopped at each place, a line a stop logs.
+-- @function luaebpf.errors
+-- @tparam string root the script's root, `/sys/fs/bpf/lunatik/<script>`
+-- @treturn table|nil a table per place, `{file, line, reason, count}`, in the order the compiler met
+--   the places, the count summed over the CPUs; an empty array where the root pins no
+--   `luaebpf_errors`, as a program that stops nowhere declares none
+-- @treturn string the message, where a pin cannot be read
+-- @usage
+-- local places = assert(luaebpf.errors("/sys/fs/bpf/lunatik/noudp"))
+-- for _, place in ipairs(places) do
+-- 	print(place.count, place.file, place.line, place.reason) --> 3  noudp.bpf.lua  8  out of bounds
+-- end
+luaebpf.errors = errors.read
 
 return luaebpf
 

@@ -7,15 +7,17 @@
 * luaebpf.loader: the libbpf half of `lunatik run`, a C module of the CLI's Lua. It opens a
 * script's compiled program, pins the maps the program declares under the script's root, attaches
 * every program to a device and pins each link, which keeps the program attached once the command
-* has exited. Every function answers nil and a message rather than raising, so the CLI decides
-* what to undo.
+* has exited, and reads back an entry of a pinned map. Every function answers nil and a message
+* rather than raising, so the CLI decides what to undo.
 */
 
 #include <errno.h>
 #include <net/if.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
 
+#include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 
 #include <lua.h>
@@ -34,6 +36,11 @@
 /* bpffs refuses a dot in a name (bpf_lookup), and a map name is a C identifier, so a hyphen tells
  * a link's pin from a map's */
 #define LUALOADER_LINK		"%s/%s-link"
+
+/* the section the compiler lays the line of each place a stop counts at in, whose map is pinned
+ * beside the map of the counts under a name of a link's kind */
+#define LUALOADER_PLACES	".data.luaebpf_errors"
+#define LUALOADER_LINES		"%s/luaebpf_errors-lines"
 
 #define LUALOADER_TCX		"tcx/"
 
@@ -113,16 +120,20 @@ static int lualoader_load(lua_State *L)
 {
 	lualoader_t *loader = luaL_checkudata(L, 1, LUALOADER_OBJECT);
 	const char *root = luaL_checkstring(L, 2);
+	struct bpf_map *lines = bpf_object__find_map_by_name(loader->object, LUALOADER_PLACES);
 	struct bpf_map *map;
 
 	/* the emitter writes no pinning attribute, so pin_root_path would reach no map */
 	bpf_object__for_each_map(map, loader->object) {
 		const char *path;
 
+		if (map == lines)
+			path = lua_pushfstring(L, LUALOADER_LINES, root);
 		/* .data, which no script opens, and whose dotted name bpffs refuses */
-		if (bpf_map__is_internal(map))
+		else if (bpf_map__is_internal(map))
 			continue;
-		path = lua_pushfstring(L, "%s/%s", root, bpf_map__name(map));
+		else
+			path = lua_pushfstring(L, "%s/%s", root, bpf_map__name(map));
 		if (bpf_map__set_pin_path(map, path) != 0)
 			return lualoader_fail(L, "couldn't pin %s: %s", path, lualoader_strerror(errno));
 		lua_pop(L, 1);
@@ -179,6 +190,65 @@ static int lualoader_detach(lua_State *L)
 	return 1;
 }
 
+static inline int lualoader_ispercpu(__u32 type)
+{
+	return type == BPF_MAP_TYPE_PERCPU_ARRAY || type == BPF_MAP_TYPE_PERCPU_HASH ||
+		type == BPF_MAP_TYPE_LRU_PERCPU_HASH || type == BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE;
+}
+
+/* nil, the message and the error number, as io.open answers, which tells a path that pins nothing */
+static int lualoader_failerrno(lua_State *L, const char *format, const char *path, int err)
+{
+	lualoader_fail(L, format, path, lualoader_strerror(err));
+	lua_pushinteger(L, err);
+	return 3;
+}
+
+/* the bytes of the entry at the index of the map, or a sequence of each possible CPU's */
+static int lualoader_entry(lua_State *L, int map, const char *path, __u32 index)
+{
+	struct bpf_map_info info;
+	__u32 size = sizeof(info);
+	int ncpus = 1, percpu, cpu;
+	size_t stride;
+	char *value;
+
+	memset(&info, 0, sizeof(info));
+	if (bpf_obj_get_info_by_fd(map, &info, &size) != 0)
+		return lualoader_failerrno(L, "couldn't read %s: %s", path, errno);
+	percpu = lualoader_ispercpu(info.type);
+	if (percpu && (ncpus = libbpf_num_possible_cpus()) < 0)
+		return lualoader_failerrno(L, "couldn't count the CPUs of %s: %s", path, -ncpus);
+	/* round_up(value_size, 8), as bpf_map_value_size @ kernel/bpf/syscall.c spaces the CPUs' values */
+	stride = percpu ? (info.value_size + 7) & ~7U : info.value_size;
+	value = lua_newuserdatauv(L, stride * ncpus, 0);
+	if (bpf_map_lookup_elem(map, &index, value) != 0)
+		return lualoader_failerrno(L, "couldn't read %s: %s", path, errno);
+	if (!percpu) {
+		lua_pushlstring(L, value, info.value_size);
+		return 1;
+	}
+	lua_createtable(L, ncpus, 0);
+	for (cpu = 0; cpu < ncpus; cpu++) {
+		lua_pushlstring(L, value + stride * cpu, info.value_size);
+		lua_rawseti(L, -2, cpu + 1);
+	}
+	return 1;
+}
+
+static int lualoader_lookup(lua_State *L)
+{
+	const char *path = luaL_checkstring(L, 1);
+	__u32 index = (__u32)luaL_checkinteger(L, 2);
+	int map = bpf_obj_get(path), ret;
+
+	if (map < 0)
+		return lualoader_failerrno(L, "couldn't open %s: %s", path, errno);
+	ret = lualoader_entry(L, map, path, index);
+	close(map);
+	return ret;
+}
+
 static const luaL_Reg lualoader_mt[] = {
 	{"load", lualoader_load},
 	{"attach", lualoader_attach},
@@ -189,6 +259,7 @@ static const luaL_Reg lualoader_mt[] = {
 static const luaL_Reg lualoader_lib[] = {
 	{"open", lualoader_open},
 	{"detach", lualoader_detach},
+	{"lookup", lualoader_lookup},
 	{NULL, NULL}
 };
 
