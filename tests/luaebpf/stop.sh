@@ -65,7 +65,7 @@ attached=$(luaebpf_attached)
 lunatik stop tests/luaebpf/loader > /dev/null 2>&1
 
 [ "$status" -eq 0 ] && [ -z "$output" ] || { comment "$output"; fail "luaebpf: the run after a stop exited $status"; }
-[ "$pinned" = "counts loader-link " ] && [ -n "$attached" ] ||
+[ "$pinned" = "counts loader-link luaebpf_errors luaebpf_errors-lines " ] && [ -n "$attached" ] ||
 	fail "luaebpf: the run after a stop left '$pinned' and program '$attached'"
 ktap_pass "luaebpf: a run after a stop pins and attaches again"
 
@@ -93,7 +93,7 @@ lunatik stop tests/luaebpf/loader > /dev/null 2>&1
 
 [ "$status" -eq 1 ] && grep -qF "is already running" <<< "$again" ||
 	{ comment "$again"; fail "luaebpf: a second run of a running script exited $status"; }
-[ "$pinned" = "counts loader-link " ] || fail "luaebpf: the refused run left the live root holding '$pinned'"
+[ "$pinned" = "counts loader-link luaebpf_errors luaebpf_errors-lines " ] || fail "luaebpf: the refused run left the live root holding '$pinned'"
 [ -n "$first" ] && [ "$attached" = "$first" ] ||
 	fail "luaebpf: the refused run left program '$attached' where the live run attached '$first'"
 ktap_pass "luaebpf: a run of a script already running is refused with the live one untouched"
@@ -114,7 +114,7 @@ lunatik stop tests/luaebpf/loader tests//luaebpf/loader > /dev/null 2>&1
 	{ comment "$again"; fail "luaebpf: a run of a live script's name spelled with a doubled slash exited $ran"; }
 [ "$halted" -eq 1 ] ||
 	{ comment "$respelled"; fail "luaebpf: a stop of a live script's name spelled with a leading slash exited $halted"; }
-[ "$pinned" = "counts loader-link " ] && [ -n "$first" ] && [ "$attached" = "$first" ] ||
+[ "$pinned" = "counts loader-link luaebpf_errors luaebpf_errors-lines " ] && [ -n "$first" ] && [ "$attached" = "$first" ] ||
 	fail "luaebpf: the respelled names left '$pinned' and program '$attached' where the live run attached '$first'"
 [ "$listed" -eq 1 ] || fail "luaebpf: the respelled names left $listed runtimes of the script"
 ktap_pass "luaebpf: a run and a stop of a live script's name spelled another way leave it alone"
@@ -145,7 +145,7 @@ lunatik stop tests/luaebpf/loader > /dev/null 2>&1
 
 [ "$status" -eq 1 ] && grep -qF "tests/luaebpf is not running" <<< "$parent" ||
 	{ comment "$parent"; fail "luaebpf: the stop of a parent path exited $status"; }
-[ "$pinned" = "counts loader-link " ] && [ -n "$attached" ] ||
+[ "$pinned" = "counts loader-link luaebpf_errors luaebpf_errors-lines " ] && [ -n "$attached" ] ||
 	fail "luaebpf: the stop of a parent path left '$pinned' and program '$attached'"
 ktap_pass "luaebpf: a stop of a name that only parents a live root leaves it alone"
 

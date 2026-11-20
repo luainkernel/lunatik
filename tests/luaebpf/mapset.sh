@@ -23,7 +23,7 @@
 #     anew, writes into the trace ring at the write's file and line, once and alone,
 #     string.pack's "unsigned overflow" or "integer overflow" for a value or a key past its spec,
 #     and "the map '<name>' refused the update" or "the delete" for a write the map refuses, whose
-#     errno only the kernel knows
+#     errno only the kernel knows, and counts one stop at that line's place and none at another
 #   - a value that is not a number is refused with its line
 #
 # Usage: sudo bash tests/luaebpf/mapset.sh

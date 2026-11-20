@@ -15,8 +15,9 @@
 #     verdict of the program's type whatever default the file named
 #   - one run of a read past the end and of one above the ceiling on XDP, and of one past the end
 #     and one past 32 bits on TC, each a test of its own, writes "out of bounds" into the trace
-#     ring at the read's file and line, once and alone; so does a read past the end in a program
-#     file whose path holds bytes past ASCII, which the line carries as they are
+#     ring at the read's file and line, once and alone, and counts one stop at that line's place
+#     and none at another; so does a read past the end in a program file whose path holds bytes
+#     past ASCII, which the line carries as they are
 #   - with LUAEBPF_DROP=bounds the object is still written, and the verifier rejects it naming an
 #     invalid packet access, which is what says the check is emitted rather than implied
 #   - with LUAEBPF_DROP=loadbytes the test of what bpf_skb_load_bytes answers is gone from a TC
@@ -53,6 +54,9 @@ ktap_pass "luaebpf: every out-of-bounds row verifies"
 
 luaebpf_logcase "a read out of bounds logs its file and line once, on XDP and on TC" reads
 
+output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a bounds row differs from the interpreter"; }
+ktap_pass "luaebpf: every out-of-bounds read returns the error verdict of its program's type"
+
 # a program file named in UTF-8, whose line logs the bytes of its path
 cat > "$LUAEBPF_WORK/ação.bpf.lua" <<'LUA'
 local xdp = require("bpf.xdp")
@@ -65,17 +69,16 @@ return xdp.program(function(ctx)
 end, {name = "acao", default = action.PASS})
 LUA
 
-# the line the read past the end of ação.bpf.lua logs
+# the line the read past the end of ação.bpf.lua logs, the corpus's pins removed first, since the map
+# its errors count in takes the name of the corpus's
 named() {
 	luaebpf_written ação > /dev/null 2>&1 || { echo "ação.bpf.lua did not compile"; return; }
+	rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
 	luaebpf_loadall ação > /dev/null || { echo "ação.bpf.o did not verify"; return; }
 	luaebpf_logs acao "$LUAEBPF_WORK/ação.bpf.lua:6: $BOUNDS"
 }
 
 luaebpf_logcase "a read out of bounds logs a path past ASCII as it is" named
-
-output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a bounds row differs from the interpreter"; }
-ktap_pass "luaebpf: every out-of-bounds read returns the error verdict of its program's type"
 
 rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
 output=$(luaebpf_compile bounds bounds) || { comment "$output"; fail "luaebpf: the dropped build failed"; }

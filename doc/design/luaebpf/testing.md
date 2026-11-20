@@ -34,7 +34,9 @@ message naming `make`.
    read, a division by zero, a map key or value `string.pack` refuses), the compiled side must
    keep nothing and return the error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`, and a
    run of it writes the error into the trace ring once, its file, line and reason, which the cases
-   that read it count in the object they loaded, whose rate limit has ten lines to give. A loop
+   that read it count in the object they loaded, whose rate limit has ten lines to give, and adds
+   one to the count of that line's place and to no other, which they read as
+   `lunatik bpf --errors` does. A loop
    past the passes the kernel's iterator counts, or the budget it gives `may_goto`, stops the same
    way where the interpreter makes every pass, so its test asserts the stop alone, with no oracle.
 3. *The wire.* The existing `xdp` and `tc` harness: a veth pair with its peer in a namespace, a
@@ -86,12 +88,12 @@ matching and failing, not a list of features.
 | `host.sh` | the body runs from the chunk `lunatic` compiles, rewritten for the CLI's Lua, and computes as the kernel does, a module installed as a kernel chunk included; `luaebpf.proto.read` hands back a function's own bytecode, `/` read as integer division, and refuses a function the CLI's Lua compiled |
 | `pass.sh` | the constant-verdict program compiles, loads, and `prog run` returns the verdict |
 | `arith.sh` | every integer operator over a corpus of operand pairs, negative operands included, matches the interpreter (`//` and `%` floor semantics, shifts past 63) |
-| `divzero.sh` | a division by zero returns `XDP_ABORTED`, not the default verdict, where the interpreter raises, and logs "attempt to divide by zero" or "attempt to perform 'n%0'" at its line, once, past twenty runs of a division that does not stop, which log nothing and spend none of the rate limit; twenty stops log ten lines, a stop of another program of the object none after them, and one five seconds later one more |
+| `divzero.sh` | a division by zero returns `XDP_ABORTED`, not the default verdict, where the interpreter raises, and logs "attempt to divide by zero" or "attempt to perform 'n%0'" at its line, once, and counts one stop at its place, past twenty runs of a division that does not stop, which log and count nothing and spend none of the rate limit; twenty stops log ten lines and count twenty, a stop of another program of the object logs none after them and counts one, and one five seconds later logs one more |
 | `verdict.sh` | a verdict the program computes within its type's actions, at either end, is returned, and one outside them, past 32 bits or computed by a callee returns the error verdict of its type, `XDP_ABORTED` or `TC_ACT_SHOT`, not the default verdict, and logs "invalid action" at its line, once; a known verdict outside them, a boolean, pure or joined, and a default outside them are refused with their lines; with the test dropped by the hook the verifier still loads the program and the raw values come back |
 | `branch.sh` | `if`, `and`, `or`, `not` and every comparison over signed and unsigned edges match, and the corpus, whose rows stop nowhere, logs nothing |
 | `forconst.sh` | a `for` with constant bounds runs the right count; a zero-trip and a descending loop included |
 | `forvar.sh` | a `for` whose bound is a program value counts its passes with the kernel's iterator, verifies with a `may_goto` header where the kernel has it and without one before 6.9, and terminates with the interpreter's answer, or returns `XDP_ABORTED` past what the iterator counts; a zero step and a count past the budget log their reason at the line of the `for`, once |
-| `call.sh` | a call to a file-declared function becomes a subprogram; the object carries one `func_info` per subprogram; a check that fails inside one returns `XDP_ABORTED` through the flag each frame raises in its caller's, and logs one line, the callee's, which no caller adds to |
+| `call.sh` | a call to a file-declared function becomes a subprogram; the object carries one `func_info` per subprogram; a check that fails inside one returns `XDP_ABORTED` through the flag each frame raises in its caller's, and logs one line and counts one stop, the callee's, which no caller adds to |
 | `refuse.sh` | each refused construct (runtime table, a table of the body written through a register or its upvalue, a global assigned, a map's field written, closure, vararg, `pcall`, unknown global, tail call, `while`, `repeat`, a float the CLI's libraries return, a float literal `lunatic` refuses to parse, a function the CLI's Lua compiled from a string) fails with its message and line, and nothing is written; recursion and the five-argument call sit in `call.sh`, beside the calls they are the edges of |
 | `lineinfo.sh` | the object's `.BTF.ext` names the `.lua` file, and a program broken by the test hook is rejected with a log that quotes the Lua line |
 | `budget.sh` | the log's "processed N insns" line for the corpus programs, recorded and asserted under a ceiling, so a regression in emitted shape is caught before it reaches the 1M budget |
@@ -140,6 +142,12 @@ verifier-rejected shape for valid input is a bug, and the user must never see a 
 | Test | Proves |
 |------|--------|
 | `forvar.sh` | every way out of a loop whose bound the program computes, a break, a return, a stop and a goto out of two, alone and from an inner loop, destroys its iterator and matches the interpreter, on a kernel with and without `may_goto`; a count past the int the iterator takes, or past the passes it counts, stops before the first pass, and on a kernel with `may_goto` two nested loops past the budget it gives one call stop where it runs out |
+
+### Counting the errors
+
+| Test | Proves |
+|------|--------|
+| `count.sh` | stops on two CPUs at once sum to the runs made; the places of an object are the lines its stops log, each once in the order the compiler met them: two checks of one line count at one entry, two reasons on one line at two, and a function two programs call at one for both; a file that stops nowhere declares no `luaebpf_errors`; `lunatik run` pins `luaebpf_errors` and `luaebpf_errors-lines`, `lunatik bpf --errors` reports the place that stopped by its line and no other, a second run starts at zero, a stop takes the pins down and `--errors` then exits 1, and a wrong use exits 2 |
 
 ### Phase 6: examples
 

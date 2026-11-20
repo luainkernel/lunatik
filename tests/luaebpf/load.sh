@@ -4,10 +4,11 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # Tests what `lunatik run` leaves behind for a script that has a compiled program.
-#   - the map the program file declares is pinned under the script's root, the runtime is
-#     registered, the link is pinned, and the program the device carries is the one the pinned
-#     link holds. The kernel script opens the map by its pin path, which it can only do if the
-#     map was pinned before the runtime started, so its line is the order the run promises
+#   - the map the program file declares is pinned under the script's root, beside the map its
+#     errors count in and the lines of their places, the runtime is registered, the link is pinned,
+#     and the program the device carries is the one the pinned link holds. The kernel script opens
+#     the map by its pin path, which it can only do if the map was pinned before the runtime
+#     started, so its line is the order the run promises
 #   - a script with an object and no kernel script runs the program alone: the link is pinned and
 #     no runtime is registered, and its stop, with no runtime to stop, exits 0 and takes the program
 #     and the root down
@@ -37,7 +38,7 @@ attached=$(luaebpf_attached)
 lunatik stop tests/luaebpf/loader > /dev/null 2>&1
 
 [ "$status" -eq 0 ] && [ -z "$output" ] || { comment "$output"; fail "luaebpf: the run exited $status"; }
-[ "$pinned" = "counts loader-link " ] || fail "luaebpf: the script's root holds '$pinned'"
+[ "$pinned" = "counts loader-link luaebpf_errors luaebpf_errors-lines " ] || fail "luaebpf: the script's root holds '$pinned'"
 grep -qxF tests/luaebpf/loader <<< "$listed" || fail "luaebpf: lunatik list says '$listed'"
 [ "$opened" -eq 1 ] || fail "luaebpf: the kernel script did not open the map by its pin path"
 [ -n "$linked" ] && [ "$linked" = "$attached" ] ||

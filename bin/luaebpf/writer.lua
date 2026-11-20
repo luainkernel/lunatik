@@ -9,10 +9,12 @@
 --
 -- Each program is lowered by `luaebpf.emit` and laid out with `luaebpf.elf` and `luaebpf.btf`, in
 -- the byte order `luaebpf.emit.bigendian` says: its entry in the section its kind names, every
--- subprogram in `.text`, the maps `luaebpf.maps` holds in `.maps`, the kfunc a call into the kernel Lua
--- runtime names and those of the iterator a loop calls in `.ksyms`, the bytes a function's code takes
--- the address of, the line a stop logs among them, in `.data`, the license, each function's BTF, and
--- the line info that quotes the Lua line each instruction came from.
+-- subprogram in `.text`, the maps `luaebpf.maps` holds, and `luaebpf_errors` where a program may
+-- stop, in `.maps`, the kfunc a call into the kernel Lua runtime names and those of the iterator a
+-- loop calls in `.ksyms`, the bytes a function's code takes the address of in `.data`, but the line
+-- of each place a stop counts at, which `.data.luaebpf_errors` holds in the order of the places'
+-- entries in `luaebpf_errors`, the license, each function's BTF, and the line info that quotes the
+-- Lua line each instruction came from.
 -- @module luaebpf.writer
 
 local maps = require("luaebpf.maps")
@@ -25,6 +27,7 @@ local TEXT    <const> = ".text"
 local MAPS    <const> = ".maps"
 local KSYMS   <const> = ".ksyms"
 local DATA    <const> = ".data"
+local PLACES  <const> = ".data.luaebpf_errors"
 
 local writer = {}
 
@@ -160,31 +163,41 @@ local function named(object, indexes, list)
 	end
 end
 
--- the bytes a function's code takes the address of, each kept once however many name them
-local function constants(strings, kept, frame)
+-- the bytes a function's code takes the address of, each kept once however many name them, but the
+-- lines of the places, which the places keep
+local function constants(strings, kept, places, frame)
 	for _, use in ipairs(frame.code:relocations("data")) do
-		if not kept[use.name] then
+		if not kept[use.name] and places[use.name] == nil then
 			kept[use.name] = true
 			table.insert(strings, use.name)
 		end
 	end
 end
 
--- `.data`, of which libbpf makes an array map whose one value holds the bytes, at the address a
+-- a data section, of which libbpf makes an array map whose one value holds the bytes, at the address a
 -- program reads them at (tools/lib/bpf/libbpf.c), and a local symbol of each one's offset, named by
 -- the bytes, which no function, map or kfunc is
-local function datalayout(object, strings)
+local function datalayout(object, name, strings)
 	local symbols, at = {}, 0
 	for _, bytes in ipairs(strings) do
-		table.insert(symbols, {name = bytes, section = DATA, value = at, size = #bytes, bind = elf.bind.LOCAL,
+		table.insert(symbols, {name = bytes, section = name, value = at, size = #bytes, bind = elf.bind.LOCAL,
 			type = elf.type.OBJECT})
 		at = at + #bytes
 	end
 	if at > 0 then
-		object:section{name = DATA, type = elf.section.PROGBITS, flags = elf.flags.ALLOC | elf.flags.WRITE,
+		object:section{name = name, type = elf.section.PROGBITS, flags = elf.flags.ALLOC | elf.flags.WRITE,
 			data = table.concat(strings), align = 8}
 	end
 	return symbols
+end
+
+-- the maps of the program file, and the one its stops count in where any check may stop
+local function objectmaps(places)
+	local list = {table.unpack(maps.declared())}
+	if #places > 0 then
+		table.insert(list, emit.counts(places))
+	end
+	return list
 end
 
 -- The prototype libbpf compares with the kernel's kind by kind, names and integer widths aside
@@ -240,6 +253,7 @@ local function ksyms(object, types, externs, hook, indexes)
 end
 
 local function reserve(names, declared)
+	names[emit.ERRORS] = true
 	for _, program in ipairs(declared) do
 		names[program.kfunc] = true
 	end
@@ -262,6 +276,12 @@ local function extern(externs, called, program, frame)
 	end
 end
 
+-- the lines of the places, laid out in their section in the order of their entries, each under the
+-- name its stop's relocation looks it up by
+local function placelayout(object, indexes, places)
+	named(object, indexes, datalayout(object, PLACES, places))
+end
+
 ---
 -- Lowers the programs and writes the object that carries them.
 -- @function luaebpf.writer.write
@@ -277,8 +297,8 @@ function writer.write(declared, hook)
 	local text = blob(TEXT)
 	local units, sections = {text}, {}
 	local names, subprograms, order, externs, called, calls = {}, {}, {}, {}, {}, {}
-	local strings, kept = {}, {}
-	-- maps and kfuncs take their names before any function does, so a relocation names one symbol
+	local strings, kept, places = {}, {}, {}
+	-- maps, kfuncs and luaebpf_errors take their names before any function does, so a relocation names one symbol
 	for _, map in ipairs(maps.declared()) do
 		names[map.name] = true
 	end
@@ -286,13 +306,14 @@ function writer.write(declared, hook)
 	for _, program in ipairs(declared) do
 		program.drop = hook
 		program.names = names
+		program.places = places
 		local entries = section(units, sections, program.section)
 		for i, frame in ipairs(emit.program(program)) do
 			local unit = i == 1 and entries or text
 			local at = place(types, unit, frame, cache, subprograms)
 			report(calls, frame)
 			extern(externs, called, program, frame)
-			constants(strings, kept, frame)
+			constants(strings, kept, places, frame)
 			if i == 1 then
 				table.insert(order, {name = frame.name, section = program.section, value = at,
 					size = frame.code:len() * insn.SIZE, bind = elf.bind.GLOBAL,
@@ -308,10 +329,11 @@ function writer.write(declared, hook)
 				flags = elf.flags.ALLOC | elf.flags.EXEC, data = table.concat(unit.code), align = 8}
 		end
 	end
-	local mapsymbols = maplayout(object, types, maps.declared())
-	local datasymbols = datalayout(object, strings)
+	local mapsymbols = maplayout(object, types, objectmaps(places))
+	local datasymbols = datalayout(object, DATA, strings)
 	named(object, indexes, subprograms)
 	named(object, indexes, datasymbols)
+	placelayout(object, indexes, places)
 	for _, entry in ipairs(order) do
 		object:symbol(entry)
 	end

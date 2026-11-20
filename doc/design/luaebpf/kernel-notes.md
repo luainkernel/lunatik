@@ -262,6 +262,24 @@ under `sudo`.
   it `%s` and its line. It limits nothing, and no helper or kfunc reaches `___ratelimit`, so the
   stop counts its own window over `bpf_jiffies64`, which XDP and TC reach where the loader holds
   `CAP_BPF`.
+* **A stop counts in an entry of its CPU's own.** A `BPF_MAP_TYPE_PERCPU_ARRAY` gives each CPU a
+  slot of its own, which `bpf_map_lookup_elem` answers for the CPU it runs on
+  ([Documentation/bpf/map_array.rst#L63-L71](https://github.com/torvalds/linux/blob/v6.8/Documentation/bpf/map_array.rst#L63-L71),
+  [kernel/bpf/arraymap.c#L241](https://github.com/torvalds/linux/blob/v6.8/kernel/bpf/arraymap.c#L241)),
+  a helper every program type reaches
+  ([kernel/bpf/helpers.c#L1811](https://github.com/torvalds/linux/blob/v6.8/kernel/bpf/helpers.c#L1811)).
+  XDP and TC run with bottom halves off, in softirq or under `rcu_read_lock_bh`
+  ([net/core/dev.c#L4353](https://github.com/torvalds/linux/blob/v6.8/net/core/dev.c#L4353)), and
+  so does `BPF_PROG_TEST_RUN`
+  ([net/bpf/test_run.c#L420](https://github.com/torvalds/linux/blob/v6.8/net/bpf/test_run.c#L420)),
+  so no other run of the program reaches the slot between the load and the store of its add. A
+  shared array would need the atomic add the page asks for, which the 32-bit arm and x86 JITs do
+  not take
+  ([arch/arm/net/bpf_jit_32.c#L1896-L1898](https://github.com/torvalds/linux/blob/v6.8/arch/arm/net/bpf_jit_32.c#L1896-L1898),
+  [arch/x86/net/bpf_jit_comp32.c#L2461-L2463](https://github.com/torvalds/linux/blob/v6.8/arch/x86/net/bpf_jit_comp32.c#L2461-L2463)).
+  User space reads a value per possible CPU, each `round_up(value_size, 8)` bytes
+  ([kernel/bpf/syscall.c#L136](https://github.com/torvalds/linux/blob/v6.8/kernel/bpf/syscall.c#L136)),
+  and sums them.
 * **A signed division divides the magnitudes.** `BPF_SDIV` and `BPF_SMOD`, `BPF_DIV` and `BPF_MOD`
   with `off` 1, exist from v6.6, whose verifier takes them
   ([kernel/bpf/verifier.c#L13254-L13259](https://github.com/torvalds/linux/blob/v6.6/kernel/bpf/verifier.c#L13254-L13259)),

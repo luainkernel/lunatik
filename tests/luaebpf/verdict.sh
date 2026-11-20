@@ -14,7 +14,8 @@
 #     which the XDP programs set to XDP_DROP and the TC ones to TC_ACT_OK
 #   - one run of a verdict computed past the last action and below the first on XDP, and past the
 #     last on TC, writes into the trace ring "invalid action", as luakfunc_action logs a callback's,
-#     at the line of the return, once and alone
+#     at the line of the return, once and alone, and counts one stop at that line's place and none
+#     at another
 #   - a verdict the compiler holds outside the actions, a boolean, and a value a boolean on one
 #     path, are refused with their messages and lines, and so is a default verdict outside them
 #   - with LUAEBPF_DROP=action the test is gone, the verifier still takes the object, since it

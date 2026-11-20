@@ -7,7 +7,8 @@
 -- What every lowering shares: the declaration of a type a Lua register may hold, and the four
 -- `resolve` gives, the words each frame reserves, the abstract state the walk carries along each
 -- edge, where a Lua register lives, the loops whose iterator a jump out of them destroys, the
--- jumps, and the way out of a check that stops the program, which logs the error Lua raises there.
+-- jumps, and the way out of a check that stops the program, which counts the stop at its place and
+-- logs the error Lua raises there.
 -- @module luaebpf.emit.frame
 
 local insn  = require("luaebpf.insn")
@@ -44,6 +45,9 @@ local FORMAT <const> = "%s\0"
 local WINDOW <const> = ("\0"):rep(SLOT * 2)
 local OPENED <const> = 0    -- the jiffies it opened at
 local LOGGED <const> = SLOT -- the lines it logged since
+
+local ERRORS <const> = "luaebpf_errors" -- the map a stop counts in, at the index of its place
+local INDEX <const> = 4                 -- the bytes of the index, the u32 an array map takes
 
 local typenames = {}
 
@@ -82,7 +86,7 @@ local OTHER <const> = newtype("compile-time value")
 local frame = {
 	NREGS = NREGS, SLOT = SLOT, NBITS = NBITS, BYTE = BYTE, RESERVED = RESERVED, ABORTED = ABORTED,
 	CALLER = CALLER, KEY = KEY, VALUE = VALUE, INT = INT, BOOL = BOOL, NIL = NIL, OTHER = OTHER,
-	classes = classes, type = newtype, typenames = typenames, iterator = iterator,
+	ERRORS = ERRORS, classes = classes, type = newtype, typenames = typenames, iterator = iterator,
 }
 
 -- a join reads as the type it holds first and what else it may be, nil last, so that a refusal never
@@ -468,8 +472,9 @@ local function abort(f)
 end
 frame.abort = abort
 
--- the way out of a check where Lua would raise: a block of its own, which logs the error Lua raises
--- there, `<chunk>:<line>: <reason>`, and then takes the tail abort gives the loops the check is in
+-- the way out of a check where Lua would raise: a block of its own, which counts the stop and logs
+-- the error Lua raises there, `<chunk>:<line>: <reason>`, and then takes the tail abort gives the
+-- loops the check is in
 local function stop(f, pc, reason, ...)
 	local site = {label = f.code:label(), line = f.proto.lines[pc], after = abort(f),
 		message = where(f, pc) .. string.format(reason, ...) .. "\0"}
@@ -497,8 +502,36 @@ local function window(f, func, limit, spent)
 	code:store(insn.reg.R1, LOGGED, insn.reg.R2)
 end
 
--- each stop's block, after the function's tail: its line to the trace ring under the kernel's
--- default rate limit, as luakfunc_err logs a callback's error, since bpf_trace_printk limits nothing
+-- the index of a stop's line among the places of the object, which its programs share: a line two
+-- checks log is one place, and the index is the order the compiler met it in, from 0
+local function indexof(places, message)
+	local index = places[message]
+	if index == nil then
+		table.insert(places, message)
+		index = #places - 1
+		places[message] = index
+	end
+	return index
+end
+
+-- one more stop at the place of that index, in the CPU's own entry of the map ERRORS
+local function count(f, func, index)
+	local code, counted = f.code, f.code:label()
+	code:set(insn.reg.R1, index)
+	code:store(insn.reg.FP, KEY, insn.reg.R1, INDEX)
+	code:map(insn.reg.R1, ERRORS)
+	address(f, insn.reg.R2, KEY)
+	code:helper(func.map_lookup_elem)
+	code:branchi(insn.jump.JEQ, insn.reg.R0, 0, counted)
+	code:load(insn.reg.R1, insn.reg.R0, 0)
+	code:alui(insn.alu.ADD, insn.reg.R1, 1)
+	code:store(insn.reg.R0, 0, insn.reg.R1)
+	code:place(counted)
+end
+
+-- each stop's block, after the function's tail: the stop counted at its place, and then its line to
+-- the trace ring under the kernel's default rate limit, as luakfunc_err logs a callback's error,
+-- since bpf_trace_printk limits nothing; the count comes first, so the limit drops no stop from it
 local function stops(f)
 	if #f.stops == 0 then
 		return
@@ -508,6 +541,7 @@ local function stops(f)
 	for _, site in ipairs(f.stops) do
 		code:source(site.line)
 		code:place(site.label)
+		count(f, func, indexof(f.unit.places, site.message))
 		window(f, func, limit, site.after)
 		code:data(insn.reg.R1, FORMAT)
 		code:set(insn.reg.R2, #FORMAT)
@@ -517,6 +551,14 @@ local function stops(f)
 	end
 end
 frame.stops = stops
+
+-- the map the object's stops count in: a u64 per place and CPU, each CPU adding to its own, so two
+-- that stop at one place at once lose neither (Documentation/bpf/map_array.rst)
+local function counts(places)
+	return {name = ERRORS, type = proto.script("linux.bpf").map_type.PERCPU_ARRAY, entries = #places,
+		key = {size = INDEX}, value = {size = SLOT}}
+end
+frame.counts = counts
 
 -- a value the program computes past `size` unsigned bytes, fewer than a register holds, stops
 -- the program where Lua raises `reason`

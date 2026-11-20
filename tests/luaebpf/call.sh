@@ -16,8 +16,9 @@
 #     tail loads, which it would not if that tail left R0 uninitialised, since the verifier reads
 #     R0 on the caller's fall-through without pairing the flag with the path
 #   - one run of a division by zero in a called function writes one line into the trace ring, the
-#     callee's file, line and "attempt to divide by zero", and each caller that reads the flag, six
-#     of them past the deepest, writes nothing
+#     callee's file, line and "attempt to divide by zero", and counts one stop at the callee's
+#     place, and each caller that reads the flag, six of them past the deepest, writes nothing and
+#     counts nothing
 #   - the object carries one BTF FUNC per subprogram, named as the file names it
 #   - five arguments, fewer arguments than the callee declares, and direct or mutual recursion
 #     are refused with their messages and lines. The fifth register carries the abort pointer,

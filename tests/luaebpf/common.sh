@@ -7,8 +7,8 @@
 # module BTF check that does the same for a case calling the kernel Lua runtime, the compile into a
 # scratch directory, in either byte order, the kernel's BTF swapped into the other, the load into a
 # pin root, the differential run against the oracle a program file's own body wrote while it
-# compiled, the line a stop writes into the trace ring, and, for the loader cases, the device they
-# attach to and what a refused `lunatik run` may not leave behind.
+# compiled, the line a stop writes into the trace ring and the count it adds at its place, and, for
+# the loader cases, the device they attach to and what a refused `lunatik run` may not leave behind.
 # Source this file, and tests/lib.sh, from each case.
 
 # the program files install beside the cases, out of the tree the kernel's require reads
@@ -165,13 +165,39 @@ luaebpf_logged() {
 	luaebpf_traced
 }
 
-# luaebpf_logs <program> <line> [<context>]: one run of <program> logs <line> and nothing else, or
-# what it logged is printed
+# the counts of the stops of the object luaebpf_loadall loaded, `<count>\t<line>` per place in the
+# order of their entries, read as `lunatik bpf --errors` reads them: bpftool pins the map of the
+# lines by its section's name, which the case pins again under the one `lunatik run` gives it
+luaebpf_counts() {
+	local lines="$LUAEBPF_MAPS/luaebpf_errors-lines"
+	[ -e "$lines" ] || bpftool map pin pinned "$LUAEBPF_MAPS/_data_luaebpf_errors" "$lines" 2>/dev/null
+	lua5.5 - "$LUAEBPF_MAPS" <<'LUA'
+local places = assert(require("luaebpf").errors(arg[1]))
+for _, place in ipairs(places) do
+	print(string.format("%d\t%s:%d: %s", place.count, place.file, place.line, place.reason))
+end
+LUA
+}
+
+# luaebpf_counted <before> <after> <line> <n>: the counts went from <before> to <after>, as
+# luaebpf_counts prints them, by <n> at the place of <line> and by none at another, or what they did
+# is printed
+luaebpf_counted() {
+	local expected
+	cut -f2- <<< "$1" | grep -qxF -- "$3" || { echo "no place logs '$3'"; return; }
+	expected=$(LINE="$3" awk -F'\t' -v OFS='\t' -v n="$4" '$2 == ENVIRON["LINE"] {$1 += n} {print}' <<< "$1")
+	[ "$2" = "$expected" ] || echo "the counts went from '$1' to '$2', not by $4 at '$3' alone"
+}
+
+# luaebpf_logs <program> <line> [<context>]: one run of <program> logs <line> and nothing else, and
+# counts one stop at its place and none at another, or what it logged and counted is printed
 luaebpf_logs() {
-	local name="$1" line="$2" lines
+	local name="$1" line="$2" lines before
 	shift 2
+	before=$(luaebpf_counts)
 	lines=$(luaebpf_logged "$name" "$@")
 	[ "$lines" = "$line" ] || echo "$name logged '${lines:-nothing}', not '$line' alone"
+	luaebpf_counted "$before" "$(luaebpf_counts)" "$line" 1
 }
 
 # luaebpf_logcase <title> <check>...: the case passes where each check, a luaebpf_logs, prints

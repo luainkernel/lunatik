@@ -30,8 +30,9 @@
 #   - a declaration the object cannot carry is refused at its line: a key spec that packs more
 #     than one value or pads its integer, a value spec Lua can size but not read back, one that
 #     reads a float, a width no eBPF load covers, a count of entries max_entries cannot hold, a
-#     name BTF cannot spell, an array keyed by anything but four bytes, a byte order no eBPF load
-#     takes, a name declared twice, and a constructor called without a name
+#     name BTF cannot spell, the name of the map the compiler counts the errors in, an array keyed
+#     by anything but four bytes, a byte order no eBPF load takes, a name declared twice, and a
+#     constructor called without a name
 #
 # Usage: sudo bash tests/luaebpf/mapget.sh
 
@@ -42,7 +43,7 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 19
+luaebpf_start 20
 
 ROWS=
 
@@ -206,6 +207,8 @@ declared noentries 4 "a map holds between 1 and 4294967295 entries, not 0" \
 	'local empty = map.hash("empty", {key = "I4", value = "I4", entries = 0})'
 declared badname 4 "a map name is a C identifier, not '9flows'" \
 	"local digit = map.hash(\"9flows\", $spec)"
+declared errors 4 "'luaebpf_errors' is the map a program's errors are counted in" \
+	"local errors = map.array(\"luaebpf_errors\", $spec)"
 declared arraykey 4 "an array map is keyed by 4 bytes, not 8" \
 	'local counts = map.array("counts", {key = "I8", value = "I4", entries = 4})'
 if [ "$(host_order)" = little ]; then foreign='>'; else foreign='<'; fi

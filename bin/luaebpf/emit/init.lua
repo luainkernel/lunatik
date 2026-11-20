@@ -71,6 +71,19 @@ emit.bigendian = config.cpu_big_endian
 -- @field luaebpf.emit.iterator
 emit.iterator = frame.iterator
 
+---
+-- The name of the map an object counts the errors of its programs in, `luaebpf_errors`, which no
+-- map, function or program of a program file takes, whether or not the object declares the map.
+-- @field luaebpf.emit.ERRORS
+emit.ERRORS = frame.ERRORS
+
+---
+-- The map an object counts the errors of its programs in, an entry per place a stop logs.
+-- @function luaebpf.emit.counts
+-- @tparam table places the line of each place, in the order of its entry
+-- @treturn table the map, `{name, type, entries, key, value}`, as `luaebpf.maps` holds one
+emit.counts = frame.counts
+
 --- @section the walk
 
 local refusals = {
@@ -252,13 +265,13 @@ end
 ---
 -- Compiles one program: its function, and every function that function reaches.
 -- @function luaebpf.emit.program
--- @tparam table program `{name, fn, default, error, drop, names, context, kfunc, actions}`
+-- @tparam table program `{name, fn, default, error, drop, names, places, context, kfunc, actions}`
 -- @treturn table the frames, the program's own first
 -- @raise `a program takes one argument, the context`, and `<file>:<line>: <reason>` for every
 --   construct the subset refuses
 function emit.program(program)
 	local unit = {
-		functions = {}, order = {}, lowering = {}, names = program.names or {},
+		functions = {}, order = {}, lowering = {}, names = program.names or {}, places = program.places,
 		default = program.default, error = program.error, drop = program.drop, context = program.context,
 		kfunc = program.kfunc, actions = program.actions,
 		-- no lowering can require luaebpf.emit back; read here, after the body that may set them ran

@@ -73,8 +73,10 @@ return counts[ipproto.TCP], counts[ipproto.UDP]'
 
 A frame that says IPv4 but is too short to hold the IPv4 header's protocol stops the program at the
 read of `ip.protocol`, which returns `XDP_ABORTED`, so the frame is dropped and nothing is counted,
-and logs `protocols.bpf.lua:18: out of bounds` to the kernel's trace ring, which
-`sudo bpftool prog tracelog` prints ([When a program cannot be compiled or computed](#when-a-program-cannot-be-compiled-or-computed)).
+logs `protocols.bpf.lua:18: out of bounds` to the kernel's trace ring, which
+`sudo bpftool prog tracelog` prints, and counts the stop at that line, which
+`sudo lunatik bpf --errors protocols` reports
+([When a program cannot be compiled or computed](#when-a-program-cannot-be-compiled-or-computed)).
 The lookup and the update are two steps, so two CPUs that count the same protocol at once can lose
 one of the increments.
 
@@ -153,9 +155,11 @@ not through the verdict.
   REFUSED                  REFUSED AT LOAD          STOPS
   lunatik: file:line:      the verifier log,        XDP_ABORTED or
   reason; exit 1, no       which quotes the Lua     TC_ACT_SHOT: the packet
-  object written           line; exit 1, nothing    is dropped, and
+  object written           line; exit 1, nothing    is dropped,
                            attached                 file:line: reason goes
-                                                    to the trace ring
+                                                    to the trace ring, and
+                                                    the stop is counted at
+                                                    that line
 
   what the subset does     a program past the       where Lua would raise:
   not compile, and a       limits of the verifier,  x // 0, a read past
@@ -181,8 +185,9 @@ fails in one of three places.
   may stop and one that calls into a runtime under a license the kernel does not count as
   GPL-compatible ([The license](#the-license)).
 * **Stops.** In the kernel, on a packet, the program returns at once `XDP_ABORTED` in XDP or
-  `TC_ACT_SHOT` in TC, which drop the packet, and logs the error the kernel's Lua raises there; a
-  tracer reads an XDP program's stops at the tracepoint `xdp:xdp_exception` too. A program stops
+  `TC_ACT_SHOT` in TC, which drop the packet, logs the error the kernel's Lua raises there and
+  counts the stop at its line; a tracer reads an XDP program's stops at the tracepoint
+  `xdp:xdp_exception` too. A program stops
   at a read past the packet, a division or a modulo by 0, a `for` step of 0 it computed, a `for`
   whose passes outrun the budget the kernel gives it, a map key or value its spec cannot pack, a
   map update or delete the map refuses, a `skb:priority` it computed outside 0 to 4294967295, a
@@ -214,6 +219,29 @@ seconds at most, `DEFAULT_RATELIMIT_BURST` lines every `DEFAULT_RATELIMIT_INTERV
 for all the programs of an object together, so a program that stops on every packet logs the first
 ten of each five seconds. The CPUs share the count without a lock, and stops that race on several
 of them may each pass it.
+
+A stop is also counted as an error of the program, at its place, the line it logs,
+`<file>:<line>: <reason>`: two checks of one line that stop for one reason are one place, and a
+function two programs of the file call is one place for both. `lunatik bpf --errors <script>`, the
+script as `lunatik run` takes it, prints a line for each place its program stopped at, the count, a
+space and the line, as `uniq -c` counts the lines of the trace ring, in the order the compiler met
+the places, and nothing for a program that has not stopped:
+
+```
+$ sudo lunatik bpf --errors protocols
+3 protocols.bpf.lua:18: out of bounds
+```
+
+The count takes every stop, those the rate limit keeps out of the trace ring among them, on every
+CPU, and lasts while the script runs: each run starts it at zero, and `lunatik stop` takes it down
+with the program. The trace ring says when a stop happened and on which CPU, and laps; the count
+says how many there were. The object keeps the counts in a map of its own, `luaebpf_errors`, an
+entry per place and CPU, which `lunatik run` pins beside the maps the file declares, at
+`/sys/fs/bpf/lunatik/<script>/luaebpf_errors`, and the lines of the places beside it, at
+`luaebpf_errors-lines`, so a map of the file cannot take that name: "'luaebpf_errors' is the map a
+program's errors are counted in". A
+program that may stop nowhere declares neither. A stop costs a lookup of its place's entry and an
+add before its line is logged; where the program does not stop, nothing changes.
 
 ## The Lua a program may use
 
@@ -325,7 +353,9 @@ The body declares a map with `bpf.map`: `map.hash(name, spec)`, `map.array(name,
 `bigendian`, and `entries` the map's capacity. `lunatik run`
 creates the map and pins it at `/sys/fs/bpf/lunatik/<script>/<name>`, where a kernel script opens
 it with the constructor of the same name of the kernel's `bpf.map`, which takes the path and the
-two specs: `map.hash(path, "I4", "I8")`.
+two specs: `map.hash(path, "I4", "I8")`. A map takes any name but `luaebpf_errors`, which the
+compiler gives the map it counts the errors in
+([When a program cannot be compiled or computed](#when-a-program-cannot-be-compiled-or-computed)).
 
 In a compiled function a map reads as a table.
 
@@ -617,6 +647,7 @@ Each refusal reads `lunatik: <file>:<line>: <message>`.
 | the verdict may be a boolean here; return an action | `return ip.protocol == ipproto.TCP` | `if ip.protocol == ipproto.TCP then return action.DROP end` |
 | the verdict 11 is not an XDP action | `return 11`, a value no action of the program's type | an action of `linux.xdp.action` or `linux.tc.action` |
 | xdp.program's default verdict is not an XDP action | `{default = 5}` | `{default = action.DROP}` |
+| 'luaebpf_errors' is the map a program's errors are counted in | `map.hash("luaebpf_errors", spec)` | another name |
 | xdp.program's default verdict is not an integer | `xdp.program(fn)`, `{default = "drop"}` | `xdp.program(fn, {default = action.PASS})`, and `tc.program` alike |
 | xdp.program's license is not a string | `{license = 2}` | `{license = "GPL"}` |
 | tc.program's license 'GPL' is not 'Dual MIT/GPL', the license of the programs before it | `license = "GPL"` on one program of a file, and none on another | the same `license` on every program |

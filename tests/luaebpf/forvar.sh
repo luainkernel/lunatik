@@ -30,7 +30,9 @@
 #     its file and line, once and alone, "'for' step is zero" and "attempt to divide by zero", the
 #     callee's line for the callee; one run of each loop past what the iterator counts, and past the
 #     may_goto budget where the kernel has it, writes "'for' outruns the budget the kernel gives it"
-#     at the line of its 'for', which the interpreter, making every pass, never raises
+#     at the line of its 'for', which the interpreter, making every pass, never raises; each of
+#     those but the run past the may_goto budget counts one stop at that line's place and none at
+#     another
 #   - a step that is zero at compile time is refused with its message and line
 #
 # Usage: sudo bash tests/luaebpf/forvar.sh
