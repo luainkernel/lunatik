@@ -190,6 +190,14 @@ the state, where a boolean stored on an existing node cannot.
   an `#else` arm, a stub that refuses, comes after the includes that arm reads. #2385's `luacrypto_rng.c`
   and #2360's `luacrypto_kpp.c` first opened theirs after the includes, and the maintainer asked of
   both; `tools/checks/idioms.sh` names such a guard.
+* Code that only some kernels of the supported range need goes under a version guard on the release
+  that changes the need, by default, even where it would do no harm on the others: the guard keeps it
+  out of the kernels that do not need it, and a floor raised past that release deletes the guard, with
+  the code where only the older kernels need it, which a comment naming the range does neither of.
+  #2634 first kept unguarded a `srcu_barrier` that 7.0 no longer needs, for one line and no version to
+  get right, and #2630 deferred an `scx` callback's frees on every kernel where only 7.0's sheaves let
+  a free wake kswapd; the maintainer: "deveria ser o caso padrao usar os ifdefs, nao vejo merito em
+  nao ter usado".
 * A kernel version guard puts the current kernel's code in its `#if` arm and the older kernel's in
   `#else`, tested with `>=` on the version that introduced the API, or on the macro that arrived
   with it where a stable series backports the change: raising the floor then deletes `#else` arms
