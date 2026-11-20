@@ -113,7 +113,11 @@ An access that fails either does not raise (there is nothing to raise to): the p
 returns the **error verdict** of its type, `XDP_ABORTED` in XDP, the kernel's verdict for a
 program error, which drops the packet and, in the generic path and in most drivers, fires the
 `xdp:xdp_exception` tracepoint, and `TC_ACT_SHOT` in TC, which has no error verdict and drops the
-packet. The **default verdict**, which the program file names in the constructor, is what the
+packet. A stop logs what the interpreter would raise there, `<file>:<line>: <reason>`, through
+`bpf_trace_printk`, to the kernel's trace ring, which `bpftool prog tracelog` reads, under the rate
+limit of the kernel's own log, ten lines every five seconds, which the program keeps in its
+object's `.data` since the helper keeps none. The **default verdict**, which the program file names
+in the constructor, is what the
 program returns where its function returns no value, `return` or `return nil`, and never where it
 stops; a constructor that names none is refused at the line of its function:
 
@@ -123,7 +127,8 @@ Division by zero and every other check the interpreter would turn into an error 
 path, from any frame. A subprogram returns to its caller rather than to the hook, so every
 compiled function takes one argument beyond its own: a pointer to a word in its caller's frame. A
 check that fails there stores a one through it and returns; the caller reads the word and takes
-its own failure path, which is the error verdict in the program's own frame. That is the fifth
+its own failure path, which is the error verdict in the program's own frame, and logs nothing:
+the check that failed logged its line already. That is the fifth
 register argument, and why a compiled function takes four of its own. This is the compiled
 analogue of what the trampoline does today, where a raising callback makes the kfunc return `-1`
 and the stub falls back.
@@ -269,7 +274,8 @@ The compiler reports every such call in its summary, with the line, so a program
 on every packet is visible for what it is: the trampoline, generated.
 
 A program that calls into the runtime needs the module's BTF (`make btf_install`), as every stub
-in the tree does today. A program that does not needs nothing from the modules.
+in the tree does today. A program that does not needs nothing from the modules; one that may stop
+needs a GPL-compatible license, which `bpf_trace_printk` asks.
 
 ## Loading and attaching
 

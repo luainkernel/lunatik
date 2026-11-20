@@ -170,6 +170,7 @@
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.packet.html">linux.packet</a></li>
+  <li><a href="../modules/linux.ratelimit.html">linux.ratelimit</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -413,8 +414,9 @@ decide what a program may emit, and its byte order is the object&rsquo;s. The ty
 context&rsquo;s struct and any layout <a href="../modules/bpf.vmlinux.html#">bpf.vmlinux</a> answers, come from that kernel&rsquo;s BTF:
 <code>/sys/kernel/btf/vmlinux</code> unless <code>--btf</code> names a raw BTF file, the bytes that path serves. The
 kernel scripts the body requires, its <code>linux.*</code> tables among them, the <a href="../modules/linux.bpf.html#">linux.bpf</a> the compiler
-reads the stack limit from, and the <a href="../modules/linux.limits.html#">linux.limits</a> it reads the largest <code>int</code> from for a <code>for</code> whose
-bound the program computes, come from <code>/lib/modules/lua/</code> unless <code>--scripts</code> names another directory
+reads the stack limit from, the <a href="../modules/linux.limits.html#">linux.limits</a> it reads the largest <code>int</code> from for a <code>for</code> whose
+bound the program computes, and the <a href="../modules/linux.ratelimit.html#">linux.ratelimit</a> it reads the rate limit of a stop&rsquo;s line
+from, come from <code>/lib/modules/lua/</code> unless <code>--scripts</code> names another directory
 laid out as that one; a module that directory lacks is not found, and is not read from
 <code>/lib/modules/lua/</code>.</p>
 
@@ -505,8 +507,10 @@ sudo lunatik stop filter
 failure at any step undoes the steps before it and exits 1 with that step&rsquo;s message, the verifier&rsquo;s
 own log when the kernel rejects a program, which quotes the Lua line; libbpf&rsquo;s own warnings, which
 name what failed where the kernel logs nothing, print on stderr before it. Once attached, a program
-logs nothing: a packet it cannot compute is dropped, with <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, as
-<a href="../topics/08-luaebpf.md.html#what-a-program-returns">What a program returns</a> says. <code>lunatik stop &lt;script&gt;</code>
+drops a packet it cannot compute, with <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, and logs the error Lua raises
+there to the kernel&rsquo;s trace ring, as
+<a href="../topics/08-luaebpf.md.html#when-a-program-cannot-be-compiled-or-computed">When a program cannot be compiled or computed</a>
+says. <code>lunatik stop &lt;script&gt;</code>
 runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each
 directory above it the root leaves empty. A root holds pins and nothing else, so a stop of a name
 that only parents other scripts' roots leaves them alone. <code>lunatik unload</code>, and <code>reload</code> and <code>test</code>
@@ -556,7 +560,7 @@ loads the object, and the kernel&rsquo;s <a href="https://www.lua.org/manual/5.5
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 18:26:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-20 13:32:29</span>
 </div>
 </footer>
 </body>

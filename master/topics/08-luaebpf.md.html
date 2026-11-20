@@ -170,6 +170,7 @@
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.packet.html">linux.packet</a></li>
+  <li><a href="../modules/linux.ratelimit.html">linux.ratelimit</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -271,7 +272,9 @@ return counts[ipproto.TCP], counts[ipproto.UDP]'</span>
 
 
 <p>A frame that says IPv4 but is too short to hold the IPv4 header&rsquo;s protocol stops the program at the
-read of <code>ip.protocol</code>, which returns <code>XDP_ABORTED</code>, so the frame is dropped and nothing is counted.
+read of <code>ip.protocol</code>, which returns <code>XDP_ABORTED</code>, so the frame is dropped and nothing is counted,
+and logs <code>protocols.bpf.lua:18: out of bounds</code> to the kernel&rsquo;s trace ring, which
+<code>sudo bpftool prog tracelog</code> prints (<a href="#when-a-program-cannot-be-compiled-or-computed">When a program cannot be compiled or computed</a>).
 The lookup and the update are two steps, so two CPUs that count the same protocol at once can lose
 one of the increments.</p>
 
@@ -357,8 +360,9 @@ not through the verdict.</p>
    REFUSED                  REFUSED AT LOAD          STOPS
    lunatik: file:line:      the verifier log,        XDP_ABORTED or
    reason; exit 1, no       which quotes the Lua     TC_ACT_SHOT: the packet
-   object written           line; exit 1, nothing    is dropped; nothing
-                            attached                 logged
+   object written           line; exit 1, nothing    is dropped, and
+                            attached                 file:line: reason goes
+                                                     to the trace ring
 
    what the subset does     a program past the       where Lua would raise:
    not compile, and a       limits of the verifier,  x // 0, a read past
@@ -381,18 +385,44 @@ A program past the verifier&rsquo;s limits, most often a loop of many passes, is
 <code>lunatik run</code> prints the verifier&rsquo;s log, which quotes the Lua lines, exits 1 and leaves nothing
 attached. A call into a runtime whose module carries no BTF is refused there too, by libbpf,
 whose warning names the kfunc
-(<a href="#calls-into-a-kernel-lua-runtime">Calls into a kernel Lua runtime</a>), and so is one under a
-license the kernel does not count as GPL-compatible (<a href="#the-license">The license</a>).</li>
+(<a href="#calls-into-a-kernel-lua-runtime">Calls into a kernel Lua runtime</a>), and so are a program that
+may stop and one that calls into a runtime under a license the kernel does not count as
+GPL-compatible (<a href="#the-license">The license</a>).</li>
 <li><strong>Stops.</strong> In the kernel, on a packet, the program returns at once <code>XDP_ABORTED</code> in XDP or
-<code>TC_ACT_SHOT</code> in TC, which drop the packet, and nothing is logged (#2098); a tracer reads an
-XDP program&rsquo;s stops at the tracepoint <code>xdp:xdp_exception</code>. A program stops at a read past the
-packet, a division or a modulo by 0, a <code>for</code> step of 0 it computed, a <code>for</code> whose passes outrun
-the budget the kernel gives it, a map key or value its spec cannot pack, a map update or delete
-the map refuses, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside 0 to 4294967295, a verdict it computed that
-is no action of its program type, and in a function it called that stops. A division by a 0 the
+<code>TC_ACT_SHOT</code> in TC, which drop the packet, and logs the error the kernel&rsquo;s Lua raises there; a
+tracer reads an XDP program&rsquo;s stops at the tracepoint <code>xdp:xdp_exception</code> too. A program stops
+at a read past the packet, a division or a modulo by 0, a <code>for</code> step of 0 it computed, a <code>for</code>
+whose passes outrun the budget the kernel gives it, a map key or value its spec cannot pack, a
+map update or delete the map refuses, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside 0 to 4294967295, a
+verdict it computed that is no action of its program type, and in a function it called that
+stops. A division by a 0 the
 compiler knows is not refused: the program stops on every packet that reaches it.</li>
 </ul>
 
+
+<p>A stop logs <code>&lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code>, the file and the line of the check that stopped it, as a
+refusal names them, and the reason the kernel&rsquo;s Lua raises there: &ldquo;attempt to divide by zero&rdquo;,
+&ldquo;attempt to perform &lsquo;n%0&rsquo;&rdquo;, &ldquo;&lsquo;for&rsquo; step is zero&rdquo;, &ldquo;out of bounds&rdquo; for a read past the packet and
+for a <a href="../modules/skb.html#skb:priority">skb:priority</a> outside 0 to 4294967295, as the kernel&rsquo;s <a href="../modules/data.html#">data</a> and <a href="../modules/skb.html#">skb</a> objects raise it,
+<a href="https://www.lua.org/manual/5.5/manual.html#pdf-string.pack">string.pack</a>&rsquo;s &ldquo;unsigned overflow&rdquo; or &ldquo;integer overflow&rdquo; for a map key or value its spec cannot
+pack, and &ldquo;invalid action&rdquo; for a verdict that is no action, as the kernel logs a callback&rsquo;s. A map
+update or delete the map refuses names the map and the write, &ldquo;the map &lsquo;flows&rsquo; refused the
+update&rdquo;, since only the kernel knows its errno, and a <code>for</code> past the kernel&rsquo;s budget, which Lua
+would run to its end, logs &ldquo;&lsquo;for&rsquo; outruns the budget the kernel gives it&rdquo;. A stop in a function the
+program calls is logged at the callee&rsquo;s line, and its callers log nothing.</p>
+
+<pre><code> $ sudo bpftool prog tracelog
+           &lt;idle&gt;-0       [002] ..s21  4021.374508: bpf_trace_printk: protocols.bpf.lua:18: out of bounds
+</code></pre>
+
+<p>The line goes to the kernel&rsquo;s trace ring through <code>bpf_trace_printk</code>, not to the kernel log a kernel
+script&rsquo;s callback writes its error to: <code>bpftool prog tracelog</code> prints the ring as it fills, as
+<code>/sys/kernel/tracing/trace_pipe</code> does, and the file is named as <code>lunatik bpf</code> was given it. The
+helper limits nothing, so the program does, as the kernel&rsquo;s own log does: ten lines every five
+seconds at most, <code>DEFAULT_RATELIMIT_BURST</code> lines every <code>DEFAULT_RATELIMIT_INTERVAL</code> jiffies, counted
+for all the programs of an object together, so a program that stops on every packet logs the first
+ten of each five seconds. The CPUs share the count without a lock, and stops that race on several
+of them may each pass it.</p>
 
 <p><a name="The_Lua_a_program_may_use"></a></p>
 
@@ -923,9 +953,13 @@ string. It keeps that alone: <code>bpftool prog show</code> prints <code>gpl</co
 the string is read from the object, <code>readelf -p license protocols.bpf.o</code>.</li>
 <li>A program that calls a kernel function loads only under a GPL-compatible license, and a call
 into a runtime is such a call. Under any other, <code>lunatik run</code> prints the verifier&rsquo;s &ldquo;cannot call
-kernel function from non-GPL compatible program&rdquo;, exits 1 and leaves nothing attached. A program
-that calls none, which reads its packet and its context and looks up and updates its maps,
-loads under any license.</li>
+kernel function from non-GPL compatible program&rdquo;, exits 1 and leaves nothing attached.</li>
+<li>A program that may stop logs through <code>bpf_trace_printk</code>, which the kernel gives only a
+GPL-compatible program, and only to a loader that holds <code>CAP_PERFMON</code>, as root does. Under any
+other license <code>lunatik run</code> prints &ldquo;cannot call GPL-restricted function from non-GPL compatible
+program&rdquo;, exits 1 and leaves nothing attached; a read of the packet, a division, a map write and
+a verdict the program computes each may stop it. A program that stops nowhere, which reads its
+context, looks up its maps and returns verdicts the compiler knows, loads under any license.</li>
 </ul>
 
 
@@ -1285,7 +1319,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 18:26:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-20 13:32:29</span>
 </div>
 </footer>
 </body>

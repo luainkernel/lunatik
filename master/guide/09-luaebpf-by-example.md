@@ -13,8 +13,8 @@ these sections.
 
 A construct the compiler lowers computes what the kernel's Lua computes, stops the program where Lua
 would raise or where a `for` outruns the budget the kernel gives it, with `XDP_ABORTED` in XDP and
-`TC_ACT_SHOT` in TC, or is refused at its line. Where the eBPF instruction alone computes something
-else, the compiler emits what lies between:
+`TC_ACT_SHOT` in TC, logging the error Lua raises there, or is refused at its line. Where the eBPF
+instruction alone computes something else, the compiler emits what lies between:
 
 | Lua | Lua computes | The instruction alone | The compiler emits |
 |-----|--------------|-----------------------|--------------------|
@@ -47,6 +47,7 @@ else, the compiler emits what lies between:
 | `m[k]` with `k` outside the key's spec | `string.pack` raises | a store that keeps the low bytes | a key the compiler holds packed when the function is compiled, and one the program computes tested, which stops the program; a value alike |
 | `v.field` of a struct value | the field the codec decodes, most significant byte first where the layout marks it `bigendian`, and a bitfield as the codec's view takes it out of its load | a load the verifier refuses until the program tests the lookup, in the kernel's byte order | a load at the field's offset and width, a `BPF_END` to big-endian where the layout marks a field wider than a byte `bigendian`, and the sign extended where the field is signed; for a bitfield, the load that covers it shifted right and masked, and the weight of its sign bit taken twice where it is signed, as the view computes it |
 | `return v`, the verdict | the kernel's Lua answers a value outside its type's actions, or a boolean, with the hook's fallback | `r0`, whose low 32 bits the kernel reads as an action, a boolean as 1 or 0 | `v` tested against the first and the last action, which stops the program outside them; a boolean refused, and so is a known `v` outside them |
+| any stop | the error, `<file>:<line>: <reason>`, which the hook logs, rate limited, in `luakfunc_invoke` | nothing: a program writes no log | a block per check, after the instructions where the function stops, that hands `bpf_trace_printk` the line, a constant of the object's `.data`, under a window of `bpf_jiffies64` that lets ten lines through every five seconds, and goes on to them; a callee's stop is logged by the callee alone |
 
 The shift pair stands for `BPF_MEMSX`, which the s390 JIT of 6.6 does not take, and the division of
 the magnitudes for `BPF_SDIV` and `BPF_SMOD`, which that JIT and others of the range read as the
@@ -87,9 +88,13 @@ The registers:
 * `r1` to `r5` hold what one line computes.
 
 Every listing ends with the instructions where the function stops: `XDP_ABORTED` or `TC_ACT_SHOT`,
-and the exit, under the line that closes the function, whatever default verdict it names. A program
-that returns a value it computes tests it first against the actions of its type, two jumps to those
-instructions, as [The verdict](#the-verdict) shows.
+and the exit, under the line that closes the function, whatever default verdict it names. After
+them comes a block for each check that stops it, under the check's line, which logs the line the
+check stands for, `<file>:<line>: <reason>`, and jumps to them. [The packet](#the-packet) shows one
+whole, and the other listings one line each; each section's program file is named for it,
+`packet.bpf.lua` for the packet, the name the line carries. A program that returns a value it
+computes tests it first against the actions of its type, two jumps to the block that logs
+"invalid action", as [The verdict](#the-verdict) shows.
 
 ## The packet
 
@@ -122,34 +127,56 @@ in network order.
   6  r4 = *(u64 *)(r10 -40)        the offset
   7  r1 = *(u32 *)(r9 +0)          xdp_md.data
   8  r2 = *(u32 *)(r9 +4)          xdp_md.data_end
-  9  if r4 > 65533 goto 20         past 65535 less the width: stops
+  9  if r4 > 65533 goto 22         past 65535 less the width: stops
  10  r1 += r4                      data + 16
  11  r4 = r1
  12  r4 += 2
- 13  if r4 > r2 goto 20            past the end of the packet: stops
+ 13  if r4 > r2 goto 22            past the end of the packet: stops
  14  r1 = *(u16 *)(r1 +0)          two bytes, in the kernel byte order
  15  r8 = r1                       length
      line 7: return length
  16  r0 = r8
- 17  if r0 s< 0 goto 20            not an XDP action: stops
- 18  if r0 s> 4 goto 20
+ 17  if r0 s< 0 goto 42            not an XDP action: stops
+ 18  if r0 s> 4 goto 42
  19  exit
      line 8: end, {default = action.PASS})
  20  r0 = 0                        XDP_ABORTED, where the program stops
  21  exit
+     line 6: local length = p:getuint16(16)
+ 22  call 118                      bpf_jiffies64: now
+ 23  r1 = 0 ll                     the window, in .data: two slots, relocated by libbpf
+ 25  r2 = *(u64 *)(r1 +0)          the jiffies it opened at
+ 26  r3 = r0
+ 27  r3 -= r2
+ 28  if r3 <= 5000 goto 31         DEFAULT_RATELIMIT_INTERVAL, at HZ 1000: still open
+ 29  *(u64 *)(r1 +0) = r0          a window opens now
+ 30  *(u64 *)(r1 +8) = 0           and has logged no line
+ 31  r2 = *(u64 *)(r1 +8)
+ 32  if r2 >= 10 goto 20           DEFAULT_RATELIMIT_BURST lines logged: stops, logging none
+ 33  r2 += 1
+ 34  *(u64 *)(r1 +8) = r2
+ 35  r1 = 0 ll                     the format "%s", in .data
+ 37  r2 = 3                        its bytes, the NUL among them
+ 38  r3 = 0 ll                     "packet.bpf.lua:6: out of bounds", in .data
+ 40  call 6                        bpf_trace_printk: the line, to the trace ring
+ 41  goto 20
+     line 7: return length
+ 42  to 61: logs "packet.bpf.lua:7: invalid action", then goto 20
 ```
 
 Instruction 13 is the test the verifier asks for before instruction 14 reads: it takes the load
 only on the path where `data + 16 + 2` is not past `data_end`. Instruction 9 stops the program at
-an offset no packet reaches, and at a negative one too, since the test is unsigned. A signed read,
+an offset no packet reaches, and at a negative one too, since the test is unsigned. Both jump to
+22, which logs the read's line unless the window of the object, whose two words every program of
+it shares, has logged ten in the last five seconds, and then goes on to 20. A signed read,
 `p:getint16(n)`, adds a shift left and an arithmetic shift right after the load, as
 instructions 15 and 16 of [Floor division and modulo](#floor-division-and-modulo) do for a byte.
 `#p` is `data_end` less `data`, both read from the context.
 
 | Frame | Instructions | What they compute | The program returns |
 |-------|--------------|-------------------|---------------------|
-| 34 bytes, IPv4, total length `00 1c`, 28 | 13, 14, 18 | 18 is within 34; `00 1c` read little-endian is 7168, `0x1c00`, past `XDP_REDIRECT` | 0, `XDP_ABORTED` |
-| 14 bytes, an Ethernet header alone | 13 | 18 is past 14 | 0, `XDP_ABORTED` |
+| 34 bytes, IPv4, total length `00 1c`, 28 | 13, 14, 18, 42 | 18 is within 34; `00 1c` read little-endian is 7168, `0x1c00`, past `XDP_REDIRECT` | 0, `XDP_ABORTED`, and "packet.bpf.lua:7: invalid action" logged |
+| 14 bytes, an Ethernet header alone | 13, 22 | 18 is past 14 | 0, `XDP_ABORTED`, and "packet.bpf.lua:6: out of bounds" logged |
 
 The kernel's Lua reads the same 7168 from `p:getuint16(16)` on arm64 and x86. Read through a
 view, as [Views](#views) reads it, the length is 28 on every kernel.
@@ -201,11 +228,11 @@ context, `r6`, as `p:getbyte(n)` reads, at that offset plus the field's.
   8  r4 = r8                       14, plus ihl's offset, 0
   9  r1 = *(u32 *)(r6 +0)          xdp_md.data, through ctx
  10  r2 = *(u32 *)(r6 +4)          xdp_md.data_end
- 11  if r4 > 65534 goto 45         past 65535 less the width: stops
+ 11  if r4 > 65534 goto 47         past 65535 less the width: stops
  12  r1 += r4
  13  r4 = r1
  14  r4 += 1
- 15  if r4 > r2 goto 45            past the end of the packet: stops
+ 15  if r4 > r2 goto 47            past the end of the packet: stops
  16  r1 = *(u8 *)(r1 +0)           the byte that holds ihl
  17  r5 = 15                       ihl's mask; its shift is 0
  18  r1 &= r5
@@ -215,7 +242,7 @@ context, `r6`, as `p:getbyte(n)` reads, at that offset plus the field's.
  22  if r1 s> r2 goto 39
  23  r4 = r8
  24  r4 += 2                       14, plus tot_len's offset, 2
- 25  to 31: the tests of 9 to 15, for two bytes
+ 25  to 31: the tests of 9 to 15, for two bytes, jumping to 67
  32  r1 = *(u16 *)(r1 +0)          two bytes, in the kernel byte order
  33  r1 = be16 r1                  BPF_END: tot_len is marked bigendian
  34  r9 = r1                       ip.tot_len
@@ -234,6 +261,9 @@ context, `r6`, as `p:getbyte(n)` reads, at that offset plus the field's.
      line 18: end, {default = action.PASS})
  45  r0 = 0                        XDP_ABORTED, where the program stops
  46  exit
+     line 14: if ip.ihl > 5 or ip.tot_len > LONGEST then
+ 47  to 66: logs "views.bpf.lua:14: out of bounds", then goto 45
+ 67  to 86: the same, for the read of tot_len
 ```
 
 Instructions 8 to 16 are the read [The packet](#the-packet) lists, at the view's offset plus the
@@ -247,7 +277,7 @@ subtraction. On TC the read is `bpf_skb_load_bytes`, as [The context](#the-conte
 |-------|--------------|-------------------|---------------------|
 | 34 bytes, IPv4, `45`, total length `00 1c` | 16 to 22, 32 to 38 | ihl is 5, not past 5; `00 1c` swapped is 28, not past 1500 | 2, `XDP_PASS` |
 | the same, `46` | 16 to 22 | ihl is 6, past 5 | 1, `XDP_DROP` |
-| 14 bytes, an Ethernet header alone | 15 | 15 is past 14 | 0, `XDP_ABORTED` |
+| 14 bytes, an Ethernet header alone | 15, 47 | 15 is past 14 | 0, `XDP_ABORTED`, and "views.bpf.lua:14: out of bounds" logged |
 
 A view holds no packet of its own: it is read through the parameter that holds the function's
 context or a packet, and refused where the function has assigned it, since a copy in another
@@ -291,22 +321,22 @@ the kernel's Lua `a / b` is `a // b`, and it compiles to the same instructions.
   6  r4 = *(u64 *)(r10 -40)        the offset
   7  r1 = *(u32 *)(r9 +0)          xdp_md.data
   8  r2 = *(u32 *)(r9 +4)          xdp_md.data_end
-  9  if r4 > 65534 goto 56         past 65535 less the width: stops
+  9  if r4 > 65534 goto 58         past 65535 less the width: stops
  10  r1 += r4
  11  r4 = r1
  12  r4 += 1
- 13  if r4 > r2 goto 56            past the end of the packet: stops
+ 13  if r4 > r2 goto 58            past the end of the packet: stops
  14  r1 = *(u8 *)(r1 +0)           the byte
  15  r1 <<= 56                     its sign extended by a shift pair
  16  r1 s>>= 56
  17  r8 = r1                       a
      line 7: local b = p:getint8(15)
- 18  to 32: the same read at 15
+ 18  to 32: the same read at 15, jumping to 78
  33  r9 = r1                       b
      line 8: return a // b
  34  r1 = r8                       a
  35  r2 = r9                       b
- 36  if r2 == 0 goto 56            Lua raises: stops
+ 36  if r2 == 0 goto 98            Lua raises: stops
  37  r3 = r1
  38  r3 ^= r2                      negative where the signs differ
  39  if r1 s>= 0 goto 41
@@ -323,12 +353,19 @@ the kernel's Lua `a / b` is `a // b`, and it compiles to the same instructions.
  50  *(u64 *)(r10 -40) = r1        the result, in Lua register 4
  51  r0 = *(u64 *)(r10 -40)
  52  r0 = r0
- 53  if r0 s< 0 goto 56            not an XDP action: stops
- 54  if r0 s> 4 goto 56
+ 53  if r0 s< 0 goto 118           not an XDP action: stops
+ 54  if r0 s> 4 goto 118
  55  exit
      line 9: end, {default = action.PASS})
  56  r0 = 0                        XDP_ABORTED, where the program stops
  57  exit
+     line 6: local a = p:getint8(14)
+ 58  to 77: logs "division.bpf.lua:6: out of bounds", then goto 56
+     line 7: local b = p:getint8(15)
+ 78  to 97: logs "division.bpf.lua:7: out of bounds", then goto 56
+     line 8: return a // b
+ 98  to 117: logs "division.bpf.lua:8: attempt to divide by zero", then goto 56
+118  to 137: logs "division.bpf.lua:8: invalid action", then goto 56
 ```
 
 The magnitudes are divided unsigned, and the quotient takes the sign C's division gives it. The
@@ -349,11 +386,11 @@ signs differ. Bytes 14 and 15 at `f9 02`, so `a` is -7 and `b` is 2:
 | 48 | the remainder is not 0 | no jump |
 | 49 | -3 - 1 | `r1` is -4 |
 | 50 to 52 | `r0` is -4 | |
-| 53 | -4 is below `XDP_ABORTED`, 0 | jump to 56: the program stops and returns 0 |
+| 53 | -4 is below `XDP_ABORTED`, 0 | jump to 118, which logs "division.bpf.lua:8: invalid action", then to 56: the program stops and returns 0 |
 
 Lua computes `-7 // 2` as -4, which is no XDP action, so the program stops and returns 0,
-`XDP_ABORTED` ([The verdict](#the-verdict)). With `b` at 0, instruction 36 jumps to 56, and the
-program returns 0 too.
+`XDP_ABORTED` ([The verdict](#the-verdict)). With `b` at 0, instruction 36 jumps to 98, which logs
+"division.bpf.lua:8: attempt to divide by zero", and the program returns 0 too.
 
 `a % b` is the same program with `return a % b`; instructions 0 to 33 read `a` and `b` as above:
 
@@ -361,7 +398,7 @@ program returns 0 too.
      line 8: return a % b
  34  r1 = r8                       a
  35  r2 = r9                       b
- 36  if r2 == 0 goto 56            Lua raises: stops
+ 36  if r2 == 0 goto 98            Lua raises: stops
  37  r3 = r1                       a, whose sign the remainder takes
  38  r4 = r2
  39  if r1 s>= 0 goto 41
@@ -378,12 +415,15 @@ program returns 0 too.
  50  *(u64 *)(r10 -40) = r1
  51  r0 = *(u64 *)(r10 -40)
  52  r0 = r0
- 53  if r0 s< 0 goto 56            not an XDP action: stops
- 54  if r0 s> 4 goto 56
+ 53  if r0 s< 0 goto 118           not an XDP action: stops
+ 54  if r0 s> 4 goto 118
  55  exit
      line 9: end, {default = action.PASS})
  56  r0 = 0                        XDP_ABORTED, where the program stops
  57  exit
+     line 8: return a % b
+ 98  to 117: logs "division.bpf.lua:8: attempt to perform 'n%0'", then goto 56
+118  to 137: logs "division.bpf.lua:8: invalid action", then goto 56
 ```
 
 With -7 and 2, instruction 43 gives 1, the remainder of 7 by 2, and instruction 45 gives -1, what
@@ -412,12 +452,16 @@ The same program with `return a << n`, `n` read from byte 15; instructions 0 to 
  45  *(u64 *)(r10 -40) = r1
  46  r0 = *(u64 *)(r10 -40)
  47  r0 = r0
- 48  if r0 s< 0 goto 51            not an XDP action: stops
- 49  if r0 s> 4 goto 51
+ 48  if r0 s< 0 goto 93            not an XDP action: stops
+ 49  if r0 s> 4 goto 93
  50  exit
      line 9: end, {default = action.PASS})
  51  r0 = 0                        XDP_ABORTED, where the program stops
  52  exit
+     lines 6 and 7: the reads of a and n
+ 53  to 92: their blocks, as in Floor division and modulo
+     line 8: return a << n
+ 93  to 112: logs "division.bpf.lua:8: invalid action", then goto 51
 ```
 
 This is Lua's `luaV_shiftl`. `BPF_LSH` alone masks the count to its low six bits, so `1 << 64`
@@ -466,7 +510,7 @@ tests `small` alone. Instructions 0 to 17 read `a` into `r8`.
  22  goto 24
  23  r9 = 1                        small is true
      line 8: local n = p:getbyte(15)
- 24  to 36: the read of byte 15, unsigned, so with no shift pair
+ 24  to 36: the read of byte 15, unsigned, so with no shift pair, jumping to 73
  37  *(u64 *)(r10 -40) = r1        n, in Lua register 4
      line 9: if n and small then
                                    nothing for n: a number is true
@@ -482,6 +526,10 @@ tests `small` alone. Instructions 0 to 17 read `a` into `r8`.
      line 13: end, {default = action.PASS})
  51  r0 = 0                        XDP_ABORTED, where Lua would raise
  52  exit
+     line 6: local a = p:getint8(14)
+ 53  to 72: logs "comparisons.bpf.lua:6: out of bounds", then goto 51
+     line 8: local n = p:getbyte(15)
+ 73  to 92: logs "comparisons.bpf.lua:8: out of bounds", then goto 51
 ```
 
 Bytes 14 and 15 at `ff 00`, so `a` is -1 and `n` is 0:
@@ -545,10 +593,13 @@ holds its value, 17. Instructions 0 to 18 read the IPv4 header's protocol into `
      line 18: end, {default = action.PASS})
  28  r0 = 0                        XDP_ABORTED, where Lua would raise
  29  exit
+     line 13: local protocol = iphdr:view(p, eth.HLEN).protocol
+ 30  to 49: logs "values.bpf.lua:13: out of bounds", then goto 28
 ```
 
 An IPv4 frame whose protocol is 17, UDP, returns 1, `XDP_DROP`; one whose protocol is 6, TCP,
-returns 2, and a 14-byte frame stops at the read and returns 0, `XDP_ABORTED`. An index the program
+returns 2, and a 14-byte frame stops at the read, logs "values.bpf.lua:13: out of bounds" and
+returns 0, `XDP_ABORTED`. An index the program
 computes, `protocols[name]` with `name` read from the packet, has no value the compiler can read,
 and is refused; so are `#protocols` and a write to the table.
 
@@ -566,24 +617,29 @@ end, {default = action.PASS})
 ```
 
 Instructions 0 to 15 read byte 14 into `r8`, as [The packet](#the-packet) reads two bytes, their
-bounds tests jumping to 20.
+bounds tests jumping to 22.
 
 ```
      line 7: return verdict
  16  r0 = r8
- 17  if r0 s< 0 goto 20            below XDP_ABORTED: stops
- 18  if r0 s> 4 goto 20            past XDP_REDIRECT: stops
+ 17  if r0 s< 0 goto 42            below XDP_ABORTED: stops
+ 18  if r0 s> 4 goto 42            past XDP_REDIRECT: stops
  19  exit
      line 8: end, {default = action.PASS})
  20  r0 = 0                        XDP_ABORTED, where the program stops
  21  exit
+     line 6: local verdict = p:getbyte(14)
+ 22  to 41: logs "verdict.bpf.lua:6: out of bounds", then goto 20
+     line 7: return verdict
+ 42  to 61: logs "verdict.bpf.lua:7: invalid action", then goto 20
 ```
 
 A verdict is one of the actions of its program type: `linux.xdp.action`, from 0, `XDP_ABORTED`, to
 4, `XDP_REDIRECT`, and `linux.tc.action`, from -1, `TC_ACT_UNSPEC`, to 8, `TC_ACT_TRAP`, which a TC
 program's two jumps test instead. The kernel's Lua holds a kernel script's callback to the same
 range, in `luakfunc_action`, and answers any other value with the hook's fallback, as it answers a
-callback that raised: the compiled program stops there, as it does where Lua would raise. The eBPF
+callback that raised and logs "invalid action": the compiled program stops there, and logs the
+same, as it does where Lua would raise. The eBPF
 instruction alone would hand the kernel the low 32 bits of `r0`, which it reads as an action
 whatever they are, so the -4 of [Floor division and modulo](#floor-division-and-modulo) would reach
 it as 4294967292, and an XDP value that is no action drops the packet.
@@ -591,7 +647,7 @@ it as 4294967292, and an XDP value that is no action drops the packet.
 | Byte 14 | Instructions | The program returns |
 |---------|--------------|---------------------|
 | `01` | 17, 18: 1 is within 0 to 4 | 1, `XDP_DROP` |
-| `09` | 18: 9 is past 4 | 0, `XDP_ABORTED` |
+| `09` | 18: 9 is past 4 | 0, `XDP_ABORTED`, and "verdict.bpf.lua:7: invalid action" logged |
 
 A verdict the compiler knows takes no test, and one outside the actions is refused: `return 11`
 gives "the verdict 11 is not an XDP action". So is a verdict that may be a boolean, which no
@@ -631,12 +687,12 @@ bytes past the head.
   5  *(u64 *)(r10 -40) = r1
   6  r2 = *(u64 *)(r10 -40)        the offset, 15
   7  r1 = r9                       the context
-  8  if r2 > 2147483647 goto 32    past INT_MAX: stops
+  8  if r2 > 2147483647 goto 34    past INT_MAX: stops
   9  r3 = r10
  10  r3 += -32                     the frame's value slot
  11  r4 = 1                        the width
  12  call 26                       bpf_skb_load_bytes
- 13  if r0 != 0 goto 32            past the end of the packet: stops
+ 13  if r0 != 0 goto 34            past the end of the packet: stops
  14  r1 = *(u8 *)(r10 -32)         byte 15
  15  r1 <<= 56
  16  r1 s>>= 56                    its sign extended
@@ -647,7 +703,7 @@ bytes past the head.
  20  r2 = *(u64 *)(r10 -48)        class
  21  r5 = r2
  22  r5 >>= 32
- 23  if r5 != 0 goto 32            outside 0 to 4294967295: stops
+ 23  if r5 != 0 goto 54            outside 0 to 4294967295: stops
  24  r1 = *(u64 *)(r10 -40)
  25  *(u32 *)(r1 +32) = r2         __sk_buff.priority
  26  r1 = *(u64 *)(r10 -40)
@@ -660,11 +716,16 @@ bytes past the head.
      line 9: end, {default = action.OK})
  32  r0 = 2                        TC_ACT_SHOT, where Lua would raise
  33  exit
+     line 6: local class = p:getint8(15)
+ 34  to 53: logs "context.bpf.lua:6: out of bounds", then goto 32
+     line 7: skb:priority(class)
+ 54  to 73: logs "context.bpf.lua:7: out of bounds", then goto 32
 ```
 
 A frame whose byte 15 is 3 leaves its priority at 3 and returns 0, `TC_ACT_OK`. One whose byte 15
-is `ff` gives -1, which instruction 23 finds outside the range: the program stops before the store
-and returns 2, `TC_ACT_SHOT`, so the packet is dropped and its priority stays where it was.
+is `ff` gives -1, which instruction 23 finds outside the range: the program stops before the store,
+logs "context.bpf.lua:7: out of bounds" and returns 2, `TC_ACT_SHOT`, so the packet is dropped and
+its priority stays where it was.
 
 ## Maps
 
@@ -702,7 +763,7 @@ prints the map as a relocation, which libbpf fills in when it loads the object. 
      line 15: local n = seen[proto]
  19  r5 = r8                       proto
  20  r5 >>= 32
- 21  if r5 != 0 goto 79            wider than I4: stops
+ 21  if r5 != 0 goto 101           wider than I4: stops
  22  *(u64 *)(r10 -24) = 0
  23  *(u32 *)(r10 -24) = r8        the key, four bytes
  24  r1 = map seen                 two slots, relocated by libbpf
@@ -718,20 +779,29 @@ prints the map as a relocation, which libbpf fills in when it loads the object. 
  34  goto 57                       the else branch
      line 17: seen[proto] = n + 1
  35  to 38: n + 1, kept in Lua register 5
- 39  to 41: the key held to I4 again
+ 39  to 41: the key held to I4 again, jumping to 121
  42  to 46: the key at r10 -24, the value at r10 -32
  47  to 52: r1 the map, r2 and r3 the key and the value, by address
  53  r4 = 0                        BPF_ANY: insert or replace
  54  call 2                        bpf_map_update_elem
- 55  if r0 != 0 goto 79            the map refuses: stops
+ 55  if r0 != 0 goto 141           the map refuses: stops
  56  goto 74
      line 19: seen[proto] = 1
- 57  to 73: the same update, with the value 1
+ 57  to 73: the same update, with the value 1, its tests jumping to 161 and 181
      line 21: return action.PASS
  74  to 78: r0 is 2, and the exit
      line 22: end, {default = action.PASS})
  79  r0 = 0                        XDP_ABORTED, where Lua would raise
  80  exit
+     line 14: local proto = iphdr:view(p, eth.HLEN).protocol
+ 81  to 100: logs "maps.bpf.lua:14: out of bounds", then goto 79
+     line 15: local n = seen[proto]
+101  to 120: logs "maps.bpf.lua:15: unsigned overflow", then goto 79
+     line 17: seen[proto] = n + 1
+121  to 140: logs "maps.bpf.lua:17: unsigned overflow", then goto 79
+141  to 160: logs "maps.bpf.lua:17: the map 'seen' refused the update", then goto 79
+     line 19: seen[proto] = 1
+161  to 200: the same two, at line 19
 ```
 
 Instruction 31 reads the value only past instruction 30: the verifier refuses a read through a
@@ -743,7 +813,7 @@ frames, one after the other, over a map that starts empty:
 | IPv4, TCP | 6 | 30 jumps: nil, so 57 to 73 store 1 | `{[6] = 1}` |
 | the same again | 6 | 30 goes on: 1, so 35 to 55 store 2 | `{[6] = 2}` |
 | ARP, 42 bytes | 0, the byte where IPv4 keeps its protocol | nil, so 1 is stored | `{[6] = 2, [0] = 1}` |
-| 14 bytes | none | the read of the protocol jumps to 79 before the lookup | unchanged |
+| 14 bytes | none | the read of the protocol jumps to 81, which logs "maps.bpf.lua:14: out of bounds", before the lookup | unchanged |
 
 Each run returns 2 but the last, which stops and returns 0, `XDP_ABORTED`. A kernel script reads
 the same map with the kernel's `bpf.map`, as `map.hash("/sys/fs/bpf/lunatik/<script>/seen", "I4",
@@ -784,7 +854,7 @@ count, the step and `i`: here `r9`, `r10 - 40` and `r10 - 48`. Instructions 0 to
  10  to 11: r10 -40 is 1           the step
  12  to 13: r10 -48 is 14          i
      line 8: s = s + p:getbyte(i)
- 14  to 26: the read of byte i, held to the bounds of the packet
+ 14  to 26: the read of byte i, held to the bounds of the packet; past them, goto 47
  27  to 29: s in r1, the byte in r2
  30  r1 += r2                      s + the byte
  31  r8 = r1                       s
@@ -797,18 +867,22 @@ count, the step and `i`: here `r9`, `r10 - 40` and `r10 - 48`. Instructions 0 to
  40  goto 14                       the back edge
      line 10: return s
  41  r0 = r8
- 42  if r0 s< 0 goto 45            not an XDP action: stops
- 43  if r0 s> 4 goto 45
+ 42  if r0 s< 0 goto 67            not an XDP action: stops
+ 43  if r0 s> 4 goto 67
  44  exit
      line 11: end, {default = action.PASS})
  45  r0 = 0                        XDP_ABORTED, where the program stops
  46  exit
+     line 8: s = s + p:getbyte(i)
+ 47  to 66: logs "loops.bpf.lua:8: out of bounds", then goto 45
+     line 10: return s
+ 67  to 86: logs "loops.bpf.lua:10: invalid action", then goto 45
 ```
 
 Bytes 14 to 17 at `01 02 03 04` make four passes, i at 14, 15, 16 and 17, and `s` is 10, which is
 no XDP action, so the program stops and returns 0, `XDP_ABORTED`; at `00 01 01 02`, `s` is 4, and
 the program returns 4, `XDP_REDIRECT`. A 16-byte frame stops at the third pass, whose read of byte
-16 is past the packet, and returns 0 too.
+16 is past the packet, logs "loops.bpf.lua:8: out of bounds" and returns 0 too.
 
 With a bound the program computes, the count is computed when the loop starts, with an unsigned
 division as `forprep` does, and handed to the kernel's iterator, `bpf_iter_num_new`, which counts
@@ -852,19 +926,19 @@ end, {default = action.PASS})
  29  r2 /= r3                      over the step, unsigned: the count
  30  r9 = r1                       the start
  31  to 32: r10 -40 is the step, r10 -48 is i
- 33  if r2 >= 2147483647 goto 88   a count no int holds: stops
+ 33  if r2 >= 2147483647 goto 90   a count no int holds: stops
  34  to 38: the count + 1 in r3, 1 in r2, the iterator at r10 -80 in r1
  39  call bpf_iter_num_new         passes 1 to the count, after the first
  40  to 41: r0 sign-extended from 32 bits
- 42  if r0 != 0 goto 84            more than it counts: stops
+ 42  if r0 != 0 goto 110           more than it counts: stops
      line 8: s = s + p:getbyte(i)
- 43  to 55: the read of byte i, held to the bounds of the packet; past them, goto 84
+ 43  to 55: the read of byte i, held to the bounds of the packet; past them, goto 130
  56  to 60: r8 = r8 + the byte     s
      line 7: for i = 14, #p - 1 do
  61  to 62: r1 = r10 - 80          the iterator
  63  call bpf_iter_num_next        the number of the next pass, or NULL
  64  if r0 == 0 goto 72            no pass left
- 65  may_goto 84                   the budget spent: stops
+ 65  may_goto 150                  the budget spent: stops
  66  r1 = *(u32 *)(r0 + 0)         the pass
  67  to 69: r1 * the step + r9
  70  *(u64 *)(r10 -48) = r1        i
@@ -882,6 +956,13 @@ end, {default = action.PASS})
      line 14: end, {default = action.PASS})
  88  r0 = 0                        XDP_ABORTED, where the program stops
  89  exit
+     line 7: for i = 14, #p - 1 do
+ 90  to 109: logs "loops.bpf.lua:7: 'for' outruns the budget the kernel gives it", then goto 88
+110  to 129: the same line, then goto 84
+     line 8: s = s + p:getbyte(i)
+130  to 149: logs "loops.bpf.lua:8: out of bounds", then goto 84
+     line 7: for i = 14, #p - 1 do
+150  to 169: the line of 90, then goto 84
 ```
 
 A 17-byte frame whose last three bytes are `10 20 30` makes three passes: the count is 2, the
@@ -895,8 +976,9 @@ call of the function runs out, about a quarter of a second where its JIT times t
 passes after the first where it counts them, which one loop alone never spends. Each way out of
 the loop destroys the iterator, or the verifier refuses the program: 72 when no pass is left, 84
 when the program stops in the loop, and the same call before the jump of a `break` or a `goto`
-out of it, and before a `return` in it. Compiled for a kernel before 6.9, the listing has no
-instruction 65, and every instruction after it comes one earlier.
+out of it, and before a `return` in it, the blocks of 110, 130 and 150 going on to 84. Compiled
+for a kernel before 6.9, the listing has no instruction 65 and no block 150, and every instruction
+after 65 comes one earlier.
 
 ## Goto
 
@@ -925,7 +1007,7 @@ count in `r9`, the step in `r10 - 40` and `i` in `r10 - 48`.
 
 ```
      line 8: if p:getbyte(i) == 0 then goto continue end
- 14  to 27: the read of byte i, held to the bounds of the packet
+ 14  to 27: the read of byte i, held to the bounds of the packet; past them, goto 51
  28  r1 = *(u64 *)(r10 -56)        the byte
  29  r2 = 0
  30  if r1 != r2 goto 32           not 0: on to n = n + 1
@@ -940,12 +1022,16 @@ count in `r9`, the step in `r10 - 40` and `i` in `r10 - 48`.
  44  goto 14                       the back edge
      line 12: return n
  45  r0 = r8
- 46  if r0 s< 0 goto 49            not an XDP action: stops
- 47  if r0 s> 4 goto 49
+ 46  if r0 s< 0 goto 71            not an XDP action: stops
+ 47  if r0 s> 4 goto 71
  48  exit
      line 13: end, {default = action.PASS})
  49  r0 = 0                        XDP_ABORTED, where the program stops
  50  exit
+     line 8: if p:getbyte(i) == 0 then goto continue end
+ 51  to 70: logs "goto.bpf.lua:8: out of bounds", then goto 49
+     line 12: return n
+ 71  to 90: logs "goto.bpf.lua:12: invalid action", then goto 49
 ```
 
 Bytes 14 to 17 at `01 00 03 04`:
@@ -958,7 +1044,7 @@ Bytes 14 to 17 at `01 00 03 04`:
 | i at 17 | `04` | 30 jumps to 32 | 3 |
 
 At 37 no pass is left, and the program returns 3, `XDP_TX`. A 16-byte frame stops at the third
-pass, whose read of byte 16 is past the packet, and returns 0. A `goto` out of the loop is the
+pass, whose read of byte 16 is past the packet, logs "goto.bpf.lua:8: out of bounds" and returns 0. A `goto` out of the loop is the
 same `JA`, to the instructions after the loop. A `goto` to a label above it makes a loop the
 compiler counts no pass of, and is refused: "'while', 'repeat' and a 'goto' backwards are not
 compiled yet".
@@ -984,7 +1070,7 @@ end, {default = action.PASS})
 
 `half` is compiled once, as a BPF-to-BPF function in the section `.text`. Its arguments go in `r1`
 and `r2`, and the address of the caller's flag in the register after them, `r3`. Instructions 0 to
-33 of the program read `a` and `b`.
+33 of the program read `a` and `b`, their tests jumping to 52 and 72.
 
 ```
   the program, in the section xdp
@@ -998,10 +1084,16 @@ and `r2`, and the address of the caller's flag in the register after them, `r3`.
  43  if r1 != 0 goto 50            raised: stops
  44  *(u64 *)(r10 -40) = r0        v
      line 13: return v
- 45  to 49: r0 is v, tested against the actions, and the exit
+ 45  to 49: r0 is v, tested against the actions, jumping to 92 outside them, and the exit
      line 14: end, {default = action.PASS})
  50  r0 = 0                        XDP_ABORTED, where the program stops
  51  exit
+     line 10: local a = p:getint8(14)
+ 52  to 71: logs "calls.bpf.lua:10: out of bounds", then goto 50
+     line 11: local b = p:getint8(15)
+ 72  to 91: logs "calls.bpf.lua:11: out of bounds", then goto 50
+     line 13: return v
+ 92  to 111: logs "calls.bpf.lua:13: invalid action", then goto 50
 
   half, in the section .text
      line 4: local function half(n, d)
@@ -1009,18 +1101,21 @@ and `r2`, and the address of the caller's flag in the register after them, `r3`.
   1  r6 = r1                       n
   2  r7 = r2                       d
      line 5: return n // d
-  3  to 18: the floor division above, its zero test jumping to 22
+  3  to 18: the floor division above, its zero test jumping to 26
  19  to 21: r0 is n // d, and the exit
      line 6: end
  22  r1 = *(u64 *)(r10 -16)
  23  *(u64 *)(r1 +0) = 1           the flag, raised
  24  r0 = 0                        the verifier reads r0 on every exit
  25  exit
+     line 5: return n // d
+ 26  to 45: logs "calls.bpf.lua:5: attempt to divide by zero", then goto 22
 ```
 
-Bytes 14 and 15 at `07 00`: `a` is 7 and `b` is 0. In `half` the zero test jumps to 22, which
-raises the flag and returns; at 43 the program reads the flag and jumps to 50, so it returns 0,
-`XDP_ABORTED`, as if the division had been in the program's own function. With -7 and 2, `half`
+Bytes 14 and 15 at `07 00`: `a` is 7 and `b` is 0. In `half` the zero test jumps to 26, which logs
+"calls.bpf.lua:5: attempt to divide by zero", and 22 raises the flag and returns; at 43 the program
+reads the flag and jumps to 50, logging nothing, so it returns 0, `XDP_ABORTED`, as if the division
+had been in the program's own function. With -7 and 2, `half`
 returns -4, which `half` may, since only the program's own `return` is a verdict; -4 is no XDP
 action, so the program stops and returns 0 too.
 
@@ -1067,7 +1162,7 @@ arguments and `r5` their size. The name and the arguments go below the frame's d
 `r10 - 64` here, where nothing outlives the call. `TX` on the nil branch tells that branch from the
 callback's verdict and from the `XDP_ABORTED` a stop returns. Instructions 0 to 44 take `ctx` and
 `p`, and read `ip.ihl` and the UDP header's `dest`, past the IPv4 header by `ihl`, into `port`, in
-`r9`, as [Views](#views) reads a field.
+`r9`, as [Views](#views) reads a field, their tests jumping to 86 and 106.
 
 ```
      line 19: local verdict = limits:run(port, #p)
@@ -1100,8 +1195,8 @@ callback's verdict and from the `XDP_ABORTED` a stop returns. Instructions 0 to 
      line 21: return verdict
  74  r0 = *(u64 *)(r10 -40)
  75  r0 = r0
- 76  if r0 s< 0 goto 84            not an XDP action: stops
- 77  if r0 s> 4 goto 84
+ 76  if r0 s< 0 goto 126           not an XDP action: stops
+ 77  if r0 s> 4 goto 126
  78  exit
      line 23: return action.TX
  79  r1 = 3                        XDP_TX, read from linux.xdp
@@ -1109,6 +1204,11 @@ callback's verdict and from the `XDP_ABORTED` a stop returns. Instructions 0 to 
      line 24: end, {default = action.PASS})
  84  r0 = 0                        XDP_ABORTED, where the program stops
  85  exit
+     line 18: local port = udphdr:view(p, eth.HLEN + ip.ihl * WORD).dest
+ 86  to 105: logs "runtime.bpf.lua:18: out of bounds", then goto 84
+106  to 125: the same, for the read of dest
+     line 21: return verdict
+126  to 145: logs "runtime.bpf.lua:21: invalid action", then goto 84
 ```
 
 `llvm-objdump` prints two of these instructions by what their bytes hold before libbpf has read
@@ -1137,7 +1237,8 @@ runtime `limits` running:
 A frame of 100 bytes to port 53, or one of 600 to port 80, makes the callback return nothing: the
 kfunc answers -1, instruction 69 jumps to 71, and the program returns 3, `XDP_TX`, as it does for
 every frame that reaches the call while no runtime `limits` runs. A frame of 30 bytes stops at the
-read of the port, past its end, and returns 0, `XDP_ABORTED`. `bpftool prog run` returned these for
+read of the port, past its end, logs "runtime.bpf.lua:18: out of bounds" and returns 0,
+`XDP_ABORTED`. `bpftool prog run` returned these for
 the object loaded on Linux 6.8, arm64, with the runtime started by
 `lunatik run --context=softirq limits`. In a TC program the call is the same over `bpf_luatc_run`,
 and `r3` holds the `__sk_buff`.

@@ -172,8 +172,9 @@ decide what a program may emit, and its byte order is the object's. The types a 
 context's struct and any layout `bpf.vmlinux` answers, come from that kernel's BTF:
 `/sys/kernel/btf/vmlinux` unless `--btf` names a raw BTF file, the bytes that path serves. The
 kernel scripts the body requires, its `linux.*` tables among them, the `linux.bpf` the compiler
-reads the stack limit from, and the `linux.limits` it reads the largest `int` from for a `for` whose
-bound the program computes, come from `/lib/modules/lua/` unless `--scripts` names another directory
+reads the stack limit from, the `linux.limits` it reads the largest `int` from for a `for` whose
+bound the program computes, and the `linux.ratelimit` it reads the rate limit of a stop's line
+from, come from `/lib/modules/lua/` unless `--scripts` names another directory
 laid out as that one; a module that directory lacks is not found, and is not read from
 `/lib/modules/lua/`.
 
@@ -256,8 +257,10 @@ The maps exist before the script opens them, and the programs attach once the ru
 failure at any step undoes the steps before it and exits 1 with that step's message, the verifier's
 own log when the kernel rejects a program, which quotes the Lua line; libbpf's own warnings, which
 name what failed where the kernel logs nothing, print on stderr before it. Once attached, a program
-logs nothing: a packet it cannot compute is dropped, with `XDP_ABORTED` or `TC_ACT_SHOT`, as
-[What a program returns](08-luaebpf.md#what-a-program-returns) says. `lunatik stop <script>`
+drops a packet it cannot compute, with `XDP_ABORTED` or `TC_ACT_SHOT`, and logs the error Lua raises
+there to the kernel's trace ring, as
+[When a program cannot be compiled or computed](08-luaebpf.md#when-a-program-cannot-be-compiled-or-computed)
+says. `lunatik stop <script>`
 runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each
 directory above it the root leaves empty. A root holds pins and nothing else, so a stop of a name
 that only parents other scripts' roots leaves them alone. `lunatik unload`, and `reload` and `test`

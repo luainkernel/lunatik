@@ -170,6 +170,7 @@
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.packet.html">linux.packet</a></li>
+  <li><a href="../modules/linux.ratelimit.html">linux.ratelimit</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -200,10 +201,11 @@
  one argument, the context, and returns a verdict, a value of <a href="../modules/linux.xdp.html#action">linux.xdp.action</a>, as a kernel
  script&rsquo;s xdp callback does. Where it computes a verdict that is no action, and where Lua would
  raise, at a read past the packet or a division by 0, the program stops and returns <code>XDP_ABORTED</code>,
- the kernel&rsquo;s verdict for a program error, which drops the packet; where it returns no value, it
- returns the default verdict its constructor names. A verdict the compiler holds that is no
- action, and a boolean, are refused, &ldquo;the verdict 11 is not an XDP action&rdquo; and &ldquo;the verdict may be
- a boolean here; return an action&rdquo;.</p>
+ the kernel&rsquo;s verdict for a program error, which drops the packet, and logs the error Lua raises
+ there, <code>&lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code>, to the kernel&rsquo;s trace ring through <code>bpf_trace_printk</code>, ten lines
+ every five seconds at most; where it returns no value, it returns the default verdict its
+ constructor names. A verdict the compiler holds that is no action, and a boolean, are refused,
+ &ldquo;the verdict 11 is not an XDP action&rdquo; and &ldquo;the verdict may be a boolean here; return an action&rdquo;.</p>
 
 <p> The context has the methods of the kernel&rsquo;s XDP <code>ctx</code> object: <code>ctx:packet()</code>, the packet, read
  with <code>getbyte</code>, <code>getint16</code> and the other reads of the kernel&rsquo;s <a href="../modules/data.html#">data</a> object, in the kernel&rsquo;s
@@ -215,8 +217,8 @@
 
 <p> A call into a kernel Lua runtime <a href="../modules/lunatik.html#runtime">lunatik.runtime</a> names, <code>r:run(a, b)</code>, lowers to
  <code>bpf_luaxdp_run</code>: it answers the verdict the callback <a href="../modules/xdp.html#attach">xdp.attach</a> registered returns, or nil, and
- the program tests the answer before it reads it. The kernel loads a program that calls it only under
- a license it counts as GPL-compatible.
+ the program tests the answer before it reads it. The kernel loads a program that calls it, or that
+ may stop, only under a license it counts as GPL-compatible.
     <h2 id="usage">Usage</h2>
         <pre class="example">local xdp     = require(&quot;bpf.xdp&quot;)
 local struct  = require(&quot;struct&quot;)
@@ -300,7 +302,7 @@ end, {default = action.PASS})
 <a href="../../modules/bpf.xdp.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.xdp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-19 18:26:02</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-20 13:32:29</span>
 </div>
 </footer>
 </body>

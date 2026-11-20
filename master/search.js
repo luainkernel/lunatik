@@ -200,6 +200,8 @@ window.LUNATIK_SEARCH = [
 ["linux.notify","modules/linux.notify.html","Module · Linux kernel constants exposed under linux.notify."],
 ["linux.packet","modules/linux.packet.html","Module · Linux kernel constants exposed under linux.packet."],
 ["type","modules/linux.packet.html#type","linux.packet · Packet types (PACKET_HOST, )."],
+["linux.ratelimit","modules/linux.ratelimit.html","Module · Linux kernel constants exposed under linux.ratelimit."],
+["default","modules/linux.ratelimit.html#default","linux.ratelimit · The kernel's default rate limit: BURST messages every INTERVAL jiffies."],
 ["linux.rtnetlink","modules/linux.rtnetlink.html","Module · Linux kernel constants exposed under linux.rtnetlink."],
 ["fr_act","modules/linux.rtnetlink.html#fr_act","linux.rtnetlink · rtnetlink FIB rule actions (FR_ACT_*)."],
 ["fra","modules/linux.rtnetlink.html#fra","linux.rtnetlink · rtnetlink FIB rule attribute types (FRA_*)."],
