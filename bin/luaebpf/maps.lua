@@ -11,8 +11,6 @@
 -- asks whether a table a compiled function reached is one of them.
 -- @module luaebpf.maps
 
-local insert = table.insert
-
 local declared = {}
 local named = {}
 
@@ -35,7 +33,7 @@ function maps.declare(map)
 		return nil
 	end
 	named[map.name] = map
-	insert(declared, map)
+	table.insert(declared, map)
 	return map
 end
 

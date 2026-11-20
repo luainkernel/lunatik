@@ -13,13 +13,8 @@
 local insn  = require("luaebpf.insn")
 local proto = require("luaebpf.proto")
 
-local alu, jump, reg = insn.alu, insn.jump, insn.reg
-local opcodes    = proto.opcodes
-local format     = string.format
-local mathtype   = math.type
-
 local NREGS    <const> = 4   -- Lua registers 0..3 live in r6..r9; the rest spill to the frame
-local FIRST    <const> = reg.R6
+local FIRST    <const> = insn.reg.R6
 local SLOT     <const> = 8
 local NBITS    <const> = 64
 local BYTE     <const> = 8   -- bits
@@ -70,7 +65,7 @@ local function newtype(name, ...)
 	typenames[bit] = name
 	for _, class in ipairs({...}) do
 		if classes[class] == nil then
-			error(format("'%s' is not a class the frame reads", class), 2)
+			error(string.format("'%s' is not a class the frame reads", class), 2)
 		end
 		classes[class] = classes[class] | bit
 	end
@@ -105,7 +100,7 @@ local function joinname(t)
 	if t & NIL ~= 0 then
 		table.insert(others, typenames[NIL])
 	end
-	return format("%s that may be %s", typenames[first], table.concat(others, " or "))
+	return string.format("%s that may be %s", typenames[first], table.concat(others, " or "))
 end
 
 local function typename(value)
@@ -129,11 +124,11 @@ frame.exact = exact
 
 -- the chunk and the line a refusal names, and a stop logs, as Lua's own error spells them
 local function where(f, pc)
-	return format("%s:%d: ", f.chunk, f.proto.lines[pc] or f.proto.linedefined)
+	return string.format("%s:%d: ", f.chunk, f.proto.lines[pc] or f.proto.linedefined)
 end
 
 local function refuse(f, pc, reason, ...)
-	error(where(f, pc) .. format(reason, ...), 0)
+	error(where(f, pc) .. string.format(reason, ...), 0)
 end
 frame.refuse = refuse
 
@@ -230,7 +225,7 @@ frame.stack = stack
 -- the word a Lua register holds, whatever its type
 local function fetch(f, i, scratch)
 	if spilled(i) then
-		f.code:load(scratch, reg.FP, offset(i))
+		f.code:load(scratch, insn.reg.FP, offset(i))
 		return scratch
 	end
 	return FIRST + i
@@ -239,7 +234,7 @@ frame.fetch = fetch
 
 -- the value's name quoted, or what the caller says of one with none
 local function named(value, otherwise)
-	return value.name and format("'%s'", value.name) or otherwise
+	return value.name and string.format("'%s'", value.name) or otherwise
 end
 frame.named = named
 
@@ -264,17 +259,17 @@ frame.getreg = getreg
 
 local function setreg(f, i, src)
 	if spilled(i) then
-		f.code:store(reg.FP, offset(i), src)
+		f.code:store(insn.reg.FP, offset(i), src)
 	else
-		f.code:alu(alu.MOV, FIRST + i, src)
+		f.code:alu(insn.alu.MOV, FIRST + i, src)
 	end
 end
 frame.setreg = setreg
 
 local function setimm(f, i, value)
 	if spilled(i) then
-		f.code:set(reg.R1, value)
-		f.code:store(reg.FP, offset(i), reg.R1)
+		f.code:set(insn.reg.R1, value)
+		f.code:store(insn.reg.FP, offset(i), insn.reg.R1)
 	else
 		f.code:set(FIRST + i, value)
 	end
@@ -283,14 +278,14 @@ frame.setimm = setimm
 
 -- dst := the address of the frame's bytes at `at`, which a call reads through a pointer
 local function address(f, dst, at)
-	f.code:alu(alu.MOV, dst, reg.FP)
-	f.code:alui(alu.ADD, dst, at)
+	f.code:alu(insn.alu.MOV, dst, insn.reg.FP)
+	f.code:alui(insn.alu.ADD, dst, at)
 end
 frame.address = address
 
 local function move(f, from, scratch)
 	if from ~= scratch then
-		f.code:alu(alu.MOV, scratch, from)
+		f.code:alu(insn.alu.MOV, scratch, from)
 	end
 	return scratch
 end
@@ -310,7 +305,7 @@ frame.isinteger = isinteger
 -- a value the file body computed becomes a constant of the program; only what the kernel can
 -- hold takes a register, and a float, which the body's Lua has and the kernel's does not, is not one
 local function resolve(f, pc, state, i, value, name)
-	local kind = mathtype(value) or type(value)
+	local kind = math.type(value) or type(value)
 	if kind == "integer" then
 		setimm(f, i, value)
 		state[i] = {t = INT, k = value, name = name}
@@ -339,8 +334,8 @@ frame.constant = constant
 -- a shift pair rather than BPF_MEMSX, which the s390 JIT of v6.6 does not take
 local function extend(f, dst, size)
 	local shift = NBITS - size * BYTE
-	f.code:alui(alu.LSH, dst, shift)
-	f.code:alui(alu.ARSH, dst, shift)
+	f.code:alui(insn.alu.LSH, dst, shift)
+	f.code:alui(insn.alu.ARSH, dst, shift)
 end
 frame.extend = extend
 
@@ -348,15 +343,15 @@ frame.extend = extend
 local function bitfield(f, dst, field)
 	local code = f.code
 	if field.shift ~= 0 then
-		code:alui(alu.RSH, dst, field.shift)
+		code:alui(insn.alu.RSH, dst, field.shift)
 	end
-	code:set(reg.R5, field.mask) -- an immediate is 32 bits sign-extended, which a mask may not fit
-	code:alu(alu.AND, dst, reg.R5)
+	code:set(insn.reg.R5, field.mask) -- an immediate is 32 bits sign-extended, which a mask may not fit
+	code:alu(insn.alu.AND, dst, insn.reg.R5)
 	if field.signed then
-		code:set(reg.R5, (field.mask >> 1) + 1) -- the sign bit's weight: xor, then subtract, sign-extends
+		code:set(insn.reg.R5, (field.mask >> 1) + 1) -- the sign bit's weight: xor, then subtract, sign-extends
 
-		code:alu(alu.XOR, dst, reg.R5)
-		code:alu(alu.SUB, dst, reg.R5)
+		code:alu(insn.alu.XOR, dst, insn.reg.R5)
+		code:alu(insn.alu.SUB, dst, insn.reg.R5)
 	end
 end
 
@@ -374,11 +369,11 @@ end
 -- Lua register a := the number a codec reads out of a field's load in R1, named name
 local function decode(f, state, a, field, name)
 	if field.mask ~= nil then
-		bitfield(f, reg.R1, field)
+		bitfield(f, insn.reg.R1, field)
 	else
-		whole(f, reg.R1, field)
+		whole(f, insn.reg.R1, field)
 	end
-	setreg(f, a, reg.R1)
+	setreg(f, a, insn.reg.R1)
 	state[a] = {t = INT, name = name}
 end
 frame.decode = decode
@@ -387,7 +382,7 @@ frame.decode = decode
 
 -- R1 := the address of the loop's iterator, which every kfunc of the iterator takes first
 local function iterate(f, kfunc, loop)
-	address(f, reg.R1, loop.slot)
+	address(f, insn.reg.R1, loop.slot)
 	f.code:kfunc(kfunc)
 end
 frame.iterate = iterate
@@ -477,7 +472,7 @@ frame.abort = abort
 -- there, `<chunk>:<line>: <reason>`, and then takes the tail abort gives the loops the check is in
 local function stop(f, pc, reason, ...)
 	local site = {label = f.code:label(), line = f.proto.lines[pc], after = abort(f),
-		message = where(f, pc) .. format(reason, ...) .. "\0"}
+		message = where(f, pc) .. string.format(reason, ...) .. "\0"}
 	table.insert(f.stops, site)
 	return site.label
 end
@@ -488,18 +483,18 @@ frame.stop = stop
 local function window(f, func, limit, spent)
 	local code, counted = f.code, f.code:label()
 	code:helper(func.jiffies64)
-	code:data(reg.R1, WINDOW)
-	code:load(reg.R2, reg.R1, OPENED)
-	code:alu(alu.MOV, reg.R3, reg.R0)
-	code:alu(alu.SUB, reg.R3, reg.R2)
-	code:branchi(jump.JLE, reg.R3, limit.INTERVAL, counted)
-	code:store(reg.R1, OPENED, reg.R0)
-	code:storei(reg.R1, LOGGED, 0)
+	code:data(insn.reg.R1, WINDOW)
+	code:load(insn.reg.R2, insn.reg.R1, OPENED)
+	code:alu(insn.alu.MOV, insn.reg.R3, insn.reg.R0)
+	code:alu(insn.alu.SUB, insn.reg.R3, insn.reg.R2)
+	code:branchi(insn.jump.JLE, insn.reg.R3, limit.INTERVAL, counted)
+	code:store(insn.reg.R1, OPENED, insn.reg.R0)
+	code:storei(insn.reg.R1, LOGGED, 0)
 	code:place(counted)
-	code:load(reg.R2, reg.R1, LOGGED)
-	code:branchi(jump.JGE, reg.R2, limit.BURST, spent)
-	code:alui(alu.ADD, reg.R2, 1)
-	code:store(reg.R1, LOGGED, reg.R2)
+	code:load(insn.reg.R2, insn.reg.R1, LOGGED)
+	code:branchi(insn.jump.JGE, insn.reg.R2, limit.BURST, spent)
+	code:alui(insn.alu.ADD, insn.reg.R2, 1)
+	code:store(insn.reg.R1, LOGGED, insn.reg.R2)
 end
 
 -- each stop's block, after the function's tail: its line to the trace ring under the kernel's
@@ -514,9 +509,9 @@ local function stops(f)
 		code:source(site.line)
 		code:place(site.label)
 		window(f, func, limit, site.after)
-		code:data(reg.R1, FORMAT)
-		code:set(reg.R2, #FORMAT)
-		code:data(reg.R3, site.message)
+		code:data(insn.reg.R1, FORMAT)
+		code:set(insn.reg.R2, #FORMAT)
+		code:data(insn.reg.R3, site.message)
 		code:helper(func.trace_printk)
 		code:jump(site.after)
 	end
@@ -527,15 +522,15 @@ frame.stops = stops
 -- the program where Lua raises `reason`
 local function fitsunsigned(f, pc, src, size, reason)
 	local code = f.code
-	code:alu(alu.MOV, reg.R5, src)
-	code:alui(alu.RSH, reg.R5, size * BYTE)
-	code:branchi(jump.JNE, reg.R5, 0, stop(f, pc, reason))
+	code:alu(insn.alu.MOV, insn.reg.R5, src)
+	code:alui(insn.alu.RSH, insn.reg.R5, size * BYTE)
+	code:branchi(insn.jump.JNE, insn.reg.R5, 0, stop(f, pc, reason))
 end
 frame.fitsunsigned = fitsunsigned
 
 local function jumptarget(f, pc)
 	local ins = f.proto.code[pc]
-	if ins == nil or ins.op ~= opcodes.JMP then
+	if ins == nil or ins.op ~= proto.opcodes.JMP then
 		refuse(f, pc - 1, "a test is not followed by a jump")
 	end
 	local target = pc + ins.sj + 1
@@ -555,7 +550,7 @@ local function narrow(f, pc, ins, state, word, taken, found)
 	local hit = taken and target or pc + 2
 	local miss = taken and pc + 2 or target
 	local absent = code:label()
-	code:branchi(jump.JEQ, fetch(f, ins.a, reg.R1), word, absent)
+	code:branchi(insn.jump.JEQ, fetch(f, ins.a, insn.reg.R1), word, absent)
 	local narrowed = copy(state)
 	found(f, pc, narrowed, ins.a, value)
 	code:jump(labelof(f, hit))

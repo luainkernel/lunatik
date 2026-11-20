@@ -15,12 +15,6 @@ local loads   = require("luaebpf.emit.loads")
 local packet  = require("luaebpf.emit.packet")
 local runtime = require("luaebpf.emit.runtime")
 
-local alu, jump, reg = insn.alu, insn.jump, insn.reg
-local getinfo = debug.getinfo
-local abort, fetch, getreg, move, refuse = frame.abort, frame.fetch, frame.getreg, frame.move, frame.refuse
-local resolve, setreg, typename = frame.resolve, frame.setreg, frame.typename
-local method = packet.method
-
 local ABORTED <const> = frame.ABORTED
 local BOOL    <const> = frame.BOOL
 local INT     <const> = frame.INT
@@ -41,14 +35,14 @@ end
 -- a verdict is one of its program type's actions, which no bits of nil or of a boolean are
 local function checkverdict(f, pc, value)
 	if value.t & NIL ~= 0 then -- a register carries nil and 0 as one word
-		refuse(f, pc, "the verdict may be nil here; test it first")
+		frame.refuse(f, pc, "the verdict may be nil here; test it first")
 	end
 	if value.t & BOOL ~= 0 then
-		refuse(f, pc, "the verdict may be a boolean here; return an action")
+		frame.refuse(f, pc, "the verdict may be a boolean here; return an action")
 	end
 	local actions = f.unit.actions
 	if isoutside(actions, value) then
-		refuse(f, pc, "the verdict %d is not %s", value.k, actions.name)
+		frame.refuse(f, pc, "the verdict %d is not %s", value.k, actions.name)
 	end
 end
 
@@ -59,8 +53,8 @@ local function testverdict(f, pc, value)
 		return
 	end
 	local actions, invalid = f.unit.actions, frame.stop(f, pc, "invalid action")
-	f.code:branchi(jump.JSLT, reg.R0, actions.first, invalid)
-	f.code:branchi(jump.JSGT, reg.R0, actions.last, invalid)
+	f.code:branchi(insn.jump.JSLT, insn.reg.R0, actions.first, invalid)
+	f.code:branchi(insn.jump.JSGT, insn.reg.R0, actions.last, invalid)
 end
 
 local function returnvalue(f, pc, state, i)
@@ -70,7 +64,7 @@ local function returnvalue(f, pc, state, i)
 	end
 	f.rettype = f.rettype | value.t
 	if f.drop ~= "verdict" then
-		f.code:alu(alu.MOV, reg.R0, getreg(f, pc, state, i, reg.R0))
+		f.code:alu(insn.alu.MOV, insn.reg.R0, frame.getreg(f, pc, state, i, insn.reg.R0))
 		if f.isprogram then
 			testverdict(f, pc, value)
 		end
@@ -82,7 +76,7 @@ local function returns(f, pc, state, i)
 	if i == nil or state[i].t == NIL then -- the hook reads 'return' and 'return nil' alike
 		f.rettype = f.rettype | NIL
 		if f.drop ~= "verdict" then
-			f.code:set(reg.R0, f.isprogram and f.default or 0)
+			f.code:set(insn.reg.R0, f.isprogram and f.default or 0)
 		end
 	else
 		returnvalue(f, pc, state, i)
@@ -93,7 +87,7 @@ end
 
 function call.RETURN(f, pc, ins, state)
 	if ins.b == 0 or ins.b > 2 then
-		refuse(f, pc, "a compiled function returns at most one value")
+		frame.refuse(f, pc, "a compiled function returns at most one value")
 	end
 	return returns(f, pc, state, ins.b == 2 and ins.a or nil)
 end
@@ -109,31 +103,31 @@ end
 -- a compiled call answers with one value, so Lua fills every further result asked for with nil
 local function filled(f, pc, ins, state)
 	for i = ins.a + 1, ins.a + ins.c - 2 do
-		resolve(f, pc, state, i, nil)
+		frame.resolve(f, pc, state, i, nil)
 	end
 end
 
 local function callable(f, pc, callee)
 	if callee == nil or type(callee.k) ~= "function" then
-		refuse(f, pc, "a call through a value the compiler cannot resolve")
+		frame.refuse(f, pc, "a call through a value the compiler cannot resolve")
 	end
-	if getinfo(callee.k, "S").what == "C" then
-		refuse(f, pc, "'%s' is not a Lua function this program file declares", callee.name or "?")
+	if debug.getinfo(callee.k, "S").what == "C" then
+		frame.refuse(f, pc, "'%s' is not a Lua function this program file declares", callee.name or "?")
 	end
 end
 
 local function parameters(f, pc, ins, state)
 	local nargs = ins.b - 1
 	if nargs > MAXARGS then
-		refuse(f, pc, "a compiled function takes at most %d arguments, not %d", MAXARGS, nargs)
+		frame.refuse(f, pc, "a compiled function takes at most %d arguments, not %d", MAXARGS, nargs)
 	end
 	local params = {}
 	for i = 1, nargs do
 		local value = state[ins.a + i]
 		local kind = value ~= nil and value.t or 0
 		if kind ~= INT and kind ~= PACKET then
-			refuse(f, pc, "argument #%d is a %s, and a compiled call passes numbers and packets",
-				i, typename(value))
+			frame.refuse(f, pc, "argument #%d is a %s, and a compiled call passes numbers and packets",
+				i, frame.typename(value))
 		end
 		params[i] = kind
 	end
@@ -141,11 +135,11 @@ local function parameters(f, pc, ins, state)
 end
 
 local function invoke(f, target, nargs)
-	f.code:storei(reg.FP, ABORTED, 0)
-	frame.address(f, reg.R1 + nargs, ABORTED)
+	f.code:storei(insn.reg.FP, ABORTED, 0)
+	frame.address(f, insn.reg.R1 + nargs, ABORTED)
 	f.code:call(target.name)
-	f.code:load(reg.R1, reg.FP, ABORTED)
-	f.code:branchi(jump.JNE, reg.R1, 0, abort(f))
+	f.code:load(insn.reg.R1, insn.reg.FP, ABORTED)
+	f.code:branchi(insn.jump.JNE, insn.reg.R1, 0, frame.abort(f))
 end
 
 local function subprogram(f, pc, ins, state, callee)
@@ -153,11 +147,11 @@ local function subprogram(f, pc, ins, state, callee)
 	local params = parameters(f, pc, ins, state)
 	local target = f.unit.subprogram(f, pc, callee.k, callee.name, params)
 	for i = 1, #params do
-		move(f, fetch(f, ins.a + i, reg.R0 + i), reg.R0 + i)
+		frame.move(f, frame.fetch(f, ins.a + i, insn.reg.R0 + i), insn.reg.R0 + i)
 	end
 	invoke(f, target, #params)
 	if ins.c > 1 then
-		setreg(f, ins.a, reg.R0)
+		frame.setreg(f, ins.a, insn.reg.R0)
 		state[ins.a] = {t = target.rettype}
 	end
 end
@@ -165,10 +159,10 @@ end
 function call.CALL(f, pc, ins, state)
 	local callee = state[ins.a]
 	if ins.b == 0 or ins.c == 0 then
-		refuse(f, pc, "a call with a variable number of values cannot be compiled")
+		frame.refuse(f, pc, "a call with a variable number of values cannot be compiled")
 	end
 	if callee ~= nil and callee.t == METHOD then
-		method(f, pc, ins, state, callee)
+		packet.method(f, pc, ins, state, callee)
 	elseif callee ~= nil and runtime.isproxy(callee.k) then
 		runtime.call(f, pc, ins, state, callee)
 	else

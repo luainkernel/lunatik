@@ -19,9 +19,6 @@
 --
 -- local skb = struct(vmlinux.layout("__sk_buff"))
 
-local unpack = string.unpack
-local insert = table.insert
-
 local VMLINUX  <const> = "/sys/kernel/btf/vmlinux"
 local MAGIC    <const> = 0xeb9f
 local SWAPPED  <const> = 0x9feb -- the magic read in the other byte order, as libbpf's btf_parse_hdr tells it
@@ -78,7 +75,7 @@ local vmlinux = {}
 local source, cached = VMLINUX, nil
 
 local function name(self, at)
-	return (unpack("z", self.bytes, self.strings + at))
+	return (string.unpack("z", self.bytes, self.strings + at))
 end
 
 -- the prefix string.unpack reads a BTF with, which its magic says
@@ -86,7 +83,7 @@ local function order(bytes)
 	if #bytes < HDRLEN then
 		return nil
 	end
-	local magic = unpack("<I2", bytes)
+	local magic = string.unpack("<I2", bytes)
 	return magic == MAGIC and "<" or magic == SWAPPED and ">" or nil
 end
 
@@ -97,7 +94,7 @@ local function index(bytes)
 	if endian == nil then
 		return nil, "carries no BTF header"
 	end
-	local _, _, _, hdrlen, typeoff, typelen, stroff, strlen = unpack(endian .. "I2I1I1I4I4I4I4I4", bytes)
+	local _, _, _, hdrlen, typeoff, typelen, stroff, strlen = string.unpack(endian .. "I2I1I1I4I4I4I4I4", bytes)
 	if hdrlen < HDRLEN then
 		return nil, "carries no BTF header"
 	end
@@ -108,7 +105,7 @@ local function index(bytes)
 	local self = {bytes = bytes, order = endian, strings = hdrlen + stroff + 1, offsets = {}, structs = {}}
 	local at, last, id = hdrlen + typeoff + 1, hdrlen + typeoff + typelen, 0
 	while at <= last do
-		local nameoff, info = unpack(endian .. "I4I4", bytes, at)
+		local nameoff, info = string.unpack(endian .. "I4I4", bytes, at)
 		local kind, vlen = (info >> 24) & 0x1f, info & 0xffff
 		id = id + 1
 		self.offsets[id] = at
@@ -129,7 +126,7 @@ local function resolve(self, id)
 		if at == nil then
 			return nil
 		end
-		local nameoff, info, size = unpack(self.order .. "I4I4I4", self.bytes, at)
+		local nameoff, info, size = string.unpack(self.order .. "I4I4I4", self.bytes, at)
 		local kind = (info >> 24) & 0x1f
 		if not qualifiers[kind] then
 			return kind, size, at, big
@@ -148,10 +145,10 @@ local function scalar(self, id)
 		return nil
 	end
 	if kind ~= INT then
-		local _, info = unpack(self.order .. "I4I4", self.bytes, at)
+		local _, info = string.unpack(self.order .. "I4I4", self.bytes, at)
 		return size, info >> 31 == 1, big
 	end
-	local encoding = unpack(self.order .. "I4", self.bytes, at + TYPESIZE)
+	local encoding = string.unpack(self.order .. "I4", self.bytes, at + TYPESIZE)
 	local bits, offset = encoding & 0xff, (encoding >> 16) & 0xff
 	if offset ~= 0 or bits ~= size * BYTE then
 		return nil
@@ -184,19 +181,19 @@ local function addbitfield(self, bitfields, nameoff, bit, bits, size, signed)
 	local from = bit - offset * BYTE
 	-- BTF counts bits from the first byte's low end on a little-endian kernel, its high end on a big one
 	local shift = self.order == "<" and from or width * BYTE - from - bits
-	insert(bitfields, {name = name(self, nameoff), offset = offset, size = width, signed = signed,
+	table.insert(bitfields, {name = name(self, nameoff), offset = offset, size = width, signed = signed,
 		shift = shift, mask = (1 << bits) - 1})
 end
 
 local function members(self, at, vlen, kflag)
 	local fields, bitfields = {}, {}
 	for i = 0, vlen - 1 do
-		local nameoff, typeid, offset = unpack(self.order .. "I4I4I4", self.bytes, at + TYPESIZE + i * MEMBER)
+		local nameoff, typeid, offset = string.unpack(self.order .. "I4I4I4", self.bytes, at + TYPESIZE + i * MEMBER)
 		local bitfield = kflag == 1 and offset >> 24 or 0
 		local bit = kflag == 1 and offset & 0xffffff or offset
 		local size, signed, big = scalar(self, typeid)
 		if size ~= nil and bitfield == 0 and bit % BYTE == 0 then
-			insert(fields, {name = name(self, nameoff), offset = bit // BYTE,
+			table.insert(fields, {name = name(self, nameoff), offset = bit // BYTE,
 				size = size, signed = signed, bigendian = big or nil})
 		elseif size ~= nil and bitfield ~= 0 then
 			addbitfield(self, bitfields, nameoff, bit, bitfield, size, signed)
@@ -273,7 +270,7 @@ function vmlinux.layout(what)
 		error(("the kernel BTF has no struct '%s'"):format(what), 0)
 	end
 	local at = self.offsets[id]
-	local _, info, size = unpack(self.order .. "I4I4I4", self.bytes, at)
+	local _, info, size = string.unpack(self.order .. "I4I4I4", self.bytes, at)
 	local fields, bitfields = members(self, at, info & 0xffff, info >> 31)
 	return {size = size, fields = fields, bitfields = bitfields}
 end

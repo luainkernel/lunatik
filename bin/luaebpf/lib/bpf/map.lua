@@ -20,9 +20,6 @@ local maps     = require("luaebpf.maps")
 local emit     = require("luaebpf.emit")
 local map_type = require("linux.bpf").map_type
 
-local pack, packsize, unpack = string.pack, string.packsize, string.unpack
-local mathtype               = math.type
-
 -- the map types a program file may declare, under the name of the constructor that declares them
 local kinds = {hash = map_type.HASH, array = map_type.ARRAY, lru_hash = map_type.LRU_HASH}
 
@@ -38,8 +35,8 @@ local IDENTIFIER <const> = "^[%a_][%w_]*$"
 local map = {}
 
 local function measure(spec)
-	local size = packsize(spec)
-	return size, select("#", unpack(spec, ("\0"):rep(size))), unpack(spec, ("\xff"):rep(size))
+	local size = string.packsize(spec)
+	return size, select("#", string.unpack(spec, ("\0"):rep(size))), string.unpack(spec, ("\xff"):rep(size))
 end
 
 -- a spec the kernel reads as one fixed-size integer: the format itself says how wide it is, and
@@ -50,17 +47,18 @@ local function scalar(spec)
 		return nil
 	end
 	local read, size, values, value = pcall(measure, spec)
-	if not read or values ~= 2 or mathtype(value) ~= "integer" then
+	if not read or values ~= 2 or math.type(value) ~= "integer" then
 		return nil
 	end
 	-- padding packs as zeros, so all ones packs back whole only where the integer fills the spec
-	if pack(spec, value) ~= ("\xff"):rep(size) then
+	if string.pack(spec, value) ~= ("\xff"):rep(size) then
 		return nil
 	end
 	local signed = value < 0
 	-- an eBPF load and store take the kernel's byte order, and nothing here swaps; "=" or none names it there
 	local order = emit.bigendian and ">" or "<"
-	local native = pack(order .. spec:gsub("=", order), 1) == pack(order .. (signed and "i" or "I") .. size, 1)
+	local native = string.pack(order .. spec:gsub("=", order), 1)
+		== string.pack(order .. (signed and "i" or "I") .. size, 1)
 	return {format = spec, size = size, signed = signed, native = native}
 end
 
@@ -89,7 +87,7 @@ local function record(spec)
 end
 
 local function named(kind, name, spec)
-	if type(name) ~= "string" or type(spec) ~= "table" or mathtype(spec.entries) ~= "integer" then
+	if type(name) ~= "string" or type(spec) ~= "table" or math.type(spec.entries) ~= "integer" then
 		error(("map.%s takes a name and a spec"):format(kind), CHECK)
 	end
 	if not name:match(IDENTIFIER) then

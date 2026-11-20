@@ -11,11 +11,6 @@
 -- section its entry belongs in, which is how libbpf reads the program type back.
 -- @module luaebpf.programs
 
-local insert   = table.insert
-local format   = string.format
-local mathtype = math.type
-local getinfo  = debug.getinfo
-
 -- a program that names no license carries one license_is_gpl_compatible counts, so its kfunc calls load
 local LICENSE <const> = "Dual MIT/GPL"
 
@@ -48,7 +43,7 @@ end
 -- what a default verdict must be and is not, or nil where it is one of its program type's actions
 local function unmet(program)
 	local default, actions = program.default, program.actions
-	if mathtype(default) ~= "integer" then
+	if math.type(default) ~= "integer" then
 		return "an integer"
 	end
 	if default < actions.first or default > actions.last then
@@ -64,13 +59,13 @@ local function unlicensed(program)
 		return "is not a string"
 	end
 	if first ~= nil and license ~= first.license then
-		return format("'%s' is not '%s', the license of the programs before it", license, first.license)
+		return string.format("'%s' is not '%s', the license of the programs before it", license, first.license)
 	end
 end
 
 local function refuse(constructor, fn, reason)
-	local info = getinfo(fn, "S") -- a caller that returns xdp.program(...) leaves no line of its own
-	error(format("%s:%d: %s's %s", info.short_src, info.linedefined, constructor, reason), 0)
+	local info = debug.getinfo(fn, "S") -- a caller that returns xdp.program(...) leaves no line of its own
+	error(string.format("%s:%d: %s's %s", info.short_src, info.linedefined, constructor, reason), 0)
 end
 
 ---
@@ -87,8 +82,8 @@ end
 --   not a string` or `'<license>' is not '<before>', the license of the programs before it`, the
 --   line where `fn` is defined
 function programs.declare(constructor, fn, program)
-	if type(fn) ~= "function" or getinfo(fn, "S").what == "C" then
-		error(format("%s takes a Lua function", constructor), 2) -- each constructor tail-calls declare
+	if type(fn) ~= "function" or debug.getinfo(fn, "S").what == "C" then
+		error(string.format("%s takes a Lua function", constructor), 2) -- each constructor tail-calls declare
 	end
 	local expected = unmet(program)
 	if expected ~= nil then
@@ -102,7 +97,7 @@ function programs.declare(constructor, fn, program)
 		refuse(constructor, fn, "license " .. reason)
 	end
 	program.fn = fn
-	insert(declared, program)
+	table.insert(declared, program)
 	return program
 end
 
