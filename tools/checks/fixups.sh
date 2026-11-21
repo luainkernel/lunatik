@@ -5,7 +5,7 @@
 #
 # Names the commits of a rev-range that wait for a squash, a fixup!, amend! or squash! subject, and
 # exits 1 when there is one: a pull request merged with one lands it on master, as #1788 did. The
-# Checks workflow runs it over a pull request, so the run stays red until the squash.
+# Checks workflow runs it over a pull request and warns while one is pending, without failing the run.
 #
 # Usage: bash tools/checks/fixups.sh <base>..<head>
 
