@@ -332,7 +332,8 @@ base is made a draft first, `gh pr ready --undo <n>`, which the guard asks GitHu
 that it is a harness pull request an agent's review passed: opened by the posting account on master,
 every file the harness as `harness-mixed.sh --outside` reads it, and a head that carries the
 `agent-review` status, which the merged skill sets once `review.js` returned that head ready, and
-passed every check run. It refuses a merge other than by rebase too, the way the maintainer's merges
+passed every check run, and commits none of which is a `fixup!`, `amend!` or `squash!`, which the
+`Checks` run warns of without failing. It refuses a merge other than by rebase too, the way the maintainer's merges
 land and the merged skill reads them. A commit status is GitHub's answer to a merge gated on a reviewed
 head, the check branch protection requires; the guard reads it itself, since branch protection is the
 maintainer's setting and would gate his own merges. `MERGE_OK=1` merges one he ordered merged in his
@@ -354,8 +355,8 @@ set what such a guard asks for, and a unit a kernel of the range cannot build ke
 as `luascx.c` does without `CONFIG_SCHED_CLASS_EXT`, rather than nothing.
 
 `fixups.sh` names the `fixup!`, `amend!` and `squash!` commits of a rev-range, and the `Checks` workflow
-fails on a pull request that carries one, so a pull request merged before its squash shows red rather
-than landing its fixups on master.
+warns of one on a pull request without failing the run: each round of the maintainer's review pushes a
+fixup, and a red run per round filled his mail, 69 of the 96 failed runs from 2026-11-14 to 21.
 
 `bundled.sh` reads a rev-range and names one whose files take a C binding of `lib/`, a `.c` or a `.h`
 at its top, and the compiler under `bin/luaebpf` together, whatever commit each one sits in: the

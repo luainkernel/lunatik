@@ -23,3 +23,4 @@ pass	gh pr view 7
 # env: GH_TOKEN=
 pass	tok=$(cat key); GH_TOKEN=$tok gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=rebase
 block	GH_TOKEN=$tok gh api -X PUT repos/luainkernel/lunatik/pulls/7/merge -f merge_method=rebase
+block	tok=$(cat key); GH_TOKEN=$tok gh api -X PUT repos/luainkernel/lunatik/pulls/8/merge -f merge_method=rebase

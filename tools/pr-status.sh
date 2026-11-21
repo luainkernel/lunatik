@@ -39,7 +39,7 @@ for n in $numbers; do
 		continue
 	fi
 	fixups=$(gh api "repos/$repo/pulls/$n/commits" \
-		-q '[.[] | select(.commit.message | startswith("fixup!"))] | length')
+		-q '[.[] | select(.commit.message | test("^(fixup|amend|squash)! "))] | length')
 	ci=$(gh api "repos/$repo/commits/$sha/check-runs" \
 		-q '[.check_runs[].conclusion] | if length == 0 then "none" else (unique | join(",")) end' 2>/dev/null)
 	superseded=$(gh api -X GET search/issues -f q="repo:$repo is:pr is:merged \"Alternative to #$n\"" \

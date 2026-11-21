@@ -4,8 +4,9 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # PreToolUse (Bash) hook: the session merges a pull request without the maintainer only when the
-# posting account opened it on master, it changes the harness alone, and its head carries the
-# agent-review status and passed every check run (AGENTS.md, "Patches and commits"). This blocks
+# posting account opened it on master, it changes the harness alone, its head carries the
+# agent-review status and passed every check run, and none of its commits waits for a squash, which
+# the Checks run warns of without failing (AGENTS.md, "Patches and commits"). This blocks
 # (exit 2) a gh write that merges a pull request other than by rebase, or one that GitHub, asked with
 # the credential the command carries, does not answer is such a pull request, unless the command
 # carries MERGE_OK=1, set when the maintainer ordered that merge in his own words; silent (exit 0) on
@@ -66,6 +67,10 @@ while IFS= read -r merge; do
 	checks=$(github "repos/$repo/commits/$head/check-runs?per_page=100" --jq '.check_runs[] | .conclusion // "pending"')
 	[ -n "$checks" ] && ! printf '%s\n' "$checks" | grep -vqxE 'success|skipped|neutral' ||
 		refuse "the CI of ${head:0:9} has not passed"
+	subjects=$(github "repos/$repo/pulls/$number/commits?per_page=100" --paginate --jq '.[].commit.message | split("\n")[0]')
+	[ -n "$subjects" ] || refuse "GitHub did not answer for the commits of #$number"
+	! printf '%s\n' "$subjects" | grep -qE '^(fixup|amend|squash)! ' ||
+		refuse "#$number carries a fixup!, amend! or squash! commit, which folds before the merge"
 done <<< "$merges"
 
 exit 0
