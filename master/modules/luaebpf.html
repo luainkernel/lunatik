@@ -226,6 +226,11 @@ local image = luaebpf.compile(&quot;filter.bpf.lua&quot;, &quot;build/vmlinux.bt
 	<td class="name"><a href="#compile">compile (path[, btffile[, scripts]])</a></td>
 	<td class="summary">Compiles the program file at <code>path</code>.</td>
 	</tr>
+	<tr>
+	<td class="name"><a href="#errors">errors (root)</a></td>
+	<td class="summary">Reads back the errors of a compiled program <code>lunatik run</code> attached, from the maps it pinned under
+ the script&rsquo;s root: how many times the program stopped at each place, a line a stop logs.</td>
+	</tr>
 </table></div>
 
     <h2 class="section-header" id="Functions-details"><a name="Functions"></a>Functions in detail</h2>
@@ -279,6 +284,41 @@ local image = luaebpf.compile(&quot;filter.bpf.lua&quot;, &quot;build/vmlinux.bt
 
 
 </dd>
+    <dt id="errors"><a name="errors"></a><strong>errors (root)</strong></dt>
+    <dd>
+    Reads back the errors of a compiled program <code>lunatik run</code> attached, from the maps it pinned under
+ the script&rsquo;s root: how many times the program stopped at each place, a line a stop logs.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">root</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         the script&rsquo;s root, <code>/sys/fs/bpf/lunatik/&lt;script&gt;</code>
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a> or <span class="type">nil</span></span>
+         a table per place, <code>{file, line, reason, count}</code>, in the order the compiler met
+   the places, the count summed over the CPUs; an empty array where the root pins no
+   <code>luaebpf_errors</code>, as a program that stops nowhere declares none</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+        the message, where a pin cannot be read</li>
+    </ol>
+
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">local</span> places = <span class="global">assert</span>(luaebpf.<span class="function-name">errors</span>(<span class="string">"/sys/fs/bpf/lunatik/noudp"</span>))
+<span class="keyword">for</span> _, place <span class="keyword">in</span> <span class="global">ipairs</span>(places) <span class="keyword">do</span>
+	<span class="global">print</span>(place.count, place.file, place.line, place.reason) <span class="comment">--&gt; 3  noudp.bpf.lua  8  out of bounds
+</span><span class="keyword">end</span></pre>
+
+</dd>
 </dl>
 
 
@@ -296,7 +336,7 @@ local image = luaebpf.compile(&quot;filter.bpf.lua&quot;, &quot;build/vmlinux.bt
 <a href="../../modules/luaebpf.html">5.1 docs</a> ·
 <a href="../../5.0/modules/luaebpf.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:31:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:59:37</span>
 </div>
 </footer>
 </body>

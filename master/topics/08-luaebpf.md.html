@@ -273,8 +273,10 @@ return counts[ipproto.TCP], counts[ipproto.UDP]'</span>
 
 <p>A frame that says IPv4 but is too short to hold the IPv4 header&rsquo;s protocol stops the program at the
 read of <code>ip.protocol</code>, which returns <code>XDP_ABORTED</code>, so the frame is dropped and nothing is counted,
-and logs <code>protocols.bpf.lua:18: out of bounds</code> to the kernel&rsquo;s trace ring, which
-<code>sudo bpftool prog tracelog</code> prints (<a href="#when-a-program-cannot-be-compiled-or-computed">When a program cannot be compiled or computed</a>).
+logs <code>protocols.bpf.lua:18: out of bounds</code> to the kernel&rsquo;s trace ring, which
+<code>sudo bpftool prog tracelog</code> prints, and counts the stop at that line, which
+<code>sudo lunatik bpf --errors protocols</code> reports
+(<a href="#when-a-program-cannot-be-compiled-or-computed">When a program cannot be compiled or computed</a>).
 The lookup and the update are two steps, so two CPUs that count the same protocol at once can lose
 one of the increments.</p>
 
@@ -360,9 +362,11 @@ not through the verdict.</p>
    REFUSED                  REFUSED AT LOAD          STOPS
    lunatik: file:line:      the verifier log,        XDP_ABORTED or
    reason; exit 1, no       which quotes the Lua     TC_ACT_SHOT: the packet
-   object written           line; exit 1, nothing    is dropped, and
+   object written           line; exit 1, nothing    is dropped,
                             attached                 file:line: reason goes
-                                                     to the trace ring
+                                                     to the trace ring, and
+                                                     the stop is counted at
+                                                     that line
 
    what the subset does     a program past the       where Lua would raise:
    not compile, and a       limits of the verifier,  x // 0, a read past
@@ -389,8 +393,9 @@ whose warning names the kfunc
 may stop and one that calls into a runtime under a license the kernel does not count as
 GPL-compatible (<a href="#the-license">The license</a>).</li>
 <li><strong>Stops.</strong> In the kernel, on a packet, the program returns at once <code>XDP_ABORTED</code> in XDP or
-<code>TC_ACT_SHOT</code> in TC, which drop the packet, and logs the error the kernel&rsquo;s Lua raises there; a
-tracer reads an XDP program&rsquo;s stops at the tracepoint <code>xdp:xdp_exception</code> too. A program stops
+<code>TC_ACT_SHOT</code> in TC, which drop the packet, logs the error the kernel&rsquo;s Lua raises there and
+counts the stop at its line; a tracer reads an XDP program&rsquo;s stops at the tracepoint
+<code>xdp:xdp_exception</code> too. A program stops
 at a read past the packet, a division or a modulo by 0, a <code>for</code> step of 0 it computed, a <code>for</code>
 whose passes outrun the budget the kernel gives it, a map key or value its spec cannot pack, a
 map update or delete the map refuses, a <a href="../modules/skb.html#skb:priority">skb:priority</a> it computed outside 0 to 4294967295, a
@@ -423,6 +428,28 @@ seconds at most, <code>DEFAULT_RATELIMIT_BURST</code> lines every <code>DEFAULT_
 for all the programs of an object together, so a program that stops on every packet logs the first
 ten of each five seconds. The CPUs share the count without a lock, and stops that race on several
 of them may each pass it.</p>
+
+<p>A stop is also counted as an error of the program, at its place, the line it logs,
+<code>&lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code>: two checks of one line that stop for one reason are one place, and a
+function two programs of the file call is one place for both. <code>lunatik bpf --errors &lt;script&gt;</code>, the
+script as <code>lunatik run</code> takes it, prints a line for each place its program stopped at, the count, a
+space and the line, as <code>uniq -c</code> counts the lines of the trace ring, in the order the compiler met
+the places, and nothing for a program that has not stopped:</p>
+
+<pre><code> $ sudo lunatik bpf --errors protocols
+ 3 protocols.bpf.lua:18: out of bounds
+</code></pre>
+
+<p>The count takes every stop, those the rate limit keeps out of the trace ring among them, on every
+CPU, and lasts while the script runs: each run starts it at zero, and <code>lunatik stop</code> takes it down
+with the program. The trace ring says when a stop happened and on which CPU, and laps; the count
+says how many there were. The object keeps the counts in a map of its own, <code>luaebpf_errors</code>, an
+entry per place and CPU, which <code>lunatik run</code> pins beside the maps the file declares, at
+<code>/sys/fs/bpf/lunatik/&lt;script&gt;/luaebpf_errors</code>, and the lines of the places beside it, at
+<code>luaebpf_errors-lines</code>, so a map of the file cannot take that name: &ldquo;&lsquo;luaebpf_errors&rsquo; is the map a
+program&rsquo;s errors are counted in&rdquo;. A
+program that may stop nowhere declares neither. A stop costs a lookup of its place&rsquo;s entry and an
+add before its line is logged; where the program does not stop, nothing changes.</p>
 
 <p><a name="The_Lua_a_program_may_use"></a></p>
 
@@ -719,7 +746,9 @@ unaligned access&rdquo;; a TC read is not, since it copies its bytes before it r
 <code>bigendian</code>, and <code>entries</code> the map&rsquo;s capacity. <code>lunatik run</code>
 creates the map and pins it at <code>/sys/fs/bpf/lunatik/&lt;script&gt;/&lt;name&gt;</code>, where a kernel script opens
 it with the constructor of the same name of the kernel&rsquo;s <a href="../modules/bpf.map.html#">bpf.map</a>, which takes the path and the
-two specs: <code>map.hash(path, &quot;I4&quot;, &quot;I8&quot;)</code>.</p>
+two specs: <code>map.hash(path, &quot;I4&quot;, &quot;I8&quot;)</code>. A map takes any name but <code>luaebpf_errors</code>, which the
+compiler gives the map it counts the errors in
+(<a href="#when-a-program-cannot-be-compiled-or-computed">When a program cannot be compiled or computed</a>).</p>
 
 <p>In a compiled function a map reads as a table.</p>
 
@@ -1192,6 +1221,11 @@ as the words of 1 and 0, which are actions, so a test of the word cannot tell th
 <td> <code>{default = action.DROP}</code> </td>
 </tr>
 <tr>
+<td> &lsquo;luaebpf_errors&rsquo; is the map a program&rsquo;s errors are counted in </td>
+<td> <code>map.hash(&quot;luaebpf_errors&quot;, spec)</code> </td>
+<td> another name </td>
+</tr>
+<tr>
 <td> xdp.program&rsquo;s default verdict is not an integer </td>
 <td> <code>xdp.program(fn)</code>, <code>{default = &quot;drop&quot;}</code> </td>
 <td> <code>xdp.program(fn, {default = action.PASS})</code>, and <code>tc.program</code> alike </td>
@@ -1319,7 +1353,7 @@ the machine that loads it.</p>
 <a href="../../topics/08-luaebpf.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/08-luaebpf.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:31:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:59:37</span>
 </div>
 </footer>
 </body>

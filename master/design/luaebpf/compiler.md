@@ -96,7 +96,8 @@ the byte order of the kernel `lunatik.config` describes:
   in `.text`, under a local one, where libbpf resolves a call;
 * `.maps`, each map BTF-defined: a struct of pointer-to-array members whose element counts libbpf
   reads as the map's type, entries, key size and value size, a `VAR` of that struct, and a
-  `DATASEC` holding them;
+  `DATASEC` holding them; after the program file's maps, where a check may stop, `luaebpf_errors`, a
+  `BPF_MAP_TYPE_PERCPU_ARRAY` of a `u64` count per place, keyed by the place's index, a `u32`;
 * `license`, the string the programs' constructors name, `Dual MIT/GPL` where they name none,
   which the kernel reads for whether a program may call a kfunc;
 * `.BTF`, a `FUNC` and its `FUNC_PROTO` for each compiled function, every parameter a `long`, a
@@ -107,13 +108,16 @@ the byte order of the kernel `lunatik.config` describes:
   runtime's and the iterator's, whose prototype libbpf compares with the kernel's kind by kind, and
   an undefined symbol of no type, which the call's relocation names: libbpf resolves the kfunc in
   the kernel's BTF or the module's and writes the call's source register, immediate and offset;
-* `.data`, the bytes a stop logs and counts with: the two words of the rate limit, which a stop's
-  block names first, so they head the section, aligned for the loads, the format
-  `bpf_trace_printk` prints a line with, and the line of each check, each laid out once, under a
-  local symbol of its offset that the `LD_IMM64` loading its address relocates against: libbpf
-  makes the section an array map and writes the map and the offset there (`RELO_DATA`);
+* `.data`, the bytes a stop logs with: the two words of the rate limit, which a stop's block names
+  first, so they head the section, aligned for the loads, and the format `bpf_trace_printk` prints
+  a line with, each laid out once, under a local symbol of its offset that the `LD_IMM64` loading
+  its address relocates against: libbpf makes the section an array map and writes the map and the
+  offset there (`RELO_DATA`);
+* `.data.luaebpf_errors`, the line of each place, one after another in the order of their entries
+  in `luaebpf_errors`, each ending in its NUL, under a symbol as `.data`'s: libbpf makes a section
+  of that prefix a map of its own, which the loader pins beside `luaebpf_errors`;
 * `.symtab`, `.strtab`, and a relocation section for each section that calls a subprogram or a
-  kfunc or names a map or bytes of `.data`.
+  kfunc or names a map or bytes of `.data` or `.data.luaebpf_errors`.
 
 ### The kernel it compiles for
 
@@ -132,9 +136,16 @@ the program files uncompiled there.
 
 `loader.c` is `luaebpf.loader`, a C module of the CLI's Lua over libbpf, 1.0 or later, and the half
 of `lunatik run` that takes the object to the kernel. It opens the object with a buffer for the
-verifier's log, gives each map a pin path under the script's root, loads the object, which creates
-and pins the maps, attaches every program to the device, by XDP or by tcx as its section says, the
-latter from libbpf 1.3.0, and pins each link; `detach` opens a pinned link and detaches it. What
+verifier's log, gives each map a pin path under the script's root, the map of
+`.data.luaebpf_errors` `luaebpf_errors-lines`, whose hyphen keeps it from the names a program file
+gives a map, loads the object, which creates and pins the maps, attaches every program to the
+device, by XDP or by tcx as its section says, the latter from libbpf 1.3.0, and pins each link;
+`detach` opens a pinned link and detaches it, and `lookup` answers the bytes of a pinned map's entry,
+those of each possible CPU for a per-CPU map. `luaebpf.errors`, in `errors.lua`, reads a root's
+`luaebpf_errors` and `luaebpf_errors-lines` back through it, each place's line split into its file,
+its line and its reason, and its count summed over the entries of the possible CPUs: the
+report reads the lines the kernel holds for the running program, not the object on disk, which a
+`make install` or a `lunatik bpf -o` may have written again since the run. What
 `run`, `stop` and `unload` do with these is in
 [Compiled programs](../../guide/02-running-scripts.md#compiled-programs).
 
@@ -196,10 +207,10 @@ address its caller passed and sets R0, which the verifier reads on every path ou
 which reads the flag after every call, takes its own tail. A check that fails in any frame thus
 ends the program with the error verdict.
 
-Each check jumps first to a block of its own, placed after the tail, which logs the line the
-interpreter's error would carry, `<chunk>:<line>: <reason>`, chunk and line as a refusal spells
-them, and then jumps to the tail, through the destroy of every iterator the check is in. The reason
-is the interpreter's text for the operation: `attempt to divide by zero` and
+Each check jumps first to a block of its own, placed after the tail, which counts the stop and logs
+the line the interpreter's error would carry, `<chunk>:<line>: <reason>`, chunk and line as a
+refusal spells them, and then jumps to the tail, through the destroy of every iterator the check is
+in. The reason is the interpreter's text for the operation: `attempt to divide by zero` and
 `attempt to perform 'n%0'` (`luaV_idiv`, `luaV_mod`), `'for' step is zero` (`forprep`),
 `out of bounds` for a packet read (`luadata_checkbounds`) and a `skb:priority`
 (`lunatik_checkbounds`), `unsigned overflow` and `integer overflow` for a map key or value
@@ -209,6 +220,18 @@ names the map and the write, "the map 'flows' refused the update", since the err
 interpreter would run to its end, logs "'for' outruns the budget the kernel gives it". The caller
 that reads a callee's flag logs nothing, so a stop is logged once, by the check that failed.
 
+The block counts the stop first, at its place: each line a stop logs is one place of the object,
+which its programs share, the writer laying out each line once, and the place's index is the order
+the compiler met it in, so two checks of one line and reason count at one entry, and so does a
+function two programs call. The block looks the entry up in `luaebpf_errors` with `bpf_map_lookup_elem`, as a map read
+does, and adds one to what it finds: the entry is the CPU's own, and XDP, TC and
+`BPF_PROG_TEST_RUN` run a program with bottom halves off, so the add is plain, and a stop on
+another CPU counts in its own. A count in `.data`, a word beside each line, would lose a stop when
+two CPUs stop at one place at once, and the atomic add that would keep it is an instruction the arm
+and 32-bit x86 JITs do not take. The count is taken before the rate limit decides, so it takes
+every stop, those the window keeps out of the trace ring among them, and the caller that reads a
+callee's flag counts nothing, as it logs nothing.
+
 The block hands `bpf_trace_printk` the format `%s` and the line as its argument, so a byte of the
 path past ASCII, which the helper refuses in a format before 7.1, and a `%` reach the ring as they
 are. The helper limits nothing, so the block counts as `___ratelimit` does: `bpf_jiffies64` read
@@ -216,7 +239,7 @@ against the window's start, which opens again past `DEFAULT_RATELIMIT_INTERVAL`,
 window logs up to `DEFAULT_RATELIMIT_BURST`, both kernel constants `autogen` takes into
 `linux.ratelimit`. The two words are the object's, in `.data`, so every program of an object shares
 one window, and a count read and written without a lock lets a stop that races another on a second
-CPU through. The line is a constant of `.data` rather than words written below the frame: the
+CPU through. The line is a constant of `.data.luaebpf_errors` rather than words written below the frame: the
 verifier sums the stack of every frame of a call chain against 512 bytes
 (`check_max_stack_depth_subprog`), and a line below each frame of the deepest chain
 `call.bpf.lua` compiles would pass it.

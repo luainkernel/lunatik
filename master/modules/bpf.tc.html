@@ -204,9 +204,10 @@
  the packet or a division by 0, the program stops and returns <code>TC_ACT_SHOT</code>, which drops the
  packet, since TC has no verdict for a program error, and logs the error Lua raises there,
  <code>&lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code>, to the kernel&rsquo;s trace ring through <code>bpf_trace_printk</code>, ten lines every
- five seconds at most; where it returns no value, it returns the default verdict its constructor
- names. A verdict the compiler holds that is no action, and a boolean, are refused, &ldquo;the verdict 9
- is not a TC action&rdquo; and &ldquo;the verdict may be a boolean here; return an action&rdquo;.</p>
+ five seconds at most, and counts every stop at that line, which <code>lunatik bpf --errors</code> reports;
+ where it returns no value, it returns the default verdict its constructor names. A verdict the
+ compiler holds that is no action, and a boolean, are refused, &ldquo;the verdict 9 is not a TC action&rdquo;
+ and &ldquo;the verdict may be a boolean here; return an action&rdquo;.</p>
 
 <p> The program&rsquo;s argument is spelled as the kernel&rsquo;s <a href="../modules/skb.html#">skb</a> object: <code>#skb</code> is the packet&rsquo;s length,
  <code>skb:ifindex()</code> its device&rsquo;s index, <code>skb:hash()</code> its flow hash and <code>skb:priority()</code> its
@@ -299,7 +300,7 @@ end, {egress = true, default = action.OK})
 <a href="../../modules/bpf.tc.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.tc.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:31:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:59:37</span>
 </div>
 </footer>
 </body>

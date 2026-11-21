@@ -202,8 +202,9 @@
  script&rsquo;s xdp callback does. Where it computes a verdict that is no action, and where Lua would
  raise, at a read past the packet or a division by 0, the program stops and returns <code>XDP_ABORTED</code>,
  the kernel&rsquo;s verdict for a program error, which drops the packet, and logs the error Lua raises
- there, <code>&lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code>, to the kernel&rsquo;s trace ring through <code>bpf_trace_printk</code>, ten lines
- every five seconds at most; where it returns no value, it returns the default verdict its
+ there, <code>&lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code>, to the kernel&rsquo;s trace ring through <code>bpf_trace_printk</code>, ten
+ lines every five seconds at most, and counts every stop at that line, which
+ <code>lunatik bpf --errors</code> reports; where it returns no value, it returns the default verdict its
  constructor names. A verdict the compiler holds that is no action, and a boolean, are refused,
  &ldquo;the verdict 11 is not an XDP action&rdquo; and &ldquo;the verdict may be a boolean here; return an action&rdquo;.</p>
 
@@ -302,7 +303,7 @@ end, {default = action.PASS})
 <a href="../../modules/bpf.xdp.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.xdp.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:31:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:59:37</span>
 </div>
 </footer>
 </body>

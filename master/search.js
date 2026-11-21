@@ -242,6 +242,7 @@ window.LUNATIK_SEARCH = [
 ["action","modules/linux.xdp.html#action","linux.xdp · XDP verdicts (enum xdp_action), what an xdp callback returns."],
 ["luaebpf","modules/luaebpf.html","Module · Compiles a Lua program file into a BPF ELF object."],
 ["compile (path[, btffile[, scripts]])","modules/luaebpf.html#compile","luaebpf · Compiles the program file at path."],
+["errors (root)","modules/luaebpf.html#errors","luaebpf · Reads back the errors of a compiled program lunatik run attached, from the maps it pinned under the script's root: how many times the program stopped at each place, a line a stop logs."],
 ["lunatik","modules/lunatik.html","Module · Manages Lunatik runtimes — isolated Lua states running in the kernel."],
 ["_ENV","modules/lunatik.html#_ENV","lunatik · Shared rcu.table through which scripts exchange objects."],
 ["cpu ()","modules/lunatik.html#cpu","lunatik · Returns the CPU id a percpu runtime serves."],

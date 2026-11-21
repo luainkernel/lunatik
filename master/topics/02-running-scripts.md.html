@@ -209,7 +209,8 @@ usage: lunatik [-h | -V]
        lunatik list
        lunatik test [&lt;suite&gt;]
        lunatik compile [&lt;lunatic argument&gt;...]
-       lunatik bpf [<span class="comment">--btf=&lt;file&gt;] [--scripts=&lt;dir&gt;] [-o &lt;object&gt;] &lt;program&gt;</span>
+       lunatik bpf [<span class="comment">--btf=&lt;file&gt;] [--scripts=&lt;dir&gt;] [-o &lt;object&gt;] &lt;program&gt;
+</span>       lunatik bpf <span class="comment">--errors &lt;script&gt;</span>
 </pre>
 
 
@@ -226,8 +227,9 @@ usage: lunatik [-h | -V]
 <li><code>-o &lt;object&gt;</code>, <code>--output=&lt;object&gt;</code>: the object <a href="../modules/bpf.html#">bpf</a> writes</li>
 <li><code>--btf=&lt;file&gt;</code>: the kernel BTF <a href="../modules/bpf.html#">bpf</a> reads the types of, <code>/sys/kernel/btf/vmlinux</code> by default
 (see <a href="#program-files">Program files</a>)</li>
-<li><p><code>--scripts=&lt;dir&gt;</code>: the directory <a href="../modules/bpf.html#">bpf</a> reads the kernel scripts a program file requires from,
-<code>/lib/modules/lua</code> by default (see <a href="#program-files">Program files</a>)</p></li>
+<li><code>--scripts=&lt;dir&gt;</code>: the directory <a href="../modules/bpf.html#">bpf</a> reads the kernel scripts a program file requires from,
+<code>/lib/modules/lua</code> by default (see <a href="#program-files">Program files</a>)</li>
+<li><p><code>--errors</code>: <a href="../modules/bpf.html#">bpf</a> reports the errors of the script&rsquo;s compiled program, and takes no other option</p></li>
 <li><p><code>load</code>: load Lunatik kernel modules; one that fails to load does not fail the command:
 <code>modprobe</code> prints its error on stderr and the load goes on, so read <code>lunatik status</code> and the kernel log</p></li>
 <li><code>unload</code>: take down every compiled program a <code>run</code> attached, stop every running script, then
@@ -242,6 +244,10 @@ is not the installed build</li>
 <li><code>compile &lt;arguments&gt;</code>: run <code>lunatic</code> with the given arguments (see <a href="#lunatic">lunatic</a>)</li>
 <li><code>bpf [--btf=&lt;file&gt;] [--scripts=&lt;dir&gt;] [-o &lt;object&gt;] &lt;program&gt;</code>: compile a program file into a
 BPF object (see <a href="#program-files">Program files</a>)</li>
+<li><code>bpf --errors &lt;script&gt;</code>: print the errors of the compiled program a <code>run</code> of the script attached,
+a line for each place it stopped at, <code>&lt;n&gt; &lt;file&gt;:&lt;line&gt;: &lt;reason&gt;</code>, failing on a script with
+nothing pinned under its root (see
+<a href="../topics/08-luaebpf.md.html#when-a-program-cannot-be-compiled-or-computed">When a program cannot be compiled or computed</a>)</li>
 <li><code>list</code>: show which runtime environments are currently running, one script a line, in order of name</li>
 <li><code>run [-c softirq | hardirq] [-p] [--dev=&lt;ifname&gt;] &lt;script&gt;</code>: create a new runtime environment to run the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>; pass <code>--context=softirq</code> for hooks that fire in softirq context (netfilter, XDP), or <code>--context=hardirq</code> for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass <code>--percpu</code> to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with <code>lunatik.cpu()</code>; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see <a href="../topics/03-percpu.md.html">Per-CPU scripts</a>. Where <code>/usr/local/lib/bpf/luaebpf/&lt;script&gt;.bpf.o</code> exists, <code>run</code> also loads and attaches that program: see <a href="#compiled-programs">Compiled programs</a></li>
 <li><code>spawn &lt;script&gt;</code>: create a new runtime environment for the script <code>/lib/modules/lua/&lt;script&gt;.lua</code>,
@@ -464,7 +470,9 @@ CLI&rsquo;s Lua would, so a Lua or C module the host installs never stands in fo
 
 <ol>
 <li>takes down what a previous run of the script left under <code>/sys/fs/bpf/lunatik/&lt;script&gt;/</code>, then
-creates the maps the program file declares and pins each there under its name;</li>
+creates the maps the program file declares and pins each there under its name, beside
+<code>luaebpf_errors</code>, the map a program that may stop counts its errors in, and
+<code>luaebpf_errors-lines</code>, the lines of their places;</li>
 <li>starts the runtime for <code>&lt;script&gt;.lua</code>, when there is one, whose script opens those maps by that
 path;</li>
 <li><p>attaches every program the object declares to <code>&lt;ifname&gt;</code>, an XDP program to the device and a TC
@@ -507,8 +515,9 @@ sudo lunatik stop filter
 failure at any step undoes the steps before it and exits 1 with that step&rsquo;s message, the verifier&rsquo;s
 own log when the kernel rejects a program, which quotes the Lua line; libbpf&rsquo;s own warnings, which
 name what failed where the kernel logs nothing, print on stderr before it. Once attached, a program
-drops a packet it cannot compute, with <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, and logs the error Lua raises
-there to the kernel&rsquo;s trace ring, as
+drops a packet it cannot compute, with <code>XDP_ABORTED</code> or <code>TC_ACT_SHOT</code>, logs the error Lua raises
+there to the kernel&rsquo;s trace ring and counts the stop at its line, which
+<code>lunatik bpf --errors &lt;script&gt;</code> reports, as
 <a href="../topics/08-luaebpf.md.html#when-a-program-cannot-be-compiled-or-computed">When a program cannot be compiled or computed</a>
 says. <code>lunatik stop &lt;script&gt;</code>
 runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each
@@ -560,7 +569,7 @@ loads the object, and the kernel&rsquo;s <a href="https://www.lua.org/manual/5.5
 <a href="../../topics/02-running-scripts.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/02-running-scripts.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:31:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:59:37</span>
 </div>
 </footer>
 </body>

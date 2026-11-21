@@ -627,7 +627,8 @@ print(events:pop())
  the object carries. A map needs a name whether or not a compiled function references it:
  <code>lunatik run</code> creates the map and pins it at <code>/sys/fs/bpf/lunatik/&lt;script&gt;/&lt;name&gt;</code>, where a
  kernel script opens it with the kernel&rsquo;s constructor of the same name, which takes the path and
- the two specs, <code>map.hash(path, keyspec, valuespec)</code>.</p>
+ the two specs, <code>map.hash(path, keyspec, valuespec)</code>. The name <code>luaebpf_errors</code> is the
+ compiler&rsquo;s, the map it counts a program&rsquo;s errors in.</p>
 
 <p> In a compiled function a map reads as a table: <code>m[k]</code> gives the value or nil, <code>m[k] = v</code>
  inserts or replaces, <code>m[k] = nil</code> deletes. A lookup&rsquo;s value is used only after <code>if v then</code> tests
@@ -701,8 +702,8 @@ print(events:pop())
      <code>map.hash takes a name and a spec</code>, <code>a map name is a C identifier, not &apos;&lt;name&gt;&apos;</code>, <code>a
    map key spec packs one value</code>, <code>a map value spec packs one value or is a struct codec</code>, <code>a
    map is read in the kernel&apos;s byte order, not &apos;&lt;spec&gt;&apos;</code>, <code>a map reads 1, 2, 4 or 8 bytes at a
-   time, not &lt;n&gt;</code>, <code>a map holds between 1 and 4294967295 entries, not &lt;n&gt;</code>, or <code>&apos;&lt;name&gt;&apos; is
-   declared twice</code>
+   time, not &lt;n&gt;</code>, <code>a map holds between 1 and 4294967295 entries, not &lt;n&gt;</code>, <code>&apos;&lt;name&gt;&apos; is
+   declared twice</code>, or <code>&apos;luaebpf_errors&apos; is the map a program&apos;s errors are counted in</code>
 
 
 
@@ -754,7 +755,7 @@ print(events:pop())
 <a href="../../modules/bpf.map.html">5.1 docs</a> ·
 <a href="../../5.0/modules/bpf.map.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:31:19</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:59:37</span>
 </div>
 </footer>
 </body>
