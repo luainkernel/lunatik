@@ -103,6 +103,15 @@ GH_TOKEN=... bash tools/pr-status.sh --ready    # what a maintainer can pick up
 GH_TOKEN=... bash tools/pr-status.sh 814 822    # these ones
 ```
 
+## retry.sh
+
+Runs a command that reaches the network until it succeeds, a given number of times a given number of
+seconds apart, so a CI job outlasts a mirror or a download that stops answering for a few minutes.
+
+```sh
+bash tools/retry.sh 5 90 sudo apt-get install -yq sparse
+```
+
 ## watchdog.sh
 
 Runs a Lunatik script and stops it if the host loses the connectivity it had before the run,
