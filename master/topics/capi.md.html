@@ -2183,13 +2183,24 @@ accepted.</p>
 
 <pre>
 <span class="keyword">void</span> <span class="function-name">lunatik_free</span>(<span class="keyword">const</span> <span class="keyword">void</span> *ptr);
+size_t <span class="function-name">lunatik_blocksize</span>(size_t size);
 </pre>
 
 
 <p>Frees memory allocated by <code>lunatik_malloc</code> or <code>lunatik_realloc</code>, at once, as <code>kvfree</code> does, unless
 the block came from <code>vmalloc</code> and <a href="#lunatik_isatomic"><code>lunatik_isatomic</code></a> holds, where <code>vfree</code> may
-sleep and, in NMI, BUGs: the block then goes back on a kernel worker. <code>lunatik_realloc</code> frees the
-same way, at size zero and when it moves a block.</p>
+sleep and, in NMI, BUGs, or, from 7.0 on, the block is freed under the marker
+<a href="#lunatik_isrunqueue"><code>lunatik_isrunqueue</code></a> reads, where <code>kfree</code> can wake kswapd and that wakeup
+takes a runqueue lock. Such a block is freed on a kernel worker, its first bytes holding the
+<code>lunatik_defer_t</code> the core queues it by, which a <code>vmalloc</code>&rsquo;d block, past a page, has room for, and
+from 7.0 on a block of <code>lunatik_malloc</code> whatever its size. <code>lunatik_realloc</code> frees the same way, at
+size zero and when it moves a block; under the marker, from 7.0 on, it moves every block it resizes,
+since <code>krealloc</code> would <code>kfree</code> the one it moves.</p>
+
+<p>A block a binding allocates itself, with <code>kmalloc</code>, and frees here or hands
+<a href="#lunatik_pushexternalstring"><code>lunatik_pushexternalstring</code></a> needs that room too: it is allocated
+with <code>lunatik_blocksize(size)</code> bytes, from 7.0 on <code>size</code> or <code>sizeof(lunatik_defer_t)</code> when that is
+more, and <code>size</code> before. Defined as a macro.</p>
 
 <h3 id="lunatik_checkalloc">lunatik_checkalloc</h3>
 
@@ -2234,10 +2245,12 @@ pressure the allocation then fails without a log line rather than wake either, a
 takes flags with neither reclaim bit for <code>kmalloc_nolock</code>&rsquo;s, it also fails where a lock of the slab
 or the page allocator is held, and a new slab draws on no reserve of <code>__GFP_HIGH</code>&rsquo;s. A binding that
 allocates outside the Lua allocator, on a path an scx callback reaches, passes its flags through it.
-The slab allocator still wakes kswapd on two paths that read none of these flags: on 7.0 and later,
-a free that finds its CPU&rsquo;s cache of freed objects full, and on 6.13 to 6.17 booted with
-<code>slab_strict_numa</code>, an allocation&rsquo;s first try on the node of the task&rsquo;s memory policy. Defined as a
-macro.</p>
+The slab allocator still wakes kswapd on three paths that read none of these flags: on 7.0 and
+later, a free that finds its CPU&rsquo;s cache of freed objects full, which
+<a href="#lunatik_free"><code>lunatik_free</code></a> puts off under the marker, on 6.13 to 6.17 booted with
+<code>slab_strict_numa</code>, an allocation&rsquo;s first try on the node of the task&rsquo;s memory policy, and up to
+6.16, before 6.12.46 and 6.16.6 in their series, booted with <code>slub_debug</code>&rsquo;s user tracking, an
+allocation or a free whose stack it saves. Defined as a macro.</p>
 
 <hr />
 
@@ -2376,7 +2389,7 @@ softirq class finds <code>GFP_ATOMIC</code>, raising
 <code>not enough memory</code> when they cannot be had, as past <code>KMALLOC_MAX_SIZE</code>. The caller frees it with
 <a href="#lunatik_free"><code>lunatik_free</code></a> or hands it to
 <a href="#lunatik_pushexternalstring"><code>lunatik_pushexternalstring</code></a>, which frees it with the state&rsquo;s
-allocator.</p>
+allocator, which is why it asks <code>kmalloc</code> for <a href="#lunatik_free"><code>lunatik_blocksize</code></a><code>(size)</code> bytes.</p>
 
 <h3 id="luacrypto_pushbuffer">luacrypto_pushbuffer</h3>
 
@@ -2919,7 +2932,7 @@ schedules from inside the scheduler.</p>
 <a href="../../topics/capi.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/capi.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 12:37:34</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:05:00</span>
 </div>
 </footer>
 </body>

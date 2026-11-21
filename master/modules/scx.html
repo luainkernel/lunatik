@@ -213,8 +213,10 @@
  callback raises or a decision it gets wrong, reach the console deferred, as the scheduler&rsquo;s
  own lines do. What the callback&rsquo;s Lua allocates is asked for without waking kswapd, whose
  wakeup takes the same lock, so under memory pressure an allocation fails and the call that
- made it raises; the slab allocator still wakes kswapd on a free from 7.0 on, and on an
- allocation from 6.13 to 6.17 booted with <code>slab_strict_numa</code>.</p>
+ made it raises, and what it frees goes back to the allocator after the dispatch from 7.0 on,
+ where a free can wake kswapd, and at once before; the slab allocator still wakes kswapd on an
+ allocation from 6.13 to 6.17 booted with <code>slab_strict_numa</code>, and on an allocation or a free up to
+ 6.16 booted with <code>slub_debug</code>&rsquo;s user tracking, before 6.12.46 and 6.16.6 in their series.</p>
 
 <p> Needs 6.12 and later, with <code>CONFIG_SCHED_CLASS_EXT</code> and without <code>CONFIG_PREEMPT_RT</code>,
  where a runtime&rsquo;s lock sleeps and the kfunc would take it under the runqueue lock;
@@ -396,7 +398,7 @@ scx.<span class="function-name">attach</span>(my_scheduler)
 <a href="../../modules/scx.html">5.1 docs</a> ·
 <a href="../../5.0/modules/scx.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 12:37:34</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:05:00</span>
 </div>
 </footer>
 </body>

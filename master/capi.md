@@ -1561,11 +1561,22 @@ accepted.
 ### lunatik\_free
 ```C
 void lunatik_free(const void *ptr);
+size_t lunatik_blocksize(size_t size);
 ```
 Frees memory allocated by `lunatik_malloc` or `lunatik_realloc`, at once, as `kvfree` does, unless
 the block came from `vmalloc` and [`lunatik_isatomic`](#lunatik_isatomic) holds, where `vfree` may
-sleep and, in NMI, BUGs: the block then goes back on a kernel worker. `lunatik_realloc` frees the
-same way, at size zero and when it moves a block.
+sleep and, in NMI, BUGs, or, from 7.0 on, the block is freed under the marker
+[`lunatik_isrunqueue`](#lunatik_isrunqueue) reads, where `kfree` can wake kswapd and that wakeup
+takes a runqueue lock. Such a block is freed on a kernel worker, its first bytes holding the
+`lunatik_defer_t` the core queues it by, which a `vmalloc`'d block, past a page, has room for, and
+from 7.0 on a block of `lunatik_malloc` whatever its size. `lunatik_realloc` frees the same way, at
+size zero and when it moves a block; under the marker, from 7.0 on, it moves every block it resizes,
+since `krealloc` would `kfree` the one it moves.
+
+A block a binding allocates itself, with `kmalloc`, and frees here or hands
+[`lunatik_pushexternalstring`](#lunatik_pushexternalstring) needs that room too: it is allocated
+with `lunatik_blocksize(size)` bytes, from 7.0 on `size` or `sizeof(lunatik_defer_t)` when that is
+more, and `size` before. Defined as a macro.
 
 ### lunatik\_checkalloc
 ```C
@@ -1601,10 +1612,12 @@ pressure the allocation then fails without a log line rather than wake either, a
 takes flags with neither reclaim bit for `kmalloc_nolock`'s, it also fails where a lock of the slab
 or the page allocator is held, and a new slab draws on no reserve of `__GFP_HIGH`'s. A binding that
 allocates outside the Lua allocator, on a path an scx callback reaches, passes its flags through it.
-The slab allocator still wakes kswapd on two paths that read none of these flags: on 7.0 and later,
-a free that finds its CPU's cache of freed objects full, and on 6.13 to 6.17 booted with
-`slab_strict_numa`, an allocation's first try on the node of the task's memory policy. Defined as a
-macro.
+The slab allocator still wakes kswapd on three paths that read none of these flags: on 7.0 and
+later, a free that finds its CPU's cache of freed objects full, which
+[`lunatik_free`](#lunatik_free) puts off under the marker, on 6.13 to 6.17 booted with
+`slab_strict_numa`, an allocation's first try on the node of the task's memory policy, and up to
+6.16, before 6.12.46 and 6.16.6 in their series, booted with `slub_debug`'s user tracking, an
+allocation or a free whose stack it saves. Defined as a macro.
 
 ---
 
@@ -1715,7 +1728,7 @@ softirq class finds `GFP_ATOMIC`, raising
 `not enough memory` when they cannot be had, as past `KMALLOC_MAX_SIZE`. The caller frees it with
 [`lunatik_free`](#lunatik_free) or hands it to
 [`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which frees it with the state's
-allocator.
+allocator, which is why it asks `kmalloc` for [`lunatik_blocksize`](#lunatik_free)`(size)` bytes.
 
 ### luacrypto\_pushbuffer
 ```C
