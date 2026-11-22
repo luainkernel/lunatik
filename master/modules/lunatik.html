@@ -57,8 +57,6 @@
   <li><a href="../topics/05-examples.md.html">Examples</a></li>
   <li><a href="../topics/06-development.md.html">Development</a></li>
   <li><a href="../topics/07-resources.md.html">Resources</a></li>
-  <li><a href="../topics/08-luaebpf.md.html">Compiling Lua to eBPF</a></li>
-  <li><a href="../topics/09-luaebpf-by-example.md.html">Lua to eBPF by example</a></li>
   <li><a href="../topics/capi.md.html">Lunatik C API</a></li>
 </ul>
 <h2>Lua API</h2>
@@ -75,9 +73,6 @@
 <ul class="mono">
   <li><a href="../modules/bpf.html">bpf</a></li>
   <li><a href="../modules/bpf.map.html">bpf.map</a></li>
-  <li><a href="../modules/bpf.tc.html">bpf.tc</a></li>
-  <li><a href="../modules/bpf.vmlinux.html">bpf.vmlinux</a></li>
-  <li><a href="../modules/bpf.xdp.html">bpf.xdp</a></li>
   <li><a href="../modules/netfilter.html">netfilter</a></li>
   <li><a href="../modules/skb.html">skb</a></li>
   <li><a href="../modules/tc.html">tc</a></li>
@@ -185,7 +180,6 @@
 </ul>
 <h3>Other</h3>
 <ul class="mono">
-  <li><a href="../modules/luaebpf.html">luaebpf</a></li>
   <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
@@ -239,13 +233,6 @@
 	<tr>
 	<td class="name"><a href="#percpu:stop">percpu:stop ()</a></td>
 	<td class="summary">Closes the objects the runtimes share, then every runtime, releasing their Lua states.</td>
-	</tr>
-</table></div>
-<h2 id="Naming_a_kernel_Lua_runtime_in_a_program_file">Naming a kernel Lua runtime in a program file </h2>
-<div class="tbl"><table class="function_list">
-	<tr>
-	<td class="name"><a href="#lunatik.runtime">lunatik.runtime (script)</a></td>
-	<td class="summary">Names the kernel Lua runtime a program calls.</td>
 	</tr>
 </table></div>
 
@@ -508,57 +495,6 @@
 
 </dd>
 </dl>
-    <h2 class="section-header" id="Naming_a_kernel_Lua_runtime_in_a_program_file-details"><a name="Naming_a_kernel_Lua_runtime_in_a_program_file"></a>Naming a kernel Lua runtime in a program file  in detail</h2>
-
-          <div class="section-description">
-           <a href="../modules/lunatik.html#lunatik.runtime">lunatik.runtime</a> runs in the body of a program file, under <code>lunatik bpf</code>, and names a runtime
- by the script it runs, which <code>lunatik run</code> starts; a program&rsquo;s own function calls the runtime&rsquo;s
- <code>run</code> method, and the call lowers to the kfunc of the program&rsquo;s type, <code>bpf_luaxdp_run</code> in an XDP
- program and <code>bpf_luatc_run</code> in a TC one. The call answers the verdict the runtime&rsquo;s callback
- returns, or nil, and the program tests the answer before it reads it. A kernel script the body
- requires that itself requires <a href="../modules/lunatik.html#">lunatik</a> gets this twin, which holds <a href="../modules/lunatik.html#runtime">runtime</a> alone.
-          </div>
-    <dl class="function">
-    <dt id="lunatik.runtime"><a name="lunatik.runtime"></a><strong>lunatik.runtime (script)</strong></dt>
-    <dd>
-    Names the kernel Lua runtime a program calls.</p>
-
-<p> Inside a program&rsquo;s own function the runtime&rsquo;s <code>run</code> method is called with numbers,
- <code>limits:run(a, b)</code>, and the call runs the callback the runtime registered with the attach of the
- program&rsquo;s type, <a href="../modules/xdp.html#attach">xdp.attach</a> or <a href="../modules/tc.html#attach">tc.attach</a>, handing it the program&rsquo;s context and each argument as
- a 64-bit integer, in order, which the callback reads as <code>ctx:argument():getint64(0)</code>, <code>getint64(8)</code>
- and on. The call answers the verdict the callback returns, or <code>nil</code> where the kfunc returns <code>-1</code>:
- no softirq runtime of that name with a callback attached, a callback that raises, returns <code>nil</code> or
- a value outside <a href="../modules/linux.xdp.html#action">linux.xdp.action</a> or <a href="../modules/linux.tc.html#action">linux.tc.action</a>, or one that returns
- <code>linux.tc.action.UNSPEC</code>, which is <code>-1</code>. The program tests the answer before it reads it, with
- <code>if v then</code>, <code>if not v then</code>, <code>v == nil</code> or <code>v ~= nil</code>; every other use is refused at its line, and
- so are a call of the runtime itself, <code>limits(a)</code>, and any other method.
- An object with such a call loads where the module publishes its BTF (<code>make btf_install</code>).
-
-
-    <h3>Parameters</h3>
-    <ul>
-        <li><span class="parameter">script</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
-         the script the runtime runs, as <code>lunatik run</code> takes it, its path below
-   <code>/lib/modules/lua/</code> without <code>.lua</code>
-        </li>
-    </ul>
-
-    <h3>Returns</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
-        the runtime, whose <code>run</code> a program calls
-    </ol>
-
-    <h3>Raises</h3>
-    <code>&lt;file&gt;:&lt;line&gt;: lunatik.runtime takes a script</code>, the line that called it
-
-
-
-</dd>
-</dl>
 
 
 </main>
@@ -575,7 +511,7 @@
 <a href="../../modules/lunatik.html">5.1 docs</a> ·
 <a href="../../5.0/modules/lunatik.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-22 16:37:31</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-22 17:21:14</span>
 </div>
 </footer>
 </body>
