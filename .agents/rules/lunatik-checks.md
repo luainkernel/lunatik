@@ -117,7 +117,7 @@ at edit time and over a pull request's diff and annotates, since the core's defe
 kernel's answer to a release in atomic context; the commit body names the refusal each line it
 prints was weighed against.
 
-`hardcoded.sh` reads the lines a change adds to the Lua of `bin/luaebpf` and of `lib/`, against
+`hardcoded.sh` reads the lines a change adds to the Lua of `lib/`, against
 `CHECK_BASE`, for a kernel constant spelled by hand: a number beside a comment that names a kernel
 symbol or a C source, trailing the line or heading a run of top-level lines with no blank between,
 `local MAXSTACK <const> = 512 -- MAX_BPF_STACK`, and constants picked by name beside a comment naming
@@ -160,8 +160,8 @@ set what such a guard asks for, and a unit a kernel of the range cannot build ke
 as `luascx.c` does without `CONFIG_SCHED_CLASS_EXT`, rather than nothing.
 
 `bundled.sh` reads a rev-range and names one whose files take a C binding of `lib/`, a `.c` or a `.h`
-at its top, and the compiler under `bin/luaebpf` together, whatever commit each one sits in: the
-binding is a pull request of its own and the compiler's is stacked on it (AGENTS.md, *Patches and
+at its top, and a move of the compiler's mount, `luaebpf`, together, whatever commit each one sits in: the
+binding is a pull request of its own and the mount's move is stacked on it (AGENTS.md, *Patches and
 commits*), since #2235 carried `lib/luadata.c` under a TC read and the maintainer asked to split it.
 The `Checks` workflow fails a pull request it names, over the range from its base, so the stacked one
 passes; the review's packet runs it over the branch, and the

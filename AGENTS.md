@@ -33,11 +33,11 @@ machine. Two rules follow from that and outrank everything else in this document
 | `autogen/` | build time generation of `linux.*` constant tables from kernel headers |
 | `driver.lua` | the script of the runtime `lunatik_run.ko` creates for the `/dev/lunatik` driver, installed as `lunatik/driver` |
 | `bin/` | the host side: the CLI, `bin/lunatik`, which talks to the kernel through `/dev/lunatik`, and what it builds or loads, installed where the host finds it |
-| `bin/luaebpf/` | the Lua to eBPF compiler (luainkernel/luaebpf), mounted as a submodule, built and installed by this tree's Makefile, whose guide pages, `bin/luaebpf/doc/guide/`, the site builds; a change to it is a pull request of luaebpf, which reaches Lunatik as one that moves the mount. It is a package of the CLI's Lua installed under the host's `LUA_PATH` as `luaebpf/`, and `luaebpf.loader`, the C module over libbpf that loads, attaches and pins what it writes, installed under `LUA_CPATH`; `lib/` holds the modules a program file's body requires to declare what the object carries, `bpf.xdp` among them, and one named as a kernel module is that module's compile-time twin |
 | `tests/` | KTAP integration tests, one directory per suite |
 | `examples/` | example kernel scripts |
 | `tools/` | Lunatik's own maintenance scripts, and its own mechanical convention checks in `tools/checks/`; the shared ones are under `harness/tools/` |
 | `harness/` | the harness Lunatik shares with luaebpf (luainkernel/harness), mounted as a submodule: the conventions of `harness/AGENTS.md`, its rules, skills, agents, guards and checks, and the tools of the host both run their suites on; it runs on the host, in a session and in CI, and installs nowhere |
+| `luaebpf/` | the Lua to eBPF compiler (luainkernel/luaebpf), mounted as a submodule and built and installed by this tree's Makefile: a package of the CLI's Lua installed under the host's `LUA_PATH` as `luaebpf/`, and `luaebpf.loader`, the C module over libbpf that loads, attaches and pins what it writes, installed under `LUA_CPATH`; its `lib/` holds the modules a program file's body requires to declare what the object carries, `bpf.xdp` among them, and one named as a kernel module is that module's compile-time twin; the site builds its guide pages, `luaebpf/doc/guide/`, and a change to it is a pull request of luaebpf, which reaches Lunatik as one that moves the mount |
 | `.agents/skills/` | Lunatik's own workflows packaged as agent skills (open `SKILL.md` format): its host cycle, a new binding, a new test suite |
 | `.agents/rules/` | Lunatik's own rules for a kind of file, loaded by the paths each one names |
 | `.agents/harness.conf` | what the shared scripts of `harness/` read of Lunatik's tree, the keys `harness/tools/checks/project.sh` names |
@@ -283,8 +283,8 @@ links.
 
 ## Patches and commits
 
-* A C binding of `lib/` and the compiler under `bin/luaebpf` are two pull requests, each one mechanism
-  (`harness/AGENTS.md`), the binding's first and the compiler's stacked on it, even where the compiler
+* A C binding of `lib/` and a move of the compiler's mount, `luaebpf/`, are two pull requests, each one
+  mechanism (`harness/AGENTS.md`), the binding's first and the move stacked on it, even where the compiler
   reads what the binding adds: #2235
   carried `skb:data()`'s read of a non-linear skb, in `lib/luadata.c`, `lib/luaskb.c` and `lib/luatc.c`,
   under the compiler's TC read, and the maintainer asked "why we need all these changes on luadata and

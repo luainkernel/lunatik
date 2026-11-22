@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Names a value the Lua of the compiler, bin/luaebpf, or of lib/ spells by hand beside a comment
+# Names a value the Lua of lib/ spells by hand beside a comment
 # that names where the kernel defines it: a number beside a kernel symbol or a C source, as
 # local SKB_LOAD_BYTES <const> = 26 -- BPF_FUNC_skb_load_bytes on #2235 and local MAXSTACK
 # <const> = 512 -- MAX_BPF_STACK on #2202 were, of which the maintainer asked "why hardcoded?" and
@@ -37,7 +37,7 @@ for file in "$@"; do
 	path=$(git -C "$(dirname "$file")" rev-parse --show-prefix 2> /dev/null)$(basename "$file")
 	case "$path" in
 		lib/linux/*) continue ;;
-		bin/luaebpf/*.lua|lib/*.lua) ;;
+		lib/*.lua) ;;
 		*) continue ;;
 	esac
 

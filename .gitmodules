@@ -10,7 +10,7 @@
 [submodule "harness"]
 	path = harness
 	url = https://github.com/luainkernel/harness.git
-[submodule "bin/luaebpf"]
-	path = bin/luaebpf
+[submodule "luaebpf"]
+	path = luaebpf
 	url = https://github.com/luainkernel/luaebpf.git
 

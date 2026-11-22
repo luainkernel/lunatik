@@ -40,7 +40,7 @@ RUNTIME=tests/luaebpf/words
 OTHER=Proprietary
 REFUSED="cannot call kernel function from non-GPL compatible program" # add_kfunc_call, kernel/bpf/verifier.c
 GPLONLY="cannot call GPL-restricted function from non-GPL compatible program" # check_helper_call
-NOTCX="tcx needs libbpf 1.3.0" # lualoader_open, bin/luaebpf/loader.c
+NOTCX="tcx needs libbpf 1.3.0" # lualoader_open, luaebpf/loader.c
 
 luaebpf_start 12
 command -v readelf >/dev/null || skip_script "luaebpf: readelf is not installed"
