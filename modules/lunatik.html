@@ -22,13 +22,14 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.1</span>
+        <span aria-current="page">5.2</span>
+        <a href="../5.1/modules/lunatik.html" title="This page in release 5.1">5.1</a>
         <a href="../5.0/modules/lunatik.html" title="This page in release 5.0">5.0</a>
         <a href="../master/modules/lunatik.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
-        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <input id="q" type="search" placeholder="Search" autocomplete="off" aria-label="Search" aria-controls="results"/>
         <kbd>/</kbd>
         <ul class="results" id="results" hidden=""></ul>
     </div>
@@ -132,8 +133,10 @@
   <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
   <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
   <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_kpp.html">crypto_kpp</a></li>
   <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
   <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_sig.html">crypto_sig</a></li>
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
 </ul>
 <h3>System</h3>
@@ -147,6 +150,8 @@
 <ul class="mono">
   <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.clock.html">linux.clock</a></li>
+  <li><a href="../modules/linux.crypto.html">linux.crypto</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -154,12 +159,14 @@
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.limits.html">linux.limits</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.packet.html">linux.packet</a></li>
+  <li><a href="../modules/linux.ratelimit.html">linux.ratelimit</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -168,11 +175,13 @@
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.tls.html">linux.tls</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
 <h3>Other</h3>
 <ul class="mono">
+  <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
 </aside>
@@ -276,8 +285,8 @@
  the last reference to the set is dropped. A hook its script registers with the kernel is one
  the runtimes share, and it holds the set until <code>stop()</code>, so dropping the handle does not close a
  set whose script registered one, and <code>stop()</code> cannot be called once its last handle is gone. A
- script stops the sets it creates, as it stops a runtime: see <a href="../modules/lunatik.html#runtime">lunatik.runtime</a>. Only a process
- runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
+ script stops the sets it creates, as it stops a runtime: see <a href="../modules/lunatik.html#runtime">lunatik.runtime</a>. Only a
+ process runtime&rsquo;s <a href="../modules/lunatik.html#">lunatik</a> module has it.
 
 
     <h3>Parameters</h3>
@@ -340,7 +349,8 @@
    Use <code>&quot;softirq&quot;</code> for hooks that fire in softirq context (netfilter, XDP).
    Use <code>&quot;hardirq&quot;</code> for hooks that can fire inside an interrupt handler or with interrupts off
    (kprobes), since only a lock that turns interrupts off cannot be taken again by an
-   interrupt on the CPU that holds it.
+   interrupt on the CPU that holds it. A kernel built with <code>CONFIG_PREEMPT_RT</code> creates no
+   <code>&quot;hardirq&quot;</code> runtime: its spinlock neither turns interrupts off nor spins there.
          (<em>default</em> "process")
         </li>
     </ul>
@@ -353,7 +363,9 @@
     </ol>
 
     <h3>Raises</h3>
-    if allocation fails or the script errors on load
+     if allocation fails or the script errors on load; <code>hardirq runtime not allowed on
+   PREEMPT_RT, where a spinlock sleeps</code> for a <code>&quot;hardirq&quot;</code> runtime on a kernel built with
+   <code>CONFIG_PREEMPT_RT</code>, before the script runs
 
 
 
@@ -496,11 +508,12 @@
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.1 ·
+<span>Lunatik 5.2 ·
+<a href="../5.1/modules/lunatik.html">5.1 docs</a> ·
 <a href="../5.0/modules/lunatik.html">5.0 docs</a> ·
 <a href="../master/modules/lunatik.html">master docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-22 19:00:37</span>
 </div>
 </footer>
 </body>

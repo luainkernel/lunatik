@@ -22,13 +22,14 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.1</span>
+        <span aria-current="page">5.2</span>
+        <a href="../5.1/modules/tc.html" title="This page in release 5.1">5.1</a>
         <a href="../5.0/modules/tc.html" title="This page in release 5.0">5.0</a>
         <a href="../master/modules/tc.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
-        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <input id="q" type="search" placeholder="Search" autocomplete="off" aria-label="Search" aria-controls="results"/>
         <kbd>/</kbd>
         <ul class="results" id="results" hidden=""></ul>
     </div>
@@ -132,8 +133,10 @@
   <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
   <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
   <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_kpp.html">crypto_kpp</a></li>
   <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
   <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_sig.html">crypto_sig</a></li>
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
 </ul>
 <h3>System</h3>
@@ -147,6 +150,8 @@
 <ul class="mono">
   <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.clock.html">linux.clock</a></li>
+  <li><a href="../modules/linux.crypto.html">linux.crypto</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -154,12 +159,14 @@
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.limits.html">linux.limits</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.packet.html">linux.packet</a></li>
+  <li><a href="../modules/linux.ratelimit.html">linux.ratelimit</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -168,11 +175,13 @@
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.tls.html">linux.tls</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
 <h3>Other</h3>
 <ul class="mono">
+  <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
 </aside>
@@ -289,11 +298,15 @@ This key is used to look up the runtime in Lunatik&rsquo;s internal table of act
 </ul>
 
 
-<p> In the callback, the skb methods that would linearize a packet raise on a non-linear one instead,
- such as a locally sent TCP segment or a GRO-merged one: the verifier keeps the program&rsquo;s packet
- pointers across a kfunc, and linearizing can move the packet out from under them. A program whose
- callback reads the whole packet calls <code>bpf_skb_pull_data(skb, skb-&gt;len)</code> before <code>bpf_luatc_run</code>,
- after which the verifier has it reload its packet pointers.
+<p> In the callback, a packet is never linearized: the verifier keeps the program&rsquo;s packet pointers
+ across a kfunc, and linearizing can move the packet out from under them. Of a non-linear one, such
+ as a locally sent TCP segment or a GRO-merged one, <code>skb:data()</code> returns a read only view of a copy,
+ and <code>skb:copy()</code>, <code>skb:resize()</code> and <code>skb:checksum()</code>, which would linearize it, raise instead. A
+ program whose callback writes, copies, resizes or sums it calls <code>bpf_skb_pull_data(skb, skb-&gt;len)</code>
+ before <code>bpf_luatc_run</code>, after which the verifier has it reload its packet pointers. For the same
+ reason a packet whose head a clone shares, as a packet socket&rsquo;s on ingress, is not unshared:
+ <code>skb:data()</code> returns a read only view of it, and <code>skb:resize()</code> and <code>skb:checksum()</code> raise &ldquo;skb is
+ not writable&rdquo;. The same <code>bpf_skb_pull_data</code> gives the packet a head of its own.
 
 
     <h3>Parameters</h3>
@@ -350,6 +363,7 @@ tc.<span class="function-name">attach</span>(my_traffic_shaper)
     Unregisters the Lua callback function associated with the current Lunatik runtime.
  After calling this, <code>bpf_luatc_run</code> calls targeting this runtime invoke no Lua function:
  they log <code>no callback attached</code>, return <code>-1</code> and leave the verdict to the eBPF program.
+ It may be called from the callback, whose verdict still applies to the packet at hand.
 
 
 
@@ -379,11 +393,12 @@ tc.<span class="function-name">attach</span>(my_traffic_shaper)
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.1 ·
+<span>Lunatik 5.2 ·
+<a href="../5.1/modules/tc.html">5.1 docs</a> ·
 <a href="../5.0/modules/tc.html">5.0 docs</a> ·
 <a href="../master/modules/tc.html">master docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-22 19:00:37</span>
 </div>
 </footer>
 </body>

@@ -22,13 +22,14 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.1</span>
+        <span aria-current="page">5.2</span>
+        <a href="../5.1/modules/rcu.html" title="This page in release 5.1">5.1</a>
         <a href="../5.0/modules/rcu.html" title="This page in release 5.0">5.0</a>
         <a href="../master/modules/rcu.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
-        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <input id="q" type="search" placeholder="Search" autocomplete="off" aria-label="Search" aria-controls="results"/>
         <kbd>/</kbd>
         <ul class="results" id="results" hidden=""></ul>
     </div>
@@ -132,8 +133,10 @@
   <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
   <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
   <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_kpp.html">crypto_kpp</a></li>
   <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
   <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_sig.html">crypto_sig</a></li>
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
 </ul>
 <h3>System</h3>
@@ -147,6 +150,8 @@
 <ul class="mono">
   <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.clock.html">linux.clock</a></li>
+  <li><a href="../modules/linux.crypto.html">linux.crypto</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -154,12 +159,14 @@
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.limits.html">linux.limits</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.packet.html">linux.packet</a></li>
+  <li><a href="../modules/linux.ratelimit.html">linux.ratelimit</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -168,11 +175,13 @@
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.tls.html">linux.tls</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
 <h3>Other</h3>
 <ul class="mono">
+  <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
 </aside>
@@ -206,6 +215,17 @@
 
 <p> See <code>examples/shared/daemon.lua</code> for a practical example.
 
+<h2 id="Class_rcu_table">Class rcu_table </h2>
+<div class="tbl"><table class="function_list">
+	<tr>
+	<td class="name"><a href="#rcu_table:__index">rcu_table:__index (key)</a></td>
+	<td class="summary"><code>t[key]</code> reads the value (RCU-protected, lockless).</td>
+	</tr>
+	<tr>
+	<td class="name"><a href="#rcu_table:__newindex">rcu_table:__newindex (key, value)</a></td>
+	<td class="summary"><code>t[key] = value</code> sets the value, and <code>nil</code> removes the entry (serialized).</td>
+	</tr>
+</table></div>
 <h2 id="rcu">rcu</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
@@ -218,6 +238,72 @@
 	</tr>
 </table></div>
 
+    <h2 class="section-header" id="Class_rcu_table-details"><a name="Class_rcu_table"></a><a name="rcu_table"></a>Class rcu_table  in detail</h2>
+
+          <div class="section-description">
+          RCU hash table object, indexed as a Lua table.
+          </div>
+            <pre class="example"><span class="keyword">local</span> t = rcu.<span class="global">table</span>()
+t[<span class="string">"key"</span>] = <span class="keyword">true</span>        <span class="comment">-- boolean
+</span>t[<span class="string">"n"</span>]   = <span class="number">42</span>          <span class="comment">-- integer
+</span>t[<span class="string">"obj"</span>] = data.<span class="function-name">new</span>(<span class="number">8</span>) <span class="comment">-- object
+</span><span class="global">print</span>(t[<span class="string">"key"</span>])        <span class="comment">-- true
+</span>t[<span class="string">"key"</span>] = <span class="keyword">nil</span>         <span class="comment">-- delete</span></pre>
+    <dl class="function">
+    <dt id="rcu_table:__index"><a name="rcu_table:__index"></a><strong>rcu_table:__index (key)</strong></dt>
+    <dd>
+    <code>t[key]</code> reads the value (RCU-protected, lockless).
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+        the value, or <code>nil</code> for a key without an entry and for one whose object a
+ writer is releasing
+    </ol>
+
+
+
+
+</dd>
+    <dt id="rcu_table:__newindex"><a name="rcu_table:__newindex"></a><strong>rcu_table:__newindex (key, value)</strong></dt>
+    <dd>
+    <code>t[key] = value</code> sets the value, and <code>nil</code> removes the entry (serialized).</p>
+
+<p> The value an assignment replaces or removes is released on the assigning task once
+ the table&rsquo;s lock is dropped, so a runtime or a socket whose last reference the entry
+ held closes there; when the writer holds a softirq or hardirq runtime&rsquo;s lock, which
+ keeps bottom halves or IRQs off, it closes on a kernel worker instead.
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         up to 255 bytes
+        </li>
+        <li><span class="parameter">value</span>
+
+        </li>
+    </ul>
+
+
+    <h3>Raises</h3>
+    <code>out of bounds</code> when the key is longer than 255 bytes; <code>not enough memory</code>
+ when an allocation fails
+
+
+
+</dd>
+</dl>
     <h2 class="section-header" id="rcu-details"><a name="rcu"></a>rcu in detail</h2>
 
     <dl class="function">
@@ -298,11 +384,12 @@
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.1 ·
+<span>Lunatik 5.2 ·
+<a href="../5.1/modules/rcu.html">5.1 docs</a> ·
 <a href="../5.0/modules/rcu.html">5.0 docs</a> ·
 <a href="../master/modules/rcu.html">master docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-22 19:00:37</span>
 </div>
 </footer>
 </body>

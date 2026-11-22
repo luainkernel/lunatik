@@ -22,13 +22,14 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.1</span>
+        <span aria-current="page">5.2</span>
+        <a href="../5.1/topics/01-getting-started.md.html" title="This page in release 5.1">5.1</a>
         <a href="../5.0/topics/01-getting-started.md.html" title="This page in release 5.0">5.0</a>
         <a href="../master/topics/01-getting-started.md.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
-        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <input id="q" type="search" placeholder="Search" autocomplete="off" aria-label="Search" aria-controls="results"/>
         <kbd>/</kbd>
         <ul class="results" id="results" hidden=""></ul>
     </div>
@@ -132,8 +133,10 @@
   <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
   <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
   <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_kpp.html">crypto_kpp</a></li>
   <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
   <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_sig.html">crypto_sig</a></li>
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
 </ul>
 <h3>System</h3>
@@ -147,6 +150,8 @@
 <ul class="mono">
   <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.clock.html">linux.clock</a></li>
+  <li><a href="../modules/linux.crypto.html">linux.crypto</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -154,12 +159,14 @@
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.limits.html">linux.limits</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.packet.html">linux.packet</a></li>
+  <li><a href="../modules/linux.ratelimit.html">linux.ratelimit</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -168,11 +175,13 @@
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.tls.html">linux.tls</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
 <h3>Other</h3>
 <ul class="mono">
+  <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
 </aside>
@@ -184,16 +193,19 @@
 <p>Install dependencies (here for Debian/Ubuntu, to be adapted to one&rsquo;s distribution):</p>
 
 <pre>
-sudo apt install git build-essential lua5.<span class="number">5</span> dwarves clang llvm libelf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
+sudo apt install git build-essential lua5.<span class="number">5</span> dwarves clang llvm libelf-dev libbpf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
 </pre>
 
 
 <p>Install dependencies (here for Arch Linux):</p>
 
 <pre>
-sudo pacman -S git lua clang llvm m4 libpcap pkg-config base-devel pahole libelf linux-tools linux-headers
+sudo pacman -S git lua clang llvm m4 libbpf libpcap pkg-config base-devel pahole libelf linux-tools linux-headers
 </pre>
 
+
+<p><code>make</code> builds <code>luaebpf.loader</code>, which loads the compiled programs, against libbpf 1.0 or later,
+which Ubuntu packages from 23.04.</p>
 
 <p>The command line tool runs under <code>/usr/bin/lua5.5</code>, and the build calls <code>lua5.5</code>. Ubuntu packages
 Lua 5.5 from 26.04 and Debian from testing. Where the distribution does not carry it yet, build the
@@ -227,7 +239,8 @@ sudo make install
 
 
 <p><code>sudo make btf_install</code> copies the running kernel&rsquo;s BTF, <code>/sys/kernel/btf/vmlinux</code>, into the
-headers the modules build against. Without it the modules are built with no BTF of their own:
+headers the modules build against. It serves the running release alone, and refuses a
+<code>KERNEL_RELEASE</code> that names another. Without it the modules are built with no BTF of their own:
 <a href="../modules/xdp.html#">xdp</a> and <a href="../modules/tc.html#">tc</a>, and <a href="../modules/scx.html#">scx</a> on a kernel with sched_ext, still load, but log <code>missing module BTF</code> in
 the kernel log and leave their kfunc unregistered, so an eBPF program that calls one, such as
 <code>bpf_luaxdp_run</code>, fails to load.</p>
@@ -263,9 +276,13 @@ sudo make install
 <p>On Debian and Ubuntu, a kernel hook can do this on every upgrade: <a href="https://github.com/luainkernel/lunatik/blob/master/tools/Readme.md">tools/Readme.md</a>
 installs <code>tools/debian_kernel_postinst_lunatik.sh</code> as <code>/etc/kernel/postinst.d/zz-update-lunatik</code>.
 The hook builds its own clone of master under <code>/opt/lunatik</code>, not your checkout. It downloads the
-kernel sources to build <code>resolve_btfids</code> and <code>bpftool</code>, and replaces <code>/usr/sbin/bpftool</code> with the one
+kernel sources, from github.com for a release candidate and cdn.kernel.org otherwise, to build
+<code>resolve_btfids</code> and <code>bpftool</code>, and replaces <code>/usr/sbin/bpftool</code> with the one
 it built; it builds <code>xdp-loader</code> from xdp-tools under <code>/opt/xdp-tools</code>. A failure in it fails the
-kernel package&rsquo;s configuration.</p>
+kernel package&rsquo;s configuration. On an upgrade it runs under the old kernel, whose BTF does not fit the
+new one, so it builds the modules with no BTF and installs no objects for the program files: on the new
+kernel <a href="../modules/xdp.html#">xdp</a>, <a href="../modules/tc.html#">tc</a> and <a href="../modules/scx.html#">scx</a> load with their kfuncs unregistered until the rebuild above, <code>make clean</code>
+included, runs on it.</p>
 
 <p><a name="Uninstall"></a></p>
 
@@ -291,7 +308,7 @@ and remove <code>/etc/kernel/postinst.d/zz-update-lunatik</code> if you installe
 <h2 id="first-steps">First steps</h2>
 
 <pre><code> sudo lunatik # execute Lunatik REPL
- Lunatik 5.1  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
+ Lunatik 5.2  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
  &gt; return 42 -- execute this line in the kernel
  42
 </code></pre>
@@ -312,11 +329,12 @@ and remove <code>/etc/kernel/postinst.d/zz-update-lunatik</code> if you installe
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.1 ·
+<span>Lunatik 5.2 ·
+<a href="../5.1/topics/01-getting-started.md.html">5.1 docs</a> ·
 <a href="../5.0/topics/01-getting-started.md.html">5.0 docs</a> ·
 <a href="../master/topics/01-getting-started.md.html">master docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-22 19:00:37</span>
 </div>
 </footer>
 </body>

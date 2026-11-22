@@ -22,13 +22,14 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.1</span>
+        <span aria-current="page">5.2</span>
+        <a href="../5.1/modules/netfilter.html" title="This page in release 5.1">5.1</a>
         <a href="../5.0/modules/netfilter.html" title="This page in release 5.0">5.0</a>
         <a href="../master/modules/netfilter.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
-        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <input id="q" type="search" placeholder="Search" autocomplete="off" aria-label="Search" aria-controls="results"/>
         <kbd>/</kbd>
         <ul class="results" id="results" hidden=""></ul>
     </div>
@@ -132,8 +133,10 @@
   <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
   <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
   <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_kpp.html">crypto_kpp</a></li>
   <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
   <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_sig.html">crypto_sig</a></li>
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
 </ul>
 <h3>System</h3>
@@ -147,6 +150,8 @@
 <ul class="mono">
   <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.clock.html">linux.clock</a></li>
+  <li><a href="../modules/linux.crypto.html">linux.crypto</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -154,12 +159,14 @@
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.limits.html">linux.limits</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.packet.html">linux.packet</a></li>
+  <li><a href="../modules/linux.ratelimit.html">linux.ratelimit</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -168,11 +175,13 @@
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.tls.html">linux.tls</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
 <h3>Other</h3>
 <ul class="mono">
+  <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
 </aside>
@@ -269,14 +278,16 @@ netfilter.register{
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.6">table</a></span>
          Hook options: <code>hook</code> (function), <code>pf</code>, <code>hooknum</code>, <code>priority</code> (integers),
    and optionally <code>mark</code> (integer), a prefilter that keeps a packet out of Lua: given a
-   <code>mark</code>, 0 included, only a packet whose <code>skb:mark()</code> equals it reaches the callback, and
-   the hook accepts every other packet; without a <code>mark</code>, the callback runs for every
-   packet. <code>pf</code> takes a <a href="../modules/linux.nf.html#proto">linux.nf.proto</a> value, <code>hooknum</code> a hook of that family, as
-   <a href="../modules/linux.nf.html#inet">linux.nf.inet</a>, <a href="../modules/linux.nf.html#arp">linux.nf.arp</a> or <a href="../modules/linux.nf.html#br">linux.nf.br</a> list them, and <code>priority</code> a
-   <code>linux.nf.ip.pri</code> or <code>linux.nf.br.pri</code> value.</p>
+   <code>mark</code>, 0 included, only a packet whose <code>skb:mark() &amp; mask</code> equals it reaches the callback,
+   and the hook accepts every other packet; without a <code>mark</code>, the callback runs for every
+   packet. <code>mask</code> (integer, optional) names the bits of the packet mark the hook owns, the
+   whole mark when absent: the prefilter compares those bits alone, and a mark the callback
+   returns sets those bits alone. <code>pf</code> takes a <a href="../modules/linux.nf.html#proto">linux.nf.proto</a> value, <code>hooknum</code> a hook of
+   that family, as <a href="../modules/linux.nf.html#inet">linux.nf.inet</a>, <a href="../modules/linux.nf.html#arp">linux.nf.arp</a> or <a href="../modules/linux.nf.html#br">linux.nf.br</a> list them, and <code>priority</code>
+   a <code>linux.nf.ip.pri</code> or <code>linux.nf.br.pri</code> value.</p>
 
 <p>   <code>hook(skb)</code> returns the packet&rsquo;s verdict, <code>DROP</code>, <code>ACCEPT</code> or <code>QUEUE</code> of <a href="../modules/linux.nf.html#action">linux.nf.action</a>,
-   and optionally a mark to set on the packet. A callback that returns no verdict, or that
+   and optionally a mark to set under <code>mask</code>. A callback that returns no verdict, or that
    raises, accepts the packet; one that returns any other value, <code>STOLEN</code>, <code>REPEAT</code> and <code>STOP</code>
    included, accepts it too and logs <code>invalid verdict</code>. A mark that is not an integer from 0 to
    2<sup>32</sup> - 1 leaves the packet&rsquo;s mark as it was and logs <code>invalid mark</code>.
@@ -298,12 +309,14 @@ netfilter.register{
    outside a softirq runtime; <code>not allowed while the runtime closes</code> from a finalizer that runs at
    its close; <code>bad field &apos;hook&apos; (function expected, got &lt;type&gt;)</code> if <code>hook</code> is missing or not a
    function; <code>bad field &apos;&lt;field&gt;&apos; (number expected, got &lt;type&gt;)</code> if <code>pf</code>, <code>hooknum</code> or
-   <code>priority</code> is missing or not a number, or if <code>mark</code> is present and not a number;
+   <code>priority</code> is missing or not a number, or if <code>mark</code> or <code>mask</code> is present and not a number;
    <code>bad field &apos;&lt;field&gt;&apos; (out of bounds)</code> if <code>pf</code> is not a family whose hooks netfilter keeps
-   in a table, <code>hooknum</code> is not a hook of that table, <code>mark</code> is negative or past 32 bits, or
-   <code>priority</code> is past an <code>int</code>; if the hook cannot be registered; in a
-   percpu script, if this runtime already registered the same <code>pf</code>, <code>hooknum</code>, <code>priority</code> and
-   <code>mark</code>, or the same three both times without a <code>mark</code>
+   in a table, <code>hooknum</code> is not a hook of that table, <code>mark</code> or <code>mask</code> is negative or past
+   32 bits, or <code>priority</code> is past an <code>int</code>; <code>bad field &apos;mark&apos; (bits outside &apos;mask&apos;)</code> if <code>mark</code>
+   sets a bit <code>mask</code> leaves out, which no packet could match; if the hook cannot be
+   registered; in a percpu script, if this runtime already registered the same <code>pf</code>,
+   <code>hooknum</code>, <code>priority</code> and <code>mask</code>, with the same <code>mark</code> or both times without one, and has
+   not stopped that hook
 
 
     <h3>Usage</h3>
@@ -337,11 +350,12 @@ netfilter.<span class="function-name">register</span>{
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.1 ·
+<span>Lunatik 5.2 ·
+<a href="../5.1/modules/netfilter.html">5.1 docs</a> ·
 <a href="../5.0/modules/netfilter.html">5.0 docs</a> ·
 <a href="../master/modules/netfilter.html">master docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-22 19:00:37</span>
 </div>
 </footer>
 </body>

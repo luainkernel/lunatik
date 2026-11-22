@@ -17,7 +17,7 @@
 	--raised: #f4f5f9;
 	--text: #1b2130;
 	--muted: #5c6475;
-	--faint: #8a91a3;
+	--faint: #6b7385;
 	--border: #e3e6ee;
 	--accent: #2f58cd;
 	--accent-hover: #1f44b0;
@@ -54,7 +54,7 @@
 		--raised: #151a33;
 		--text: #dde2f0;
 		--muted: #97a0b8;
-		--faint: #6b7390;
+		--faint: #848ca8;
 		--border: #232a44;
 		--accent: #8aa9ff;
 		--accent-hover: #b3c7ff;
@@ -87,7 +87,7 @@
 	--raised: #151a33;
 	--text: #dde2f0;
 	--muted: #97a0b8;
-	--faint: #6b7390;
+	--faint: #848ca8;
 	--border: #232a44;
 	--accent: #8aa9ff;
 	--accent-hover: #b3c7ff;
@@ -483,6 +483,8 @@ pre.example { margin: .4rem 0 0; }
 		left: 0;
 		bottom: 0;
 		width: min(20rem, 85vw);
+		/* aligned to the start, a menu taller than the screen slides up under the header */
+		align-self: stretch;
 		max-height: none;
 		z-index: 15;
 		padding: 1.5rem 16px 2rem;
@@ -493,12 +495,20 @@ pre.example { margin: .4rem 0 0; }
 		transition: transform .2s ease;
 	}
 	body.nav-open .sidebar { transform: none; }
+	/* the page behind the open menu dims, so the menu reads as on top of it */
+	body.nav-open::after { content: ''; position: fixed; inset: var(--header-h) 0 0 0; z-index: 14; background: rgba(11, 14, 26, .35); pointer-events: none; }
 	.search { max-width: none; }
 	.search kbd { display: none; }
 	.content h1 { font-size: 2rem; }
 	.anchor { display: none; }
 	.pager { grid-template-columns: 1fr; }
 	.pager .next { grid-column: 1; }
+	/* a summary row stacks its name over its description, which a nowrap name squeezed to a letter a line */
+	table.function_list tr, table.module_list tr { display: block; padding: .55rem 0; border-bottom: 1px solid var(--border); }
+	table.function_list td, table.module_list td { display: block; width: auto; padding: 0; border: 0; }
+	table.function_list td.name, table.module_list td.name { width: auto; white-space: normal; overflow-wrap: anywhere; padding: 0 0 .2rem; }
+	/* a table wider than the screen scrolls in its own box, not the page */
+	.content > table { display: block; overflow-x: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

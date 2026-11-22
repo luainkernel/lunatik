@@ -22,13 +22,14 @@
         <span>Lunatik</span>
     </a>
     <nav class="versions" aria-label="Documentation version">
-        <span aria-current="page">5.1</span>
+        <span aria-current="page">5.2</span>
+        <a href="../5.1/modules/data.html" title="This page in release 5.1">5.1</a>
         <a href="../5.0/modules/data.html" title="This page in release 5.0">5.0</a>
         <a href="../master/modules/data.html" title="This page in master, the development tree">master</a>
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
-        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <input id="q" type="search" placeholder="Search" autocomplete="off" aria-label="Search" aria-controls="results"/>
         <kbd>/</kbd>
         <ul class="results" id="results" hidden=""></ul>
     </div>
@@ -132,8 +133,10 @@
   <li><a href="../classes/crypto.hkdf.html">crypto.hkdf</a></li>
   <li><a href="../classes/crypto_aead.html">crypto_aead</a></li>
   <li><a href="../classes/crypto_comp.html">crypto_comp</a></li>
+  <li><a href="../classes/crypto_kpp.html">crypto_kpp</a></li>
   <li><a href="../classes/crypto_rng.html">crypto_rng</a></li>
   <li><a href="../classes/crypto_shash.html">crypto_shash</a></li>
+  <li><a href="../classes/crypto_sig.html">crypto_sig</a></li>
   <li><a href="../classes/crypto_skcipher.html">crypto_skcipher</a></li>
 </ul>
 <h3>System</h3>
@@ -147,6 +150,8 @@
 <ul class="mono">
   <li><a href="../modules/linux.arphrd.html">linux.arphrd</a></li>
   <li><a href="../modules/linux.bpf.html">linux.bpf</a></li>
+  <li><a href="../modules/linux.clock.html">linux.clock</a></li>
+  <li><a href="../modules/linux.crypto.html">linux.crypto</a></li>
   <li><a href="../modules/linux.dropreason.html">linux.dropreason</a></li>
   <li><a href="../modules/linux.errno.html">linux.errno</a></li>
   <li><a href="../modules/linux.eth.html">linux.eth</a></li>
@@ -154,12 +159,14 @@
   <li><a href="../modules/linux.genl.html">linux.genl</a></li>
   <li><a href="../modules/linux.iff.html">linux.iff</a></li>
   <li><a href="../modules/linux.kbd.html">linux.kbd</a></li>
+  <li><a href="../modules/linux.limits.html">linux.limits</a></li>
   <li><a href="../modules/linux.netdev.html">linux.netdev</a></li>
   <li><a href="../modules/linux.netlink.html">linux.netlink</a></li>
   <li><a href="../modules/linux.nf.html">linux.nf</a></li>
   <li><a href="../modules/linux.nl80211.html">linux.nl80211</a></li>
   <li><a href="../modules/linux.notify.html">linux.notify</a></li>
   <li><a href="../modules/linux.packet.html">linux.packet</a></li>
+  <li><a href="../modules/linux.ratelimit.html">linux.ratelimit</a></li>
   <li><a href="../modules/linux.rtnetlink.html">linux.rtnetlink</a></li>
   <li><a href="../modules/linux.scx.html">linux.scx</a></li>
   <li><a href="../modules/linux.signal.html">linux.signal</a></li>
@@ -168,11 +175,13 @@
   <li><a href="../modules/linux.syscall.html">linux.syscall</a></li>
   <li><a href="../modules/linux.task.html">linux.task</a></li>
   <li><a href="../modules/linux.tc.html">linux.tc</a></li>
+  <li><a href="../modules/linux.tls.html">linux.tls</a></li>
   <li><a href="../modules/linux.vt.html">linux.vt</a></li>
   <li><a href="../modules/linux.xdp.html">linux.xdp</a></li>
 </ul>
 <h3>Other</h3>
 <ul class="mono">
+  <li><a href="../modules/set.image.html">set.image</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
 </aside>
@@ -278,6 +287,10 @@
 <h2 id="data">data</h2>
 <div class="tbl"><table class="function_list">
 	<tr>
+	<td class="name"><a href="#load">load (path, maxbytes)</a></td>
+	<td class="summary">Reads a file whole into a new buffer, which it owns.</td>
+	</tr>
+	<tr>
 	<td class="name"><a href="#new">new (size[, mode])</a></td>
 	<td class="summary">Allocates a buffer of <code>size</code> bytes, zeroed.</td>
 	</tr>
@@ -287,7 +300,7 @@
 
           <div class="section-description">
           Represents a byte buffer.
- This is a userdata object returned by <code>data.new()</code> and by the modules that
+ This is a userdata object returned by <code>data.new()</code>, by <code>data.load()</code> and by the modules that
  expose kernel memory (as <code>skb:data()</code>), read and written through the
  <code>getuint<em></code>/<code>setuint</em></code> accessors below.</p>
 
@@ -299,6 +312,11 @@
  with <a href="../modules/data.html#data:getstring">getstring</a>. <code>skb:copy():data()</code> views the copy&rsquo;s own buffer until the copy
  is collected, and is then cleared the same way. A write to a view a binding marks
  read only raises &ldquo;read only&rdquo;.</p>
+
+<p> A binding that builds over the bytes of a buffer, as <a href="../modules/set.html#fromdata">set.fromdata</a> does, takes only one that owns
+ its memory, from <code>data.new()</code> or <code>data.load()</code>, and makes it read only for good: its setters and
+ <a href="../modules/data.html#data:resize">resize</a> raise &ldquo;read only&rdquo; from then on, while <code>#</code>, the getters, <a href="../modules/data.html#data:getstring">getstring</a>, <a href="../modules/data.html#data:checksum">checksum</a> and
+ <a href="https://www.lua.org/manual/5.5/manual.html#pdf-tostring">tostring</a> keep reading.</p>
 
 <p> An integer setter takes a value of its width read either signed or unsigned, so
  <a href="../modules/data.html#data:setint8">setint8</a> and <a href="../modules/data.html#data:setuint8">setuint8</a> both store -1 and 255 as the same byte, and raises &ldquo;out of
@@ -853,6 +871,46 @@
     <h2 class="section-header" id="data-details"><a name="data"></a>data in detail</h2>
 
     <dl class="function">
+    <dt id="load"><a name="load"></a><strong>load (path, maxbytes)</strong></dt>
+    <dd>
+    Reads a file whole into a new buffer, which it owns.
+ The read is the kernel&rsquo;s own for the files it loads, so the file passes the security hooks
+ those pass. The path is resolved by the calling task. Reading sleeps, so call it where it can
+ sleep (a process-context runtime, or any runtime&rsquo;s load).
+
+
+    <h3>Parameters</h3>
+    <ul>
+        <li><span class="parameter">path</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.5/manual.html#6.4">string</a></span>
+         the file.
+        </li>
+        <li><span class="parameter">maxbytes</span>
+            <span class="types"><span class="type">integer</span></span>
+         the largest file it reads, in bytes, from 1 up to <code>INT_MAX</code>.
+        </li>
+    </ul>
+
+    <h3>Returns</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/data.html#data">data</a></span>
+        a <code>&quot;shared&quot;</code> buffer of the file&rsquo;s size, holding its bytes.
+    </ol>
+
+    <h3>Raises</h3>
+     &ldquo;out of bounds&rdquo; for a <code>maxbytes</code> outside that range; <code>ENOENT</code>, <code>EACCES</code>, <code>EFBIG</code> for a
+   file larger than <code>maxbytes</code>, refused before it is read, <code>EINVAL</code> for an empty or non-regular
+   file, <code>ETXTBSY</code> while the file is open for writing, <code>ENOMEM</code> when the buffer cannot be
+   allocated, <code>EIO</code> for a file that reads shorter than its size, as a sysfs attribute does, or the
+   errno a security module refuses the read with; or <code>not allowed once the runtime is armed</code> (its
+   script body has returned) on an interrupt-context runtime
+
+
+    <h3>Usage</h3>
+        <pre class="example"><span class="keyword">local</span> db = data.<span class="global">load</span>(<span class="string">"/lib/firmware/regulatory.db"</span>, <span class="number">64</span> &lt;&lt; <span class="number">10</span>)</pre>
+
+</dd>
     <dt id="new"><a name="new"></a><strong>new (size[, mode])</strong></dt>
     <dd>
     Allocates a buffer of <code>size</code> bytes, zeroed.
@@ -898,11 +956,12 @@
 
 <footer class="site-footer">
 <div>
-<span>Lunatik 5.1 ·
+<span>Lunatik 5.2 ·
+<a href="../5.1/modules/data.html">5.1 docs</a> ·
 <a href="../5.0/modules/data.html">5.0 docs</a> ·
 <a href="../master/modules/data.html">master docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-10-12 15:45:25</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-22 19:00:37</span>
 </div>
 </footer>
 </body>

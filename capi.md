@@ -8,8 +8,9 @@ This page is the C API of Lunatik: what it documents is what a binding may use, 
 only adds to it. A `lunatik_` or `LUNATIK_` name `lunatik.h`, or a header it includes, defines and
 this page leaves out is the core's own, which the API's inline functions and macros are built on
 and any release may change; those `lunatik.h` defines itself sit in a section of their own. The
-headers under `lib/` belong to the bindings beside them and are not part of the API. A binding uses
-the [Lua C API](https://www.lua.org/manual/5.5/manual.html#4) besides, and builds as
+headers under `lib/` follow the core's, a section each, from [luacrypto](#luacrypto); they belong
+to the bindings beside them, and any release may change them. A binding uses the
+[Lua C API](https://www.lua.org/manual/5.5/manual.html#4) besides, and builds as
 [Building out of tree](#building-out-of-tree) says.
 
 ## Types
@@ -38,8 +39,8 @@ Describes a Lunatik object class.
   [`lunatik_closeprivate`](#lunatik_closeprivate), which an object's `close` or `stop` and
   `lunatik_stop` run, and the drop of the last reference; Lunatik then frees the private, unless
   the class is `LUNATIK_OPT_EXTERNAL`. It runs on the task that closed the object or dropped that
-  reference, or, when that drop runs in atomic context, on a kernel worker through
-  [`lunatik_defer`](#lunatik_defer), so a release may sleep. May be `NULL`.
+  reference, or, when that drop runs in atomic context, on a kernel worker, so a release may sleep.
+  May be `NULL`.
 - `opt`: bitmask of `LUNATIK_OPT_*` flags controlling class behaviour. Flags are inherited by
   every instance via `object->opt = opt | class->opt` (see `lunatik_newobject`). Flags differ
   in whether they act as **constraints** or **capabilities**:
@@ -60,8 +61,12 @@ Describes a Lunatik object class.
     the lock with
     `lunatik_lockkillable`: the stop of a kernel thread, or a fatal signal to any other task, ends
     the wait and the call raises `EINTR`. While the method runs, the calling runtime allocates with
-    the object's `gfp` and its collector is stopped, so no finalizer runs under the lock; the
-    wrapper restarts the collector afterwards only if it was running. A call or return hook the
+    the object's `gfp` and its collector is stopped, so no finalizer runs under the lock. Once the
+    lock is released and the runtime's `gfp` restored, the wrapper restarts the collector only if it
+    was running, and takes one collector step when the heap the collector counts holds more
+    kilobytes than before the method, whether it returned or raised. So a loop whose allocations all
+    happen inside monitored methods still collects. A collector the script stopped takes no step, and
+    a method that allocated nothing costs none. A call or return hook the
     calling thread set with `debug.sethook` is cleared for the method and restored after it, so no
     hook runs under the lock either: the hook sees the wrapper's call and return, not the method's.
     A line or count hook, which a method written in C never fires, stays set.
@@ -97,7 +102,10 @@ typedef struct lunatik_object_s {
 	gfp_t gfp;
 	unsigned long flags;
 	struct rcu_head rcu;
-	lunatik_defer_t defer;
+	union {
+		lunatik_defer_t defer;
+		struct work_struct work;
+	};
 } lunatik_object_t;
 ```
 A Lunatik object. A binding reads `class`, `private` and `opt`, and `gfp` through
@@ -128,8 +136,9 @@ A Lunatik object. A binding reads `class`, `private` and `opt`, and `gfp` throug
   the lock and `lunatik_unlock` restores.
 - `rcu`: the head the release frees the object through, after a grace period, so a reader that
   found it under `rcu_read_lock()` can still read its count.
-- `defer`: the item the release runs on a kernel worker through, when the last reference drops in
-  atomic context, as [`lunatik_putobject`](#lunatik_putobject) says.
+- `defer` and `work`: the item and the work the release runs on a kernel worker through, when the
+  last reference drops in atomic context, as [`lunatik_putobject`](#lunatik_putobject) says; they
+  share their memory, since the item is done with before the work is set up.
 
 ### lunatik\_opt\_t
 ```C
@@ -196,6 +205,8 @@ sets the _reference counter_ to `1` and then returns `0`.
 The script's first return value stays on the state's stack, at index `1`, below what a handler
 pushes.
 Otherwise, it returns `-ENOMEM`, if insufficient memory is available;
+`-EOPNOTSUPP`, if `opt` is `LUNATIK_OPT_HARDIRQ` on a kernel built with `CONFIG_PREEMPT_RT`,
+where that spinlock sleeps, before the script runs;
 or `-ENOEXEC`, if it fails to load or run the `script`, and logs the error with `pr_err`.
 
 #### Example: lunatik\_runtime
@@ -331,6 +342,28 @@ takes no lock, does not resolve a `percpu` object, does not check that the state
 ready, and records no stack pointer: the caller already runs inside the runtime, holding its lock
 or in its script body, and passes a plain runtime whose state it knows is open. Defined as a macro.
 
+### lunatik\_registering
+```C
+void lunatik_registering(struct task_struct *registrant, <statement> call);
+bool lunatik_isregistrant(struct task_struct *registrant);
+void lunatik_runcallback(struct task_struct *registrant, lunatik_object_t *runtime,
+	<inttype> (*handler)(...), <inttype> &ret, ...);
+```
+A kernel registration that delivers its callbacks inside the call, on the registering task, as
+`register_netdevice_notifier` replays a `REGISTER` for each device and `hid_register_driver` probes
+the devices already on the bus, delivers them while the script body runs, where
+[`lunatik_run`](#lunatik_run) answers `-ENXIO`. `lunatik_registering` runs `call` with the calling
+task in `registrant`, a field of the binding's own object, and clears it after; nothing in `call`
+may raise. `lunatik_isregistrant` returns `true` on that task, in task context, while `call` runs,
+and `lunatik_runcallback` then runs the callback through [`lunatik_handle`](#lunatik_handle), with no
+lock, since the body holds none, and through `lunatik_run` everywhere else: an interrupt taken on
+that task, and a callback of the same object on another task, are refused as before. The field is
+read without a lock, as `lunatik_rtnl` is: only the task that wrote it can find itself there.
+A callback delivered this way runs holding what the registration holds, a device lock among them, and
+a binding whose registration would take it again refuses one made from such a callback with
+[`LUNATIK_ERR_REPLAY`](#lunatik_err_closed), as `hid.register` and a hid driver's `stop` do.
+Defined as macros.
+
 ### lunatik\_cpcall
 ```C
 int lunatik_cpcall(lua_State *L, lua_CFunction f, void *ud);
@@ -387,12 +420,16 @@ checks it with `lunatik_checkobjectclass(L, ix, &lunatik_runtime_class)`.
 
 ### lunatik\_env
 ```C
-extern lunatik_object_t *lunatik_env;
+extern lunatik_object_t __rcu *lunatik_env;
 ```
 The `rcu.table` every runtime shares as `lunatik._ENV`, through which scripts exchange objects.
 `lunatik_run.ko`, the module that runs the `/dev/lunatik` driver, creates it when it loads and
-clears it when it unloads; it is `NULL` while that module is not loaded, and a runtime created then
-has no `lunatik._ENV`.
+publishes it with `rcu_assign_pointer()` once it is built; when it unloads it clears it and drops
+its reference a grace period later. It is `NULL` while that module is not loaded, and a runtime
+created then has no `lunatik._ENV`. A reader dereferences it with `rcu_dereference()` under
+`rcu_read_lock()`, and the table stays valid until that section ends; to keep the table past the
+section, the reader takes a reference inside it with [`lunatik_getobject`](#lunatik_getobject),
+which the pointer's own reference makes safe there.
 
 ### lunatik\_isready
 ```C
@@ -452,6 +489,23 @@ kernel call that takes RTNL, such as `register_netdevice_notifier`, which would 
 own task holds: `lunatik_checkarmed` refuses every call that may sleep there. It sees the calling
 task only, which is what a softirq runtime leaves to see: nothing that holds its lock sleeps, so no
 second task waits for RTNL under it. Defined as macros.
+
+### lunatik\_isrunqueue
+```C
+bool lunatik_isrunqueue(void);
+void lunatik_setrunqueue(unsigned long flags);
+void lunatik_unsetrunqueue(unsigned long flags);
+DECLARE_PER_CPU(unsigned int, lunatik_runqueue);
+```
+`lunatik_isrunqueue` returns `true` while the calling CPU dispatches an scx callback, which
+`ops.enqueue` runs with that CPU's runqueue lock held. The scx dispatch marks itself with
+`lunatik_setrunqueue(flags)`, which turns IRQs off, saving their state in `flags`, and counts one,
+and ends with `lunatik_unsetrunqueue(flags)`, which counts it back and restores them: nothing but the
+dispatch runs on the CPU while the marker is up, a sleepable operation included, and a nested
+dispatch keeps the outer one's, as the kernel's own `printk_context` does. Unlike
+[`lunatik_isrtnl`](#lunatik_isrtnl), the marker is a per-CPU counter and not one task pointer: the
+runqueue lock is per-CPU, so several CPUs run a callback at once, each under its own, and no single
+pointer can hold them all. Defined as macros.
 
 ### lunatik\_iskthread
 ```C
@@ -541,6 +595,15 @@ Raises a Lua error, `"not allowed under RTNL"`, when [`lunatik_isrtnl`](#lunatik
 a callback dispatched under RTNL, in whatever runtime or coroutine the calling task runs.
 [`lunatik_checkarmed`](#lunatik_checkarmed) calls it, so every entry point that may sleep refuses there.
 
+### lunatik\_checkrunqueue
+```C
+void lunatik_checkrunqueue(lua_State *L);
+```
+Raises a Lua error, `"not allowed under the runqueue lock"`, when
+[`lunatik_isrunqueue`](#lunatik_isrunqueue) holds: from an scx callback, whose wakeup of a task
+would take the runqueue lock the CPU already holds. `completion:complete` uses it, since it wakes a
+waiter; a mailbox's `send` wakes its own through that method, and raises there too.
+
 ### lunatik\_checkowner
 ```C
 void lunatik_checkowner(lua_State *L, lunatik_object_t *runtime);
@@ -572,6 +635,16 @@ Raises a Lua error, `"not allowed in a hardirq runtime"`, when `L`'s runtime is 
 constructor whose object no callback of such a runtime can use calls it, as `netlink.channel.new`
 does, whose send re-enables bottom halves where an nlmon tap is up. It reads the runtime's context
 rather than the CPU's state, so the refusal comes from the script body, which runs with interrupts on.
+
+### lunatik\_printk
+```C
+void lunatik_printk(const char *fmt, ...);
+```
+Writes to the kernel log as `printk` does, at the level a `KERN_*` prefix of `fmt` names, from any
+context. While [`lunatik_isrunqueue`](#lunatik_isrunqueue) holds, it writes as the scheduler's
+`printk_deferred` does, which no module can call: through `vprintk_emit` at `LOGLEVEL_SCHED`, which
+stores the line at once and leaves the console to an irq_work, since flushing it there would wake a
+task waiting on the console, whose wakeup takes the runqueue lock the CPU holds.
 
 ### lunatik\_percpudata
 ```C
@@ -651,7 +724,7 @@ containing a pointer to the object onto the Lua stack.
 It allocates `size` bytes for the object's private data, unless `LUNATIK_OPT_EXTERNAL` is set in
 `class->opt`, in which case `object->private` is expected to be set by the caller. The private is
 zeroed and comes from the runtime's allocator, `GFP_ATOMIC` in a softirq or hardirq runtime once
-it is armed; it is freed with `kvfree` after `release`.
+it is armed; it is freed with [`lunatik_free`](#lunatik_free) after `release`.
 
 The userdata's `__gc` drops the reference the object is created with. In a state that is closing,
 where Lua arms no `__gc` (see [`lunatik_isclosing`](#lunatik_isclosing)), the state holds that
@@ -758,34 +831,8 @@ int lunatik_putobject(lunatik_object_t *object);
 Decrements the [reference counter](https://docs.kernel.org/core-api/kref.html) of `object`.
 Returns `1` when it dropped the last reference, and `0` otherwise. The release runs at once, on the
 calling task, unless [`lunatik_isatomic`](#lunatik_isatomic) holds there: it then runs on a kernel
-worker, through the object's `defer`. The object's memory is freed after an RCU grace period once
-the release has run.
-
-### lunatik\_defer
-```C
-typedef struct lunatik_defer_s {
-	struct irq_work irq;
-	struct work_struct work;
-} lunatik_defer_t;
-
-void lunatik_initdefer(lunatik_defer_t *defer, work_func_t func);
-bool lunatik_defer(lunatik_defer_t *defer);
-```
-Runs `func` on a kernel worker, in process context, for a caller that cannot: one in softirq or
-hardirq context, with bottom halves or interrupts off, or in a probe handler on code the scheduler
-runs under its runqueue lock. `lunatik_defer` queues `irq`, an irq_work the CPU raises on itself
-without a lock, whose handler queues `work` on the core's
-[workqueue](https://docs.kernel.org/core-api/workqueue.html), unbound, allocated when `lunatik`
-loads and drained when it unloads: queuing `work` directly wakes a kworker, and the wakeup takes the
-runqueue lock. It may be called from any context and returns `false` when the item was already
-queued.
-
-The item lives in what defers, so deferring allocates nothing: `lunatik_initdefer` sets it up before
-the first `lunatik_defer`, and `func` finds what defers through `container_of` on `work`. Calls made
-before `func` starts run it once, and one made while it runs runs it again after it returns, so what
-each call hands `func` goes on a list `func` drains. A `func` that frees the item calls
-`irq_work_sync` on `irq` first, since the first hop still writes it after queuing `work`. Both are
-macros, and `lunatik_initdefer` gives each call site a lockdep class of its own, as `INIT_WORK` does.
+worker, on the object's own `work`, so a release that sleeps holds no other deferred release. The
+object's memory is freed after an RCU grace period once the release has run.
 
 ### lunatik\_isatomic
 ```C
@@ -806,7 +853,13 @@ the object at index `1` through [`lunatik_closeprivate`](#lunatik_closeprivate);
 stays, holding its reference. `lunatik_deleteobject`, for `__gc`, drops the reference the
 userdata holds and releases the object when it was the last. Both raise `invalid object` when
 index `1` holds no Lunatik object, and `lunatik_closeobject` raises `object of another class` when
-the object's own `__close` is not `lunatik_closeobject`.
+the object's own `__close` is not `lunatik_closeobject`. `lunatik_closeobject` also raises
+`not allowed with IRQs disabled`, through [`lunatik_checkirqs`](#lunatik_checkirqs), when called
+with interrupts off, as in a probe's handler: the class's `release` runs in the caller's context,
+where the CPU may hold a lock it takes, `bpf_map_put`'s `map_idr_lock` among them, and only the
+drop of the object's last reference is deferred to a worker. Only an object of an
+interrupt-context class reaches it there, since `lunatik_newobject` and `lunatik_cloneobject` refuse
+a process-context class in an interrupt-context runtime.
 
 ---
 
@@ -851,6 +904,16 @@ and `tname` is the name the type error quotes. The first form's optional `...` a
 validation statements, run with `L`, `ix`, `object` and `private` in scope, before `return
 private`.
 
+### LUNATIK\_INTEGERGETTER
+```C
+#define LUNATIK_INTEGERGETTER(name, checker, expr)
+```
+Defines the method `static int name(lua_State *L)`, which takes the object at index 1 with
+`checker(L, 1)` as `private`, of the type `checker` returns, pushes `expr`, which reads `private`,
+with `lua_pushinteger` and returns 1: the getter of one integer of an object. `checker` is any
+function of `(lua_State *L, int ix)`, one [`LUNATIK_PRIVATECHECKER`](#lunatik_privatechecker)
+defines among them.
+
 ### lunatik\_argcheckclass
 ```C
 void lunatik_argcheckclass(lua_State *L, int ix, lunatik_object_t *object, const lunatik_class_t *cls);
@@ -891,7 +954,8 @@ Like `lunatik_lock`, but the wait for a process-context object's mutex ends earl
 `-EINTR` without the lock: on a kernel thread, on its stop, since the wait is interruptible there;
 on any other task, on a fatal signal. A SOFTIRQ or HARDIRQ object is locked as `lunatik_lock`
 does, and it returns `0`. The entries a script reaches take a runtime's lock through it, and
-`lunatik_try` raises the `EINTR`.
+`lunatik_try` raises the `EINTR`. Sparse cannot read a lock taken only on a `0` return, so through
+6.19 `make C=1` reports a context imbalance at every caller, however it unlocks.
 
 ### lunatik\_closeprivate
 ```C
@@ -1094,6 +1158,8 @@ handler, a `BUG()`. After a protected call or a resume fails, the error is read 
 #define LUNATIK_ERR_CLOSING	"not allowed while the runtime closes"
 #define LUNATIK_ERR_IRQS	"not allowed with IRQs disabled"
 #define LUNATIK_ERR_HARDIRQ	"not allowed in a hardirq runtime"
+#define LUNATIK_ERR_REPLAY	"not allowed inside a replay"
+#define LUNATIK_ERR_RUNQUEUE	"not allowed under the runqueue lock"
 #define LUNATIK_ERR_PERCPU	"not allowed in a percpu runtime"
 ```
 The messages of the refusals this page documents. A binding that refuses one of their conditions on
@@ -1375,7 +1441,8 @@ string a script reads as `_LUNATIK_VERSION` and `lunatik -V` prints. A module de
 ### Writing a binding
 A kernel module exposing a Lua library `foo` whose objects count: the private structure, its
 checker, a method table carrying `__gc` and `__close`, the class, a constructor, and the module's
-entry points.
+entry points. `lib/luaskel.c`, the template to copy to `lib/lua<name>.c`, carries the same shape
+with a `release`.
 ```C
 #include <linux/module.h>
 
@@ -1445,9 +1512,10 @@ A script then runs `local foo = require("foo")` and `foo.new():inc()`.
 
 ### Building out of tree
 A binding kept outside this tree builds against a Lunatik tree that `make` built for the running
-kernel: its headers, and its `Module.symvers`, which lists what `lunatik.ko` exports and which
-modpost reads to resolve the binding's calls. The binding's `Kbuild` names the directories of the
-headers and defines `_KERNEL`, which configures the Lua headers for the kernel:
+kernel: its headers, and its `Module.symvers`, which lists what `lunatik.ko` and the modules of
+`lib/` export and which modpost reads to resolve the binding's calls. The binding's `Kbuild` names
+the directories of the headers and defines `_KERNEL`, which configures the Lua headers for the
+kernel:
 ```Makefile
 obj-m += luafoo.o
 ccflags-y += -D_KERNEL -I$(LUNATIK) -I$(LUNATIK)/lua -I$(LUNATIK)/include
@@ -1458,12 +1526,13 @@ make -C /lib/modules/$(uname -r)/build M=$PWD LUNATIK=$HOME/lunatik \
 	KBUILD_EXTRA_SYMBOLS=$HOME/lunatik/Module.symvers modules
 ```
 `require("foo")` finds the binding once its module is loaded, by `insmod luafoo.ko` after
-`lunatik.ko`, or by `modprobe luafoo` once it is installed under `/lib/modules/$(uname -r)`: the
-searcher looks `luaopen_foo` up among the symbols the loaded modules export, and `lunatik load`
-loads only the tree's own modules. A binding that registers a kfunc needs the running kernel's BTF
-at build time, which the tree's `sudo make btf_install` copies where the build reads it; without it
-the module loads with its kfunc unregistered, logging `missing module BTF, cannot register kfunc`
-(`kfuncs` on v6.8 and earlier), and an eBPF program that calls the kfunc fails to load.
+`lunatik.ko` and the modules of `lib/` it calls, or by `modprobe luafoo` once it is installed
+under `/lib/modules/$(uname -r)`: the searcher looks `luaopen_foo` up among the symbols the loaded
+modules export, and `lunatik load` loads only the tree's own modules. A binding that registers a
+kfunc needs the running kernel's BTF at build time, which the tree's `sudo make btf_install` copies
+where the build reads it; without it the module loads with its kfunc unregistered, logging
+`missing module BTF, cannot register kfunc` (`kfuncs` on v6.8 and earlier), and an eBPF program that
+calls the kfunc fails to load.
 
 ---
 
@@ -1474,9 +1543,9 @@ the module loads with its kfunc unregistered, logging `missing module BTF, canno
 void *lunatik_malloc(lua_State *L, size_t size);
 ```
 Allocates `size` bytes using the Lua allocator. Returns `NULL` on failure. The allocator asks for
-the runtime's `gfp`, [`lunatik_gfp`](#lunatik_gfp), without an allocation warning; with
-`GFP_KERNEL`, a block larger than a page may come from `vmalloc`. Free it with `lunatik_free`,
-never `kfree`.
+the runtime's `gfp`, [`lunatik_gfp`](#lunatik_gfp), through [`lunatik_maskgfp`](#lunatik_maskgfp)
+and without an allocation warning; with `GFP_KERNEL`, a block larger than a page may come from
+`vmalloc`. Free it with `lunatik_free`, never `kfree`.
 
 ### lunatik\_realloc
 ```C
@@ -1491,9 +1560,23 @@ accepted.
 
 ### lunatik\_free
 ```C
-void lunatik_free(void *ptr);
+void lunatik_free(const void *ptr);
+size_t lunatik_blocksize(size_t size);
 ```
-Frees memory allocated by `lunatik_malloc` or `lunatik_realloc`. Equivalent to `kvfree`.
+Frees memory allocated by `lunatik_malloc` or `lunatik_realloc`, at once, as `kvfree` does, unless
+the block came from `vmalloc` and [`lunatik_isatomic`](#lunatik_isatomic) holds, where `vfree` may
+sleep and, in NMI, BUGs, or, from 7.0 on, the block is freed under the marker
+[`lunatik_isrunqueue`](#lunatik_isrunqueue) reads, where `kfree` can wake kswapd and that wakeup
+takes a runqueue lock. Such a block is freed on a kernel worker, its first bytes holding the
+`lunatik_defer_t` the core queues it by, which a `vmalloc`'d block, past a page, has room for, and
+from 7.0 on a block of `lunatik_malloc` whatever its size. `lunatik_realloc` frees the same way, at
+size zero and when it moves a block; under the marker, from 7.0 on, it moves every block it resizes,
+since `krealloc` would `kfree` the one it moves.
+
+A block a binding allocates itself, with `kmalloc`, and frees here or hands
+[`lunatik_pushexternalstring`](#lunatik_pushexternalstring) needs that room too: it is allocated
+with `lunatik_blocksize(size)` bytes, from 7.0 on `size` or `sizeof(lunatik_defer_t)` when that is
+more, and `size` before. Defined as a macro.
 
 ### lunatik\_checkalloc
 ```C
@@ -1516,6 +1599,26 @@ and the object's while it calls a monitored method.
 A binding that allocates outside the Lua allocator passes `lunatik_gfp(lunatik_toruntime(L))`.
 Defined as a macro.
 
+### lunatik\_maskgfp
+```C
+gfp_t lunatik_maskgfp(gfp_t gfp);
+```
+Returns `gfp` without `__GFP_KSWAPD_RECLAIM` and with `__GFP_NOWARN` where
+[`lunatik_isrunqueue`](#lunatik_isrunqueue) holds, and `gfp` itself elsewhere: an scx callback holds
+its CPU's runqueue lock, which a wakeup from there can take again, and an allocation wakes kswapd
+when memory runs low and, when it fails with a warning, a task waiting for the console. Under memory
+pressure the allocation then fails without a log line rather than wake either, as the kernel's own
+`alloc_pages_nolock` asks for a caller in any context; on 6.18 to 7.1, where the slab allocator
+takes flags with neither reclaim bit for `kmalloc_nolock`'s, it also fails where a lock of the slab
+or the page allocator is held, and a new slab draws on no reserve of `__GFP_HIGH`'s. A binding that
+allocates outside the Lua allocator, on a path an scx callback reaches, passes its flags through it.
+The slab allocator still wakes kswapd on three paths that read none of these flags: on 7.0 and
+later, a free that finds its CPU's cache of freed objects full, which
+[`lunatik_free`](#lunatik_free) puts off under the marker, on 6.13 to 6.17 booted with
+`slab_strict_numa`, an allocation's first try on the node of the task's memory policy, and up to
+6.16, before 6.12.46 and 6.16.6 in their series, booted with `slub_debug`'s user tracking, an
+allocation or a free whose stack it saves. Defined as a macro.
+
 ---
 
 ## Symbols
@@ -1530,4 +1633,527 @@ it. Never sleeps, so it is callable from any context, a softirq or hardirq handl
 while `lunatik.ko` loads. Each call searches the kernel's symbol table, so a handler resolves a
 name once and keeps the address rather than asking per event. Every lookup answers `NULL` when
 that resolution fails, as it does without `CONFIG_KPROBES` or `CONFIG_KALLSYMS`.
+
+---
+
+## luacrypto
+
+`lib/luacrypto.h` is shared by the files `luacrypto.ko` is built from, a file per class of the
+`crypto` module and the one that opens it, and the module exports none of it: no other module links
+`luacrypto_newbuffer` or a class. `crypto.shash` and `crypto.skcipher` are softirq classes: their
+constructors call [`lunatik_checkhardirq`](#lunatik_checkhardirq) and
+[`lunatik_checkarmed`](#lunatik_checkarmed) before they allocate the transform, which may sleep, and
+their checkers call [`lunatik_checkirqs`](#lunatik_checkirqs), since arm64's AES setkey and ciphers
+enter NEON unguarded, a `BUG` with IRQs off. Their methods run under a spinlock and allocate with
+`GFP_ATOMIC` in any runtime. The other classes are process-context ones, so their constructors run
+in a process runtime, where the kernel's crypto allocations may sleep.
+
+### luacrypto\_ctx\_t
+```C
+typedef struct luacrypto_ctx_s {
+	void *tfm;
+	void *request;
+	u8 *iv;
+} luacrypto_ctx_t;
+```
+The private of a class whose operations take a request and an IV, `crypto.skcipher`, `crypto.aead`,
+`crypto.comp` and `crypto.kpp`, whose IV is `NULL` and whose constructors are written by hand, comp's because it
+admits an asynchronous implementation and kpp's because it sets the private key: the transform, its request and
+its IV, `NULL` for a cipher that takes none. They are
+allocated once, when the object is created, so an operation allocates only what it returns.
+
+### LUACRYPTO\_NEWCTX
+```C
+#define LUACRYPTO_NEWCTX(name, T, alloc, class, ...)
+void luacrypto_initctx(lua_State *L, luacrypto_ctx_t *ctx, void *request, unsigned int ivsize);
+```
+Defines `int luacrypto_<name>_new(lua_State *L)`, the constructor of `class` a script calls with the
+algorithm's name at index `1`. `LUACRYPTO_NEWCTX` is for a class whose private is a `luacrypto_ctx_t`: it
+runs the statements its optional `...` gives, with `L` in scope, before it reads the name, then
+allocates the transform with `alloc(algname, 0, CRYPTO_ALG_ASYNC)`, which passes over an asynchronous
+implementation, then hands `luacrypto_initctx` the request `<name>_request_alloc` allocates with the
+runtime's `gfp` and the transform's `crypto_<name>_ivsize`. `luacrypto_initctx` stores the request and
+allocates the IV with [`lunatik_malloc`](#lunatik_malloc), none for a size of `0`, and raises
+`not enough memory` when either is missing. The constructors raise the errno name the transform's
+allocation fails with, `ENOENT` for an algorithm the kernel does not have, what `luaL_checkstring`
+raises and what [`lunatik_newobject`](#lunatik_newobject) raises; the object's release frees what was
+allocated before the raise.
+
+### LUACRYPTO\_RELEASER
+```C
+#define LUACRYPTO_RELEASER(name, obj_free)
+#define LUACRYPTO_RELEASERCTX(name, request_free, tfm_free)
+```
+Define `static void luacrypto_<name>_release(void *private)`, the `release` of a class:
+`LUACRYPTO_RELEASER` for one whose private is the transform, which it passes to `obj_free`, and
+`LUACRYPTO_RELEASERCTX` for one whose private is a `luacrypto_ctx_t`, whose request it frees with
+`request_free` and its IV with [`lunatik_free`](#lunatik_free) before it passes the transform
+to `tfm_free`. Each frees only what is set, so it runs on the private of a constructor that raised.
+
+### LUACRYPTO\_CHECKER
+```C
+#define LUACRYPTO_CHECKER(name, T, ...)
+```
+Defines, with [`LUNATIK_PRIVATECHECKER`](#lunatik_privatechecker), the checker
+`luacrypto_<name>_checkctx`, which returns the `luacrypto_ctx_t *` of an object of
+`luacrypto_<name>_class` at `ix`, and `luacrypto_<name>_check`, which returns its transform as a
+`T *`. The optional `...` are the checker's further statements, as `LUNATIK_PRIVATECHECKER`'s are.
+They raise what the checker raises, `closed object` included.
+
+### LUACRYPTO\_ALGNAME
+```C
+#define LUACRYPTO_ALGNAME(name, tfm)
+```
+Defines `static int luacrypto_<name>_algname(lua_State *L)`, the `algname` method of a class: it
+takes the object at index 1 with `luacrypto_<name>_check(L, 1)` as `private` and pushes the name of
+the algorithm `tfm` was allocated with, `tfm` being an expression over `private` that gives the
+`struct crypto_tfm *`, as `crypto_shash_tfm(private->tfm)` does for `crypto.shash`. It raises what
+the checker raises.
+
+### luacrypto\_checkiv
+```C
+u8 *luacrypto_checkiv(lua_State *L, int idx, u8 *iv, size_t expected);
+```
+Copies the IV a script passes at `idx` into `iv`, a buffer of `expected` bytes, the context's, and
+returns it, or `NULL` for a cipher whose IV size is `0`. Raises `EINVAL` when the string's length is
+not `expected`, and what `luaL_checklstring` raises.
+
+### luacrypto\_newbuffer
+```C
+char *luacrypto_newbuffer(lua_State *L, size_t size);
+```
+Allocates the `size` bytes an operation reads its input from and writes its output to, with
+`kmalloc`, since a scatterlist maps linear memory, and the runtime's `gfp`, which a method of a
+softirq class finds `GFP_ATOMIC`, raising
+`not enough memory` when they cannot be had, as past `KMALLOC_MAX_SIZE`. The caller frees it with
+[`lunatik_free`](#lunatik_free) or hands it to
+[`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which frees it with the state's
+allocator, which is why it asks `kmalloc` for [`lunatik_blocksize`](#lunatik_free)`(size)` bytes.
+
+### luacrypto\_pushbuffer
+```C
+int luacrypto_pushbuffer(lua_State *L, char *buffer, int ret, int outcome, size_t offset, size_t len);
+```
+Answers a request that wrote its result at `offset` into `buffer`, a
+[`luacrypto_newbuffer`](#luacrypto_newbuffer) of at least `offset + len + 1` bytes, from `ret`, what the
+kernel returned for it: moves the `len` bytes at `offset` to the buffer's start, as the result of
+`crypto.aead`, which follows its associated data, needs, pushes them as a string with
+[`lunatik_pushexternalstring`](#lunatik_pushexternalstring), which then owns the buffer, and returns `1`.
+For a negative `ret` it frees the buffer with [`lunatik_free`](#lunatik_free), having moved nothing, and
+raises the errno's name, or, where `ret` is `outcome`, the errno a script reads as an outcome, as
+`crypto.aead`'s `EBADMSG` and `crypto.kpp`'s `EINVAL` are, pushes nil and its name with
+[`lunatik_pushfail`](#lunatik_pushfail) and returns `2`; an `outcome` of `0` names none.
+
+### LUACRYPTO\_DECLARE
+```C
+#define LUACRYPTO_DECLARE(name)
+```
+Declares `extern const lunatik_class_t luacrypto_<name>_class` and `int luacrypto_<name>_new(lua_State *L)`,
+the class and the constructor of `crypto.<name>`, as `luacrypto.h` does for `shash`, `skcipher`, `aead`,
+`rng`, `sig`, `kpp` and `comp`, which `luacrypto_core.c` opens as the `crypto` module; the module's reference
+says what each constructor raises. Every class but kpp is defined where the option that builds the API its
+file links is reachable, `CONFIG_CRYPTO_HASH2` for `shash`, `CONFIG_CRYPTO_SKCIPHER2` for `skcipher`,
+`CONFIG_CRYPTO_AEAD2` for `aead`, `CONFIG_CRYPTO_RNG2` for `rng`, `CONFIG_CRYPTO_SIG2` for `sig` and
+`CONFIG_CRYPTO_ACOMP2` for `comp`, and where it is not its file defines the constructor alone, with
+`LUACRYPTO_UNSUPPORTED`; `crypto.kpp` is declared where `CONFIG_CRYPTO_ECDH` is reachable, since
+`luacrypto_kpp.c` links `crypto_ecdh_encode_key` from it.
+
+### LUACRYPTO\_UNSUPPORTED
+```C
+#define LUACRYPTO_UNSUPPORTED(name)
+```
+Defines `int luacrypto_<name>_new(lua_State *L)`, which raises `EOPNOTSUPP` through
+[`lunatik_unsupported`](#lunatik_unsupported): the constructor of a class the kernel builds no API for,
+so `crypto.<name>` exists on every kernel and its file never compiles to nothing.
+
+---
+
+## luadata
+
+`lib/luadata.h` is the C side of the `data` module, `luadata.ko`. A data object is a view of
+memory, and a binding hands a callback the memory it runs for as one it points there while the
+callback runs, as `xdp` does with a packet. The class is `LUNATIK_OPT_SOFTIRQ`, so any runtime
+creates one, and its lock is a spinlock.
+
+### LUADATA\_OPT\_NONE
+```C
+#define	LUADATA_OPT_NONE	0x00
+#define	LUADATA_OPT_READONLY	0x01
+#define	LUADATA_OPT_FREE	0x02
+#define	LUADATA_OPT_KEEP	0x80
+```
+The flags of a data object, which [`luadata_reset`](#luadata_reset) sets. With
+`LUADATA_OPT_READONLY`, a write and a `resize` raise `read only`. `LUADATA_OPT_FREE` makes the
+memory the object's own, from [`lunatik_malloc`](#lunatik_malloc): its release frees it with
+[`lunatik_free`](#lunatik_free), `resize` reallocates it, and `luadata_reset` refuses the object;
+`data.new` sets it, and without it `resize` raises `cannot resize external memory`.
+`LUADATA_OPT_KEEP`, passed to `luadata_reset` in place of the flags, keeps the object's.
+
+### luadata\_new
+```C
+lunatik_object_t *luadata_new(lua_State *L, lunatik_opt_t opt);
+```
+Creates a data object of no size, viewing nothing, with `opt` added to its class's flags, pushes its
+userdata and returns it. It calls [`lunatik_require`](#lunatik_require) first, so it runs in a state
+whose script never required `data`. Raises `not enough memory`. The userdata holds the object's one
+reference, which its `__gc` drops: a binding that keeps the object past the userdata anchors it in
+the registry, as [`lunatik_attach`](#lunatik_attach) does, or takes a reference of its own, as
+[`luakfunc_attach`](#luakfunc_attach) does. The bindings create the view they hand a callback
+with `LUNATIK_OPT_SINGLE`, so it stays in the runtime the callback runs on.
+
+### luadata\_reset
+```C
+int luadata_reset(lunatik_object_t *object, void *ptr, size_t size, uint8_t opt);
+int luadata_clear(lunatik_object_t *object);
+void luadata_close(lunatik_object_t *object);
+```
+`luadata_reset` points `object` at the `size` bytes at `ptr` with the flags `opt`, or with its own
+for `LUADATA_OPT_KEEP`, and returns `0`; it returns `-1`, leaving the object as it was, for one that
+owns its memory, `LUADATA_OPT_FREE`. The object views `ptr`, and owns it only for that flag: the
+caller keeps the memory valid until it resets or clears the object, which a script may keep past
+the callback. `luadata_clear` points it at nothing, keeping its flags, so every access raises
+`out of bounds`, and returns what `luadata_reset` returns; it is a macro, and a binding clears a
+view once its callback returns. `luadata_close` clears it and drops a reference the caller holds,
+as a binding's `release` does for a view it keeps, through [`lunatik_putobject`](#lunatik_putobject).
+They take the object's lock, a spinlock, so a handler calls them in any context, but not under that
+lock, which a method of a monitored data object holds.
+
+### luadata\_checkreadonly
+```C
+lunatik_object_t *luadata_checkreadonly(lua_State *L, int ix, const void **ptr, size_t *size);
+```
+Checks that `ix` is a data object that owns its memory, `LUADATA_OPT_FREE`, makes it
+`LUADATA_OPT_READONLY` for good, and returns the object with its memory in `ptr` and its size in
+`size`, read under its lock after the flag is set: a write and a `resize` raise `read only` from
+then on, so the memory stays as the caller read it while the object lives. Raises for a value that
+is not a data object, and `external memory` for one that views memory it does not own. It takes the
+object's lock, a spinlock, so it runs in any context, but not under that lock. The object is the
+caller's to borrow from the stack: one that keeps the memory past the call takes a reference of its
+own, as `set.fromdata` does with [`lunatik_getobject`](#lunatik_getobject).
+
+---
+
+## luakfunc
+
+`lib/luakfunc.h` is the frame of a binding that an eBPF program calls through a kfunc, as `xdp`,
+`tc` and `scx` are: the program names a runtime by its script, and the kfunc runs there the callback
+that script attached. Everything in it is static, so each module that includes it has a copy of its
+own, its two variables included. The kfunc runs where the program runs, in softirq for `xdp` and
+`tc` and inside the scheduler for `scx`, so it dispatches only to a softirq or hardirq runtime and
+nothing on its path sleeps.
+
+### luakfunc\_err
+```C
+void luakfunc_err(const char *fmt, ...);
+```
+Logs as `pr_err_ratelimited` does, through [`lunatik_printk`](#lunatik_printk), so an `scx`
+dispatch, which holds its CPU's runqueue lock, writes its line deferred. Every log an `scx` dispatch
+reaches goes through it. Defined as a macro.
+
+### luakfunc\_getruntimes
+```C
+static lunatik_object_t *luakfunc_runtimes = NULL;
+
+lunatik_object_t *luakfunc_getruntimes(void);
+```
+Returns `_ENV.runtimes`, the `rcu.table` of [`lunatik_env`](#lunatik_env) where `lunatik run`
+stores each runtime under its script's name, or `NULL` while `lunatik_env` or that entry is
+missing. The first call that finds it keeps it in `luakfunc_runtimes`, with the reference
+[`luarcu_getobject`](#luarcu_getvalue) took, and the later ones return it from there;
+[`LUAKFUNC_EXIT`](#luakfunc_newlib) drops it as the module unloads. It takes no lock.
+
+### luakfunc\_lookupruntime
+```C
+lunatik_object_t *luakfunc_lookupruntime(char *key, size_t key_sz);
+```
+Returns the runtime `_ENV.runtimes` holds under `key`, the script's name as the kfunc's caller
+passes it, `key_sz` bytes with the terminator, holding a reference the caller drops with
+[`lunatik_putobject`](#lunatik_putobject). It writes the terminator at `key[key_sz - 1]` first, so
+`key` is writable. Returns `NULL` for a `key_sz` of `0`, which the verifier allows; for a missing
+`_ENV.runtimes`, logging `couldn't find _ENV.runtimes`; for a key no runtime is stored under; and
+for a process-context runtime, whose lock is a mutex, logging
+`'<key>' is a process-context runtime, not dispatched`, both through [`luakfunc_err`](#luakfunc_err).
+
+### luakfunc\_findctx
+```C
+static const char luakfunc_env_key;
+
+void *luakfunc_findctx(lua_State *L);
+void *luakfunc_getctx(lua_State *L);
+```
+Return the private of the context object [`luakfunc_bind`](#luakfunc_bind) stored in `L`'s registry
+at `&luakfunc_env_key`, a key of each module that includes the header, so two kfunc bindings in one
+runtime keep a context each. They leave the object's userdata on the stack, where a handler's
+[`luakfunc_invoke`](#luakfunc_invoke) passes a copy of it to the callback and `detach`'s
+[`luakfunc_unbind`](#luakfunc_bind) pops it. With no callback attached they leave the stack as
+they found it and return `NULL`, and `luakfunc_getctx`, the handler's, logs
+`no callback attached (cpu <n>)` through [`luakfunc_err`](#luakfunc_err).
+
+### luakfunc\_invoke
+```C
+int luakfunc_invoke(lua_State *L, int cb, int nresults);
+int luakfunc_action(lua_State *L, int cb, lua_Integer min, lua_Integer max);
+```
+`luakfunc_invoke` calls the callback `luakfunc_bind` referenced at `cb`, with a copy of the value on
+top of the stack, the context `luakfunc_getctx` left there, as its argument, and returns `0` with
+`nresults` results on the stack; when the callback raises, it logs the error
+[`lunatik_errmsg`](#lunatik_errmsg) reads through [`luakfunc_err`](#luakfunc_err), pops it and
+returns `-1`. The context stays below the call, so the collector keeps it, its private included,
+until [`lunatik_handle`](#lunatik_handle) restores the stack after the handler, whatever the callback did
+with its argument or with `detach`. The call is protected and nothing before it raises, so a handler
+calls it outside a protected call of its own.
+`luakfunc_action` invokes the callback for one result, a verdict, and returns it when it is an
+integer from `min` to `max`; it returns `-1` for a raise or nil, and for any other result, which it
+logs as `invalid action`.
+
+### luakfunc\_attach
+```C
+void luakfunc_attach(lua_State *L, obj, field, new_fn, ...);
+void luakfunc_detach(lua_State *L, obj, field);
+```
+`luakfunc_attach` is [`lunatik_attach`](#lunatik_attach) taking a reference `obj` keeps: it sets
+`obj->field` to `new_fn(L, ...)`, takes the reference, stores the userdata in the registry keyed by
+the object and pops it, so the object stays until `obj`'s `release` closes it, as
+[`luadata_close`](#luadata_reset) does, whichever userdata the collector frees first.
+`luakfunc_detach` removes the registry entry alone and leaves `obj->field` and the reference to that
+`release`. Defined as macros.
+
+### luakfunc\_bind
+```C
+void luakfunc_bind(lua_State *L, int ix, int *cb);
+void luakfunc_unbind(lua_State *L, int *cb);
+```
+`luakfunc_bind` references the callback at `ix` in the registry into `*cb`, and stores the userdata
+on top of the stack, the context object `attach` created, at `&luakfunc_env_key`, popping it. It
+may raise `not enough memory`, so it runs where `attach` does, from the script. `luakfunc_unbind`
+drops the callback's reference, sets `*cb` to `LUA_NOREF`, removes the context's entry and pops the
+userdata [`luakfunc_findctx`](#luakfunc_findctx) left on the stack, so it follows a
+`luakfunc_findctx` that found a context.
+
+### LUAKFUNC\_RUN
+```C
+#define LUAKFUNC_RUN(key, key_sz, handler, ret, ctxp)
+```
+The body of a kfunc: it looks the runtime up with
+[`luakfunc_lookupruntime`](#luakfunc_lookupruntime), runs `handler(L, ctxp)` on it through
+[`lunatik_run`](#lunatik_run) and drops the runtime. `ret` takes what the handler returned, or `-1`
+for a negative value, the `-ENXIO` and `-EDEADLK` of `lunatik_run` included, and keeps its value
+when no runtime is found, so the kfunc sets it to its answer for none first.
+
+### LUAKFUNC\_START
+```C
+#define LUAKFUNC_START()
+#define LUAKFUNC_END()
+#define LUAKFUNC_BTF_SET_START(name)
+#define LUAKFUNC_BTF_SET_END(name)
+#define LUAKFUNC_DEFINE_SET(subsys, kfunc)
+```
+`LUAKFUNC_START` and `LUAKFUNC_END` enclose the definitions of the module's kfuncs, which no header
+declares: `__bpf_kfunc_start_defs` and `__bpf_kfunc_end_defs` from v6.7, pragmas that silence
+`-Wmissing-prototypes` before. `LUAKFUNC_DEFINE_SET`, written after them, defines the BTF set
+`bpf_lua<subsys>_set` of the one `kfunc`, enclosed in `LUAKFUNC_BTF_SET_START` and
+`LUAKFUNC_BTF_SET_END`, which are `BTF_KFUNCS_START` and `BTF_KFUNCS_END` from v6.9 and
+`BTF_SET8_START` and `BTF_SET8_END` before, and the `struct btf_kfunc_id_set`
+`bpf_lua<subsys>_kfunc_set` that registers it, owned by `THIS_MODULE`.
+
+### LUAKFUNC\_NEWLIB
+```C
+#define LUAKFUNC_NEWLIB(subsys, lib, class)
+#define LUAKFUNC_INIT(subsys, prog_type)
+#define LUAKFUNC_EXIT(subsys)
+```
+`LUAKFUNC_NEWLIB` is [`LUNATIK_CLASSES`](#lunatik_classes) and
+[`LUNATIK_NEWLIB`](#lunatik_newlib) for a library of the one class `class` points to.
+`LUAKFUNC_INIT` defines `lua<subsys>_init`, which registers `bpf_lua<subsys>_kfunc_set` for the
+programs of `prog_type` with `register_btf_kfunc_id_set` and returns what it returns: a module whose
+BTF is missing loads with its kfunc unregistered, as [Building out of tree](#building-out-of-tree)
+says. `LUAKFUNC_EXIT` defines `lua<subsys>_exit`, which drops the `_ENV.runtimes` that
+[`luakfunc_getruntimes`](#luakfunc_getruntimes) kept. The module passes them to `module_init` and
+`module_exit`.
+
+---
+
+## lualinux
+
+`lib/lualinux.h` is shared by the `linux` and `socket` modules. Its one function is `static inline`,
+so a module that includes it depends on no other.
+
+### lualinux\_getnetbypid
+```C
+struct net *lualinux_getnetbypid(pid_t pid);
+```
+Returns the network namespace of the task whose pid is `pid` in the initial pid namespace, holding a
+reference the caller drops with `put_net`, and `ERR_PTR(-ESRCH)` when no task has that pid or the
+task is exiting, with no namespaces left. It takes `task_lock`, a spinlock that leaves interrupts
+and bottom halves on, so it is called in process context alone, as `linux.netns` is behind
+[`lunatik_checkarmed`](#lunatik_checkarmed).
+
+---
+
+## luarcu
+
+`lib/luarcu.h` is the C side of the `rcu` module, `luarcu.ko`, whose `rcu.table` any runtime may
+share, as every one shares [`lunatik_env`](#lunatik_env). It includes nothing, so `lunatik.h` comes
+before it.
+
+### LUARCU\_DEFAULT\_SIZE
+```C
+#define LUARCU_DEFAULT_SIZE	(256)
+#define LUARCU_MAXSIZE		(rounddown_pow_of_two(SIZE_MAX / sizeof(struct hlist_head)))
+#define LUARCU_MAXKEY		(LUAL_BUFFERSIZE)
+#define LUARCU_MAXWALK		(16)
+```
+The bounds of a table. `LUARCU_DEFAULT_SIZE` is the buckets `rcu.table()` takes when the script
+names none, and `LUARCU_MAXSIZE` the most a table takes, past which its size in bytes wraps. A key
+stays under `LUARCU_MAXKEY` bytes, `LUAL_BUFFERSIZE`, 256 in the kernel, so it takes up to 255. A
+store of a table walks the tables it holds for a cycle, and fails with `ELOOP` past
+`LUARCU_MAXWALK` tables holding tables.
+
+### luarcu\_newtable
+```C
+lunatik_object_t *luarcu_newtable(size_t size, lunatik_opt_t opt);
+```
+Creates an `rcu.table` of `size` buckets, clamped from `1` to `LUARCU_MAXSIZE` and rounded up to a
+power of two, with `opt` added to its class's `LUNATIK_OPT_SOFTIRQ`, apart from any state, as
+[`lunatik_createobject`](#lunatik_createobject) does: it allocates with `GFP_ATOMIC` and never
+sleeps. The caller holds the one reference and hands the table to a runtime with
+[`lunatik_pushobject`](#lunatik_pushobject). Returns `NULL` when the allocation fails.
+`lunatik_run.ko` creates `lunatik_env` with it.
+
+### luarcu\_getvalue
+```C
+void luarcu_getvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value);
+lunatik_object_t *luarcu_getobject(lunatik_object_t *table, const char *key, size_t keylen);
+```
+`luarcu_getvalue` reads into `value` the entry of `table` at the `keylen` bytes of `key`, under
+`rcu_read_lock()`: it takes no lock and never sleeps, so any context reads. A key with no entry, and
+one whose object a writer is releasing, read as nil, `LUA_TNIL`. An object comes with a reference
+the caller owns, which it drops with [`lunatik_putobject`](#lunatik_putobject) or hands to a state
+with [`lunatik_pushvalue`](#lunatik_value_t). `luarcu_getobject` returns the object alone, with that
+reference, and `NULL` for an entry that holds no object. Neither checks that `table` is an
+`rcu.table`.
+
+### luarcu\_setvalue
+```C
+int luarcu_setvalue(lunatik_object_t *table, const char *key, size_t keylen, lunatik_value_t *value);
+int luarcu_setobject(lunatik_object_t *table, const char *key, size_t keylen, lunatik_object_t *obj);
+```
+`luarcu_setvalue` stores `value` at `key`, replacing the entry there, and a nil value removes it; it
+takes a reference of its own on an object, so the caller keeps its own. It returns `0`; `-ENOMEM`
+for a value other than nil when its entry cannot be allocated or the key takes `LUARCU_MAXKEY` bytes
+or more; and `-ELOOP` for an `rcu.table` that is `table` or reaches it, or that reaches more than
+`LUARCU_MAXWALK` tables holding tables. It checks nothing else of `value`: the caller passes what
+[`lunatik_checkvalue`](#lunatik_value_t) reads, never a `LUNATIK_OPT_SINGLE` object. It allocates
+with `GFP_ATOMIC`, through [`lunatik_maskgfp`](#lunatik_maskgfp), and takes the table's lock, a
+spinlock taken with interrupts off only where they already are, so any context writes; but a table
+a probe handler writes is not written from another runtime with interrupts on, as the `rcu` module
+says. The value a store replaces or removes is dropped with [`lunatik_putobject`](#lunatik_putobject)
+once the lock is let go. `luarcu_setobject` stores `obj`, which is not `NULL`.
+
+---
+
+## luaskb
+
+`lib/luaskb.h` is the C side of the `skb` module, `luaskb.ko`: a binding that hands a callback the
+packet it runs for attaches one skb object as the callback registers and points it at each packet
+while the callback runs, as `netfilter` and `tc` do. The class is `LUNATIK_OPT_SOFTIRQ` and
+`LUNATIK_OPT_SINGLE`, and an skb's views are [data](#luadata) objects.
+
+### luaskb\_t
+```C
+enum {
+	LUASKB_NET,
+	LUASKB_MAC,
+	LUASKB_DATA,
+	LUASKB_VIEWS
+};
+
+typedef struct {
+	struct sk_buff *skb;
+	lunatik_object_t *view[LUASKB_VIEWS];
+	lunatik_object_t *hook;
+	u64 gen;
+	bool kfunc;
+	bool copied;
+	unsigned char *bytes;
+	size_t size;
+} luaskb_t;
+```
+The private of an skb object: the packet, `NULL` outside a callback; the data object `skb:data()`
+returns for each start, at the network header, at the MAC header and at `skb->data`; for a copy,
+the hook's skb object it was copied from, which it holds and reads its device from, `NULL` for that
+object; the callbacks the object was cleared after, which a copy takes from the skb it is copied
+from, so it reads its hook's device only while that callback runs; whether the packet comes
+through a kfunc, where `resize`, `checksum` and `copy` refuse a non-linear skb rather than linearize it
+and `skb:data()` views a copy of one, and a head a clone shares is not unshared: `skb:data()` returns a
+read only view of it, and `resize` and `checksum` refuse it; whether `bytes` holds the callback's
+packet; and the buffer `skb:data()` copies a kfunc's non-linear packet into, from its head, and its
+size, the largest such packet the object has seen with its headroom. Its release frees `skb` and
+`bytes` and drops `hook`, so a binding clears the packet it does not
+own before the last reference goes, with [`luaskb_clear`](#luaskb_reset) or `luaskb_close`.
+
+### luaskb\_foreachlayer
+```C
+#define luaskb_foreachlayer(layer)
+#define luaskb_foreachview(lskb, layer, object)
+```
+`luaskb_foreachlayer` declares `int layer` and walks it over the indices of the views;
+`luaskb_foreachview` walks the views `lskb` holds, with `object` set to each.
+
+### luaskb\_attach
+```C
+lunatik_object_t *luaskb_attach(lua_State *L, bool kfunc);
+```
+Creates an skb object holding no packet, pushes its userdata and returns it; `kfunc` is the field of
+[`luaskb_t`](#luaskb_t), `true` for `tc`. It calls [`lunatik_require`](#lunatik_require) first, and
+creates the three views, `LUNATIK_OPT_SINGLE` as the skb is, each anchored in the registry under its
+own address and held by a reference the skb's release drops; the skb's `__gc` clears them and drops
+their anchors. Raises `not enough memory`. A binding attaches it once, with
+[`lunatik_attach`](#lunatik_attach) or [`luakfunc_attach`](#luakfunc_attach).
+
+### luaskb\_reset
+```C
+void luaskb_reset(lunatik_object_t *object, struct sk_buff *skb);
+void luaskb_clear(lunatik_object_t *object);
+void luaskb_close(lunatik_object_t *object);
+```
+`luaskb_reset` points the skb object at `skb` for the callback about to run, taking no reference and
+no lock, and is a macro; a view reads the packet once `skb:data()` points it there. `luaskb_clear`
+clears each view, so one kept past the callback reads nothing, the packet, so every method
+raises `skb is not set`, and `copied`, so the next callback's `skb:data()` copies its own packet, and
+counts the callback in `gen`, so a copy made while it ran reads no
+device past it: a binding calls it once the callback returns, before it releases the runtime's lock.
+`luaskb_close` clears the
+object and drops a reference the caller holds, as a binding's `release` does. None sleeps, so a
+handler calls them in any context.
+
+---
+
+## luatask
+
+`lib/luatask.h` is the C side of the `task` module, `luatask.ko`: a task object holds a reference on
+a `struct task_struct`, its private, and `task.current()`, `thread:task()` and `scx_ctx:task()` hand
+one to a script. The class is `LUNATIK_OPT_SOFTIRQ` and `LUNATIK_OPT_EXTERNAL`.
+
+### luatask\_attach
+```C
+lunatik_object_t *luatask_attach(lua_State *L, struct task_struct *task);
+```
+Creates a task object for `task`, taking a reference on it that the object's release drops, pushes
+its userdata and returns it. `task` may be `NULL`, for an object a binding points at each task with
+`luatask_reset`, as `scx` does; until then, its methods raise `closed object`. It calls
+[`lunatik_require`](#lunatik_require) first. Raises `not enough memory`.
+
+### luatask\_reset
+```C
+void luatask_reset(lunatik_object_t *object, struct task_struct *task);
+void luatask_clear(lunatik_object_t *object);
+void luatask_close(lunatik_object_t *object);
+```
+`luatask_reset` points the object at `task`, which may be `NULL`, taking a reference on it, and
+drops the one it held on the task before. `luatask_clear` points it at none, after which its
+methods raise `closed object`, and `luatask_close` clears it and drops a reference the caller holds
+on the object, as a binding's `release` does. They take no lock and never sleep, since
+`put_task_struct` may be called in atomic context, so `scx` points its object at the task it
+schedules from inside the scheduler.
 

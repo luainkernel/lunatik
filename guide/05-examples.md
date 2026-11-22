@@ -5,13 +5,13 @@ run it. `sudo make install` puts them under `/lib/modules/lua/examples/`, and an
 that path as its README names, `sudo lunatik run [--context=<context>] examples/<dir>/<script>`, or
 `sudo lunatik spawn examples/<dir>/<script>` for a script that returns a thread body.
 
-`filter` and `sniclassify` also load an eBPF program, which needs `sudo make btf_install` before
-`make`, then `make ebpf`; their READMEs load the program from the source tree with `bpftool`.
+`filter`, `sniclassify` and `workload` also load an eBPF program, which needs `sudo make btf_install`
+before `make`, then `make ebpf`; their READMEs load the program from the source tree with `bpftool`.
 `ifquarantine`, `tcpreject`, `dnsblock` and
 `dnsdoctor` act on the host's own traffic, and `ifquarantine` can cut the host off: run them from the
-source tree through `tools/watchdog.sh`, which stops the script when the host has lost its
+source tree through `harness/tools/watchdog.sh`, which stops the script when the host has lost its
 connectivity a few seconds after the start, as in
-`sudo bash tools/watchdog.sh examples/ifquarantine/control`.
+`sudo bash harness/tools/watchdog.sh examples/ifquarantine/control`.
 
 ## Packet filtering and classification
 
@@ -20,7 +20,7 @@ connectivity a few seconds after the start, as in
 * [dnsblock](../../examples/dnsblock): a netfilter hook that drops outbound DNS queries for blacklisted
   domains.
 * [dnsdoctor](../../examples/dnsdoctor): a netfilter hook that rewrites the address in a DNS response
-  for a private client. Needs `dnsmasq` and `dig`, and its `setup.sh` rewrites `/etc/resolv.conf`.
+  for a private client. Needs `dnsmasq` and `host`.
 * [tcpreject](../../examples/tcpreject): a netfilter hook that injects a TCP RST toward the origin of
   forwarded packets an `nft` rule marks. Needs `nft`, and its `setup.sh` turns forwarding on.
 * [sniclassify](../../examples/sniclassify): a TC/eBPF classifier on egress that classifies TLS
@@ -65,4 +65,12 @@ connectivity a few seconds after the start, as in
 
 * [fsmonitor](../../examples/fsmonitor): logs what changes in one directory.
 * [execguard](../../examples/execguard): an allowlist for `exec` over one directory.
+
+## Process scheduling
+
+* [workload](../../examples/workload): a sched-ext/eBPF scheduler which
+  associates tasks with dispatch queues and time slices, while a Lua kernel
+  script applies a Lua policy table to assign a queue and slice to each task
+  seen for the first time. Needs a kernel 6.12 or later with `CONFIG_SCHED_CLASS_EXT`, and what
+  filter needs.
 

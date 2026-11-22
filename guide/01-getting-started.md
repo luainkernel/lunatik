@@ -4,14 +4,17 @@
 Install dependencies (here for Debian/Ubuntu, to be adapted to one's distribution):
 
 ```sh
-sudo apt install git build-essential lua5.5 dwarves clang llvm libelf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
+sudo apt install git build-essential lua5.5 dwarves clang llvm libelf-dev libbpf-dev linux-headers-$(uname -r) linux-tools-common linux-tools-$(uname -r) pkg-config libpcap-dev m4
 ```
 
 Install dependencies (here for Arch Linux):
 
 ```sh
-sudo pacman -S git lua clang llvm m4 libpcap pkg-config base-devel pahole libelf linux-tools linux-headers
+sudo pacman -S git lua clang llvm m4 libbpf libpcap pkg-config base-devel pahole libelf linux-tools linux-headers
 ```
+
+`make` builds `luaebpf.loader`, which loads the compiled programs, against libbpf 1.0 or later,
+which Ubuntu packages from 23.04.
 
 The command line tool runs under `/usr/bin/lua5.5`, and the build calls `lua5.5`. Ubuntu packages
 Lua 5.5 from 26.04 and Debian from testing. Where the distribution does not carry it yet, build the
@@ -42,7 +45,8 @@ sudo make install
 ```
 
 `sudo make btf_install` copies the running kernel's BTF, `/sys/kernel/btf/vmlinux`, into the
-headers the modules build against. Without it the modules are built with no BTF of their own:
+headers the modules build against. It serves the running release alone, and refuses a
+`KERNEL_RELEASE` that names another. Without it the modules are built with no BTF of their own:
 `xdp` and `tc`, and `scx` on a kernel with sched_ext, still load, but log `missing module BTF` in
 the kernel log and leave their kfunc unregistered, so an eBPF program that calls one, such as
 `bpf_luaxdp_run`, fails to load.
@@ -72,9 +76,13 @@ sudo make install
 On Debian and Ubuntu, a kernel hook can do this on every upgrade: [tools/Readme.md](../../tools/Readme.md)
 installs `tools/debian_kernel_postinst_lunatik.sh` as `/etc/kernel/postinst.d/zz-update-lunatik`.
 The hook builds its own clone of master under `/opt/lunatik`, not your checkout. It downloads the
-kernel sources to build `resolve_btfids` and `bpftool`, and replaces `/usr/sbin/bpftool` with the one
+kernel sources, from github.com for a release candidate and cdn.kernel.org otherwise, to build
+`resolve_btfids` and `bpftool`, and replaces `/usr/sbin/bpftool` with the one
 it built; it builds `xdp-loader` from xdp-tools under `/opt/xdp-tools`. A failure in it fails the
-kernel package's configuration.
+kernel package's configuration. On an upgrade it runs under the old kernel, whose BTF does not fit the
+new one, so it builds the modules with no BTF and installs no objects for the program files: on the new
+kernel `xdp`, `tc` and `scx` load with their kfuncs unregistered until the rebuild above, `make clean`
+included, runs on it.
 
 ## Uninstall
 
@@ -94,7 +102,7 @@ Install Lunatik from our [package feed](https://github.com/luainkernel/openwrt_f
 
 ```
 sudo lunatik # execute Lunatik REPL
-Lunatik 5.1  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
+Lunatik 5.2  Copyright (C) 2023-2026 Ring Zero Desenvolvimento de Software LTDA.
 > return 42 -- execute this line in the kernel
 42
 ```
