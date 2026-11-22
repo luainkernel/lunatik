@@ -41,8 +41,9 @@ cleanup()
 }
 
 refcnt() { cat "/sys/module/$MODULE/refcnt" 2>/dev/null; }
-# the hits a kworker took, each line led by its task, then its CPU and its flags
-deferred() { awk -v event="${RELEASES#*/}:" '$1 ~ /^kworker\// && $5 == event' "$TRACING/instances/${RELEASES%%/*}/trace"; }
+releases() { awk -v event="${RELEASES#*/}:" '$5 == event' "$TRACING/instances/${RELEASES%%/*}/trace"; }
+# a kworker's hits read by the comm the probe records: the task leading a line comes from the trace's name cache, which can miss a pid
+deferred() { releases | grep -F 'comm="kworker/'; }
 slept() { dmesg_since | grep -c "deferred test: slept on kworker/"; }
 
 closed() { [ "$(deferred | wc -l)" -ge "$CHILDREN" ]; }
@@ -54,7 +55,7 @@ cleanup
 
 grep -qw "$FIX" /proc/kallsyms || skip_script "the loaded core does not carry $FIX: a finalizer would sleep under the writer's lock"
 before=$(refcnt) || skip_script "$MODULE not loaded"
-kprobe_place "$RELEASES" lunatik_releaseruntime || skip_script "couldn't place a kprobe on lunatik_releaseruntime"
+kprobe_place "$RELEASES" 'lunatik_releaseruntime comm=$comm' || skip_script "couldn't place a kprobe on lunatik_releaseruntime"
 
 ktap_header
 ktap_plan 4
@@ -65,7 +66,11 @@ lunatik stop "$QUIET" > /dev/null 2>&1
 
 awaited closed
 hits=$(deferred | wc -l)
-[ "$hits" -eq "$CHILDREN" ] || fail "$hits of the $CHILDREN children closed on a kworker, the rest under the writer's lock"
+[ "$hits" -eq "$CHILDREN" ] || {
+	comment "$(releases)"
+	comment "$(grep -w "${RELEASES#*/}" "$TRACING/kprobe_profile")"
+	fail "$hits of the $CHILDREN children closed on a kworker, the rest under the writer's lock"
+}
 off=$(deferred | awk '{ print substr($3, 1, 1) }' | grep -c '^[bD]$')
 [ "$off" -eq 0 ] || fail "$off of the children closed on a kworker with bottom halves off"
 ktap_pass "a child an atomic writer drops closes on a kworker, with bottom halves on"
