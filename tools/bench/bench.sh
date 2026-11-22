@@ -11,7 +11,7 @@
 # when the run ends, fails or is interrupted, as long as its terminal lasts: sudo keys its ticket to
 # the terminal, so a run that may outlive one goes in tmux or screen.
 #
-#     bash tools/lunatik-host bash tools/bench/bench.sh scratch/bench 3 footprint v4.4.1 v5.0 v5.1
+#     bash harness/tools/lunatik-host bash tools/bench/bench.sh scratch/bench 3 footprint v4.4.1 v5.0 v5.1
 #
 # writes <workdir>/round<n>.csv, one row per sample, and <workdir>/summary.csv, the median and the
 # interquartile range per ref, set, operation and context.

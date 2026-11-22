@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# PreToolUse (Bash) hook: an example is loaded through tools/watchdog.sh, which
+# PreToolUse (Bash) hook: an example is loaded through harness/tools/watchdog.sh, which
 # stops it when the host loses the connectivity it had. An example arms real
 # hooks on the machine that runs it, and one that cuts the network off cannot be
 # stopped afterwards: the command that would stop it has nowhere to be typed.
@@ -13,7 +13,7 @@
 
 input=$(cat)
 
-. "$(dirname "$0")/commands.sh"
+. "$(dirname "$0")/../../harness/tools/checks/commands.sh"
 
 runs_lunatik "$(commands "$input")" '(run|spawn)( .*)? (\./)*examples/' || exit 0
 case "$(command_text "$input")" in
@@ -22,7 +22,7 @@ esac
 
 {
 	echo "example-guard: load an example through the watchdog, which stops it if the host loses the connectivity it had:"
-	echo "  sudo bash tools/watchdog.sh <script> [spawn | [--context=softirq|hardirq] [--percpu]]"
+	echo "  sudo bash harness/tools/watchdog.sh <script> [spawn | [--context=softirq|hardirq] [--percpu]]"
 	echo "example-guard: an example that takes the network down cannot be stopped by hand afterwards. Re-run with NETWORK_LOSS_OK=1 as a command prefix only on a machine whose connectivity is expendable."
 } >&2
 exit 2

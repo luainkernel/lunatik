@@ -1,0 +1,1 @@
+../../.agents/rules/lunatik-tests.md

@@ -1,0 +1,1 @@
+../../harness/.agents/agents/lunatik-github.md

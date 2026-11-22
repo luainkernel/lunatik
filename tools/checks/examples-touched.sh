@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
 # A change to a binding is proven on the examples that use it, run through
-# tools/watchdog.sh, not only on the suite: the suite covers what a test author
+# harness/tools/watchdog.sh, not only on the suite: the suite covers what a test author
 # thought of, and an example is what a user does with the binding at the rate
 # they do it. Reviews of #795 and #837 ran the probe suite and never systrack,
 # which arms a kprobe on every syscall and counts into an rcu table from each
@@ -41,7 +41,7 @@ for file in "$@"; do
 	# a change to an example's own files is a change to that example
 	case "$file" in
 		examples/*/*|examples/*.lua)
-			echo "$file: run the example it changes, through tools/watchdog.sh: $(runnable "$file")"
+			echo "$file: run the example it changes, through harness/tools/watchdog.sh: $(runnable "$file")"
 			status=1
 			continue
 			;;
@@ -54,7 +54,7 @@ for file in "$@"; do
 		[ "$file" = lib/lunatik/runner.lua ] && started "$file"
 	} | sort -u | tr '\n' ' ')
 	[ -n "$examples" ] || continue
-	echo "$file: run the examples that use $(echo $mods | sed 's/ /, /g'), through tools/watchdog.sh: ${examples% }"
+	echo "$file: run the examples that use $(echo $mods | sed 's/ /, /g'), through harness/tools/watchdog.sh: ${examples% }"
 	status=1
 done
 

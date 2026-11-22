@@ -3,78 +3,12 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Pre-commit hook: reject staged text files (C, Lua, Makefile, shell scripts)
-# missing the trailing blank line the tree requires, any staged file that carries
-# the machine it was written on (machine-leak.sh), a staged source file without
-# its copyright and license header, and kernel code calling a string function the
-# kernel has removed.
+# Pre-commit hook: the gate of the harness mounted at harness/, then kernel code calling a string
+# function the kernel has removed.
 # Install with: ln -s ../../tools/checks/pre-commit .git/hooks/pre-commit
 
-conflicted=$(git diff --cached --name-only --diff-filter=ACM -G'^(<{7}|={7}|>{7})( |$)')
-if [ -n "$conflicted" ]; then
-	echo "ERROR: Files staged with conflict markers:"
-	for f in $conflicted; do
-		echo "  $f"
-	done
-	echo "Resolve them: git grep -n '^<<<<<<< '"
-	exit 1
-fi
-
-staged=$(git diff --cached --name-only --diff-filter=ACM)
-
-leaked=$(CHECK_STAGED=1 bash "$(git rev-parse --show-toplevel)/tools/checks/machine-leak.sh" $staged)
-if [ -n "$leaked" ]; then
-	echo "ERROR: Staged files carry the machine they were written on:"
-	printf '%s\n' "$leaked" | sed 's/^/  /'
-	echo "Take the value from an argument or the environment; what belongs to one machine stays in its untracked notes."
-	exit 1
-fi
-
-bad=""
-for f in $staged; do
-	case "$f" in
-		*.c|*.h|*.lua|Makefile|*.sh|bin/*)
-			if file --mime-encoding "$(git rev-parse --show-toplevel)/$f" 2>/dev/null | grep -q binary; then
-				continue
-			fi
-			if [ "$(git show ":$f" | tail -c 2 | tr '\n' 'N')" != "NN" ]; then
-				bad="$bad $f"
-			fi
-			;;
-	esac
-done
-
-if [ -n "$bad" ]; then
-	echo "ERROR: Files missing a trailing blank line:"
-	for f in $bad; do
-		echo "  $f"
-	done
-	echo "Fix with: printf '\\n' >> <file>"
-	exit 1
-fi
-
-# a file that cannot carry a header, Markdown, data or a font, is declared in REUSE.toml instead
-unlicensed=""
-for f in $staged; do
-	case "$f" in
-		*.c|*.h|*.lua|*.ld|*.sh|*.js|*.toml|Makefile|Kbuild|bin/*|tools/checks/*|.github/workflows/*)
-			header=$(git show ":$f" | head -15)
-			if ! grep -q 'SPDX-License-Identifier' <<< "$header" ||
-			   ! grep -qE 'SPDX-FileCopyrightText|Copyright' <<< "$header"; then
-				unlicensed="$unlicensed $f"
-			fi
-			;;
-	esac
-done
-
-if [ -n "$unlicensed" ]; then
-	echo "ERROR: Files missing their copyright and license header:"
-	for f in $unlicensed; do
-		echo "  $f"
-	done
-	echo "Open them with SPDX-FileCopyrightText and SPDX-License-Identifier, as the tree's other files do."
-	exit 1
-fi
+# the mount beside this script: the hook in .git/hooks runs it for every worktree, one older than the mount too
+bash "$(dirname "$(readlink -f "$0")")/../../harness/tools/checks/pre-commit" || exit 1
 
 # strncpy and strlcpy are gone from <linux/string.h>, so a call left in the tree
 # builds on the kernels that still declare them and stops the build on the ones

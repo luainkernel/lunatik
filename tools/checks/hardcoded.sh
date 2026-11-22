@@ -72,7 +72,7 @@ for file in "$@"; do
 	}
 	function flag(n, what) {
 		if (what ~ /\.[ch]$/) what = "what " what " defines"
-		printf "%s:%d: spells %s by hand; a kernel constant is read from the linux.* table autogen/ generates, which autogen/specs.lua extends where it has none (.agents/rules/lua.md)\n", file, n, what
+		printf "%s:%d: spells %s by hand; a kernel constant is read from the linux.* table autogen/ generates, which autogen/specs.lua extends where it has none (harness/.agents/rules/lua.md)\n", file, n, what
 		found = 1
 	}
 	{

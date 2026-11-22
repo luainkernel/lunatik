@@ -22,6 +22,7 @@ cd "$1" || exit 1
 export GIT_AUTHOR_NAME=cases GIT_AUTHOR_EMAIL=cases@example.invalid
 export GIT_COMMITTER_NAME=cases GIT_COMMITTER_EMAIL=cases@example.invalid
 git init -q -b master . || exit 1
+git remote add origin https://github.com/luainkernel/lunatik.git
 mkdir -p lib tests/fifo autogen consumer stub
 printf 'LUNATIK_NEWLIB(fifo, luafifo, &luafifo_class, NULL);\n' > lib/luafifo.c
 printf 'LUNATIK_NEWLIB(ring, luaring, &luaring_class, NULL);\n' > lib/luaring.c

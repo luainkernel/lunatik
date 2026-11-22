@@ -15,13 +15,13 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        # recursion.sh compiles the Lua the kernel links, which lives in the lua/ submodule
+        # the shared checks run from the harness's submodule, and recursion.sh compiles the Lua of the lua/ one
         submodules: true
     - name: Install dependencies
       run: |
-        bash tools/retry.sh 5 90 sudo apt-get install -yq cppcheck gawk
+        bash harness/tools/retry.sh 5 90 sudo apt-get install -yq cppcheck gawk
         # luals.sh reads the Lua files a pull request touches with lua-language-server, which no package carries
-        bash tools/retry.sh 5 90 curl -fsSL https://github.com/LuaLS/lua-language-server/releases/download/3.19.1/lua-language-server-3.19.1-linux-x64.tar.gz -o /tmp/luals.tar.gz
+        bash harness/tools/retry.sh 5 90 curl -fsSL https://github.com/LuaLS/lua-language-server/releases/download/3.19.1/lua-language-server-3.19.1-linux-x64.tar.gz -o /tmp/luals.tar.gz
         sudo mkdir -p /opt/lua-language-server && sudo tar -xzf /tmp/luals.tar.gz -C /opt/lua-language-server
         sudo ln -s /opt/lua-language-server/bin/lua-language-server /usr/local/bin/lua-language-server
     - name: Stage the pull request's diff
@@ -29,13 +29,13 @@ jobs:
       run: git reset -q --soft "origin/${{ github.base_ref }}"
     - name: Machine paths and credentials
       # a leak fails the run under its own name; pre-commit runs the same gate again below
-      run: CHECK_STAGED=1 bash tools/checks/machine-leak.sh $(git diff --cached --name-only --diff-filter=ACM)
+      run: CHECK_STAGED=1 bash harness/tools/checks/machine-leak.sh $(git diff --cached --name-only --diff-filter=ACM)
     - name: Trailing blank line
       run: bash tools/checks/pre-commit
     - name: Fixups pending
       # a fixup! waits for the squash, and each round of a review pushes one, so the run warns of it and stays green
       run: |
-        bash tools/checks/fixups.sh "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}" ||
+        bash harness/tools/checks/fixups.sh "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}" ||
           echo "::warning title=Fixups pending::fold the fixup!, amend! and squash! commits before the merge"
     - name: Binding and compiler apart
       # a C binding of lib/ and the compiler under bin/luaebpf are two pull requests, the compiler's stacked on the binding's
@@ -48,7 +48,7 @@ jobs:
       run: bash tools/checks/layout.sh
     - name: Guard cases
       # each command guard read again against the cases it was proved on, its own change or one beneath it
-      run: bash tools/checks/cases.sh
+      run: bash harness/tools/checks/cases.sh
     - name: Advisory checks
       # heuristics that nudge a review; they annotate the run and do not fail it
-      run: bash tools/checks/advisory.sh --github "origin/${{ github.base_ref }}" "${{ github.event.pull_request.head.sha }}"
+      run: bash harness/tools/checks/advisory.sh --github "origin/${{ github.base_ref }}" "${{ github.event.pull_request.head.sha }}"

@@ -3,9 +3,9 @@ name: new-test
 description: Write or extend a Lunatik KTAP test suite under tests/<suite>/. Use when adding or materially changing tests.
 ---
 
-The rules are `.agents/rules/tests.md` (shape, dmesg marking, cleanup in a trap, host independence,
-the coverage matrix, proving the test discriminates, the docs and run.sh wiring) plus the
-exit-0 blind spot under "Running a script". This skill is the mechanics:
+The rules are `harness/.agents/rules/tests.md` (shape, dmesg marking, cleanup in a trap, host
+independence, the coverage matrix, proving the test discriminates, the docs and run.sh wiring) and
+`.agents/rules/lunatik-tests.md`, plus the exit-0 blind spot under "Running a script". This skill is the mechanics:
 
 - Source `tests/lib.sh` and use `run_script`/`run_test` instead of open-coding the run; they
   fail on any output, which is what catches a script that never loaded. `tests/bpf/run.sh` is

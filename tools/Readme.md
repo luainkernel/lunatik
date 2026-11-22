@@ -1,5 +1,8 @@
 # Additional tools
 
+The tools Lunatik shares with luaebpf are the harness's, under `harness/tools/`, which
+`harness/tools/Readme.md` describes.
+
 ## bench/
 
 Measures refs of Lunatik on this host, as `doc/design/benchmark/plan.md` describes: each ref is built
@@ -12,7 +15,7 @@ table of names of the ref's API generation, `tools/bench/names/<tag>.lua`, the t
 gives the ref.
 
 ```sh
-bash tools/lunatik-host bash tools/bench/bench.sh scratch/bench 3 footprint v4.4.1 v5.0 v5.1
+bash harness/tools/lunatik-host bash tools/bench/bench.sh scratch/bench 3 footprint v4.4.1 v5.0 v5.1
 ```
 
 Each round writes `round<n>.csv`, one row per sample, and the run ends with `summary.csv`, the median
@@ -20,15 +23,6 @@ and the interquartile range per ref, set, operation and context. The `footprint`
 installed, the Lua heap of a runtime in each context after a full collection, and the kmalloc memory
 of an empty runtime in each context, 64 of them held against none. A ref is not built below 1024 MB
 free under the work directory.
-
-## complexity.sh
-
-Prints the `complexity:` label each pull request carries, by the lines it adds: up to 40 `small`, up to
-150 `medium`, past that `large`. The maintainer picks what he reviews by it, the small first.
-
-```sh
-GH_TOKEN=... bash tools/complexity.sh 2340    # complexity: medium
-```
 
 ## debian_kernel_postinst_lunatik.sh
 
@@ -44,83 +38,5 @@ To check it works:
 
 ```sh
 sudo dpkg-reconfigure linux-image-`uname -r`
-```
-
-## issues.sh
-
-Reports the issues an epic tracks as GitHub has them: the epic and each issue whose body says it
-is part of it, its state, and the pull requests whose body names it, with what each body does to
-it. It flags an open issue a merged pull request names, and a merged pull request tied to an issue
-in the words `pr-body.sh` reads that closes none.
-
-```sh
-GH_TOKEN=... bash tools/issues.sh 657     # the fsnotify epic and its phases
-GH_TOKEN=... bash tools/issues.sh 1001    # one issue and the pull requests that name it
-```
-
-## issue-since.sh
-
-Lists the commits master took since an issue was opened that touch the files the issue names, so an
-issue the tree answered after it was filed is read as answered before an agent is launched on it. The
-implement-issue skill runs it before each launch; the commits are read, not obeyed.
-
-```sh
-GH_TOKEN=... bash tools/issue-since.sh 2131    # names 097d27e13, which added the case the issue asks for
-```
-
-## oops.sh
-
-Captures the last kernel oops before a reboot takes it away: the `dmesg` block, the instructions
-around the faulting one in the installed module, and the processes left in D state.
-
-```sh
-tools/oops.sh > scratch/oops-$(date +%F).txt
-```
-
-A saved dump, `journalctl -k -b -1 -o cat` after the reboot where the journal is persistent,
-is read the same way: `tools/oops.sh <dump>`.
-
-## prereboot.sh
-
-Saves what a reboot erases into `scratch/reboot-<time>/` of the checkout, for every session on the
-host: the last oops, the Lunatik modules loaded with what holds them and the build they came from,
-the processes in D state, and the files each session keeps under `/tmp`. The session that asks for
-a reboot runs it first.
-
-```sh
-bash tools/prereboot.sh
-```
-
-## pr-status.sh
-
-Reports the open pull requests as GitHub has them: base and mergeability, commits and unsquashed
-fixups, size, CI conclusion and labels. `--ready` keeps the ones reviewed by a workflow, green on
-CI, with no fixup pending and mergeable.
-
-```sh
-GH_TOKEN=... bash tools/pr-status.sh            # every open pull request
-GH_TOKEN=... bash tools/pr-status.sh --ready    # what a maintainer can pick up
-GH_TOKEN=... bash tools/pr-status.sh 814 822    # these ones
-```
-
-## retry.sh
-
-Runs a command that reaches the network until it succeeds, a given number of times a given number of
-seconds apart, so a CI job outlasts a mirror or a download that stops answering for a few minutes.
-
-```sh
-bash tools/retry.sh 5 90 sudo apt-get install -yq sparse
-```
-
-## watchdog.sh
-
-Runs a Lunatik script and stops it if the host loses the connectivity it had before the run,
-the loopback or the default route's gateway; a script that cuts the machine off cannot be
-stopped by hand afterwards.
-
-```sh
-sudo bash tools/watchdog.sh examples/ifquarantine/control
-sudo LUNATIK_WATCHDOG_GRACE=10 bash tools/watchdog.sh examples/filter/sni --context=softirq --percpu
-sudo bash tools/watchdog.sh examples/echod/daemon spawn  # a script that returns a thread body
 ```
 
