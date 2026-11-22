@@ -9,9 +9,9 @@ that path as its README names, `sudo lunatik run [--context=<context>] examples/
 before `make`, then `make ebpf`; their READMEs load the program from the source tree with `bpftool`.
 `ifquarantine`, `tcpreject`, `dnsblock` and
 `dnsdoctor` act on the host's own traffic, and `ifquarantine` can cut the host off: run them from the
-source tree through `tools/watchdog.sh`, which stops the script when the host has lost its
+source tree through `harness/tools/watchdog.sh`, which stops the script when the host has lost its
 connectivity a few seconds after the start, as in
-`sudo bash tools/watchdog.sh examples/ifquarantine/control`.
+`sudo bash harness/tools/watchdog.sh examples/ifquarantine/control`.
 
 ## Packet filtering and classification
 

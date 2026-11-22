@@ -204,9 +204,9 @@ that path as its README names, <code>sudo lunatik run [--context=&lt;context&gt;
 before <code>make</code>, then <code>make ebpf</code>; their READMEs load the program from the source tree with <code>bpftool</code>.
 <code>ifquarantine</code>, <code>tcpreject</code>, <code>dnsblock</code> and
 <code>dnsdoctor</code> act on the host&rsquo;s own traffic, and <code>ifquarantine</code> can cut the host off: run them from the
-source tree through <code>tools/watchdog.sh</code>, which stops the script when the host has lost its
+source tree through <code>harness/tools/watchdog.sh</code>, which stops the script when the host has lost its
 connectivity a few seconds after the start, as in
-<code>sudo bash tools/watchdog.sh examples/ifquarantine/control</code>.</p>
+<code>sudo bash harness/tools/watchdog.sh examples/ifquarantine/control</code>.</p>
 
 <p><a name="Packet_filtering_and_classification"></a></p>
 
@@ -323,7 +323,7 @@ filter needs.</li>
 <a href="../../topics/05-examples.md.html">5.1 docs</a> ·
 <a href="../../5.0/topics/05-examples.md.html">5.0 docs</a> ·
 MIT or GPL-2.0-only · <a href="https://github.com/luainkernel/lunatik">github.com/luainkernel/lunatik</a></span>
-<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-21 13:59:37</span>
+<span>Built with <a href="https://github.com/lunarmodules/LDoc">LDoc 1.5.0</a> · 2026-11-22 12:09:52</span>
 </div>
 </footer>
 </body>
