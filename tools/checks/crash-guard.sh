@@ -26,7 +26,7 @@
 
 input=$(cat)
 
-. "$(dirname "$0")/commands.sh"
+. "$(dirname "$0")/../../harness/tools/checks/commands.sh"
 
 # whether <cmds> runs what is installed: a reload, run or test
 runs() {

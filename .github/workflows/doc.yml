@@ -31,8 +31,10 @@ jobs:
       run: |
         # apt-get update exits 0 on an index it could not fetch, so each try fetches the indexes again
         # LDoc runs on lua5.4, the newest Lua the archive builds it for, and discount, which the archive dropped, comes from luarocks for that Lua
-        bash tools/retry.sh 5 90 sudo sh -c 'apt-get update && apt-get install -y lua5.5 lua5.4 lua-ldoc luarocks liblua5.4-dev libmarkdown2-dev'
-        bash tools/retry.sh 5 90 sudo luarocks --lua-version=5.4 install discount DISCOUNT_INCDIR=/usr/include/$(gcc -print-multiarch) DISCOUNT_LIBDIR=/usr/lib/$(gcc -print-multiarch)
+        # retry.sh is the harness's, a submodule this checkout leaves out
+        git submodule update --init harness
+        bash harness/tools/retry.sh 5 90 sudo sh -c 'apt-get update && apt-get install -y lua5.5 lua5.4 lua-ldoc luarocks liblua5.4-dev libmarkdown2-dev'
+        bash harness/tools/retry.sh 5 90 sudo luarocks --lua-version=5.4 install discount DISCOUNT_INCDIR=/usr/include/$(gcc -print-multiarch) DISCOUNT_LIBDIR=/usr/lib/$(gcc -print-multiarch)
     - name: List the releases the site serves
       env:
         GH_TOKEN: ${{ github.token }}

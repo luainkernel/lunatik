@@ -98,7 +98,7 @@ the state, where a boolean stored on an existing node cannot.
   is a pair of helpers that mirror, a `stop` and its `restart`, and the function that calls reads as
   the pairs it nests: lines added inline grow a function that the next guard grows again. #1879 first
   cleared its hook in eight lines inside `lunatik_pcallobject`, beside the collector stop inlined
-  there before it; both are pairs now. `tools/checks/function-shape.sh` names a function a change
+  there before it; both are pairs now. `harness/tools/checks/function-shape.sh` names a function a change
   grows by five lines or more, and one condition tested at two sites of one function.
 * When a two line pattern repeats in every method, collapse it into one helper or macro.
 * A pointer-keyed registry slot is read with `lua_rawgetp` and written with `lua_rawsetp`, never
@@ -128,7 +128,7 @@ the state, where a boolean stored on an existing node cannot.
   the `opt` constants do.
 * `/*** @section name */` separates logical sections in a merged C file and groups them in the docs.
 * Two short mutually exclusive calls read better as a ternary than a four line if/else; void arms are
-  fine. This does not transpose to Lua (see `.agents/rules/lua.md`).
+  fine. This does not transpose to Lua (see `harness/.agents/rules/lua.md`).
 * Function pointers get a named typedef: `lua<libname>_<role>_t`.
 * A check on the runtime or the execution context raises with `luaL_error` and is named for what it
   examines, as `lunatik_checkruntime` and `lunatik_checkclass` are; the polarity belongs in the

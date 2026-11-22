@@ -19,7 +19,9 @@ and individual tests.
 ## Contributing
 
 Conventions for contributors, and for AI coding assistants working on this repository, are in
-[AGENTS.md](../../AGENTS.md): build and test loop, execution contexts, object model, code style, and commit
+[AGENTS.md](../../AGENTS.md) and in the [harness](https://github.com/luainkernel/harness) it mounts at
+`harness/`, which holds what Lunatik shares with luaebpf: build and test loop, execution contexts,
+object model, code style, and commit
 discipline. Design notes for work in progress live under [doc/design](../design); what is being
 worked on, and how far along it is, lives in the
 [project boards](https://github.com/orgs/luainkernel/projects).

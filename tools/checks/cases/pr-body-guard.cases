@@ -1,178 +1,18 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
-# run in the repository pr-body-guard.fixture.sh builds
+# run in the repository pr-body-guard.fixture.sh builds, whose tools/checks carries Lunatik's examples checks
 # transcript: session.jsonl
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -F body=@silent.md
-pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@named.md
-pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@ticked.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@bare.md
-pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=fifo -F draft=true -F body=@silent.md
-pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=local-base -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=gone -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=spec -f base=master -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=spawn -f base=master -F draft=true -F body=@silent.md
 pass	gh api repos/luainkernel/lunatik/pulls -f head=run -f base=master -F draft=true -F body=@silent.md
 block	gh api repos/luainkernel/lunatik/pulls --input master.json
-pass	gh api repos/luainkernel/lunatik/pulls --input fifo.json
 block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file silent.md
-pass	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file named.md
 block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F draft=true -F body=@repos/drafts/silent.md
-block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -f title="from repos/torvalds/linux" -F body=@silent.md
-pass	cd sub && gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@body.md
-pass	cd sub && gh api graphql -F query=@ready.graphql
-pass	cd sub && gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file body.md
-pass	cd sub && gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master -F body.md
 block	gh -R luainkernel/lunatik pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file silent.md
 block	gh -Rluainkernel/lunatik pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file silent.md
-pass	gh -R luainkernel/lunatik pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file named.md
 pass	EXAMPLES_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@silent.md
-# a body is read against the files its change carries, and the session's only once a reader passed its text
-block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@nocode.md
-pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@fenced.md
-pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=fifo -F draft=true -F body=@nocode.md
-block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@long.md
-block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@backstage.md
-pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=fifo -F draft=true -F body=@backstage.md
-block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@unread.md
-block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file unread.md
-block	gh pr create --title 'fifo: a megabyte buffer loads' --fill --head fifo-test --base master
-block	gh -R luainkernel/lunatik pr create --title 'fifo: a megabyte buffer loads' -f -H fifo-test -B master
-# an agent's post waits for a reader as the session's does, read from the session's transcript its call carries
-# agent: open
-block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@unread.md
-pass	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@named.md
-block	gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -f title='luaebpf: a program file names the verdict it returns where it stops' -F body=@named.md
-# agent:
-# a reader passed a body when its transcript, kept beside the session's, holds the text it wrote last and
-# answered pass on: no text a reader failed, another agent drafted or another session's reader passed
-block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file read/failed.md
-block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file read/drafted.md
-block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file read/draft.md
-pass	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file read/redraft.md
-block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file read/elsewhere.md
-# transcript: elsewhere.jsonl
-pass	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file read/elsewhere.md
-block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file named.md
-# transcript:
-block	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file named.md
-# transcript: session.jsonl
-# BODY_OK=1 posts a text the maintainer approved past the reader, and past no other refusal
-pass	BODY_OK=1 gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file read/failed.md
-block	BODY_OK=1 gh api repos/luainkernel/lunatik/pulls -f head=fifo-test -f base=master -F body=@long.md
-# an issue edit is read against the body its issue has in the repository the write targets, which the
-# gh on stub/ answers, with no post held
-# env: PATH=stub:/usr/local/bin:/usr/bin:/bin
-# env: LUNATIK_GUARD_DIR=none
-pass	gh issue edit 5 --body-file fifo.md
-pass	gh issue edit 5 -R luainkernel/lunatik --body-file fifo.md
-block	gh issue edit 5 -R luainkernel/lua --body-file fifo.md
-block	gh -R luainkernel/lua issue edit 5 --body-file fifo.md
-pass	gh issue edit 5 -R luainkernel/lua --body-file table.md
-block	gh issue edit 5 --body-file table.md
-pass	gh api -X PATCH repos/luainkernel/lua/issues/5 -F body=@table.md
-block	gh api -X PATCH repos/luainkernel/lua/issues/5 -F body=@fifo.md
-# a comment held on this repository's #5 holds an edit of that issue alone, however -R spells the repository
-# env: LUNATIK_GUARD_DIR=ours
-block	gh issue edit 5 --body-file new.md
-block	gh api -X PATCH repos/luainkernel/lunatik/issues/5 -F body=@new.md
-block	gh issue edit 5 -R LuaInKernel/Lunatik --body-file new.md
-pass	gh issue edit 5 -R luainkernel/lua --body-file new.md
-pass	gh api -X PATCH repos/luainkernel/lua/issues/5 -F body=@new.md
-# a comment held on {owner}/{repo}'s #5, which gh fills with this repository, holds an edit of this one's
-# env: LUNATIK_GUARD_DIR=placeholder
-block	gh issue edit 5 --body-file new.md
-pass	gh issue edit 5 -R luainkernel/lua --body-file new.md
-# a comment held on luainkernel/lua#5 holds an edit of that issue alone, however -R spells the repository
-# env: LUNATIK_GUARD_DIR=other
-block	gh issue edit 5 -R luainkernel/lua --body-file new.md
-block	gh api -X PATCH repos/luainkernel/lua/issues/5 -F body=@new.md
-block	gh issue edit 5 -R LuaInKernel/Lua --body-file new.md
-block	gh issue edit 5 -R github.com/luainkernel/lua --body-file new.md
-pass	gh issue edit 5 --body-file new.md
-pass	gh issue edit 6 -R luainkernel/lua --body-file new.md
-# an edit of a pull request's body is the session's post as its opening is, in either spelling; the gh on
-# stub/ answers for no pull request, so the body is read with no changed files, and another repository's
-# pull request waits for no reader
-block	gh api -X PATCH repos/luainkernel/lunatik/pulls/5 -F body=@unread.md
-block	gh pr edit 5 --body-file unread.md
-pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/5 -F body=@named.md
-pass	gh pr edit 5 --body-file named.md
-pass	gh pr edit 5 --body-file review5/body.md
-block	gh pr edit 5 --body-file review5/edited.md
-block	gh api -X PATCH repos/luainkernel/lunatik/pulls/5 -F body=@backstage.md
-pass	gh pr edit 5 --title 'fifo: a megabyte buffer loads on a fragmented host'
-pass	gh api -X PATCH repos/luainkernel/lua/pulls/6 -F body=@unread.md
-# a title of this repository passes title.sh: the ones the maintainer took on 2026-11-15, and the ones they replaced
-pass	gh pr create --title "skb: data() reads a non-linear skb in a tc callback" --body-file named.md
-pass	gh pr create --title "luaebpf: compiled TC programs read non-linear packets" --body-file named.md
-pass	gh pr create --title "luaebpf: a program error returns XDP_ABORTED or TC_ACT_SHOT" --body-file named.md
-pass	gh pr create --title "luaebpf: compiled programs can call a kernel Lua script" --body-file named.md
-pass	gh pr create --title "luaebpf: a loop past the kernel's budget stops the program" --body-file named.md
-pass	gh pr create --title "luaebpf: refuse a verdict that is not an action of its type" --body-file named.md
-pass	gh pr create --title "luaebpf: a program file must name its default verdict" --body-file named.md
-block	gh pr create --title "skb: data() views a copy of a tc callback's non-linear skb, where it raised" --body-file named.md
-block	gh pr create --title "luaebpf: a TC read goes through bpf_skb_load_bytes, so a non-linear skb reads as skb:data() does" --body-file named.md
-block	gh pr create --title "luaebpf: a program that stops where Lua would raise returns XDP_ABORTED or TC_ACT_SHOT, not its default" --body-file named.md
-block	gh pr create --title "luaebpf: a compiled program calls the kernel Lua runtime it names" --body-file named.md
-block	gh pr create --title "luaebpf: a for past the kernel's may_goto budget stops with the default verdict" --body-file named.md
-block	gh pr create --title "luaebpf: hold a program's verdict to its type's actions, as the kernel callback is" --body-file named.md
-block	gh pr create --title "luaebpf: a program file names the verdict it returns where it stops" --body-file named.md
-# every spelling of a title gh takes, read to its end past a word that opens with a dash
-pass	gh pr create -t 'tests: fail returns -ENOENT for a missing test' --body-file named.md
-block	gh pr create --body-file named.md --title="luaebpf: hold a program's verdict to its type's actions, as the kernel callback is"
-block	gh pr new -t 'luaebpf: a program file names the verdict it returns where it stops' --body-file named.md
-block	gh pr edit 12 --title 'luaebpf: a program file names the verdict it returns where it stops'
-block	gh pr edit -R luainkernel/lunatik 12 -t 'luaebpf: a program file names the verdict it returns where it stops'
-pass	gh pr edit -R luainkernel/lua 12 -t 'luaebpf: a program file names the verdict it returns where it stops'
-pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/12 -f title='luaebpf: a program file must name its default verdict'
-block	gh api -X PATCH repos/luainkernel/lunatik/pulls/12 -f title='luaebpf: a program file names the verdict it returns where it stops'
-block	gh api -X PATCH repos/luainkernel/lunatik/pulls/12 -f 'title=luaebpf: a program file names the verdict it returns where it stops' -f state=open
-pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/12 -F title=@good.title
-block	gh api -X PATCH repos/luainkernel/lunatik/pulls/12 -F title=@bad.title
-pass	gh api -X PATCH repos/luainkernel/lunatik/pulls/12 --input good-title.json
-block	gh api -X PATCH repos/luainkernel/lunatik/pulls/12 --input bad-title.json
-# the title is the word gh takes, whole: one of its words reads as an option, and the endpoint follows a field
-block	gh pr edit 12 --title "luaebpf: read the kernel's BTF from the file lunatik bpf --btf names, in its own byte order"
-block	gh pr edit 12 --title 'tools/shade.sh: darken -s and lighten take only a secret of 64 hex digits'
-pass	gh pr edit 12 --title 'tools/shade.sh: darken -s takes a secret of 64 hex digits'
-pass	gh api -X PATCH -f title='luaebpf: a program file must name its default verdict' repos/luainkernel/lunatik/pulls/12
-block	gh api -X PATCH -f title='luaebpf: a program file names the verdict it returns where it stops' repos/luainkernel/lunatik/pulls/12
-# a title the guard cannot read, which the shell expands or a file the command has yet to write holds, and a pull
-# request opened with none, under a commit's subject or its branch's name
-block	gh pr edit 12 --title "$(cat good.title)"
-block	gh pr edit 12 --title "luaebpf: $verdict"
-block	gh api -X PATCH repos/luainkernel/lunatik/pulls/12 -F title=@$dir/good.title
-block	gh api -X PATCH repos/luainkernel/lunatik/pulls/12 -F title=@absent.title
-block	printf 'luaebpf: a program file must name its default verdict' > new.title && gh api -X PATCH repos/luainkernel/lunatik/pulls/12 -F title=@new.title
-block	gh pr create --fill --head fifo-test --base master --body-file named.md
-block	gh pr new -f -H fifo-test -B master -F named.md
-# a name that holds a word that opens a clause carries none
-pass	gh pr edit 12 --title 'autogen: socket.so takes the values of the arch'
-pass	gh pr edit 12 --title 'tools: issue-since.sh reads a path without its extension'
-# a title with no area, and the subjects git writes, which pass whatever their length
-block	gh pr edit 12 --title fifo
-pass	gh pr edit 12 --title 'fixup! luaebpf: a program file names the verdict it returns where it stops'
-pass	gh pr edit 12 --title 'Revert "luaebpf: a program file names the verdict it returns where it stops"'
-pass	gh pr edit 12 --title 'Reapply "luaebpf: a program file names the verdict it returns where it stops"'
-pass	gh pr edit 12 --title "Merge branch 'luaebpf' of a fork that runs past sixty characters"
 
-block	GH_REPO=luainkernel/lua gh pr merge 7 --rebase
-block	env GH_REPO=luainkernel/lua gh pr merge 7 --rebase
-block	export GH_REPO=luainkernel/lua; gh pr merge 7 --rebase
-block	GH_REPO=luainkernel/lua gh api -X PUT 'repos/{owner}/{repo}/pulls/7/merge'
-block	GH_REPO=luainkernel/lua bash -c 'gh issue close 7'
-block	GH_REPO=luainkernel/lua eval gh pr merge 7 --rebase
-block	GH_REPO=luainkernel/lua bash -c 'echo $(gh issue close 7)'
-block	GH_REPO=luainkernel/lua bash <<'EOF'\ngh pr merge 7 --rebase\nEOF
-pass	gh pr merge 7 --rebase -R luainkernel/lua
-pass	GH_REPO=luainkernel/lua gh pr view 7
-pass	gh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file repo.md
-pass	cat > note.md <<'EOF'\nGH_REPO=luainkernel/lua gh pr merge 7 --rebase\nEOF\ngh pr create --title 'fifo: a megabyte buffer loads' --head fifo-test --base master --body-file named.md
-
-# a gh on keyed/ answers as stub/'s only with the token in key, which the command reads into GH_TOKEN
-# env: PATH=keyed:/usr/local/bin:/usr/bin:/bin
-# env: GH_TOKEN=
-# env: LUNATIK_GUARD_DIR=none
-pass	tok=$(cat key); GH_TOKEN=$tok gh issue edit 5 --body-file fifo.md
-block	GH_TOKEN=$tok gh issue edit 5 --body-file fifo.md

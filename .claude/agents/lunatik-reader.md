@@ -1,0 +1,1 @@
+../../harness/.agents/agents/lunatik-reader.md

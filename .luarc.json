@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 // SPDX-License-Identifier: MIT OR GPL-2.0-only
 //
-// lua-language-server's reading of the tree, which tools/checks/luals.sh runs as a check and an
+// lua-language-server's reading of the tree, which harness/tools/checks/luals.sh runs as a check and an
 // editor reads as it is; a comment takes a line of its own, which the check strips.
 {
 	"runtime.version": "Lua 5.5",

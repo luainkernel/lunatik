@@ -10,7 +10,7 @@ the shared host does to it.
 
     make
     make C=1                 # sparse, for a change touching __percpu or another address space
-    bash tools/lunatik-host bash -c 'sudo make install && sudo lunatik reload && sudo lunatik test'
+    bash harness/tools/lunatik-host bash -c 'sudo make install && sudo lunatik reload && sudo lunatik test'
 
 The lock covers install through test as one cycle, since the device and the installed tree under
 `/lib/modules/lua` are shared: another session that installs between your install and your run
@@ -28,8 +28,8 @@ install, or the installed suite drifts from the tree.
 
 A worktree installs only after `make`: `scripts_install` needs the autogen output. Keep the
 install's output visible, and confirm what landed under `/lib/modules/lua/` (timestamp, or a
-grep for a symbol only the branch has) before trusting a run against it. `tools/lunatik-host` runs
-`tools/checks/disk.sh` first: a build that stops halfway on a full disk leaves the previous install in
+grep for a symbol only the branch has) before trusting a run against it. `harness/tools/lunatik-host` runs
+`harness/tools/checks/disk.sh` first: a build that stops halfway on a full disk leaves the previous install in
 place, and the suite then measures that one; the check names the worktrees to remove.
 
 A tree that drops a crash guard (a checker, an `argcheck`) is not installed or run on the shared
@@ -51,7 +51,7 @@ and its size is read before it runs: a `tee` under a `sudo` that takes its passw
 the rest of that stdin as the file and writes it empty, and `lunatik run` of an empty script exits
 0 and prints nothing, which reads as a clean run. Remove the script right after.
 
-An example is run through `sudo bash tools/watchdog.sh examples/<script> [spawn | [--context=softirq|hardirq] [--percpu]]`,
+An example is run through `sudo bash harness/tools/watchdog.sh examples/<script> [spawn | [--context=softirq|hardirq] [--percpu]]`,
 which stops it if the host loses the connectivity it had; an example that returns a thread body takes
 `spawn` there, or its function is never called. `example-guard.sh` refuses a bare `lunatik run` or
 `spawn` of an example, and `NETWORK_LOSS_OK=1` on the command runs one bare on a machine whose
@@ -64,13 +64,13 @@ code, and the ring buffer is no record, since every test clears it at its start.
 every unit's lines, and the window around the test's own prints is where a host process acting on
 what the test created shows up:
 
-    bash tools/journal.sh "nl80211_station: added"      # every unit, 3 s around the last match; adm or sudo
+    bash harness/tools/journal.sh "nl80211_station: added"      # every unit, 3 s around the last match; adm or sudo
 
 Read which of the test's prints came out and which did not, then what NetworkManager, networkd,
 wpa_supplicant or udev did to the interface, the device or the file in that window; the errno the
 KTAP line carries is then matched to the kernel function that returns it on the path between the
 last print and the missing one. The hand-back names that mechanism, or carries the failure as a
-hypothesis with what was not captured; `tools/checks/untraced.sh` refuses the word that skips both.
+hypothesis with what was not captured; `harness/tools/checks/untraced.sh` refuses the word that skips both.
 
 # One operation at a time
 
@@ -96,8 +96,8 @@ another build`, which stops `lunatik test` before the suite; `lunatik status` na
 modules. A kernel thread outliving its
 runtime is one way to pin a module, and nothing short of a reboot gets it back, so a test that
 spawns one gives its body work that ends rather than a loop waiting to be stopped. A reference an
-object leaks is another, and every cycle after it adds to the count. `tools/lunatik-host` refuses a cycle on a host
-pinned that way, reading through `tools/checks/pinned.sh` the references a module keeps past its
+object leaks is another, and every cycle after it adds to the count. `harness/tools/lunatik-host` refuses a cycle on a host
+pinned that way, reading through `harness/tools/checks/pinned.sh` the references a module keeps past its
 holders once `lunatik_run` is gone, and names the cycle that leaves the host so. Those references
 count an eBPF program that calls the module's kfunc too, which an example's pin left behind keeps
 loaded, as `examples/sniclassify`'s did on 2026-11-17 (#2670): `sudo bpftool -f prog show` and
@@ -121,7 +121,7 @@ measures nothing.
 
 A wedged device — a `lunatik` process that stays in D state, usually below an oops in `dmesg` — is
 cleared only by a reboot, as a pinned module no program holds is, and the reboot is the maintainer's to trigger: other
-sessions share the host. Before asking, capture what the reboot erases with `tools/prereboot.sh`,
+sessions share the host. Before asking, capture what the reboot erases with `harness/tools/prereboot.sh`,
 which saves the oops, the modules and what holds them, and every session's files under `/tmp` into
 `scratch/reboot-<time>/`, write down which suites were pending and which build was installed, and
 run nothing else against the device. After it, the suite that oopsed runs twice: a second oops is a
@@ -192,7 +192,7 @@ A `lunatik` process in D state does not come back, and the reboot that clears it
 maintainer's call ("What the shared host does" above). Before asking for it:
 
     ps -eo pid,stat,etime,cmd | awk '$2 ~ /D/'          # confirm, and note the PID
-    bash tools/prereboot.sh                              # oops, modules and holders, D-state processes, every session's /tmp
+    bash harness/tools/prereboot.sh                      # oops, modules and holders, D-state processes, every session's /tmp
 
 Then write down (memory or scratch) which tree `make install` last ran from and its HEAD, the
 suites not yet run, and the branches whose tests were interrupted. Run no further `lunatik`

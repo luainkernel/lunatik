@@ -20,7 +20,7 @@ case "$input" in
 esac
 [ -n "$LUNATIK_CONSUMERS" ] || exit 0
 
-. "$(dirname "$0")/commands.sh"
+. "$(dirname "$0")/../../harness/tools/checks/commands.sh"
 
 case "$(command_text "$input")" in
 	*CONSUMERS_OK=1*) exit 0 ;;
@@ -29,7 +29,7 @@ esac
 project=${CLAUDE_PROJECT_DIR:-$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)}
 cmds=$(gh_commands "$input")
 while IFS= read -r post; do
-	[ -n "$post" ] && gh_ours "$post" || continue
+	[ -n "$post" ] && gh_ours "$post" "$(gh_self "$input")" || continue
 	read -r base head <<< "$(gh_refs "$input" "$post")"
 	if ! change=$(gh_change "$input" "$post" "$base" "$head" "$project"); then
 		echo "consumers-guard: the change from $base to ${head:-a head neither the write nor GitHub names} is not one this checkout can read, so the bindings it touches cannot be listed; fetch the ref, or pass CONSUMERS_OK=1 once the consumers were read." >&2

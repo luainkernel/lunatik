@@ -6,11 +6,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/lunatik-lock.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/lunatik-lock.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/review-post-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/review-post-guard.sh\""
           },
           {
             "type": "command",
@@ -22,19 +22,19 @@
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/pr-body-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/pr-body-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/stacked-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/stacked-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/merge-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/merge-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/fixup-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/fixup-guard.sh\""
           },
           {
             "type": "command",
@@ -42,47 +42,47 @@
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/push-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/push-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/rewrite-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/rewrite-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/discard-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/discard-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/stage-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/stage-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/scratch-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/scratch-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/cd-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/cd-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/message-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/message-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/implement-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/implement-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/luals-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/luals-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/leak-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/leak-guard.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/memory-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/memory-guard.sh\""
           }
         ]
       },
@@ -91,7 +91,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/memory-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/memory-guard.sh\""
           }
         ]
       },
@@ -100,7 +100,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/agent-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/agent-guard.sh\""
           }
         ]
       },
@@ -109,7 +109,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/workflow-effort-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/workflow-effort-guard.sh\""
           }
         ]
       },
@@ -118,7 +118,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/send-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/send-guard.sh\""
           }
         ]
       }
@@ -129,7 +129,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/on-edit.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/.claude/hooks/on-edit.sh\""
           }
         ]
       }
@@ -139,7 +139,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/checks/checkout-behind.sh\" \"$CLAUDE_PROJECT_DIR\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/checkout-behind.sh\" \"$CLAUDE_PROJECT_DIR\" || echo \"checkout-behind: $CLAUDE_PROJECT_DIR/harness holds no checkout; git -C $CLAUDE_PROJECT_DIR submodule update --init harness checks it out\""
           }
         ]
       },
@@ -148,7 +148,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/on-compact.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/.claude/hooks/on-compact.sh\""
           }
         ]
       }
@@ -158,7 +158,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/on-stop.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/.claude/hooks/on-stop.sh\""
           }
         ]
       }
@@ -168,7 +168,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/on-prompt.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/.claude/hooks/on-prompt.sh\""
           }
         ]
       }

@@ -5,7 +5,7 @@
 #
 # A pull request whose change touches a binding says, in its body, what each example that uses the
 # binding did: ran, only loaded, or was not run and why (AGENTS.md, "Before opening a pull request",
-# item 6). tools/checks/examples-touched.sh lists them from the changed files; #1140 changed the
+# item 4). tools/checks/examples-touched.sh lists them from the changed files; #1140 changed the
 # netdevice callback's contract with a body that named one of the three the list carried, and the
 # two it left, linkflap and netfailover, acted on a homonym from another namespace until the review
 # ran them. Takes the body file and the changed files; prints each example the list carries that

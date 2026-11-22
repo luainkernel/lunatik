@@ -1,0 +1,1 @@
+../../harness/.agents/rules/checks.md
