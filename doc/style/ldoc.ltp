@@ -138,7 +138,7 @@
     </nav>
     <div class="search" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke-width="2"/></svg>
-        <input id="q" type="search" placeholder="Search modules, functions, the guide" autocomplete="off" aria-label="Search" aria-controls="results"/>
+        <input id="q" type="search" placeholder="Search" autocomplete="off" aria-label="Search" aria-controls="results"/>
         <kbd>/</kbd>
         <ul class="results" id="results" hidden=""></ul>
     </div>
