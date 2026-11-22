@@ -37,14 +37,14 @@ LUNATIC_CORE := lapi lcode lctype ldebug ldo ldump lfunc lgc llex lmem lobject l
 LUNATIC_SRCS := luac/luac.c $(addprefix lua/,$(addsuffix .c,$(LUNATIC_CORE)))
 LUNATIC_CFLAGS := -std=gnu99 -O2 -Wall -D_KERNEL -DLUA_USE_LINUX -I. -Ilua
 
-# what reading and rewriting a chunk takes from lua/, printed by bin/luaebpf/bytecode.c built as lunatic
+# what reading and rewriting a chunk takes from lua/, printed by luaebpf/bytecode.c built as lunatic
 # is and as the CLI's Lua is, so a chunk lunatic writes loads in the CLI's Lua
-LUAEBPF_BYTECODE := bin/luaebpf/bytecode
+LUAEBPF_BYTECODE := luaebpf/bytecode
 LUAEBPF_TABLES := ${LUAEBPF_BYTECODE}/kernel.lua ${LUAEBPF_BYTECODE}/host.lua
-LUAEBPF_TABLES_SRCS := bin/luaebpf/bytecode.c lua/lopcodes.c
+LUAEBPF_TABLES_SRCS := luaebpf/bytecode.c lua/lopcodes.c
 
 # luaebpf.loader: a C module of the CLI's Lua, built against lua/ as that Lua is, over libbpf
-LOADER := bin/luaebpf/loader.so
+LOADER := luaebpf/loader.so
 LOADER_CFLAGS := -std=gnu99 -O2 -Wall -fPIC -shared -DLUA_USE_LINUX -Ilua
 
 # a program file's object goes under LUAEBPF_OBJECTS_INSTALL_PATH at its script's path, where `lunatik run <script>` looks for it;
@@ -114,7 +114,7 @@ ${LUAEBPF_TABLES}: ${LUAEBPF_TABLES_SRCS} $(wildcard lua/*.h) lunatik_conf.h
 	./$@.bin > $@
 	${RM} $@.bin
 
-${LOADER}: bin/luaebpf/loader.c $(wildcard lua/*.h)
+${LOADER}: luaebpf/loader.c $(wildcard lua/*.h)
 	${HOSTCC} ${LOADER_CFLAGS} -o $@ $< -lbpf
 
 clean:
@@ -181,11 +181,11 @@ scripts_install:
 	${MKDIR} ${LUAEBPF_OBJECTS_INSTALL_PATH} # lunatik bpf -o writes here by hand, and INSTALL_BPF makes it only where it compiles
 	${RM} -r ${LUAEBPF_INSTALL_PATH}
 	${MKDIR} ${LUAEBPF_INSTALL_PATH}/bytecode ${LUAEBPF_INSTALL_PATH}/emit ${LUAEBPF_INSTALL_PATH}/lib/bpf
-	${INSTALL} -m 0644 bin/luaebpf/*.lua ${LUAEBPF_INSTALL_PATH}
+	${INSTALL} -m 0644 luaebpf/*.lua ${LUAEBPF_INSTALL_PATH}
 	${INSTALL} -m 0644 ${LUAEBPF_TABLES} ${LUAEBPF_INSTALL_PATH}/bytecode
-	${INSTALL} -m 0644 bin/luaebpf/emit/*.lua ${LUAEBPF_INSTALL_PATH}/emit
-	${INSTALL} -m 0644 bin/luaebpf/lib/*.lua ${LUAEBPF_INSTALL_PATH}/lib
-	${INSTALL} -m 0644 bin/luaebpf/lib/bpf/*.lua ${LUAEBPF_INSTALL_PATH}/lib/bpf
+	${INSTALL} -m 0644 luaebpf/emit/*.lua ${LUAEBPF_INSTALL_PATH}/emit
+	${INSTALL} -m 0644 luaebpf/lib/*.lua ${LUAEBPF_INSTALL_PATH}/lib
+	${INSTALL} -m 0644 luaebpf/lib/bpf/*.lua ${LUAEBPF_INSTALL_PATH}/lib/bpf
 
 scripts_uninstall:
 	${RM} ${SCRIPTS_INSTALL_PATH}/driver.lua

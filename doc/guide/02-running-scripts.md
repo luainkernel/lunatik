@@ -49,7 +49,7 @@ usage: lunatik [-h | -V]
 * `bpf --errors <script>`: print the errors of the compiled program a `run` of the script attached,
   a line for each place it stopped at, `<n> <file>:<line>: <reason>`, failing on a script with
   nothing pinned under its root (see
-  [When a program cannot be compiled or computed](../../bin/luaebpf/doc/guide/08-luaebpf.md#when-a-program-cannot-be-compiled-or-computed))
+  [When a program cannot be compiled or computed](../../luaebpf/doc/guide/08-luaebpf.md#when-a-program-cannot-be-compiled-or-computed))
 * `list`: show which runtime environments are currently running, one script a line, in order of name
 * `run [-c softirq | hardirq] [-p] [--dev=<ifname>] <script>`: create a new runtime environment to run the script `/lib/modules/lua/<script>.lua`; pass `--context=softirq` for hooks that fire in softirq context (netfilter, XDP), or `--context=hardirq` for hooks that can fire inside an interrupt handler or with interrupts off (kprobes); optionally pass `--percpu` to create one runtime per CPU id, dispatched to the runtime of the CPU the callback runs on. The script runs once per runtime and can read its id with `lunatik.cpu()`; the runtimes share a netfilter hook and a kprobe, and constructors whose registration is global fail at load in a percpu runtime. A runtime is a CPU, not a connection: see [Per-CPU scripts](03-percpu.md). Where `/usr/local/lib/bpf/luaebpf/<script>.bpf.o` exists, `run` also loads and attaches that program: see [Compiled programs](#compiled-programs)
 * `spawn <script>`: create a new runtime environment for the script `/lib/modules/lua/<script>.lua`,
@@ -151,7 +151,7 @@ it too.
 ## Program files
 
 Program files and their compiler are experimental: what this section and the next describe may
-change in a minor release, as [Compiling Lua to eBPF](../../bin/luaebpf/doc/guide/08-luaebpf.md) says.
+change in a minor release, as [Compiling Lua to eBPF](../../luaebpf/doc/guide/08-luaebpf.md) says.
 
 `lunatik bpf` compiles a **program file** into a BPF ELF object, `<program>` with `.lua` replaced
 by `.o` unless `-o` names another, so `filter.bpf.lua` becomes `filter.bpf.o`. `lunatic` compiles
@@ -165,7 +165,7 @@ written.
 lunatik bpf filter.bpf.lua
 ```
 
-A program that [calls a kernel Lua runtime](../../bin/luaebpf/doc/guide/08-luaebpf.md#calls-into-a-kernel-lua-runtime), named
+A program that [calls a kernel Lua runtime](../../luaebpf/doc/guide/08-luaebpf.md#calls-into-a-kernel-lua-runtime), named
 by `lunatik.runtime`, runs the interpreter on the packet path at each call, so `lunatik bpf` prints
 on stdout a line per call it compiled, `<file>:<line>: calls the runtime '<name>'`, and nothing for
 a file with none.
@@ -268,7 +268,7 @@ name what failed where the kernel logs nothing, print on stderr before it. Once 
 drops a packet it cannot compute, with `XDP_ABORTED` or `TC_ACT_SHOT`, logs the error Lua raises
 there to the kernel's trace ring and counts the stop at its line, which
 `lunatik bpf --errors <script>` reports, as
-[When a program cannot be compiled or computed](../../bin/luaebpf/doc/guide/08-luaebpf.md#when-a-program-cannot-be-compiled-or-computed)
+[When a program cannot be compiled or computed](../../luaebpf/doc/guide/08-luaebpf.md#when-a-program-cannot-be-compiled-or-computed)
 says. `lunatik stop <script>`
 runs it backwards: it detaches each link, stops the runtime and removes the pins, the root and each
 directory above it the root leaves empty. A root holds pins and nothing else, so a stop of a name
