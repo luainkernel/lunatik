@@ -38,6 +38,7 @@ machine. Two rules follow from that and outrank everything else in this document
 | `tests/` | KTAP integration tests, one directory per suite |
 | `examples/` | example kernel scripts |
 | `tools/` | maintenance scripts, and the mechanical convention checks in `tools/checks/` |
+| `harness/` | the harness Lunatik shares with luaebpf (luainkernel/harness), mounted as a submodule: the conventions of `harness/AGENTS.md`, its rules, skills, agents, guards and checks, and the tools of the host both run their suites on; it runs on the host, in a session and in CI, and installs nowhere |
 | `.agents/skills/` | the recurring workflows packaged as agent skills (open `SKILL.md` format) |
 | `.agents/rules/` | the rules for a kind of file, loaded by the paths each one names |
 | `.agents/agents/` | the agents a workflow runs a narrow job in, the host's, GitHub's and the reader's of a pull request body |
