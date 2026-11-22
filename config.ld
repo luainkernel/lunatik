@@ -21,10 +21,6 @@ sort_modules = true
 file = {
 	'./lib/luabpf.c',
 	'./lib/bpf/map.lua',
-	'./luaebpf/lib/bpf/map.lua',
-	'./luaebpf/lib/bpf/tc.lua',
-	'./luaebpf/lib/bpf/vmlinux.lua',
-	'./luaebpf/lib/bpf/xdp.lua',
 	'./lib/luabyteorder.c',
 	'./common/class.lua',
 	'./lib/luacompletion.c',
@@ -47,10 +43,8 @@ file = {
 	'./lib/lighten.lua',
 	'./lib/lualinux.c',
 	'./lib/linux',
-	'./luaebpf/init.lua',
 	'./lunatik_core.c',
 	'./lunatik_percpu.c',
-	'./luaebpf/lib/lunatik.lua',
 	'./lib/lunatik/runner.lua',
 	'./lib/mailbox.lua',
 	'./lib/net.lua',
@@ -118,8 +112,6 @@ topics = {
 	'./doc/guide/02-running-scripts.md',
 	'./doc/guide/03-percpu.md',
 	'./doc/guide/04-lua.md',
-	'./luaebpf/doc/guide/08-luaebpf.md',
-	'./luaebpf/doc/guide/09-luaebpf-by-example.md',
 	'./doc/guide/05-examples.md',
 	'./doc/guide/06-development.md',
 	'./doc/guide/07-resources.md',
@@ -143,4 +135,45 @@ sort = true
 -- all = false -- This is the default
 
 -- For more LDoc options, see: https://github.com/lunarmodules/LDoc
+
+-- what the site's template reads of this project: its repository, its home page's headline, example
+-- and facts, where its Donate link goes, and the areas the API is grouped by, in the menu, on the home
+-- page and in the index; a module no pattern takes goes to the last area
+vars = {
+	github = 'https://github.com/luainkernel/lunatik',
+	headline = {'Script the Linux kernel', 'with Lua'},
+	donate = 'index.html#support',
+	showcase = 'examples/systrack/probe.lua',
+	facts = {'Process, softirq and hardirq hooks'},
+	areas = {
+		{'runtime', 'Runtime', 'Runtimes, kernel threads and the channels between them.',
+			{'^lunatik$', '^lunatik%.', '^thread$', '^completion$', '^mailbox$', '^fifo$'},
+			'M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5'},
+		{'packets', 'Packets and eBPF', 'Netfilter, XDP and TC hooks, socket buffers and eBPF maps.',
+			{'^netfilter$', '^xdp$', '^tc$', '^skb', '^bpf'},
+			'M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4'},
+		{'network', 'Sockets and netlink', 'Kernel sockets, and rtnetlink and generic netlink sessions.',
+			{'^socket', '^net$', '^netlink'},
+			'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18'},
+		{'tracing', 'Tracing and scheduling', 'Kprobes, system call addresses and sched_ext.',
+			{'^probe$', '^syscall', '^scx$'},
+			'M3 12h4l3-7 4 14 3-7h4'},
+		{'devices', 'Devices and events', 'Character devices, HID drivers, notifier chains and fsnotify.',
+			{'^device$', '^hid$', '^notifier$', '^fsnotify$'},
+			'M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4'},
+		{'data', 'Data', 'Memory buffers, RCU tables, sets, byte order and records.',
+			{'^data$', '^rcu$', '^set$', '^byteorder$', '^struct$', '^class$'},
+			'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3'},
+		{'crypto', 'Cryptography', 'The kernel crypto API and encrypted scripts.',
+			{'^crypto', '^darken$', '^lighten$'},
+			'M6 11h12v10H6zM8.5 11V7.5a3.5 3.5 0 0 1 7 0V11'},
+		{'system', 'System', 'The kernel as a whole: time, CPUs, tasks and signals.',
+			{'^linux$', '^cpu$', '^task$', '^signal$'},
+			'M3 5h18v14H3zM7 10l3 2.5L7 15M12.5 15H17'},
+		{'constants', 'Constants', 'Kernel constants, generated from its headers at build time.',
+			{'^linux%.'},
+			'M10 3L8 21M16 3l-2 18M4 9h16M4 15h16'},
+		{'other', 'Other', 'Modules outside the areas above.', {}, 'M5 12h.01M12 12h.01M19 12h.01'},
+	},
+}
 
