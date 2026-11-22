@@ -1,1 +1,0 @@
-../../.agents/rules/luaebpf.md

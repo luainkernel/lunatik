@@ -22,7 +22,6 @@ doc/*
 !doc/style/**
 /lib/linux/
 bin/lunatic
-/bin/luaebpf/bytecode/
 
 CLAUDE.local.md
 /scratch/

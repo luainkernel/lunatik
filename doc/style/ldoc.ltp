@@ -12,6 +12,12 @@
 # -- the Lunatik mark: the planet with its hole, drawn once for the header and the favicon
 # local LOGO = 'M41 28.5a28.1 28.1 0 1 0 56.2 0a28.1 28.1 0 1 0 -56.2 0ZM46.6 40.3a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z'
 # local REPO = GITHUB .. '/blob/master/'
+# -- bin/luaebpf is luainkernel/luaebpf's mount, whose files GitHub serves from that repository
+# local LUAEBPF = 'https://github.com/luainkernel/luaebpf/blob/master/'
+# local function blob(target)
+#  local rest = target:match('^bin/luaebpf/(.*)')
+#  return rest and LUAEBPF .. rest or REPO .. target
+# end
 # local up = module and '../' or ''
 # local function dirname(file) return file:match('^(.*)/[^/]*$') or '' end
 # local root, topics, guide, api = nil, {}, {}, {}
@@ -99,7 +105,7 @@
 #   end
 #   local target = resolve(dir, path)
 #   local topic = topics[target]
-#   return 'href="' .. (topic and up .. 'topics/' .. topic .. '.html' or REPO .. target) .. frag .. '"'
+#   return 'href="' .. (topic and up .. 'topics/' .. topic .. '.html' or blob(target)) .. frag .. '"'
 #  end))
 # end
 # local istopic = module and ldoc.body ~= nil

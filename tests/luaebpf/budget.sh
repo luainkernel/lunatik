@@ -10,7 +10,7 @@
 #   - the calls into the kernel Lua runtime are among them only where the kernel publishes luaxdp's
 #     BTF, in which libbpf resolves their kfunc
 # The ceiling is set from what was measured, not predicted; the figures are in
-# doc/design/luaebpf/plan.md.
+# bin/luaebpf/doc/design/luaebpf/plan.md.
 #
 # Usage: sudo bash tests/luaebpf/budget.sh
 
