@@ -7,4 +7,7 @@
 [submodule "luac"]
 	path = luac
 	url = https://github.com/luainkernel/luac.git
+[submodule "harness"]
+	path = harness
+	url = https://github.com/luainkernel/harness.git
 
