@@ -285,6 +285,14 @@ or a doubled `/`, which would spell the root of a run registered under the other
 is refused, and its stop reaches no root. A TC program needs a libbpf
 of 1.3.0 or later, where tcx begins; below it `run` refuses with `tcx needs libbpf 1.3.0`.
 
+An object whose program is a **scheduler**, a `sched_ext` `struct_ops` the kernel registers as a
+unit rather than a program it attaches to a device, takes no `--dev`: `run` loads its maps, starts
+the runtime where a kernel script sits beside it, registers the scheduler and pins the link that
+holds it at `/sys/fs/bpf/lunatik/<script>/<name>-link`, so it stays registered once the command has
+exited, and `stop` unregisters it. `--dev` on a scheduler is refused, `<script> is a scheduler and
+takes no device`, exiting 2 with the usage, as a missing one is on a program that needs it. Declaring
+a scheduler is [Schedulers](https://luainkernel.github.io/luaebpf/topics/08-luaebpf.md.html#schedulers).
+
 ```Shell
 sudo lunatik bpf -o /usr/local/lib/bpf/luaebpf/filter.bpf.o filter.bpf.lua
 sudo lunatik run --dev=eth0 filter

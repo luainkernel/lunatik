@@ -448,12 +448,18 @@ local function step(root, script, done, message)
 	if not done then undo(root, script, message) end
 end
 
--- a compiled program's run takes a device, and a context or percpu only where a kernel script takes them
-local function deployable(parsed, script)
+-- a compiled program's run takes a device, unless it is a scheduler the kernel registers, which
+-- takes none; a context or percpu only where a kernel script takes them
+local function deployable(parsed, script, scheduler)
 	local scripted = exists(SCRIPTS_PATH .. script .. ".lua")
-	if parsed.dev == nil then
+	if scheduler then
+		if parsed.dev ~= nil then
+			misuse(script .. " is a scheduler and takes no device")
+		end
+	elseif parsed.dev == nil then
 		misuse(script .. " needs --dev")
-	elseif not scripted and (parsed.context or parsed.percpu) then
+	end
+	if not scripted and (parsed.context or parsed.percpu) then
 		misuse(script .. " has no kernel script to take a context or percpu")
 	end
 	local root = rootof(script) or fail("couldn't pin " .. script .. ": a root takes no dot and no empty component")
@@ -468,18 +474,24 @@ local function clear(root)
 	os.execute("mkdir -p " .. quote(root))
 end
 
--- the maps are pinned before the runtime starts, since its script opens them, and the programs attach after it
+-- the maps are pinned before the runtime starts, since its script opens them, and the programs
+-- attach, or a scheduler registers, after it
 local function deploy(parsed, script, object)
-	local root, scripted = deployable(parsed, script)
 	local program, err = require("luaebpf.loader").open(object)
 	if program == nil then fail(err) end
+	local scheduler = program:scheduler()
+	local root, scripted = deployable(parsed, script, scheduler)
 	ensure_loaded()
 	-- the runtime would refuse the run anyway, and the root below is the live run's
 	if isrunning(script) then fail(script .. " is already running") end
 	clear(root)
 	step(root, nil, program:load(root))
 	if scripted then step(root, nil, start(script, parsed)) end
-	step(root, scripted and script, program:attach(root, parsed.dev))
+	if scheduler then
+		step(root, scripted and script, program:register(root))
+	else
+		step(root, scripted and script, program:attach(root, parsed.dev))
+	end
 end
 
 -- the links detach first and the maps go last, the reverse of deploy
