@@ -5,7 +5,7 @@
 --- Server Name Indication (SNI) parsing shared by the packet-filtering examples.
 -- @module examples.common.sni
 
-local HANDSHAKE      <const> = 0x16
+local HANDSHAKE      <const> = require("linux.tls").record.HANDSHAKE
 local CLIENT_HELLO   <const> = 0x01
 local SERVER_NAME    <const> = 0x0000
 local SESSION        <const> = 43
