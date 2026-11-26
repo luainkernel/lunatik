@@ -26,7 +26,7 @@ end
 local function sniclassify(ctx)
 	local skb     = ctx:skb()
 	local packet  = skb:data()
-	local payload = ctx:argument():getuint32(0)
+	local payload = ctx:argument():getint64(0)
 	local host    = sni(packet, payload)
 
 	if host then

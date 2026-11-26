@@ -36,7 +36,7 @@ local function u16(packet, at)
 end
 
 -- the map decides a flow it holds, and only the first packet of one calls Lua, as
--- examples/sniclassify/classify.c does
+-- examples/sniclassify/sni.bpf.lua does
 local function classify(skb)
 	local hash = skb:hash()
 	local cached = flows[hash]
