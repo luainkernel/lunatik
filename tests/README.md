@@ -1713,21 +1713,14 @@ object `make install` compiled from its program file.
 
 - **example_filter**: `examples/filter`, run by `lunatik run
   --context=softirq --percpu --dev=` on the host's end of a veth pair whose
-  peer sits in a namespace of the case's own. Frames written out of the
-  namespace's end by hand, each carrying a ClientHello and each failing one
-  test the program makes before it calls the script, an EtherType that is not
-  IPv4, a protocol that is not TCP, a port that is not 443 and a segment
-  without PSH, make no call, while the frame that passes them all is logged;
-  a frame of an Ethernet header alone, one of IPv4 that ends with its header,
-  one whose TCP header gives a data offset past its end and a segment with no
-  payload make neither a stop, which `lunatik bpf --errors` would report, nor
-  a call, which would raise in the script. A ClientHello naming another host
-  than `ebpf.io` reaches a listener on the host's end and is logged PASS; one
-  naming `ebpf.io` does not, though its connection does, and is logged DROP.
-  The stop leaves no program on the device, no runtime and no pin root. Skips
-  where the object is not installed, where `luaxdp` publishes no BTF and
-  without `socat`, and the two ClientHellos sent over a connection where
-  something already listens on port 443.
+  peer sits in a namespace of the case's own, where `curl` connects to a
+  listener on the host's end. A ClientHello naming another host than
+  `ebpf.io` reaches the listener and is logged PASS; one naming `ebpf.io`
+  does not, though its connection does, and is logged DROP. The stop leaves
+  no program on the device, no runtime and no pin root. Skips where the
+  object is not installed, where `luaxdp` publishes no BTF and without `socat`
+  or `curl`, and the two ClientHellos where something already listens on port
+  443.
 
 ### monitor
 
