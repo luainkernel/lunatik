@@ -6,7 +6,9 @@ that path as its README names, `sudo lunatik run [--context=<context>] examples/
 `sudo lunatik spawn examples/<dir>/<script>` for a script that returns a thread body.
 
 `filter`, `sniclassify` and `workload` also load an eBPF program, which needs `sudo make btf_install`
-before `make`, then `make ebpf`; their READMEs load the program from the source tree with `bpftool`.
+before `make`. `filter`'s is a program file, which `sudo make install` compiles and its README attaches
+with `lunatik run --dev`; `sniclassify` and `workload` build theirs with `make ebpf`, and their READMEs
+load it from the source tree with `bpftool`.
 `ifquarantine`, `tcpreject`, `dnsblock` and
 `dnsdoctor` act on the host's own traffic, and `ifquarantine` can cut the host off: run them from the
 source tree through `harness/tools/watchdog.sh`, which stops the script when the host has lost its
@@ -15,8 +17,8 @@ connectivity a few seconds after the start, as in
 
 ## Packet filtering and classification
 
-* [filter](../../examples/filter): an XDP/eBPF program and a Lua script that filter HTTPS sessions by
-  their SNI TLS extension. Needs clang, the libbpf headers, `bpftool` and a kernel with BTF.
+* [filter](../../examples/filter): an XDP program written in Lua and a Lua script that filter HTTPS
+  sessions by their SNI TLS extension. Needs a kernel with BTF.
 * [dnsblock](../../examples/dnsblock): a netfilter hook that drops outbound DNS queries for blacklisted
   domains.
 * [dnsdoctor](../../examples/dnsdoctor): a netfilter hook that rewrites the address in a DNS response
@@ -24,8 +26,8 @@ connectivity a few seconds after the start, as in
 * [tcpreject](../../examples/tcpreject): a netfilter hook that injects a TCP RST toward the origin of
   forwarded packets an `nft` rule marks. Needs `nft`, and its `setup.sh` turns forwarding on.
 * [sniclassify](../../examples/sniclassify): a TC/eBPF classifier on egress that classifies TLS
-  traffic by SNI after a Lua policy table. Needs what filter needs, and its `setup.sh` replaces the
-  interface's root qdisc with an HTB capped at 100 mbit.
+  traffic by SNI after a Lua policy table. Needs clang, the libbpf headers, `bpftool` and a kernel with
+  BTF, and its `setup.sh` replaces the interface's root qdisc with an HTB capped at 100 mbit.
 
 ## Network monitoring and control
 
@@ -71,6 +73,6 @@ connectivity a few seconds after the start, as in
 * [workload](../../examples/workload): a sched-ext/eBPF scheduler which
   associates tasks with dispatch queues and time slices, while a Lua kernel
   script applies a Lua policy table to assign a queue and slice to each task
-  seen for the first time. Needs a kernel 6.12 or later with `CONFIG_SCHED_CLASS_EXT`, and what
-  filter needs.
+  seen for the first time. Needs a kernel 6.12 or later with `CONFIG_SCHED_CLASS_EXT`, and clang, the
+  libbpf headers and `bpftool`.
 

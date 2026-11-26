@@ -2,8 +2,8 @@
 
 Lunatik's tests are shell scripts emitting KTAP, driving a kernel Lua script and asserting on what it
 prints to `dmesg` or on what userspace observes. `tests/bpf/` is the closest existing suite — it
-already deals with maps and pinned objects — and the XDP path in `examples/filter/` shows the build
-and load sequence a stub program needs. Read both, plus `tests/lib.sh`, before writing anything new.
+already deals with maps and pinned objects — and the XDP stubs of `tests/xdp/` show the build and
+load sequence a stub program needs. Read both, plus `tests/lib.sh`, before writing anything new.
 
 Run everything with `sudo lunatik test`, one suite with `sudo lunatik test lsm`.
 

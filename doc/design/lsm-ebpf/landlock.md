@@ -55,7 +55,7 @@ halfway by a script that raised, governs nothing and allows everything without a
 program, the hook a stub is attached to is the handled set, and the stub's source fixes what an
 absent key means there, as the mask given to `landlock_create_ruleset` does. The bridge on `master`
 already puts the default in the program: `bpf_luaxdp_run` answers `-1` when no verdict was reached,
-and `examples/filter/https.c` decides `action < 0 ? XDP_PASS : action`.
+and `tests/xdp/xdp_pass.bpf.c` decides `ret < 0 ? XDP_PASS : ret`.
 
 *What absent means, per hook.* Sent to Lua, every key the map does not name pays the interpreter,
 about 4.5 µs against 70 ns in the NetBSD measurement `plan.md` cites; on `bprm_check_security` that
@@ -243,7 +243,7 @@ to close.
 
 The eBPF bridge on `master` leaves the choice to the stub: `bpf_luaxdp_run` returns `-1` when no
 runtime answers the key, when no callback is attached, and when the callback ends, by a return or a
-raise, without setting an action (`lib/luaxdp.c`, `lunatik_ebpf.h`), and `examples/filter/https.c`
+raise, without setting an action (`lib/luaxdp.c`, `lunatik_ebpf.h`), and `tests/xdp/xdp_pass.bpf.c`
 turns that into `XDP_PASS`. On an
 LSM hook `-1` is `-EPERM`: an `lsm` kfunc that kept the sentinel would turn every failure of the
 bridge into a denial, on the auditor's hook as on the sandbox's, without either stub choosing it.
@@ -343,5 +343,5 @@ prototyping because it would also run on a kernel booted without `lsm=...,bpf`.
   implementation*](https://landlock.io/talks/2024-06-06_landlock-article.pdf), 2024, sections 5.5,
   7.3 and 8.4
 * In this tree: `lib/luafsnotify.c`, `lib/luaxdp.c`, `lunatik_ebpf.h`, `lib/luabpf.c`,
-  `examples/filter/https.c`, and `api.md`, `plan.md` and `testing.md` beside this note
+  `tests/xdp/xdp_pass.bpf.c`, and `api.md`, `plan.md` and `testing.md` beside this note
 
