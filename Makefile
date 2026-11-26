@@ -212,12 +212,10 @@ scripts_uninstall:
 SCHED_EXT := $(wildcard /sys/kernel/sched_ext)
 
 ebpf:
-	${MAKE} -C examples/sniclassify
 	$(if ${SCHED_EXT},${MAKE} -C examples/workload)
 
 ebpf_install:
 	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
-	${INSTALL} -m 0644 examples/sniclassify/classify.o ${LUNATIK_EBPF_INSTALL_PATH}/
 	$(if ${SCHED_EXT},${INSTALL} -m 0644 examples/workload/scheduler.o ${LUNATIK_EBPF_INSTALL_PATH}/)
 
 ebpf_uninstall:

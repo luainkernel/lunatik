@@ -1690,7 +1690,7 @@ publishes no BTF for the module whose kfunc its programs call.
   and `v = v or x` take the nil arm without the runtime and the number arm with
   it, as `if v` does; and a runtime in process context is not dispatched, which
   the module logs.
-- **partition**: `examples/sniclassify/classify.c`'s shape as a TC program
+- **partition**: `examples/sniclassify/sni.bpf.lua`'s shape as a TC program
   under `BPF_PROG_TEST_RUN`: two packets of a ClientHello make one call into
   Lua, the second decided from the hash map the program declares; the
   priority the callback set from its argument is what the map holds and what
@@ -1708,8 +1708,8 @@ publishes no BTF for the module whose kfunc its programs call.
   order it met them, over two programs of one file, and nothing for a program
   file with no call.
 
-The example case runs an example of the tree as its README does, with the
-object `make install` compiled from its program file.
+The example cases run an example of the tree each, as its README does, with
+the object `make install` compiled from its program file.
 
 - **example_filter**: `examples/filter`, run by `lunatik run
   --context=softirq --percpu --dev=` on the host's end of a veth pair whose
@@ -1721,6 +1721,16 @@ object `make install` compiled from its program file.
   object is not installed, where `luaxdp` publishes no BTF and without `socat`
   or `curl`, and the two ClientHellos where something already listens on port
   443.
+- **example_sniclassify**: `examples/sniclassify`, run by `lunatik run
+  --context=softirq --percpu --dev=` on the host's end of a veth pair whose
+  peer sits in a namespace of the case's own, under the HTB its `setup.sh`
+  builds, where `curl` on the host connects to a listener in the namespace.
+  The ClientHellos naming `zoom.com` and `netflix.com`, each over a
+  connection of its own, reach the listener and are logged once each with
+  their class, and the packets of each connection after it go out in that
+  class, from the map. Skips where the object is not installed, where `luatc`
+  publishes no BTF, without `socat`, `curl` or `tc`, without
+  `CONFIG_NET_SCH_HTB`, and where the CLI's libbpf is older than tcx.
 
 ### monitor
 

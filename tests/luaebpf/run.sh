@@ -14,6 +14,7 @@ SEP=""
 CASES="host scripts object types order pass lineinfo arith divzero verdict branch forconst forvar call"
 CASES="$CASES btfview ctx packet bounds nonlinear mapget mapset struct view refuse count budget"
 CASES="$CASES load stop unload undo notarget verifierlog license callback miss partition nobtf report example_filter"
+CASES="$CASES example_sniclassify"
 
 for t in $CASES; do
 	echo "${SEP}# --- $t.sh ---"

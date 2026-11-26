@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (c) 2026 Ring Zero Desenvolvimento de Software LTDA
 # SPDX-License-Identifier: MIT OR GPL-2.0-only
 #
-# Tests the shape the call into the kernel Lua runtime is for, examples/sniclassify/classify.c's: a
+# Tests the shape the call into the kernel Lua runtime is for, examples/sniclassify/sni.bpf.lua's: a
 # TC program decides a flow its hash map holds, walks the headers of one it does not, calls the
 # runtime only for a packet the walk accepts, and keeps the priority the callback set. classifier.lua
 # is the runtime, whose callback sets the skb's priority to the argument it was handed, counts its

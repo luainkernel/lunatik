@@ -6,9 +6,9 @@ that path as its README names, `sudo lunatik run [--context=<context>] examples/
 `sudo lunatik spawn examples/<dir>/<script>` for a script that returns a thread body.
 
 `filter`, `sniclassify` and `workload` also load an eBPF program, which needs `sudo make btf_install`
-before `make`. `filter`'s is a program file, which `sudo make install` compiles and its README attaches
-with `lunatik run --dev`; `sniclassify` and `workload` build theirs with `make ebpf`, and their READMEs
-load it from the source tree with `bpftool`.
+before `make`. `filter`'s and `sniclassify`'s are program files, which `sudo make install` compiles
+and their READMEs attach with `lunatik run --dev`; `workload` builds its own with `make ebpf`, and its
+README loads it from the source tree with `bpftool`.
 `ifquarantine`, `tcpreject`, `dnsblock` and
 `dnsdoctor` act on the host's own traffic, and `ifquarantine` can cut the host off: run them from the
 source tree through `harness/tools/watchdog.sh`, which stops the script when the host has lost its
@@ -25,9 +25,9 @@ connectivity a few seconds after the start, as in
   for a private client. Needs `dnsmasq` and `host`.
 * [tcpreject](../../examples/tcpreject): a netfilter hook that injects a TCP RST toward the origin of
   forwarded packets an `nft` rule marks. Needs `nft`, and its `setup.sh` turns forwarding on.
-* [sniclassify](../../examples/sniclassify): a TC/eBPF classifier on egress that classifies TLS
-  traffic by SNI after a Lua policy table. Needs clang, the libbpf headers, `bpftool` and a kernel with
-  BTF, and its `setup.sh` replaces the interface's root qdisc with an HTB capped at 100 mbit.
+* [sniclassify](../../examples/sniclassify): a TC program written in Lua on egress and a Lua script
+  that classify TLS traffic by SNI after a Lua policy table. Needs a kernel with BTF and libbpf 1.3.0 or
+  later, and its `setup.sh` replaces the interface's root qdisc with an HTB capped at 100 mbit.
 
 ## Network monitoring and control
 
