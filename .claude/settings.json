@@ -144,6 +144,15 @@
         ]
       },
       {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/.claude/hooks/on-start.sh\""
+          }
+        ]
+      },
+      {
         "matcher": "compact",
         "hooks": [
           {
