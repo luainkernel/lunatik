@@ -3,6 +3,7 @@
 * SPDX-License-Identifier: MIT OR GPL-2.0-only
 */
 
+#include <linux/cpuhotplug.h>
 #include <linux/irq_work.h>
 #include <linux/llist.h>
 #include <linux/percpu.h>
@@ -12,6 +13,7 @@
 #include "lunatik_defer.h"
 
 struct workqueue_struct *lunatik_wq;
+static int lunatik_deferstate;
 
 typedef struct lunatik_deferlist_s {
 	struct llist_head items;
@@ -49,13 +51,22 @@ static void lunatik_deferirq(struct irq_work *irq)
 	queue_work(lunatik_wq, &lunatik_deferwork);
 }
 
+/* what a CPU deferred going offline queued no irq_work */
+static int lunatik_deferdead(unsigned int cpu)
+{
+	queue_work(lunatik_wq, &lunatik_deferwork);
+	return 0;
+}
+
 void lunatik_defer(lunatik_defer_t *defer, lunatik_finalize_t finalize)
 {
 	lunatik_deferlist_t *list = this_cpu_ptr(&lunatik_deferlist);
 
 	defer->finalize = finalize;
 	llist_add(&defer->node, &list->items);
-	irq_work_queue(&list->irq); /* a queue_work here would wake a kworker under a runqueue lock */
+	/* an offline CPU takes no interrupt, so its irq_work would stay pending, where lunatik_cleanupdefer waits on it */
+	if (cpu_online(smp_processor_id()))
+		irq_work_queue(&list->irq); /* a queue_work here would wake a kworker under a runqueue lock */
 }
 
 #define lunatik_foreachdeferirq(op, ...)					\
@@ -69,13 +80,23 @@ int lunatik_setupdefer(void)
 {
 	lunatik_initdeferlist();
 	lunatik_wq = alloc_workqueue("lunatik", WQ_UNBOUND, 0);
-	return lunatik_wq != NULL ? 0 : -ENOMEM;
+	if (lunatik_wq == NULL)
+		return -ENOMEM;
+	lunatik_deferstate = cpuhp_setup_state_nocalls(CPUHP_BP_PREPARE_DYN, "lunatik:dead", NULL, lunatik_deferdead);
+	if (lunatik_deferstate < 0) {
+		destroy_workqueue(lunatik_wq);
+		return lunatik_deferstate;
+	}
+	return 0;
 }
 
 void lunatik_cleanupdefer(void)
 {
+	cpuhp_remove_state_nocalls(lunatik_deferstate);
 	/* lunatik_deferirq may not have run yet, and it queues on the workqueue destroyed below */
 	lunatik_foreachdeferirq(irq_work_sync);
+	/* what a CPU deferred before it came online queued no irq_work */
+	queue_work(lunatik_wq, &lunatik_deferwork);
 	destroy_workqueue(lunatik_wq);
 }
 
