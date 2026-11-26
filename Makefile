@@ -227,8 +227,10 @@ EXAMPLE_DIRS := $(patsubst examples/%/,%,$(wildcard examples/*/))
 
 examples_install:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples ${LUAEBPF_OBJECTS_INSTALL_PATH}/examples
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples
-	for d in $(EXAMPLE_DIRS); do \
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/common
+	# source whatever BYTECODE says: a program file calls its functions, which the compiler reads in no stripped chunk
+	${INSTALL} -m 0644 examples/common/*.lua ${SCRIPTS_INSTALL_PATH}/examples/common
+	for d in $(filter-out common,$(EXAMPLE_DIRS)); do \
 		${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/$$d; \
 		lua=$(call LUA_SCRIPTS,examples/$$d); \
 		$(call INSTALL_LUA,$$lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \
