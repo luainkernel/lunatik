@@ -122,6 +122,8 @@ void lunatik_cleanupdefer(void)
 	lunatik_cleanuphotplug();
 	/* lunatik_deferirq may not have run yet, and it queues on the workqueue destroyed below */
 	lunatik_foreachdeferirq(irq_work_sync);
+	/* what a CPU defers past cpuhp_ap_report_dead, after lunatik_deferhotplug ran, would outlive the module */
+	lunatik_queuefinalize();
 	destroy_workqueue(lunatik_wq);
 }
 
