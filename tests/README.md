@@ -1320,10 +1320,19 @@ it reads the counts beside it through `luaebpf.errors`, the reader of
   and one a called function computes return the error verdict of their type,
   `XDP_ABORTED` or `TC_ACT_SHOT`, and not the default, one run past the last
   action and below the first on XDP and past the last on TC logging "invalid
-  action" at the line of the return, once. A verdict the compiler
-  holds outside the actions, a boolean, a value that is a boolean on one path,
-  and a default verdict outside them are refused with their lines; with
-  `LUAEBPF_DROP=action` the verifier still loads the programs and `prog run`
+  action" at the line of the return, once. A read past the frame in a
+  program that names its error verdict, `XDP_PASS` or `TC_ACT_OK`, under
+  another default returns that verdict, logging "out of bounds" at the line of
+  the read, once, and counting one stop at its place, and the same read with
+  no error verdict named returns `XDP_ABORTED` or `TC_ACT_SHOT`; a stop in a
+  function two programs call returns the error verdict of each caller,
+  `XDP_REDIRECT` or `TC_ACT_TRAP` where it names one, another than the direct
+  read's, and its type's where it names none, and a program that names one and
+  does not stop returns its default. A
+  verdict the compiler holds outside the actions, a boolean, a value that is a
+  boolean on one path, and a default verdict outside them are refused with
+  their lines, and so is an error verdict that is no integer or outside them;
+  with `LUAEBPF_DROP=action` the verifier still loads the programs and `prog run`
   returns the raw low 32 bits.
 - **branch**: every comparison in its register and immediate forms with a
   negative against a positive, `if`/`elseif`/`else`, `and`, `or`, `not`,

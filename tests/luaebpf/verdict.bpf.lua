@@ -13,6 +13,7 @@ local tcact  = require("linux.tc").action
 -- an ethertype no IP header follows: an skb test run refuses an IPv4 one whose header is missing
 local FRAME <const> = "\xff\xff\xff\xff\xff\xff\x00\x11\x22\x33\x44\x55\x88\xb5"
 local WORD  <const> = 32 -- the bits of a verdict the kernel reads
+local PAST  <const> = 20 -- past the fourteen bytes of either frame
 
 -- the XDP rows read the fourteen bytes common.sh hands prog run, whose byte 12 is 8 and byte 13 is
 -- 0; the TC rows read FRAME, whose byte 6 is 0 and byte 7 is 0x11
@@ -36,6 +37,15 @@ local function tchigh(skb) local p = skb:data() local v = p:getbyte(7) << WORD |
 local function tccalled(skb) local p = skb:data() local n = p:getbyte(7) local v = above(n) return v end
 local function tcunspec(_) return tcact.UNSPEC end
 local function tctrap(_) return tcact.TRAP end
+local function idle(_) end
+
+-- each reads past the fourteen bytes of its frame; a read that kept 0 rather than stopping returns TX
+-- or PIPE, which none of the programs below owes
+local function xdpshort(ctx) local p = ctx:packet() if p:getbyte(PAST) == 0 then return action.TX end end
+local function tcshort(skb) local p = skb:data() if p:getbyte(PAST) == 0 then return tcact.PIPE end end
+local function past(p) local v = p:getbyte(PAST) return v end
+local function xdpcallee(ctx) local p = ctx:packet() if past(p) == 0 then return action.TX end end
+local function tccallee(skb) local p = skb:data() if past(p) == 0 then return tcact.PIPE end end
 
 for _, program in ipairs({{"xdpfirst", xdpfirst}, {"xdplast", xdplast}, {"xdpabove", xdpabove},
 		{"xdpbelow", xdpbelow}, {"xdphigh", xdphigh}, {"xdpcalled", xdpcalled}}) do
@@ -45,6 +55,15 @@ for _, program in ipairs({{"tcfirst", tcfirst}, {"tclast", tclast}, {"tcabove", 
 		{"tcbelow", tcbelow}, {"tchigh", tchigh}, {"tccalled", tccalled}, {"tcunspec", tcunspec},
 		{"tctrap", tctrap}}) do
 	tc.program(program[2], {name = program[1], default = tcact.OK})
+end
+for _, program in ipairs({{"xdperror", xdpshort, action.PASS}, {"xdpnoerror", xdpshort},
+		{"xdpcalleeerror", xdpcallee, action.REDIRECT}, {"xdpcalleenone", xdpcallee},
+		{"xdpnostop", idle, action.PASS}}) do
+	xdp.program(program[2], {name = program[1], default = action.DROP, error = program[3]})
+end
+for _, program in ipairs({{"tcerror", tcshort, tcact.OK}, {"tcnoerror", tcshort},
+		{"tccalleeerror", tccallee, tcact.TRAP}, {"tccalleenone", tccallee}, {"tcnostop", idle, tcact.OK}}) do
+	tc.program(program[2], {name = program[1], default = tcact.UNSPEC, error = program[3]})
 end
 
 corpus.context("tcframe", "__sk_buff", {}, FRAME)

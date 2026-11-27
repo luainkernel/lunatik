@@ -16,8 +16,20 @@
 #     last on TC, writes into the trace ring "invalid action", as luakfunc_action logs a callback's,
 #     at the line of the return, once and alone, and counts one stop at that line's place and none
 #     at another
+#   - a function that reads past the fourteen bytes of its frame, declared under an error verdict,
+#     XDP_PASS or TC_ACT_OK, and a default that is another action, XDP_DROP or TC_ACT_UNSPEC,
+#     returns that error verdict, and declared with the same default and no error verdict returns
+#     XDP_ABORTED or TC_ACT_SHOT; one run of each under its error verdict writes "out of bounds"
+#     into the trace ring at the line of the read, once and alone, and counts one stop at that
+#     line's place and none at another
+#   - a function both programs of a pair call, which stops reading past the frame, returns the
+#     error verdict of the program that called it, the one it names, XDP_REDIRECT or TC_ACT_TRAP,
+#     another than the direct read's, or its type's
+#   - a program that names an error verdict and stops nowhere returns its default where its
+#     function returns no value
 #   - a verdict the compiler holds outside the actions, a boolean, and a value a boolean on one
-#     path, are refused with their messages and lines, and so is a default verdict outside them
+#     path, are refused with their messages and lines, and so is a default verdict outside them,
+#     and an error verdict that is not an integer or is outside them
 #   - with LUAEBPF_DROP=action the test is gone, the verifier still takes the object, since it
 #     reads no XDP or TC return value, and prog run returns the low 32 bits of each value, which
 #     is what proves the test is emitted
@@ -31,15 +43,22 @@ source "$DIR/common.sh"
 
 trap cleanup EXIT
 
-luaebpf_start 16
+luaebpf_start 25
 
 INVALID="invalid action" # luakfunc_action, lib/luakfunc.h
+BOUNDS="out of bounds"   # luadata_checkbounds, lib/luadata.c
 
 # the line each verdict outside the actions logs, the first stops of the object
 verdicts() {
 	luaebpf_logs xdpabove "$(luaebpf_logline verdict "local function xdpabove" "$INVALID")"
 	luaebpf_logs xdpbelow "$(luaebpf_logline verdict "local function xdpbelow" "$INVALID")"
 	luaebpf_logs tcabove "$(luaebpf_logline verdict "local function tcabove" "$INVALID")" tcframe
+}
+
+# the line each stop under a named error verdict logs, the next stops of the object
+named() {
+	luaebpf_logs xdperror "$(luaebpf_logline verdict "local function xdpshort" "$BOUNDS")"
+	luaebpf_logs tcerror "$(luaebpf_logline verdict "local function tcshort" "$BOUNDS")" tcframe
 }
 
 # check <title> <name>[:<context>]=<verdict>...: prog run of each program, over the context named or
@@ -66,6 +85,7 @@ output=$(luaebpf_loadall verdict) || { comment "$output"; fail "luaebpf: the ver
 ktap_pass "luaebpf: every verdict program verifies"
 
 luaebpf_logcase "a verdict outside the actions logs \"$INVALID\" at its file and line, once" verdicts
+luaebpf_logcase "a stop under the error verdict a program names logs its file and line once" named
 
 check "an XDP verdict the program computes at either end of the actions is returned" \
 	xdpfirst=0 xdplast=4
@@ -75,6 +95,14 @@ check "a TC verdict the program computes or holds at either end of the actions i
 	tcfirst:tcframe=4294967295 tclast:tcframe=8 tcunspec:tcframe=4294967295 tctrap:tcframe=8
 check "a TC verdict computed outside the actions, past 32 bits or by a callee returns TC_ACT_SHOT" \
 	tcabove:tcframe=2 tcbelow:tcframe=2 tchigh:tcframe=2 tccalled:tcframe=2
+check "a read past the frame returns the error verdict the program names, not its default" \
+	xdperror=2 tcerror:tcframe=0
+check "the same read in a program that names no error verdict returns XDP_ABORTED or TC_ACT_SHOT" \
+	xdpnoerror=0 tcnoerror:tcframe=2
+check "a stop in a function two programs call returns the error verdict of each caller" \
+	xdpcalleeerror=4 xdpcalleenone=0 tccalleeerror:tcframe=8 tccalleenone:tcframe=2
+check "a program that names an error verdict and does not stop returns its default" \
+	xdpnostop=1 tcnostop:tcframe=4294967295
 
 # every row is one program of the type its module declares, so only the module and the return differ
 row() {
@@ -110,6 +138,14 @@ row tcboolean tc "5: the verdict may be a boolean here; return an action" \
 	$'\tlocal p = ctx:data()\n\treturn p:getbyte(7) == 17'
 row xdpdefault xdp "3: xdp.program's default verdict is not an XDP action" $'\treturn 2' ', {default = 5}'
 row tcdefault tc "3: tc.program's default verdict is not a TC action" $'\treturn 0' ', {default = -2}'
+row xdperrorinteger xdp "3: xdp.program's error verdict is not an integer" $'\treturn 2' \
+	', {default = action.PASS, error = "PASS"}'
+row xdperroraction xdp "3: xdp.program's error verdict is not an XDP action" $'\treturn 2' \
+	', {default = action.PASS, error = 5}'
+row tcerrorinteger tc "3: tc.program's error verdict is not an integer" $'\treturn 0' \
+	', {default = action.OK, error = true}'
+row tcerroraction tc "3: tc.program's error verdict is not a TC action" $'\treturn 0' \
+	', {default = action.OK, error = 9}'
 
 rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
 output=$(luaebpf_compile verdict action) || { comment "$output"; fail "luaebpf: the dropped build failed"; }

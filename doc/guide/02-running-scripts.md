@@ -265,7 +265,8 @@ The maps exist before the script opens them, and the programs attach once the ru
 failure at any step undoes the steps before it and exits 1 with that step's message, the verifier's
 own log when the kernel rejects a program, which quotes the Lua line; libbpf's own warnings, which
 name what failed where the kernel logs nothing, print on stderr before it. Once attached, a program
-drops a packet it cannot compute, with `XDP_ABORTED` or `TC_ACT_SHOT`, logs the error Lua raises
+returns its error verdict for a packet it cannot compute, `XDP_ABORTED` or `TC_ACT_SHOT` where it
+names none, which drop the packet, logs the error Lua raises
 there to the kernel's trace ring and counts the stop at its line, which
 `lunatik bpf --errors <script>` reports, as
 [When a program cannot be compiled or computed](https://luainkernel.github.io/luaebpf/topics/08-luaebpf.md.html#when-a-program-cannot-be-compiled-or-computed)
