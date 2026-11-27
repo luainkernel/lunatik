@@ -63,14 +63,16 @@ static int lunatik_deferdead(unsigned int cpu)
 	return 0;
 }
 
+/* an offline CPU takes no interrupt, so an irq_work queued there stays pending and irq_work_sync spins on it */
+#define lunatik_isonline()	cpu_online(smp_processor_id())
+
 void lunatik_defer(lunatik_defer_t *defer, lunatik_finalize_t finalize)
 {
 	lunatik_deferlist_t *list = this_cpu_ptr(&lunatik_deferlist);
 
 	defer->finalize = finalize;
 	llist_add(&defer->node, &list->items);
-	/* an offline CPU takes no interrupt, so its irq_work would stay pending, where lunatik_cleanupdefer waits on it */
-	if (cpu_online(smp_processor_id()))
+	if (lunatik_isonline())
 		irq_work_queue(&list->irq); /* a queue_work here would wake a kworker under a runqueue lock */
 }
 
