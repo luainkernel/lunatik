@@ -1640,6 +1640,16 @@ suite's own; each tears down before it reads its verdict.
   for a script with no kernel side exit 2 naming the option, and a name with a
   dot, which bpffs refuses and which could climb out of the pins path, exits 1.
   A script with no object runs as it did before, with a runtime and no root.
+- **scheduler**: the struct_ops path the C schedulers of the scx suite do not
+  reach, over the minimal sched_ext scheduler `bpf.scx` writes, a name and an
+  init callback that returns 0. The program file compiles, and a run with no
+  device registers it: the link register pins sits under the script's root,
+  sched_ext reports the scheduler enabled, no runtime is registered since no
+  kernel script sits beside it, and the stop unregisters it, leaving sched_ext
+  disabled and the root gone. A run with `--dev` is refused naming the option,
+  before anything is created. Skips on a kernel without sched_ext, where the
+  compiler's read of `sched_ext_ops` has nothing to read, and while another
+  sched_ext scheduler is enabled.
 - **verifierlog**: a rejected program makes `lunatik run` exit 1 printing the
   verifier's own log, which quotes the Lua line from the object's
   `line_info`; **load** loads the same program file compiled without the test
