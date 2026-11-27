@@ -74,19 +74,8 @@ loops() {
 	! luaebpf_maygoto || drainedlog
 }
 
-cat > "$LUAEBPF_WORK/zerostep.bpf.lua" <<'LUA'
-local xdp = require("bpf.xdp")
-local action = require("linux.xdp").action
-
-return xdp.program(function(ctx)
-	local s = 0
-	for i = 1, 10, 0 do
-		s = s + i
-	end
-	return s
-end, {default = action.PASS})
-LUA
-output=$(luaebpf_refuses zerostep "zerostep.bpf.lua:6: 'for' step is zero") \
+cp "$LUAEBPF_SRC/zerostep.bpf.lua" "$LUAEBPF_WORK/"
+output=$(luaebpf_refuses zerostep "zerostep.bpf.lua:12: 'for' step is zero") \
 	|| { comment "$output"; fail "luaebpf: a zero step is not refused"; }
 ktap_pass "luaebpf: a 'for' whose step is zero at compile time is refused with its line"
 

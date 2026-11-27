@@ -119,53 +119,14 @@ row valuemethod 8 "the map value has no method 'foo'" $'\tlocal v = flows[1]\n\t
 
 # two maps of different value widths, so the spec the merged value would be read with decides
 # how many bytes the load takes
-cat > "$LUAEBPF_WORK/twomaps.bpf.lua" <<'LUA'
-local map = require("bpf.map")
-local xdp = require("bpf.xdp")
-local action = require("linux.xdp").action
-
-local wide = map.hash("wide", {key = "I4", value = "I8", entries = 8})
-local thin = map.hash("thin", {key = "I4", value = "I1", entries = 8})
-
-return xdp.program(function(ctx)
-	local p = ctx:packet()
-	local v
-	if p:getbyte(0) == 255 then
-		v = wide[1]
-	else
-		v = thin[1]
-	end
-	if v then
-		return v
-	end
-	return 0
-end, {default = action.PASS})
-LUA
-output=$(luaebpf_refuses twomaps "twomaps.bpf.lua:16: a map value here comes from more than one map") \
+cp "$LUAEBPF_SRC/twomaps.bpf.lua" "$LUAEBPF_WORK/"
+output=$(luaebpf_refuses twomaps "twomaps.bpf.lua:22: a map value here comes from more than one map") \
 	|| { comment "$output"; fail "luaebpf: a value two maps merge into is not refused"; }
 ktap_pass "luaebpf: a value two maps merge into is refused with its line"
 
 # the same two maps meeting through a loop's back edge, which reaches the test after it was walked
-cat > "$LUAEBPF_WORK/backedge.bpf.lua" <<'LUA'
-local map = require("bpf.map")
-local xdp = require("bpf.xdp")
-local action = require("linux.xdp").action
-
-local wide = map.hash("wide", {key = "I4", value = "I8", entries = 8})
-local thin = map.hash("thin", {key = "I4", value = "I1", entries = 8})
-
-return xdp.program(function(_)
-	local v = wide[1]
-	for _ = 1, 3 do
-		if v then
-			return v
-		end
-		v = thin[1]
-	end
-	return 0
-end, {default = action.PASS})
-LUA
-output=$(luaebpf_refuses backedge "backedge.bpf.lua:11: a map value here comes from more than one map") \
+cp "$LUAEBPF_SRC/backedge.bpf.lua" "$LUAEBPF_WORK/"
+output=$(luaebpf_refuses backedge "backedge.bpf.lua:17: a map value here comes from more than one map") \
 	|| { comment "$output"; fail "luaebpf: a value a back edge merges from two maps is not refused"; }
 ktap_pass "luaebpf: a value a back edge merges from two maps is refused with its line"
 

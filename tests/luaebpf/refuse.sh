@@ -166,14 +166,8 @@ row outsidevalue "outsidevalue.bpf.lua:6: the map value 4294967296 does not fit 
 	$'\tflows[1] = 0x100000000\n\treturn 0' \
 	$'local map = require("bpf.map")\nlocal flows = map.hash("flows", {key = "I4", value = "I4", entries = 8})'
 
-cat > "$LUAEBPF_WORK/floatdefault.bpf.lua" <<'LUA'
-local xdp = require("bpf.xdp")
-
-return xdp.program(function(_)
-	return 2
-end, {default = math.sqrt(4)})
-LUA
-luaebpf_refused floatdefault "floatdefault.bpf.lua:3: xdp.program's default verdict is not an integer"
+cp "$LUAEBPF_SRC/floatdefault.bpf.lua" "$LUAEBPF_WORK/"
+luaebpf_refused floatdefault "floatdefault.bpf.lua:9: xdp.program's default verdict is not an integer"
 
 # a constructor called with no default verdict, the function defined lines above the call, so the
 # refusal names the line of the program's function rather than the call's
@@ -200,20 +194,10 @@ defaultless tcnodefault "tcnodefault.bpf.lua:3: tc.program's default verdict is 
 defaultless tcnoopts "tcnoopts.bpf.lua:3: tc.program's default verdict is not an integer" tc \
 	'tc.program(program)'
 
-cat > "$LUAEBPF_WORK/cfunction.bpf.lua" <<'LUA'
-local xdp = require("bpf.xdp")
-local action = require("linux.xdp").action
-
-return xdp.program(string.len, {default = action.PASS})
-LUA
+cp "$LUAEBPF_SRC/cfunction.bpf.lua" "$LUAEBPF_WORK/"
 luaebpf_refused cfunction "xdp.program takes a Lua function"
 
-cat > "$LUAEBPF_WORK/loaded.bpf.lua" <<'LUA'
-local xdp = require("bpf.xdp")
-local action = require("linux.xdp").action
-
-return xdp.program(load("return function(ctx) return 2 end")(), {default = action.PASS})
-LUA
+cp "$LUAEBPF_SRC/loaded.bpf.lua" "$LUAEBPF_WORK/"
 luaebpf_refused loaded '[string "return function(ctx) return 2 end"]:1: a compiled function is defined in the program file'
 
 check_dmesg

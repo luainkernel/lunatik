@@ -81,22 +81,8 @@ row nooffset 7 "'getbyte' takes an offset" \
 row booleanat 6 "'getuint16' takes a number, not a boolean" \
 	$'\tlocal p = ctx:packet()\n\tlocal v = p:getuint16(true)\n\treturn v'
 
-cat > "$LUAEBPF_WORK/mixedargs.bpf.lua" <<'LUA'
-local xdp = require("bpf.xdp")
-local action = require("linux.xdp").action
-
-local function second(_, at)
-	return at
-end
-
-return xdp.program(function(ctx)
-	local p = ctx:packet()
-	local a = second(1, 2)
-	local b = second(p, 2)
-	return a + b
-end, {default = action.PASS})
-LUA
-output=$(luaebpf_refuses mixedargs "mixedargs.bpf.lua:11: 'second' is called with a packet and compiled with a number") \
+cp "$LUAEBPF_SRC/mixedargs.bpf.lua" "$LUAEBPF_WORK/"
+output=$(luaebpf_refuses mixedargs "mixedargs.bpf.lua:17: 'second' is called with a packet and compiled with a number") \
 	|| { comment "$output"; fail "luaebpf: a function called with a packet where it took a number is not refused"; }
 ktap_pass "luaebpf: a function called with a packet and compiled for a number is refused with its line"
 
@@ -105,17 +91,7 @@ wide=$'\tlocal p = ctx:packet()\n\tlocal a = p:getbyte(6)\n\tlocal b = p:getuint
 row unaligned 7 "'getuint16' reads more than a byte, and this kernel lacks efficient unaligned access" \
 	"$wide" 'require("luaebpf.emit").unaligned = false'
 
-cat > "$LUAEBPF_WORK/tcwide.bpf.lua" <<'LUA'
-require("luaebpf.emit").unaligned = false
-local tc     = require("bpf.tc")
-local action = require("linux.tc").action
-
-return tc.program(function(skb)
-	local p = skb:data()
-	local v = p:getuint16(6)
-	return v
-end, {default = action.OK})
-LUA
+cp "$LUAEBPF_SRC/tcwide.bpf.lua" "$LUAEBPF_WORK/"
 output=$(cd "$LUAEBPF_WORK" && lunatik bpf -o "$LUAEBPF_WORK/tcwide.bpf.o" "$LUAEBPF_WORK/tcwide.bpf.lua" 2>&1) \
 	|| { comment "$output"; fail "luaebpf: a TC read wider than a byte is refused without efficient unaligned access"; }
 ktap_pass "luaebpf: a TC read wider than a byte compiles without efficient unaligned access"

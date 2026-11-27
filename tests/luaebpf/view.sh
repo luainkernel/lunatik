@@ -123,23 +123,8 @@ row unalignedbits 12 "field 'doff' reads more than a byte, and this kernel lacks
 	"$view"$'\tlocal t = tcp:view(p, 34)\n\tlocal d = t.doff\n\treturn d' \
 	'require("luaebpf.emit").unaligned = false local tcp = struct(vmlinux.layout("tcphdr"))'
 
-cat > "$LUAEBPF_WORK/tcwide.bpf.lua" <<'LUA'
-require("luaebpf.emit").unaligned = false
-local struct  = require("struct")
-local vmlinux = require("bpf.vmlinux")
-local tc      = require("bpf.tc")
-local action  = require("linux.tc").action
-
-local iphdr = struct(vmlinux.layout("iphdr"))
-
-return tc.program(function(skb)
-	local p = skb:data()
-	local ip = iphdr:view(p, 14)
-	local v = ip.tot_len
-	return v
-end, {default = action.OK})
-LUA
-output=$(luaebpf_written tcwide 2>&1) \
+cp "$LUAEBPF_SRC/tcview.bpf.lua" "$LUAEBPF_WORK/"
+output=$(luaebpf_written tcview 2>&1) \
 	|| { comment "$output"; fail "luaebpf: a TC view field wider than a byte is refused without efficient unaligned access"; }
 ktap_pass "luaebpf: a TC view field wider than a byte compiles without efficient unaligned access"
 
