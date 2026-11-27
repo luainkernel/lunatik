@@ -1399,19 +1399,26 @@ it reads the counts beside it through `luaebpf.errors`, the reader of
   type off the section it sits in, the egress one answering `#skb` as the
   ingress one does. The XDP programs read `ctx:ingress()` and `ctx:queue()`,
   the kernel's XDP ctx object's spelling, and the TC
-  ones `#skb`, `skb:ifindex()`, `skb:hash()` and `skb:priority()`, the kernel's
-  skb object's, each answering what `prog run` was told to build the context
-  from, the hash 0 since `prog run` sets none, the body having written those
-  bytes at the offsets `bpf.vmlinux` reports; `skb:priority(v)`, of a
-  constant, of `U32_MAX` and of a value computed from `#skb` with the field's
-  top bit set, answers `v` back through the kernel's own context, the constant
-  in `ctx_out` too, and a value the program computes past 32 bits or below zero
-  returns `TC_ACT_SHOT` and leaves `ctx_out` with the priority it was
-  given, one run of each logging "out of bounds" at its line, once. A field read or assigned on either context, `ctx.ingress_ifindex`,
-  `ctx.rx_queue_index`, `skb.len` and `skb.priority` among them, `#` on an XDP
-  context, `ingress_ifindex`, which the kernel's skb object does not carry, a
-  field the struct does not carry, `skb:priority` given a boolean and a
-  constant past 32 bits or below zero, `ctx.data`, `ctx:data()` on XDP and
+  ones `#skb`, `skb:ifindex()`, `skb:hash()`, `skb:mark()` and
+  `skb:priority()`, the kernel's skb object's, each answering what `prog run`
+  was told to build the context from, the hash 0 since `prog run` sets none,
+  the body having written those bytes at the offsets `bpf.vmlinux` reports;
+  `skb:priority(v)`, of a constant, of `U32_MAX` and of a value computed from
+  `#skb` with the field's top bit set, answers `v` back through the kernel's
+  own context, the constant in `ctx_out` too, and a value the program computes
+  past 32 bits or below zero returns `TC_ACT_SHOT` and leaves `ctx_out` with
+  the priority it was given, one run of each logging "out of bounds" at its
+  line, once. `skb:mark(v)`, of a constant and of a value computed from `#skb`
+  with the top bit set, answers `v`, the constant in `ctx_out` too, over a mark
+  `prog run` was given apart from the priority, and a computed mark past 32
+  bits or below zero returns `TC_ACT_SHOT`, the one below zero leaving
+  `ctx_out` with the mark it was given, one run of each logging "out of bounds"
+  at its line, once. A field read or assigned on either context,
+  `ctx.ingress_ifindex`, `ctx.rx_queue_index`, `skb.len`, `skb.priority` and
+  `skb.mark` among them, `#` on an XDP context, `ingress_ifindex`, which the
+  kernel's skb object does not carry, a field the struct does not carry,
+  `skb:priority` and `skb:mark` given a boolean and a constant past 32 bits or
+  below zero, `skb:connmark()`, which the kernel's skb  object has and the context does not, `ctx.data`, `ctx:data()` on XDP and
   `skb:packet()` on TC, each the other's name for the packet, and
   `skb:data("net")`, a layer no compiled read reaches yet, are refused with
   their messages and lines.
