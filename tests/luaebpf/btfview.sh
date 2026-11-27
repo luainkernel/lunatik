@@ -194,7 +194,7 @@ layout() {
 }
 
 XDP_FIELDS="ingress_ifindex rx_queue_index data data_end"
-SKB_FIELDS="len hash ifindex ingress_ifindex priority data data_end"
+SKB_FIELDS="len mark hash ifindex ingress_ifindex priority data data_end"
 
 output=$(luaebpf_compile btfview) || { comment "$output"; fail "luaebpf: btfview.bpf.lua did not compile"; }
 DUMP="$LUAEBPF_WORK/btf.txt"

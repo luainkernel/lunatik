@@ -1399,19 +1399,26 @@ it reads the counts beside it through `luaebpf.errors`, the reader of
   type off the section it sits in, the egress one answering `#skb` as the
   ingress one does. The XDP programs read `ctx:ingress()` and `ctx:queue()`,
   the kernel's XDP ctx object's spelling, and the TC
-  ones `#skb`, `skb:ifindex()`, `skb:hash()` and `skb:priority()`, the kernel's
-  skb object's, each answering what `prog run` was told to build the context
-  from, the hash 0 since `prog run` sets none, the body having written those
-  bytes at the offsets `bpf.vmlinux` reports; `skb:priority(v)`, of a
-  constant, of `U32_MAX` and of a value computed from `#skb` with the field's
-  top bit set, answers `v` back through the kernel's own context, the constant
-  in `ctx_out` too, and a value the program computes past 32 bits or below zero
-  returns `TC_ACT_SHOT` and leaves `ctx_out` with the priority it was
-  given, one run of each logging "out of bounds" at its line, once. A field read or assigned on either context, `ctx.ingress_ifindex`,
-  `ctx.rx_queue_index`, `skb.len` and `skb.priority` among them, `#` on an XDP
-  context, `ingress_ifindex`, which the kernel's skb object does not carry, a
-  field the struct does not carry, `skb:priority` given a boolean and a
-  constant past 32 bits or below zero, `ctx.data`, `ctx:data()` on XDP and
+  ones `#skb`, `skb:ifindex()`, `skb:hash()`, `skb:mark()` and
+  `skb:priority()`, the kernel's skb object's, each answering what `prog run`
+  was told to build the context from, the hash 0 since `prog run` sets none,
+  the body having written those bytes at the offsets `bpf.vmlinux` reports;
+  `skb:priority(v)`, of a constant, of `U32_MAX` and of a value computed from
+  `#skb` with the field's top bit set, answers `v` back through the kernel's
+  own context, the constant in `ctx_out` too, and a value the program computes
+  past 32 bits or below zero returns `TC_ACT_SHOT` and leaves `ctx_out` with
+  the priority it was given, one run of each logging "out of bounds" at its
+  line, once. `skb:mark(v)`, of a constant and of a value computed from `#skb`
+  with the top bit set, answers `v`, the constant in `ctx_out` too, over a mark
+  `prog run` was given apart from the priority, and a computed mark past 32
+  bits or below zero returns `TC_ACT_SHOT`, the one below zero leaving
+  `ctx_out` with the mark it was given, one run of each logging "out of bounds"
+  at its line, once. A field read or assigned on either context,
+  `ctx.ingress_ifindex`, `ctx.rx_queue_index`, `skb.len`, `skb.priority` and
+  `skb.mark` among them, `#` on an XDP context, `ingress_ifindex`, which the
+  kernel's skb object does not carry, a field the struct does not carry,
+  `skb:priority` and `skb:mark` given a boolean and a constant past 32 bits or
+  below zero, `skb:connmark()`, which the kernel's skb  object has and the context does not, `ctx.data`, `ctx:data()` on XDP and
   `skb:packet()` on TC, each the other's name for the packet, and
   `skb:data("net")`, a layer no compiled read reaches yet, are refused with
   their messages and lines.
@@ -1460,6 +1467,16 @@ it reads the counts beside it through `luaebpf.errors`, the reader of
   program attached at the host side's ingress, in a run of its own, answers the
   pings and the segments the namespace sends the host the same way. Skips the
   device cases without `socat` or `tc`.
+- **mark**: the mark a compiled TC program sets is the one the netfilter rules
+  after it read: a program that sets `skb:mark(2)` on every packet and lets it
+  through is attached by `lunatik run --dev` at the tcx ingress of a bridge's
+  port, a veth whose peer sits in a namespace, and a rule of an nft bridge
+  table at prerouting counts the echo requests carrying mark 2. Three pings from
+  the namespace to the bridge's address are answered and the rule counts three,
+  since `__netif_receive_skb_core` runs tcx before the bridge's `rx_handler`,
+  which runs `NF_BR_PRE_ROUTING` on the same skb. Skips without `nft`, on a
+  kernel whose configuration lacks a bridge, nftables' bridge family or tcx,
+  and where the CLI's loader names a libbpf older than tcx.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, each as the type its constructor names,
   and every program is run against the empty

@@ -16,6 +16,8 @@ local OK      <const> = require("linux.tc").action.OK
 local IFINDEX <const> = 1
 local QUEUE   <const> = 0
 local PRIO    <const> = 5
+-- apart from PRIO, so that a read or a write of the other field answers another number
+local MARK    <const> = 9
 local WRITTEN <const> = 77
 local U32MAX  <const> = 0xffffffff
 -- an ethertype no IP header follows: an skb test run refuses an IPv4 one whose header is missing
@@ -110,13 +112,52 @@ local function skbsetnegative(keep)
 	end
 end
 
+local function skbmark(keep)
+	return function(skb)
+		local mark = skb:mark()
+		keep(mark)
+	end
+end
+
+local function skbsetmark(keep)
+	return function(skb)
+		local mark = skb:mark(WRITTEN)
+		keep(mark)
+	end
+end
+
+local function skbsetmarklength(keep)
+	return function(skb)
+		local mark = skb:mark(U32MAX - #skb)
+		keep(mark)
+	end
+end
+
+local function skbsetmarkwide(keep)
+	return function(skb)
+		local mark = skb:mark(#skb + U32MAX)
+		keep(mark)
+	end
+end
+
+local function skbsetmarknegative(keep)
+	return function(skb)
+		local mark = skb:mark(-#skb)
+		keep(mark)
+	end
+end
+
 local xdpctx = corpus.context("xdpctx", "xdp_md",
 	{ingress_ifindex = IFINDEX, rx_queue_index = QUEUE}, FRAME)
-local skbctx = corpus.context("skbctx", "__sk_buff", {ifindex = IFINDEX, priority = PRIO}, FRAME)
--- each write row gets a context of its own, since it leaves its twin's priority changed
+local skbctx = corpus.context("skbctx", "__sk_buff", {ifindex = IFINDEX, priority = PRIO, mark = MARK}, FRAME)
+-- each write row gets a context of its own, since it leaves its twin's field changed
 local skbwrite = corpus.context("skbwrite", "__sk_buff", {ifindex = IFINDEX, priority = PRIO}, FRAME)
 local skbcomputed = corpus.context("skbcomputed", "__sk_buff", {ifindex = IFINDEX, priority = PRIO}, FRAME)
 local skbmax = corpus.context("skbmax", "__sk_buff", {ifindex = IFINDEX, priority = PRIO}, FRAME)
+local skbmarkwrite = corpus.context("skbmarkwrite", "__sk_buff",
+	{ifindex = IFINDEX, priority = PRIO, mark = MARK}, FRAME)
+local skbmarkcomputed = corpus.context("skbmarkcomputed", "__sk_buff",
+	{ifindex = IFINDEX, priority = PRIO, mark = MARK}, FRAME)
 
 local rows = corpus.new()
 rows:stores("ingress", ingress, PASS, xdpctx)
@@ -131,6 +172,11 @@ rows:stores("skbsetlen", skbsetlength, OK, skbcomputed)
 rows:stores("skbsetmax", skbsetmax, OK, skbmax)
 rows:stores("skbsetwide", skbsetwide, OK, skbctx)
 rows:stores("skbsetneg", skbsetnegative, OK, skbctx)
+rows:stores("skbmark", skbmark, OK, skbctx)
+rows:stores("skbsetmark", skbsetmark, OK, skbmarkwrite)
+rows:stores("skbsetmarklen", skbsetmarklength, OK, skbmarkcomputed)
+rows:stores("skbsetmarkwide", skbsetmarkwide, OK, skbctx)
+rows:stores("skbsetmarkneg", skbsetmarknegative, OK, skbctx)
 -- the length read again on the way out, from the section libbpf reads the egress attach point off
 corpus.program(tc.program, {name = "skbegress", egress = true, default = OK}, skblen)
 rows:close()
@@ -142,5 +188,6 @@ for _, field in ipairs(vmlinux.layout("__sk_buff").fields) do
 end
 out:write("written\t", WRITTEN, "\t0\n")
 out:write("held\t", PRIO, "\t0\n")
+out:write("marked\t", MARK, "\t0\n")
 out:close()
 

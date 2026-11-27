@@ -108,15 +108,23 @@ function skb:hash()
 end
 
 -- luaskb_integer: a value is stored, within the 32 bits the field has, and the field is returned
-function skb:priority(value)
+local function integer(self, field, value)
 	local fields = states[self].fields
 	if value ~= nil then
 		if value < 0 or value > U32MAX then
 			error("out of bounds", 0)
 		end
-		fields.priority = value
+		fields[field] = value
 	end
-	return fields.priority
+	return fields[field]
+end
+
+function skb:mark(value)
+	return integer(self, "mark", value)
+end
+
+function skb:priority(value)
+	return integer(self, "priority", value)
 end
 
 function skb:data()
