@@ -121,6 +121,15 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/send-guard.sh\""
           }
         ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/harness/tools/checks/ceiling-guard.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
