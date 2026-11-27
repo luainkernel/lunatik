@@ -12,7 +12,7 @@ FAILED=0
 
 SEP=""
 CASES="host scripts object types order pass lineinfo arith divzero verdict branch forconst forvar call"
-CASES="$CASES btfview ctx packet bounds nonlinear mapget mapset struct view refuse count budget"
+CASES="$CASES btfview ctx packet bounds nonlinear mark mapget mapset struct view refuse count budget"
 CASES="$CASES load stop unload undo notarget verifierlog license callback miss partition nobtf report"
 
 for t in $CASES; do

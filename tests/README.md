@@ -1467,6 +1467,16 @@ it reads the counts beside it through `luaebpf.errors`, the reader of
   program attached at the host side's ingress, in a run of its own, answers the
   pings and the segments the namespace sends the host the same way. Skips the
   device cases without `socat` or `tc`.
+- **mark**: the mark a compiled TC program sets is the one the netfilter rules
+  after it read: a program that sets `skb:mark(2)` on every packet and lets it
+  through is attached by `lunatik run --dev` at the tcx ingress of a bridge's
+  port, a veth whose peer sits in a namespace, and a rule of an nft bridge
+  table at prerouting counts the echo requests carrying mark 2. Three pings from
+  the namespace to the bridge's address are answered and the rule counts three,
+  since `__netif_receive_skb_core` runs tcx before the bridge's `rx_handler`,
+  which runs `NF_BR_PRE_ROUTING` on the same skb. Skips without `nft`, on a
+  kernel whose configuration lacks a bridge, nftables' bridge family or tcx,
+  and where the CLI's loader names a libbpf older than tcx.
 - **mapget**: the maps a program file declares are created and pinned by
   `bpftool prog loadall ... pinmaps`, each as the type its constructor names,
   and every program is run against the empty
