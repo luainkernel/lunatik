@@ -171,12 +171,7 @@ luaebpf_logged() {
 luaebpf_counts() {
 	local lines="$LUAEBPF_MAPS/luaebpf_errors-lines"
 	[ -e "$lines" ] || bpftool map pin pinned "$LUAEBPF_MAPS/_data_luaebpf_errors" "$lines" 2>/dev/null
-	lua5.5 - "$LUAEBPF_MAPS" <<'LUA'
-local places = assert(require("luaebpf").errors(arg[1]))
-for _, place in ipairs(places) do
-	print(string.format("%d\t%s:%d: %s", place.count, place.file, place.line, place.reason))
-end
-LUA
+	lua5.5 "$LUAEBPF_SRC/counts.host.lua" "$LUAEBPF_MAPS"
 }
 
 # luaebpf_counted <before> <after> <line> <n>: the counts went from <before> to <after>, as
@@ -323,37 +318,7 @@ luaebpf_ordered() {
 # magic, the version and the flags, every field of the header and of the types is a word, as
 # libbpf's btf_bswap_hdr and btf_bswap_type_rest swap them, and the strings are bytes
 luaebpf_swapped() {
-	lua5.5 - "$1" "$2" <<'LUA'
-local pack, unpack = string.pack, string.unpack
-local insert       = table.insert
-
-local MAGIC <const> = 0xeb9f
-local WORD  <const> = 4
-
-local file = assert(io.open(arg[1], "rb"))
-local bytes = file:read("a")
-file:close()
-
-local from = unpack("<I2", bytes) == MAGIC and "<" or ">"
-local to = from == "<" and ">" or "<"
-local hdrlen, typeoff, typelen = unpack(from .. "I4I4I4", bytes, 5)
-local types = hdrlen + typeoff
-local out = {pack(to .. "I2", MAGIC), bytes:sub(3, 4)}
-
-local function swap(first, last)
-	for at = first, last, WORD do
-		insert(out, pack(to .. "I4", (unpack(from .. "I4", bytes, at))))
-	end
-end
-
-swap(5, hdrlen)
-insert(out, bytes:sub(hdrlen + 1, types))
-swap(types + 1, types + typelen)
-insert(out, bytes:sub(types + typelen + 1))
-file = assert(io.open(arg[2], "wb"))
-assert(file:write(table.concat(out)))
-assert(file:close())
-LUA
+	lua5.5 "$LUAEBPF_SRC/swapped.host.lua" "$1" "$2"
 }
 
 # `make install` compiles no program file of this suite, so a loader case puts its own object

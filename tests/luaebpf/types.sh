@@ -26,32 +26,18 @@ trap cleanup EXIT
 ktap_header
 ktap_plan $CASES
 
-lua5.5 -e 'assert(package.searchpath("luaebpf.emit.frame", package.path))' 2>/dev/null \
+lua5.5 "$DIR/searchpath.host.lua" luaebpf.emit.frame 2>/dev/null \
 	|| skip_script "luaebpf: luaebpf is not installed; run make and make install"
 
 mark_dmesg
 
-output=$(lua5.5 - 2>&1 <<'LUA'
-local frame = require("luaebpf.emit.frame")
-local classes, typenames = frame.classes, frame.typenames
-local A = frame.type("a", "word", "untested")
-local B = frame.type("b")
-assert(A ~= B and A & B == 0, "two types share a bit")
-assert(typenames[A] == "a" and typenames[B] == "b", "a type is not recorded under its name")
-assert(classes.word & A ~= 0 and classes.untested & A ~= 0, "a type is missing from a class it declared")
-assert(classes.proxy & A == 0, "a type joined a class it did not declare")
-assert((classes.word | classes.proxy | classes.untested) & B == 0, "a type declared into no class joined one")
-LUA
-) || { comment "$output"; fail "luaebpf: a declared type does not take its bit, its name and its classes"; }
+output=$(lua5.5 "$DIR/declared.host.lua" 2>&1) \
+	|| { comment "$output"; fail "luaebpf: a declared type does not take its bit, its name and its classes"; }
 ktap_pass "luaebpf: a declared type takes a bit of its own, its name and the classes it names, and no other"
 
-output=$(lua5.5 - 2>&1 <<'LUA'
-local frame = require("luaebpf.emit.frame")
-frame.type("x", "bogus")
-LUA
-)
+output=$(lua5.5 "$DIR/bogusclass.host.lua" 2>&1)
 status=$?
-[ $status -ne 0 ] && grep -qF "stdin:2: 'bogus' is not a class the frame reads" <<< "$output" \
+[ $status -ne 0 ] && grep -qF "bogusclass.host.lua:8: 'bogus' is not a class the frame reads" <<< "$output" \
 	|| { comment "$output"; fail "luaebpf: a type declared into a class the frame does not read is not refused at its line"; }
 ktap_pass "luaebpf: a type declared into a class the frame does not read is refused at the declaring line, naming the class"
 

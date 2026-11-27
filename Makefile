@@ -56,8 +56,9 @@ define INSTALL_BPF
 	esac; done
 endef
 
-# a directory's kernel scripts, not its program files: a program file's body runs on the host, never under the kernel's require
-LUA_SCRIPTS = $$(ls $(1)/*.lua 2>/dev/null | grep -v '\.bpf\.lua$$')
+# a directory's kernel scripts, not its program files nor the Lua a case runs on the host: a program file's body and
+# that Lua run on the host, never under the kernel's require
+LUA_SCRIPTS = $$(ls $(1)/*.lua 2>/dev/null | grep -vE '\.(bpf|host)\.lua$$')
 
 # BYTECODE=1 installs kernel Lua scripts as stripped chunks, under their .lua names
 define INSTALL_LUA
@@ -264,7 +265,7 @@ tests_install:
 	${INSTALL} -m 0644 tests/tc/Makefile tests/tc/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/tc
 	${INSTALL} -m 0644 tests/scx/Makefile tests/scx/*.bpf.c tests/scx/*.bpf.h ${LUNATIK_TESTS_INSTALL_PATH}/scx
 	${INSTALL} -m 0644 tests/fifo/Makefile tests/fifo/*.bpf.c ${LUNATIK_TESTS_INSTALL_PATH}/fifo
-	${INSTALL} -m 0644 tests/luaebpf/*.bpf.lua ${LUNATIK_TESTS_INSTALL_PATH}/luaebpf
+	${INSTALL} -m 0644 tests/luaebpf/*.bpf.lua tests/luaebpf/*.host.lua ${LUNATIK_TESTS_INSTALL_PATH}/luaebpf
 	${INSTALL} -m 0755 tools/shade.sh ${LUNATIK_TESTS_INSTALL_PATH}/darken
 	${MKDIR} ${LUNATIK_TESTS_INSTALL_PATH}/socket/unix ${SCRIPTS_INSTALL_PATH}/tests/socket/unix
 	${INSTALL} -m 0755 tests/socket/*.sh ${LUNATIK_TESTS_INSTALL_PATH}/socket
