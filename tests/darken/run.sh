@@ -105,19 +105,7 @@ cleanup() {
 trap cleanup EXIT
 cleanup
 TMP=$(mktemp -d)
-cat > "$TMP/script.lua" <<'EOF'
-local darken = require("darken")
-local level = 2
-while true do
-	local info = debug.getinfo(level, "f")
-	if info == nil then
-		return "shaded"
-	elseif info.func == darken.load or info.func == darken.run then
-		return "nested"
-	end
-	level = level + 1
-end
-EOF
+cp "$SCRIPTS/shade_plain.lua" "$TMP/script.lua"
 
 shade() {
 	local name="${1:-script}" secret
