@@ -67,20 +67,9 @@ verdict=$(luaebpf_verdict scripts)
 [ "$verdict" = "$SENTINEL" ] || fail "luaebpf: the program returned '$verdict', not the PASS $dir gives"
 ktap_pass "luaebpf: the body requires the kernel scripts from the directory --scripts names"
 
-output=$(cd "$LUAEBPF_WORK" && lua5.5 - "$LUAEBPF_SRC/scripts.bpf.lua" "$dir" "$broken" \
-	"$LUAEBPF_WORK/again.bpf.o" 2>&1 <<'LUA'
-local luaebpf = require("luaebpf")
-
-local program, scripts, broken, object = table.unpack(arg)
-luaebpf.compile(program)
-local ok, err = pcall(luaebpf.compile, program, nil, broken)
-assert(not ok and err:find("module 'class' not found", 1, true),
-	"the compile of a directory lacking class gave: " .. tostring(err))
-local file = assert(io.open(object, "wb"))
-assert(file:write((luaebpf.compile(program, nil, scripts))))
-assert(file:close())
-LUA
-) || { comment "$output"; fail "luaebpf: scripts.bpf.lua did not compile again in one process"; }
+output=$(cd "$LUAEBPF_WORK" && lua5.5 "$LUAEBPF_SRC/recompile.host.lua" "$LUAEBPF_SRC/scripts.bpf.lua" "$dir" \
+	"$broken" "$LUAEBPF_WORK/again.bpf.o" 2>&1) \
+	|| { comment "$output"; fail "luaebpf: scripts.bpf.lua did not compile again in one process"; }
 [ "$(found)" = "@$dir/class/init.lua" ] \
 	|| fail "luaebpf: the third compile in one process reads class from $(found), not $dir"
 cmp -s "$LUAEBPF_WORK/again.bpf.o" "$LUAEBPF_WORK/scripts.bpf.o" \
