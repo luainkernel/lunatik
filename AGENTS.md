@@ -1,18 +1,13 @@
 # Working on Lunatik
 
-Conventions for contributors, and for AI coding assistants working on this repository. If you are
-using an assistant that reads a project file automatically (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`),
-point it here. What Lunatik shares with luaebpf is the harness mounted at `harness/`
-(luainkernel/harness): `harness/AGENTS.md`, which binds here as this file does, its rules, skills and
-agents, and the scripts under `harness/tools/`, where a path that file names under `tools/`, `.agents/`
-or `.claude/` lies. This file holds what speaks of Lunatik alone, under the section names that file
-uses.
+This file holds what speaks of Lunatik alone, under the section names of `harness/AGENTS.md`, which
+binds here as this file does: the harness Lunatik shares with luaebpf, mounted at `harness/` with its
+rules, skills and checks.
 
-Lunatik runs Lua inside the Linux kernel. A mistake here does not raise an exception, it panics a
-machine. Two rules follow from that and outrank everything else in this document:
+Two rules outrank everything else in this document:
 
-1. **Verify, do not assume.** How the kernel behaves is read in its source, as `harness/AGENTS.md`
-   states the rule in full. How the Lua the kernel runs behaves is read the same way, in the `_KERNEL`
+1. **Verify, do not assume**, as `harness/AGENTS.md` states it. How the Lua the kernel runs behaves
+   is read the same way, in the `_KERNEL`
    arms of `lua/` and in `lunatik_conf.h`, never in upstream Lua's defaults: #2556 was filed on how
    upstream Lua converts a float, a value the kernel's Lua cannot hold.
 2. **Know your execution context.** Code that may sleep must not run from softirq or hardirq context.
@@ -35,13 +30,11 @@ machine. Two rules follow from that and outrank everything else in this document
 | `bin/` | the host side: the CLI, `bin/lunatik`, which talks to the kernel through `/dev/lunatik`, and what it builds or loads, installed where the host finds it |
 | `tests/` | KTAP integration tests, one directory per suite |
 | `examples/` | example kernel scripts |
-| `tools/` | Lunatik's own maintenance scripts, and its own mechanical convention checks in `tools/checks/`; the shared ones are under `harness/tools/` |
-| `harness/` | the harness Lunatik shares with luaebpf (luainkernel/harness), mounted as a submodule: the conventions of `harness/AGENTS.md`, its rules, skills, agents, guards and checks, and the tools of the host both run their suites on; it runs on the host, in a session and in CI, and installs nowhere |
+| `tools/` | Lunatik's own maintenance scripts, and its checks in `tools/checks/`, which `.agents/rules/lunatik-checks.md` describes |
+| `harness/` | the harness (luainkernel/harness), a submodule; it runs on the host, in a session and in CI, and installs nowhere |
 | `luaebpf/` | the Lua to eBPF compiler (luainkernel/luaebpf), mounted as a submodule and built and installed by this tree's Makefile: a package of the CLI's Lua installed under the host's `LUA_PATH` as `luaebpf/`, and `luaebpf.loader`, the C module over libbpf that loads, attaches and pins what it writes, installed under `LUA_CPATH`; its `lib/` holds the modules a program file's body requires to declare what the object carries, `bpf.xdp` among them, and one named as a kernel module is that module's compile-time twin; the site builds its guide pages, `luaebpf/doc/guide/`, and a change to it is a pull request of luaebpf, which reaches Lunatik as one that moves the mount |
-| `.agents/skills/` | Lunatik's own workflows packaged as agent skills (open `SKILL.md` format): its host cycle, a new binding, a new test suite |
-| `.agents/rules/` | Lunatik's own rules for a kind of file, loaded by the paths each one names |
-| `.agents/harness.conf` | what the shared scripts of `harness/` read of Lunatik's tree, the keys `harness/tools/checks/project.sh` names |
-| `.claude/` | Claude Code's wiring of the guards, the checks, the skills, the agents and the rules of both trees, with no logic of its own (see `harness/AGENTS.md`, *Skills*) |
+| `.agents/` | Lunatik's own skills, its host cycle (lunatik-cycle), a new binding and a new test suite, its rules for a kind of file, and the `harness.conf` the mount's scripts read |
+| `.claude/` | Claude Code's wiring of both trees, which runs Lunatik's own guards, `crash-guard.sh`, `example-guard.sh` and `consumers-guard.sh` |
 | `.github/` | the CI workflows |
 | `doc/` | all documentation: the guide pages (`doc/guide/`), the hand written C API reference (`doc/capi.md`), design notes (`doc/design/`), the site's style (`doc/style/`), and generated LDoc output (everything else, gitignored) |
 | `doc/design/` | design notes for work in progress: gap analysis, proposed APIs, verified kernel references, test strategy |
@@ -91,19 +84,6 @@ copy made by mistake.
 Use `sudo make install`, not the partial `*_install` targets. Use `sudo lunatik reload`, never
 `rmmod`: the CLI knows the dependency order and unloads cleanly. What the shared host does to a cycle,
 a module that will not unload, a wedged device, a stale install, is the lunatik-cycle skill's.
-
-### Checks
-
-Lunatik's own checks are in `tools/checks/`, and `.agents/rules/lunatik-checks.md` says what each one
-reads, the mistake it is for and the guard it backs; the shared ones are the mount's, which
-`harness/.agents/rules/checks.md` describes.
-
-### Skills
-
-Lunatik's own skills are its host cycle (lunatik-cycle), a new binding and a new test suite, in
-`.agents/skills/`. `.claude/skills/`, `.claude/agents/` and `.claude/rules/` link to the skills, agents
-and rules of both trees file by file, and `.claude/settings.json` runs the mount's hooks under
-`harness/` beside Lunatik's own guards, `crash-guard.sh`, `example-guard.sh` and `consumers-guard.sh`.
 
 ### Running a script
 
@@ -203,7 +183,7 @@ line each keeper has for each. An earlier push of #2099 read `nf_queue` and the 
 for the device alone and dropped the copy's route, as `ip_frag_queue` does, where those two force it
 with `skb_dst_force`, as the merged one does.
 
-Code another project wrote is reused, not copied (`harness/AGENTS.md`): what the Lua of `lua/` compiles
+Of code another project wrote, what the Lua of `lua/` compiles
 is exported from the Lunatik side, as `lunatik_core.c` exports `luaS_hash` for `luarcu`, what klibc
 offers is linked, as `Kbuild` links its division helpers into `lunatik.ko`, and what neither offers is
 written over the kernel's primitives. `tools/checks/copied.sh` names a function a change adds that
@@ -292,8 +272,6 @@ links.
   `tools/checks/bundled.sh` names a branch that carries both, and the Checks workflow fails it.
 
 ## Before opening a pull request
-
-Beside what `harness/AGENTS.md` asks here:
 
 1. `make` is clean, with no new warnings, and a change that touches a `__percpu` pointer, or any
    other address-space annotated one, is clean under `make C=1` too: sparse models the annotation as
