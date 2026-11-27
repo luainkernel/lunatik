@@ -46,15 +46,20 @@ static void lunatik_finalize(struct work_struct *work)
 
 static DECLARE_WORK(lunatik_deferwork, lunatik_finalize);
 
-static void lunatik_deferirq(struct irq_work *irq)
+static inline void lunatik_queuefinalize(void)
 {
 	queue_work(lunatik_wq, &lunatik_deferwork);
+}
+
+static void lunatik_deferirq(struct irq_work *irq)
+{
+	lunatik_queuefinalize();
 }
 
 /* what a CPU deferred going offline queued no irq_work */
 static int lunatik_deferdead(unsigned int cpu)
 {
-	queue_work(lunatik_wq, &lunatik_deferwork);
+	lunatik_queuefinalize();
 	return 0;
 }
 
@@ -96,7 +101,7 @@ void lunatik_cleanupdefer(void)
 	/* lunatik_deferirq may not have run yet, and it queues on the workqueue destroyed below */
 	lunatik_foreachdeferirq(irq_work_sync);
 	/* what a CPU deferred before it came online queued no irq_work */
-	queue_work(lunatik_wq, &lunatik_deferwork);
+	lunatik_queuefinalize();
 	destroy_workqueue(lunatik_wq);
 }
 
