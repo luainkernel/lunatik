@@ -75,7 +75,7 @@ do {										\
 		op(&per_cpu_ptr(&lunatik_deferlist, cpu)->irq, ## __VA_ARGS__);	\
 } while (0)
 
-/* a CPU that is not online defers with no irq_work: its list is taken once it is dead, and once it is online */
+/* a CPU that is not online defers with no irq_work, so its list would wait for another CPU's deferral */
 static int lunatik_deferhotplug(unsigned int cpu)
 {
 	lunatik_queuefinalize();
