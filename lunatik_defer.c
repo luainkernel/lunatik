@@ -13,7 +13,6 @@
 #include "lunatik_defer.h"
 
 struct workqueue_struct *lunatik_wq;
-static int lunatik_deferstate;
 
 typedef struct lunatik_deferlist_s {
 	struct llist_head items;
@@ -56,13 +55,6 @@ static void lunatik_deferirq(struct irq_work *irq)
 	lunatik_queuefinalize();
 }
 
-/* what a CPU deferred going offline queued no irq_work */
-static int lunatik_deferdead(unsigned int cpu)
-{
-	lunatik_queuefinalize();
-	return 0;
-}
-
 /* an offline CPU takes no interrupt, so an irq_work queued there stays pending and irq_work_sync spins on it */
 #define lunatik_isonline()	cpu_online(smp_processor_id())
 
@@ -83,27 +75,53 @@ do {										\
 		op(&per_cpu_ptr(&lunatik_deferlist, cpu)->irq, ## __VA_ARGS__);	\
 } while (0)
 
+/* a CPU that is not online defers with no irq_work: its list is taken once it is dead, and once it is online */
+static int lunatik_deferhotplug(unsigned int cpu)
+{
+	lunatik_queuefinalize();
+	return 0;
+}
+
+static int lunatik_deadstate, lunatik_onlinestate;
+
+static int lunatik_setuphotplug(void)
+{
+	lunatik_deadstate = cpuhp_setup_state_nocalls(CPUHP_BP_PREPARE_DYN, "lunatik:dead", NULL, lunatik_deferhotplug);
+	if (lunatik_deadstate < 0)
+		return lunatik_deadstate;
+
+	lunatik_onlinestate = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN, "lunatik:online", lunatik_deferhotplug, NULL);
+	if (lunatik_onlinestate < 0) {
+		cpuhp_remove_state_nocalls(lunatik_deadstate);
+		return lunatik_onlinestate;
+	}
+	return 0;
+}
+
+static void lunatik_cleanuphotplug(void)
+{
+	cpuhp_remove_state_nocalls(lunatik_onlinestate);
+	cpuhp_remove_state_nocalls(lunatik_deadstate);
+}
+
 int lunatik_setupdefer(void)
 {
 	lunatik_initdeferlist();
 	lunatik_wq = alloc_workqueue("lunatik", WQ_UNBOUND, 0);
 	if (lunatik_wq == NULL)
 		return -ENOMEM;
-	lunatik_deferstate = cpuhp_setup_state_nocalls(CPUHP_BP_PREPARE_DYN, "lunatik:dead", NULL, lunatik_deferdead);
-	if (lunatik_deferstate < 0) {
+
+	int ret = lunatik_setuphotplug();
+	if (ret < 0)
 		destroy_workqueue(lunatik_wq);
-		return lunatik_deferstate;
-	}
-	return 0;
+	return ret;
 }
 
 void lunatik_cleanupdefer(void)
 {
-	cpuhp_remove_state_nocalls(lunatik_deferstate);
+	lunatik_cleanuphotplug();
 	/* lunatik_deferirq may not have run yet, and it queues on the workqueue destroyed below */
 	lunatik_foreachdeferirq(irq_work_sync);
-	/* what a CPU deferred before it came online queued no irq_work */
-	lunatik_queuefinalize();
 	destroy_workqueue(lunatik_wq);
 }
 
