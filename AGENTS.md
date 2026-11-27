@@ -264,7 +264,7 @@ links.
 ## Patches and commits
 
 * A C binding of `lib/` and a move of the compiler's mount, `luaebpf/`, are two pull requests, each one
-  mechanism (`harness/AGENTS.md`), the binding's first and the move stacked on it, even where the compiler
+  mechanism (`harness/CONVENTIONS.md`), the binding's first and the move stacked on it, even where the compiler
   reads what the binding adds: #2235
   carried `skb:data()`'s read of a non-linear skb, in `lib/luadata.c`, `lib/luaskb.c` and `lib/luatc.c`,
   under the compiler's TC read, and the maintainer asked "why we need all these changes on luadata and
