@@ -51,18 +51,7 @@ verdict=$(luaebpf_verdict drop)
 [ "$verdict" = "1" ] || fail "luaebpf: the DROP program returned '$verdict'"
 ktap_pass "luaebpf: prog run returns the verdict the function returns"
 
-cat > "$LUAEBPF_WORK/nilverdict.bpf.lua" <<'LUA'
-local xdp    = require("bpf.xdp")
-local action = require("linux.xdp").action
-
-xdp.program(function(_)
-	return
-end, {name = "none", default = action.DROP})
-
-return xdp.program(function(_)
-	return nil
-end, {name = "explicit", default = action.DROP})
-LUA
+cp "$LUAEBPF_SRC/nilverdict.bpf.lua" "$LUAEBPF_WORK/"
 output=$(cd "$LUAEBPF_WORK" && lunatik bpf "$LUAEBPF_WORK/nilverdict.bpf.lua" 2>&1) \
 	&& output=$(bpftool prog loadall "$LUAEBPF_WORK/nilverdict.bpf.o" "$LUAEBPF_PINS" type xdp 2>&1) \
 	|| { comment "$output"; fail "luaebpf: the programs returning nil did not compile and load"; }

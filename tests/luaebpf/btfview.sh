@@ -275,22 +275,7 @@ ktap_pass "luaebpf: views of iphdr and tcphdr read each packet's version, ihl, p
 crossing "$LUAEBPF_WORK/crossing.btf" \
 	&& bpftool btf dump file "$LUAEBPF_WORK/crossing.btf" format raw | grep -q "'uncovered' .*bitfield_size=30" \
 	|| fail "luaebpf: the BTF of a struct of crossing bitfields could not be written"
-cat > "$LUAEBPF_WORK/crossing.bpf.lua" <<'LUA'
-require("luaebpf.emit").bigendian = false
-
-local vmlinux = require("bpf.vmlinux")
-local xdp     = require("bpf.xdp")
-local action  = require("linux.xdp").action
-
-local out = assert(io.open("crossing.txt", "w"))
-for _, field in ipairs(vmlinux.layout("crossing").bitfields) do
-	out:write(field.name, " ", field.offset, " ", field.size, " ", tostring(field.signed), " ", field.shift, " ",
-		field.mask, "\n")
-end
-out:close()
-
-return xdp.program(function(_) return action.PASS end, {default = action.PASS})
-LUA
+cp "$LUAEBPF_SRC/crossing.bpf.lua" "$LUAEBPF_WORK/"
 output=$(luaebpf_written crossing --btf="$LUAEBPF_WORK/crossing.btf" 2>&1) \
 	|| { comment "$output"; fail "luaebpf: crossing.bpf.lua did not compile over the BTF the case wrote"; }
 crossed=$'narrow 0 4 false 0 15\nnegative 0 4 true 4 15\nwide 0 8 false 20 1048575'

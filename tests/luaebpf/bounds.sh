@@ -58,16 +58,7 @@ output=$(luaebpf_differential) || { comment "$output"; fail "luaebpf: a bounds r
 ktap_pass "luaebpf: every out-of-bounds read returns the error verdict of its program's type"
 
 # a program file named in UTF-8, whose line logs the bytes of its path
-cat > "$LUAEBPF_WORK/ação.bpf.lua" <<'LUA'
-local xdp = require("bpf.xdp")
-local action = require("linux.xdp").action
-
-return xdp.program(function(ctx)
-	local p = ctx:packet()
-	local v = p:getbyte(#p)
-	return action.PASS
-end, {name = "acao", default = action.PASS})
-LUA
+cp "$LUAEBPF_SRC/ação.bpf.lua" "$LUAEBPF_WORK/"
 
 # the line the read past the end of ação.bpf.lua logs, the corpus's pins removed first, since the map
 # its errors count in takes the name of the corpus's
@@ -75,7 +66,7 @@ named() {
 	luaebpf_written ação > /dev/null 2>&1 || { echo "ação.bpf.lua did not compile"; return; }
 	rm -rf "$LUAEBPF_PINS"; mkdir -p "$LUAEBPF_PINS"
 	luaebpf_loadall ação > /dev/null || { echo "ação.bpf.o did not verify"; return; }
-	luaebpf_logs acao "$LUAEBPF_WORK/ação.bpf.lua:6: $BOUNDS"
+	luaebpf_logs acao "$LUAEBPF_WORK/ação.bpf.lua:12: $BOUNDS"
 }
 
 luaebpf_logcase "a read out of bounds logs a path past ASCII as it is" named

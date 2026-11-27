@@ -153,34 +153,7 @@ row method 15 "a runtime has no method 'call'; write 'words:run(...)'" \
 
 # one runtime, two program types: a kfunc read off the runtime rather than the program would name
 # one kfunc for both, and one of the programs would call the other module's kfunc
-cat > "$LUAEBPF_WORK/shared.bpf.lua" <<LUA
-local xdp     = require("bpf.xdp")
-local tc      = require("bpf.tc")
-local lunatik = require("lunatik")
-local action  = require("linux.xdp").action
-local tcact   = require("linux.tc").action
-
-local words = lunatik.runtime("$SCRIPT")
-
-local function ingress(_)
-	local verdict = words:run(1)
-	if verdict then
-		return verdict
-	end
-	return 2
-end
-
-local function classify(_)
-	local verdict = words:run(1)
-	if verdict then
-		return verdict
-	end
-	return 0
-end
-
-xdp.program(ingress, {name = "ingress", default = action.PASS})
-tc.program(classify, {name = "classify", default = tcact.OK})
-LUA
+cp "$LUAEBPF_SRC/shared.bpf.lua" "$LUAEBPF_WORK/"
 output=$(luaebpf_written shared 2>&1) || { comment "$output"; fail "luaebpf: shared.bpf.lua did not compile"; }
 dump=$(bpftool btf dump file "$LUAEBPF_WORK/shared.bpf.o" format raw 2>&1)
 missing=
@@ -191,27 +164,7 @@ done
 ktap_pass "luaebpf: a runtime called from both program types lowers to each program's own kfunc"
 
 # a function under the kfunc's name: one symbol for both would relocate its call against the kfunc
-cat > "$LUAEBPF_WORK/samename.bpf.lua" <<LUA
-local xdp     = require("bpf.xdp")
-local lunatik = require("lunatik")
-local action  = require("linux.xdp").action
-
-local words = lunatik.runtime("$SCRIPT")
-
-local function bpf_luaxdp_run(n)
-	return n + 1
-end
-
-return xdp.program(function(ctx)
-	local queue = ctx:queue()
-	local argument = bpf_luaxdp_run(queue)
-	local verdict = words:run(argument)
-	if verdict then
-		return verdict
-	end
-	return 2
-end, {name = "samename", default = action.PASS})
-LUA
+cp "$LUAEBPF_SRC/samename.bpf.lua" "$LUAEBPF_WORK/"
 output=$(luaebpf_written samename 2>&1) || { comment "$output"; fail "luaebpf: samename.bpf.lua did not compile"; }
 dump=$(bpftool btf dump file "$LUAEBPF_WORK/samename.bpf.o" format raw 2>&1)
 [ "$(grep -c "FUNC 'bpf_luaxdp_run' " <<< "$dump")" -eq 1 ] \
