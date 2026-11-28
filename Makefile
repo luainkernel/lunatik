@@ -121,7 +121,6 @@ ${LOADER}: luaebpf/loader.c $(wildcard lua/*.h)
 clean:
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${CURDIR} clean
 	${MAKE} -C ${MODULES_BUILD_PATH} M=${CURDIR}/autogen clean
-	${MAKE} -C examples/filter clean
 	${RM} lunatik_sym.h lunatik_prefix.h ${LUNATIC} ${LOADER}
 	${RM} -r ${LUAEBPF_BYTECODE}
 	${RM} -r lib/linux
@@ -214,13 +213,11 @@ scripts_uninstall:
 SCHED_EXT := $(wildcard /sys/kernel/sched_ext)
 
 ebpf:
-	${MAKE} -C examples/filter
 	${MAKE} -C examples/sniclassify
 	$(if ${SCHED_EXT},${MAKE} -C examples/workload)
 
 ebpf_install:
 	${MKDIR} ${LUNATIK_EBPF_INSTALL_PATH}
-	${INSTALL} -m 0644 examples/filter/https.o ${LUNATIK_EBPF_INSTALL_PATH}/
 	${INSTALL} -m 0644 examples/sniclassify/classify.o ${LUNATIK_EBPF_INSTALL_PATH}/
 	$(if ${SCHED_EXT},${INSTALL} -m 0644 examples/workload/scheduler.o ${LUNATIK_EBPF_INSTALL_PATH}/)
 
@@ -231,8 +228,10 @@ EXAMPLE_DIRS := $(patsubst examples/%/,%,$(wildcard examples/*/))
 
 examples_install:
 	${RM} -r ${SCRIPTS_INSTALL_PATH}/examples ${LUAEBPF_OBJECTS_INSTALL_PATH}/examples
-	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples
-	for d in $(EXAMPLE_DIRS); do \
+	${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/common
+	# source whatever BYTECODE says: a program file calls its functions, which the compiler reads in no stripped chunk
+	${INSTALL} -m 0644 examples/common/*.lua ${SCRIPTS_INSTALL_PATH}/examples/common
+	for d in $(filter-out common,$(EXAMPLE_DIRS)); do \
 		${MKDIR} ${SCRIPTS_INSTALL_PATH}/examples/$$d; \
 		lua=$(call LUA_SCRIPTS,examples/$$d); \
 		$(call INSTALL_LUA,$$lua,${SCRIPTS_INSTALL_PATH}/examples/$$d); \

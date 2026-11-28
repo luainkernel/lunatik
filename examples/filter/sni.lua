@@ -21,12 +21,8 @@ local function log(host, verdict)
 	print(string.format("filter_sni: %s %s", host:gsub("%c", "?"), verdict))
 end
 
-local function offset(argument)
-	return argument:getbyte(0) << 8 | argument:getbyte(1)
-end
-
 local function filter_sni(ctx)
-	local host = sni(ctx:packet(), offset(ctx:argument()))
+	local host = sni(ctx:packet(), ctx:argument():getint64(0))
 	if host then
 		local verdict = blacklist[host] and "DROP" or "PASS"
 		log(host, verdict)

@@ -1708,6 +1708,20 @@ publishes no BTF for the module whose kfunc its programs call.
   order it met them, over two programs of one file, and nothing for a program
   file with no call.
 
+The example case runs an example of the tree as its README does, with the
+object `make install` compiled from its program file.
+
+- **example_filter**: `examples/filter`, run by `lunatik run
+  --context=softirq --percpu --dev=` on the host's end of a veth pair whose
+  peer sits in a namespace of the case's own, where `curl` connects to a
+  listener on the host's end. A ClientHello naming another host than
+  `ebpf.io` reaches the listener and is logged PASS; one naming `ebpf.io`
+  does not, though its connection does, and is logged DROP. The stop leaves
+  no program on the device, no runtime and no pin root. Skips where the
+  object is not installed, where `luaxdp` publishes no BTF and without `socat`
+  or `curl`, and the two ClientHellos where something already listens on port
+  443.
+
 ### monitor
 
 Regression tests for `lunatik_monitor` (spinlock + GC interaction, the gfp its caller
